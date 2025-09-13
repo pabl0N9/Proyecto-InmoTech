@@ -13,9 +13,8 @@ import AboutPage from './features/about/pages/AboutPage'
 import ServicesPage from './features/services/pages/ServicesPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
-import DashboardPage from './features/properties/pages/DashboardPage'
-import AdminIndexPage from './features/properties/pages/AdminIndexPage'
-import AdminDashboardPage from './features/properties/pages/AdminDashboardPage'
+import DashboardPage from './features/dashboard/DashboardPage'
+
 
 function App() {
   return (
@@ -85,9 +84,7 @@ function App() {
         {/* Dashboard routes without navbar/footer */}
         <Route path="/dashboard" element={<DashboardPage />} />
 
-        {/* Admin routes without navbar/footer */}
-        <Route path="/admin" element={<AdminIndexPage />} />
-        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+
       </Routes>
       <Toaster />
     </div>
