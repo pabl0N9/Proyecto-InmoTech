@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MdMenu, MdClose } from 'react-icons/md';
 import SidebarItem from './SidebarItem';
@@ -38,6 +38,20 @@ const Sidebar = ({
       }
     }
   };
+
+  const navRef = useRef(null);
+  const prevExpandedItem = useRef(null);
+
+  useEffect(() => {
+    if (navRef.current) {
+      if (expandedItem === 'seguridad' && prevExpandedItem.current !== 'seguridad') {
+        navRef.current.scrollTo({ top: navRef.current.scrollHeight, behavior: 'smooth' });
+      } else if (expandedItem !== 'seguridad' && prevExpandedItem.current === 'seguridad') {
+        navRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+    prevExpandedItem.current = expandedItem;
+  }, [expandedItem]);
 
   const handleGoToSiteClick = () => {
     if (onGoToSite) {
@@ -111,8 +125,8 @@ const Sidebar = ({
       </AnimatePresence>
 
       {/* Navegación */}
-      <div className="flex-1 py-6 overflow-y-auto overflow-x-hidden custom-scrollbar">
-        <nav className="space-y-2">
+      <div ref={navRef} className={`flex-1 py-4 ${expandedItem === 'seguridad' ? 'overflow-y-auto' : 'overflow-y-hidden'} overflow-x-hidden custom-scrollbar`}>
+        <nav className="space-y-1">
           {navigationItems.map((item) => (
             <SidebarItem
               key={item.id}
