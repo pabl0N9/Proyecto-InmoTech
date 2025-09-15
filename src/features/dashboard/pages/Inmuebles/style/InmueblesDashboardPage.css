@@ -28,6 +28,19 @@
   align-items: center;
 }
 
+.search-container {
+  margin-top: 8px;
+}
+
+.search-input {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  width: 250px;
+  color: #000000;
+}
+
 .header-content {
   flex: 1;
 }
@@ -93,6 +106,10 @@
   display: flex;
   gap: 8px;
   justify-content: center;
+}
+
+.actions-cell {
+  text-align: center;
 }
 
 .btn-action {

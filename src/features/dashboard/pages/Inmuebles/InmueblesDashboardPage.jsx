@@ -30,6 +30,8 @@ export default function InmueblesPage() {
     },
   ]);
 
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [showForm, setShowForm] = useState(false);
 
   const posiblesEstados = [
@@ -72,6 +74,18 @@ export default function InmueblesPage() {
     }
   };
 
+  const filteredInmuebles = inmuebles.filter((inmueble) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      inmueble.registro.toLowerCase().includes(query) ||
+      inmueble.direccion.toLowerCase().includes(query) ||
+      inmueble.propietario.toLowerCase().includes(query) ||
+      inmueble.tipo.toLowerCase().includes(query) ||
+      inmueble.operacion.toLowerCase().includes(query) ||
+      inmueble.estado.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="dashboard-container">
       <div className="dashboard-main">
@@ -79,6 +93,15 @@ export default function InmueblesPage() {
           <div className="header-content">
             <h1>Gestión de Inmuebles</h1>
             <p>Bienvenido al panel de control de inmuebles</p>
+            <div className="search-container">
+              <input
+                type="text"
+                placeholder="Buscar inmuebles..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-input"
+              />
+            </div>
           </div>
           <button className="btn-primary" onClick={() => setShowForm(!showForm)} style={{backgroundColor: '#9333EA', color: 'white'}}>
             + Nuevo Inmueble
@@ -150,7 +173,7 @@ export default function InmueblesPage() {
                 </tr>
               </thead>
               <tbody>
-                {inmuebles.map((inmueble) => (
+                {filteredInmuebles.map((inmueble) => (
                   <tr key={inmueble.id}>
                     <td>#{inmueble.id}</td>
                     <td>{inmueble.registro}</td>
@@ -172,28 +195,37 @@ export default function InmueblesPage() {
                         ))}
                       </select>
                     </td>
-                    <td>
+                    <td className="actions-cell">
                       <div className="action-buttons">
                         <button
                           className="btn-action btn-view"
                           onClick={() => viewInmueble(inmueble.id)}
                           title="Visualizar"
                         >
-                          👁️
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+                          </svg>
                         </button>
                         <button
                           className="btn-action btn-edit"
                           onClick={() => editInmueble(inmueble.id)}
                           title="Editar"
                         >
-                          ✏️
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
                         </button>
                         <button
                           className="btn-action btn-owner"
                           onClick={() => viewPropietario(inmueble.id)}
                           title="Ver Propietario"
                         >
-                          👤
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+                          </svg>
                         </button>
                       </div>
                     </td>
