@@ -16,6 +16,10 @@ import RegisterPage from './features/auth/pages/RegisterPage'
 import DashboardPage from './features/properties/pages/DashboardPage'
 import AdminIndexPage from './features/properties/pages/AdminIndexPage'
 import AdminDashboardPage from './features/properties/pages/AdminDashboardPage'
+import InmueblesPage from './features/dashboard/pages/Inmuebles/InmueblesDashboardPage'
+
+
+
 
 function App() {
   return (
@@ -88,7 +92,10 @@ function App() {
         {/* Admin routes without navbar/footer */}
         <Route path="/admin" element={<AdminIndexPage />} />
         <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-      </Routes>
+
+        {/* Inmuebles Dashboard routes */}
+        <Route path="/dashboard/inmuebles" element={<InmueblesPage />} />
+      </Routes> 
       <Toaster />
     </div>
   )
