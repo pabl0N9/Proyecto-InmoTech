@@ -16,7 +16,7 @@ const SidebarItem = ({ item, isCollapsed, isExpanded, isActive, activeSubItem, o
         whileTap={{ scale: 0.98 }}
         onClick={() => onItemClick(item)}
         className={`
-          flex items-center justify-between px-4 py-3 mx-2 rounded-xl cursor-pointer transition-all duration-300 group relative overflow-hidden
+          flex items-center justify-between px-4 py-2 mx-2 rounded-xl cursor-pointer transition-all duration-300 group relative overflow-hidden
           ${
             isActive
               ? "bg-gradient-to-r from-blue-600/20 via-blue-500/15 to-cyan-500/10 text-white border border-blue-400/40 shadow-lg shadow-blue-500/20"
