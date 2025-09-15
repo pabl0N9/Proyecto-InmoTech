@@ -16,7 +16,7 @@ const SidebarItem = ({ item, isCollapsed, isExpanded, isActive, activeSubItem, o
         whileTap={{ scale: 0.98 }}
         onClick={() => onItemClick(item)}
         className={`
-          flex items-center justify-between px-4 py-2 mx-2 rounded-xl cursor-pointer transition-all duration-300 group relative overflow-hidden
+          flex items-center justify-between px-4 py-1 md:py-2 mx-2 rounded-xl cursor-pointer transition-all duration-300 group relative overflow-hidden
           ${
             isActive
               ? "bg-gradient-to-r from-blue-600/20 via-blue-500/15 to-cyan-500/10 text-white border border-blue-400/40 shadow-lg shadow-blue-500/20"
@@ -50,7 +50,7 @@ const SidebarItem = ({ item, isCollapsed, isExpanded, isActive, activeSubItem, o
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
-                className="ml-3 font-medium text-sm relative z-10"
+                className="ml-2 md:ml-3 font-medium text-sm relative z-10"
               >
                 {item.title}
               </motion.span>
@@ -90,7 +90,7 @@ const SidebarItem = ({ item, isCollapsed, isExpanded, isActive, activeSubItem, o
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="ml-4 mt-2 space-y-1.5 relative"
+            className="ml-4 mt-2 space-y-1 md:space-y-1.5 relative"
           >
             {/* Barra lateral izquierda para indicar sección expandida */}
             <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400/60 via-blue-300/40 to-transparent rounded-full" />
@@ -108,7 +108,7 @@ const SidebarItem = ({ item, isCollapsed, isExpanded, isActive, activeSubItem, o
                 whileTap={{ scale: 0.98 }}
                 onClick={() => onSubItemClick(subItem.id)}
                 className={`
-                  flex items-center pl-6 pr-4 py-2.5 ml-2 mr-2 rounded-lg cursor-pointer transition-all duration-300 group relative
+                  flex items-center pl-4 md:pl-6 pr-4 py-1.5 md:py-2.5 ml-2 mr-2 rounded-lg cursor-pointer transition-all duration-300 group relative
                   ${
                     activeSubItem === subItem.id
                       ? "bg-gradient-to-r from-emerald-500/15 via-emerald-400/10 to-transparent text-emerald-100 border-l-2 border-emerald-400/60 shadow-md shadow-emerald-500/10"
