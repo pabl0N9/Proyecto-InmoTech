@@ -4,7 +4,11 @@ export const routes = {
     services: '/servicios', 
     properties: '/inmuebles',
     propertyDetails: '/inmuebles/:id',
-    contact: '/contactanos'
+    contact: '/contactanos',
+
+    //Dashboard
+
+    sales: '/dashboard/ventas'
   };
   
   export const navigationLinks = [
