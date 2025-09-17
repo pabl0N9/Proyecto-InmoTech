@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const useSidebar = () => {
+  const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedItem, setExpandedItem] = useState(null);
   const [activeItem, setActiveItem] = useState('dashboard');
@@ -26,13 +28,23 @@ export const useSidebar = () => {
       setActiveItem(item.id);
       setActiveSubItem(null);
       setExpandedItem(null);
+      
+      // Navegar a la ruta si existe
+      if (item.path) {
+        navigate(item.path);
+      }
     }
-  }, [isCollapsed, toggleExpandedItem]);
+  }, [isCollapsed, toggleExpandedItem, navigate]);
 
   const handleSubItemClick = useCallback((subItem, parentId) => {
     setActiveItem(parentId);
     setActiveSubItem(subItem.id);
-  }, []);
+    
+    // Navegar a la ruta del subitem
+    if (subItem.path) {
+      navigate(subItem.path);
+    }
+  }, [navigate]);
 
   return {
     isCollapsed,

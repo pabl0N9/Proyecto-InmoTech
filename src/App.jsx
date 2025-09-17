@@ -14,6 +14,7 @@ import ServicesPage from './features/services/pages/ServicesPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
 import DashboardPage from './features/dashboard/DashboardPage'
+import Roles from './features/dashboard/pages/roles/Roles'
 
 
 function App() {
@@ -83,8 +84,16 @@ function App() {
 
         {/* Dashboard routes without navbar/footer */}
         <Route path="/dashboard" element={<DashboardPage />} />
-
-
+        <Route path="/inmuebles/gestion" element={<DashboardPage />} />
+        <Route path="/citas/clientes" element={<DashboardPage />} />
+        <Route path="/citas/gestion" element={<DashboardPage />} />
+        <Route path="/ventas/comprador" element={<DashboardPage />} />
+        <Route path="/ventas/gestion" element={<DashboardPage />} />
+        <Route path="/arriendos/arrendatario" element={<DashboardPage />} />
+        <Route path="/arriendos/gestion" element={<DashboardPage />} />
+        <Route path="/reportes/gestion" element={<DashboardPage />} />
+        <Route path="/seguridad/usuarios" element={<DashboardPage />} />
+        <Route path="/seguridad/roles" element={<Roles />}  />
       </Routes>
       <Toaster />
     </div>

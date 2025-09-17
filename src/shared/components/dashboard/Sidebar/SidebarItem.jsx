@@ -106,7 +106,7 @@ const SidebarItem = ({ item, isCollapsed, isExpanded, isActive, activeSubItem, o
                   x: 0
                 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => onSubItemClick(subItem.id)}
+                onClick={() => onSubItemClick(subItem, item.id)}
                 className={`
                   flex items-center pl-4 md:pl-6 pr-4 py-1.5 md:py-2.5 ml-2 mr-2 rounded-lg cursor-pointer transition-all duration-300 group relative
                   ${
