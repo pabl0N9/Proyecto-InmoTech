@@ -131,3 +131,12 @@
     color: hsl(var(--foreground));
   }
 }
+
+
+.logo-container {
+  position: relative;
+  width: 180px; /* Adjust width as needed */
+  height: 60px; /* Adjust height as needed */
+  margin: 0 auto; /* Center horizontally */
+  /* Add any other positioning or sizing styles you want */
+}
