@@ -8,7 +8,6 @@ export const routes = {
 
     //Dashboard
 
-    sales: '/dashboard/ventas'
   };
   
   export const navigationLinks = [

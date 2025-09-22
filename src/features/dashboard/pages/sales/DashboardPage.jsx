@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { MdTrendingUp, MdHome, MdCalendarToday, MdAttachMoney } from 'react-icons/md';
-import DashboardLayout from '../../shared/components/dashboard/Layout/DashboardLayout';
+import DashboardLayout from '../../../../shared/components/dashboard/Layout/DashboardLayout';
 
 const StatCard = ({ title, value, icon: Icon, trend, color }) => (
   <motion.div

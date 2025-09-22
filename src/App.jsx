@@ -13,9 +13,11 @@ import AboutPage from './features/about/pages/AboutPage'
 import ServicesPage from './features/services/pages/ServicesPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
-import DashboardPage from './features/properties/pages/DashboardPage'
-import AdminIndexPage from './features/properties/pages/AdminIndexPage'
-import AdminDashboardPage from './features/properties/pages/AdminDashboardPage'
+import DashboardPage from './features/dashboard/pages/sales/DashboardPage'
+import { SalesManagementPage } from './features/dashboard/pages/sales/pages/SalesManagementPage'
+import { BuyersManagementPage } from './features/dashboard/pages/sales/pages/BuyerManagementPage'
+import { LeasesManagementPage } from './features/dashboard/pages/leases/pages/LeasesManagementPage'
+import { RenantManagementPage } from './features/dashboard/pages/leases/pages/RenantManagementPage'
 
 function App() {
   return (
@@ -85,9 +87,14 @@ function App() {
         {/* Dashboard routes without navbar/footer */}
         <Route path="/dashboard" element={<DashboardPage />} />
 
-        {/* Admin routes without navbar/footer */}
-        <Route path="/admin" element={<AdminIndexPage />} />
-        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+        <Route path="/sales/salesManagement" element={<SalesManagementPage />} />
+
+        <Route path="/sales/buyersManagement" element={<BuyersManagementPage/>} />
+
+        <Route path="/leases/leasesManagement" element={<LeasesManagementPage/>}/>
+
+        <Route path="/leases/renantManagement" element={<RenantManagementPage/>}/>
+
       </Routes>
       <Toaster />
     </div>

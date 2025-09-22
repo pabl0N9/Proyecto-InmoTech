@@ -67,12 +67,12 @@ import {
         {
           id: 'gestion-comprador',
           title: 'Gestión de Comprador',
-          path: '/ventas/comprador'
+          path: '/sales/buyersManagement'
         },
         {
           id: 'gestion-ventas',
           title: 'Gestión de Ventas',
-          path: '/ventas/gestion'
+          path: '/sales/salesManagement'
         }
       ]
     },
