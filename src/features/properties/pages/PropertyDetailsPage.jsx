@@ -1,5 +1,8 @@
 import React, { useState } from "react"
 import { Link, useParams } from "react-router-dom"
+import PropertyVisitModal from "../components/PropertyVisitModal"
+import { useToast } from "@/shared/hooks/use-toast"
+import { useAppointments } from "@/shared/contexts/AppointmentContext"
 import { Button } from "@/shared/components/ui/button"
 import { Card, CardContent } from "@/shared/components/ui/card"
 import { Badge } from "@/shared/components/ui/badge"
@@ -38,10 +41,34 @@ import {
 export default function PropertyDetailPage() {
   const { id } = useParams()
   const [isFavorite, setIsFavorite] = useState(false)
+  const [isVisitModalOpen, setIsVisitModalOpen] = useState(false)
+  const { toast } = useToast()
+  const { addAppointment } = useAppointments()
 
   // Simulamos obtener los datos de la propiedad basados en el ID
   const propertyId = parseInt(id)
   const property = properties.find((p) => p.id === propertyId) || properties[0]
+
+  const handleScheduleVisit = (visitData) => {
+    const todayLocal = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD en hora local
+    const appointmentData = {
+      ...visitData,
+      servicio: 'Visita a Propiedad',
+      propiedad: property.title,
+      estado: 'programada',
+      fechaCreacion: todayLocal
+    };
+
+    addAppointment(appointmentData);
+
+    setIsVisitModalOpen(false);
+
+    toast({
+      title: "¡Visita agendada exitosamente!",
+      description: "Te contactaremos pronto para confirmar los detalles.",
+      variant: "default"
+    })
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 pb-16">
@@ -181,10 +208,11 @@ export default function PropertyDetailPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button className="flex-1 h-12 bg-[#00457B] hover:bg-[#003b69]">
-                  <Phone className="h-5 w-5 mr-2" /> Contactar agente
-                </Button>
-                <Button variant="outline" className="flex-1 h-12 border-[#00457B] text-[#00457B] hover:bg-[#00457B]/10">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 h-12 border-[#00457B] text-[#00457B] hover:bg-[#00457B]/10"
+                  onClick={() => setIsVisitModalOpen(true)}
+                >
                   <Calendar className="h-5 w-5 mr-2" /> Agendar visita
                 </Button>
               </div>
@@ -499,6 +527,14 @@ export default function PropertyDetailPage() {
           </div>
         </div>
       </section>
+
+      {/* Property Visit Modal */}
+      <PropertyVisitModal
+        isOpen={isVisitModalOpen}
+        onClose={() => setIsVisitModalOpen(false)}
+        property={property}
+        onSubmit={handleScheduleVisit}
+      />
     </main>
   )
 }

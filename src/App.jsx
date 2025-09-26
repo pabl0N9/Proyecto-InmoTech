@@ -3,6 +3,7 @@ import Navbar from './shared/components/Navbar'
 import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
 import { Toaster } from './shared/components/ui/toaster'
+import DashboardLayout from './shared/components/dashboard/Layout/DashboardLayout'
 
 // Pages
 import HomePage from './features/properties/pages/HomePage'
@@ -14,7 +15,7 @@ import ServicesPage from './features/services/pages/ServicesPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
 import DashboardPage from './features/dashboard/DashboardPage'
-
+import AppointmentPage from './features/dashboard/pages/appointment/AppointmentPage'
 
 function App() {
   return (
@@ -81,9 +82,17 @@ function App() {
           </>
         } />
 
-        {/* Dashboard routes without navbar/footer */}
-        <Route path="/dashboard" element={<DashboardPage />} />
-
+        {/* Dashboard routes with sidebar layout */}
+        <Route path="/dashboard" element={
+          <DashboardLayout>
+            <DashboardPage />
+          </DashboardLayout>
+        } />
+        <Route path="/dashboard/citas" element={
+          <DashboardLayout>
+            <AppointmentPage />
+          </DashboardLayout>
+        } />
 
       </Routes>
       <Toaster />
