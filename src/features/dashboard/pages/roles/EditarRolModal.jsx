@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from "react";
 
-const permissionActions = ["Crear", "Editar", "Eliminar", "ver"];
+const permissionActions = ["Crear", "Editar", "Eliminar", "Ver"];
 
 const permissionGroups = [
-  { key: "roles", label: "Roles" },
-  { key: "gEmpleados", label: "G Empleados" },
-  { key: "clientes", label: "Clientes" },
+  { key: "gInmuebles", label: "G Inmuebles" },
+  { key: "gClientes", label: "G Clientes" },
+  { key: "gCitas", label: "G Citas" },
+  { key: "gComprador", label: "G Comprador" },
+  { key: "gVentas", label: "G Ventas" },
+  { key: "gArrendatario", label: "G Arrendatario" },
+  { key: "gArriendos", label: "G Arriendos" },
+  { key: "gReporteInmuebles", label: "G Reporte Inmuebles" },
   { key: "usuarios", label: "Usuarios" },
-  { key: "reporteInmuebles", label: "Reporte inmuebles" },
-  { key: "inmuebles", label: "Inmuebles" },
-  { key: "citas", label: "Citas" },
+  { key: "roles", label: "Roles" },
 ];
 
 export default function EditarRolModal({ isOpen, onClose, rol, onSave }) {

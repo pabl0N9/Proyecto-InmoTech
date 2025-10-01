@@ -15,7 +15,7 @@ import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
 import DashboardPage from './features/dashboard/DashboardPage'
 import Roles from './features/dashboard/pages/roles/Roles'
-
+import Reports from './features/dashboard/pages/reports/Reports'
 
 function App() {
   return (
@@ -91,9 +91,10 @@ function App() {
         <Route path="/ventas/gestion" element={<DashboardPage />} />
         <Route path="/arriendos/arrendatario" element={<DashboardPage />} />
         <Route path="/arriendos/gestion" element={<DashboardPage />} />
-        <Route path="/reportes/gestion" element={<DashboardPage />} />
+        <Route path="/reportes/gestion" element={<Reports />} />
         <Route path="/seguridad/usuarios" element={<DashboardPage />} />
-        <Route path="/seguridad/roles" element={<Roles />}  />
+        <Route path="/seguridad/roles" element={<Roles />} />
+
       </Routes>
       <Toaster />
     </div>
