@@ -5,7 +5,7 @@ import SidebarItem from './SidebarItem';
 import { navigationItems, logoutItem, goToSiteItem } from '../../../utils/navigationData';
 import '../../../styles/globals.css';
 
-const Sidebar = ({
+const Sidebar = React.forwardRef(({
   isCollapsed,
   expandedItem,
   activeItem,
@@ -15,7 +15,7 @@ const Sidebar = ({
   onSubItemClick,
   onLogout,
   onGoToSite
-}) => {
+}, ref) => {
 
   const sidebarVariants = {
     expanded: {
@@ -61,6 +61,7 @@ const Sidebar = ({
 
   return (
     <motion.div
+      ref={ref}
       variants={sidebarVariants}
       animate={isCollapsed ? 'collapsed' : 'expanded'}
       className="relative h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50 shadow-2xl shadow-slate-900/30 flex flex-col">
@@ -206,6 +207,6 @@ const Sidebar = ({
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/30 to-transparent" />
     </motion.div>
   );
-};
+});
 
 export default Sidebar;

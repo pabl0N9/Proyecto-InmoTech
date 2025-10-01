@@ -3,6 +3,7 @@ import Navbar from './shared/components/Navbar'
 import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
 import { Toaster } from './shared/components/ui/toaster'
+import DashboardLayout from './shared/components/dashboard/Layout/DashboardLayout'
 
 // Pages
 import HomePage from './features/properties/pages/HomePage'
@@ -14,8 +15,7 @@ import ServicesPage from './features/services/pages/ServicesPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
 import DashboardPage from './features/dashboard/DashboardPage'
-import Roles from './features/dashboard/pages/roles/Roles'
-import Reports from './features/dashboard/pages/reports/Reports'
+import AppointmentPage from './features/dashboard/pages/appointment/AppointmentPage'
 
 function App() {
   return (
@@ -82,18 +82,17 @@ function App() {
           </>
         } />
 
-        {/* Dashboard routes without navbar/footer */}
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/inmuebles/gestion" element={<DashboardPage />} />
-        <Route path="/citas/clientes" element={<DashboardPage />} />
-        <Route path="/citas/gestion" element={<DashboardPage />} />
-        <Route path="/ventas/comprador" element={<DashboardPage />} />
-        <Route path="/ventas/gestion" element={<DashboardPage />} />
-        <Route path="/arriendos/arrendatario" element={<DashboardPage />} />
-        <Route path="/arriendos/gestion" element={<DashboardPage />} />
-        <Route path="/reportes/gestion" element={<Reports />} />
-        <Route path="/seguridad/usuarios" element={<DashboardPage />} />
-        <Route path="/seguridad/roles" element={<Roles />} />
+        {/* Dashboard routes with sidebar layout */}
+        <Route path="/dashboard" element={
+          <DashboardLayout>
+            <DashboardPage />
+          </DashboardLayout>
+        } />
+        <Route path="/dashboard/citas" element={
+          <DashboardLayout>
+            <AppointmentPage />
+          </DashboardLayout>
+        } />
 
       </Routes>
       <Toaster />
