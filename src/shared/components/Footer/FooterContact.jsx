@@ -23,7 +23,7 @@ const FooterContact = () => {
     {
       icon: Clock,
       title: 'Horarios',
-      content: ['Lunes - Sábado: 8:00 AM - 1:00 PM', '2:00 pm - 5:00 PM']
+      content: ['Lunes - Sábado: 8:00 am - 1:00 pm', '2:00 pm - 5:00 pm']
     }
   ];
 
