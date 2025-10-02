@@ -16,6 +16,8 @@ import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
 import DashboardPage from './features/dashboard/DashboardPage'
 import AppointmentPage from './features/dashboard/pages/appointment/AppointmentPage'
+import Reports from './features/dashboard/pages/reports/Reports'
+import Roles from './features/dashboard/pages/roles/Roles'
 
 function App() {
   return (
@@ -93,6 +95,8 @@ function App() {
             <AppointmentPage />
           </DashboardLayout>
         } />
+        <Route path="/reportes/gestion" element={<Reports />} />
+        <Route path="/seguridad/roles" element={<Roles />} />
 
       </Routes>
       <Toaster />
