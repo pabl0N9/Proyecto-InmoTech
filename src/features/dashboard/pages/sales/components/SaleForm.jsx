@@ -1,35 +1,58 @@
 import React, { useRef, useState, useCallback } from "react";
 
-// Lista de campos que deben ser obligatorios para la venta
+// Lista de campos que deben ser obligatorios para el registro
 const requiredFields = [
-    // Cliente
-    "tipoDocCliente", "numeroDocCliente", "primerNombreCliente", 
-    "primerApellidoCliente", "telefonoCliente", "correoCliente",
-    // Producto/Servicio
-    "nombreProducto", "cantidad", 
-    // Financiero
-    "precioUnitario", "metodoPago", "fechaVenta", "estadoVenta",
+    // Vendedor
+    "vendedorTipoDocumento", "vendedorDocumento", "vendedorNombreCompleto", "vendedorCorreo", "vendedorTelefono",
+    // Comprador
+    "compradorTipoDocumento", "compradorDocumento", "compradorNombreCompleto", "compradorCorreo", "compradorTelefono",
+    // Inmueble
+    "inmuebleTipo", "inmuebleRegistro", "inmuebleNombre", "inmuebleArea", "inmuebleHabitaciones", "inmuebleBanos",
+    "inmueblePais", "inmuebleDepartamento", "inmuebleCiudad", "inmuebleDireccion", "inmueblePrecio", "inmuebleEstado",
 ];
 
-// Nombres de los campos que requieren formato especial (Documento, Numérico, Moneda)
-const NUMERO_DOC_CLI = "numeroDocCliente";
+// Nombres de los campos que requieren formato especial (Documento)
+const VENDEDOR_DOC = "vendedorDocumento";
+const COMPRADOR_DOC = "compradorDocumento";
 
 export default function SalesForm({ onClose, onSubmit }) {
     const [step, setStep] = useState(1);
     // Estado para manejar los errores en línea.
     const [errors, setErrors] = useState({});
-    const totalSteps = 3; // Reducido a 3 pasos para el formulario de ventas
+    const totalSteps = 4; // Cambiado a 4 pasos para el registro de inmueble
 
+    // Variables iniciales con el modelo de datos proporcionado
     const initial = {
-        // Datos del Cliente
-        tipoDocCliente: "", numeroDocCliente: "", primerNombreCliente: "", segundoNombreCliente: "",
-        primerApellidoCliente: "", segundoApellidoCliente: "", correoCliente: "", telefonoCliente: "",
+        // Datos del Vendedor
+        vendedorTipoDocumento: "CC",
+        vendedorDocumento: "",
+        vendedorNombreCompleto: "",
+        vendedorCorreo: "",
+        vendedorTelefono: "",
 
-        // Detalles del Producto/Servicio
-        nombreProducto: "", cantidad: "", referencia: "", descripcion: "",
+        // Datos del Comprador
+        compradorTipoDocumento: "CC",
+        compradorDocumento: "",
+        compradorNombreCompleto: "",
+        compradorCorreo: "",
+        compradorTelefono: "",
 
-        // Datos Financieros y Cierre
-        precioUnitario: "", impuesto: "", metodoPago: "", fechaVenta: "", estadoVenta: "",
+        // Detalles del Inmueble
+        inmuebleTipo: "",
+        inmuebleRegistro: "",
+        inmuebleNombre: "",
+        inmuebleArea: "",
+        inmuebleHabitaciones: "",
+        inmuebleBanos: "",
+        inmueblePais: "Colombia",
+        inmuebleDepartamento: "",
+        inmuebleCiudad: "",
+        inmuebleBarrio: "",
+        inmuebleEstrato: "",
+        inmuebleDireccion: "",
+        inmueblePrecio: "", // guardamos sólo dígitos (raw)
+        inmuebleGaraje: false,
+        inmuebleEstado: "Disponible",
     };
 
     // refs para mantener TODOS los valores sin causar re-renders en cada letra
@@ -41,56 +64,79 @@ export default function SalesForm({ onClose, onSubmit }) {
 
     // Lista de campos que deben ser estrictamente numéricos (solo dígitos)
     const strictNumericFields = [
-        "cantidad", "impuesto"
+        "inmuebleArea", "inmuebleHabitaciones", "inmuebleBanos", "inmuebleEstrato"
     ];
     
-    // Campos que requieren formato de miles
-    const currencyFields = ["precioUnitario"];
+    // Campos que requieren formato de miles (moneda)
+    const currencyFields = ["inmueblePrecio"];
 
     // Campos agrupados por paso para la validación
     const stepFields = {
         1: [
-            "tipoDocCliente", NUMERO_DOC_CLI, "primerNombreCliente", "segundoNombreCliente",
-            "primerApellidoCliente", "segundoApellidoCliente", "correoCliente", "telefonoCliente",
+            "vendedorTipoDocumento", VENDEDOR_DOC, "vendedorNombreCompleto", 
+            "vendedorCorreo", "vendedorTelefono",
         ],
         2: [
-            "nombreProducto", "cantidad", "referencia", "descripcion",
+            "compradorTipoDocumento", COMPRADOR_DOC, "compradorNombreCompleto", 
+            "compradorCorreo", "compradorTelefono",
         ],
         3: [
-            "precioUnitario", "impuesto", "metodoPago", "fechaVenta", "estadoVenta"
+            "inmuebleTipo", "inmuebleRegistro", "inmuebleNombre", "inmuebleArea", 
+            "inmuebleHabitaciones", "inmuebleBanos", "inmueblePais", 
+            "inmuebleDepartamento", "inmuebleCiudad", "inmuebleBarrio", 
+            "inmuebleEstrato", "inmuebleDireccion", "inmuebleGaraje", "inmuebleEstado"
         ],
+        4: [
+            "inmueblePrecio"
+        ]
     };
 
     const getLabel = (name) => {
         const labels = {
-            tipoDocCliente: "Tipo de Documento", numeroDocCliente: "Número de Documento", primerNombreCliente: "Primer Nombre",
-            segundoNombreCliente: "Segundo Nombre", primerApellidoCliente: "Primer Apellido", segundoApellidoCliente: "Segundo Apellido",
-            correoCliente: "Correo Electrónico", telefonoCliente: "Teléfono",
+            // Vendedor
+            vendedorTipoDocumento: "Tipo Doc. Vendedor", vendedorDocumento: "Número Doc. Vendedor",
+            vendedorNombreCompleto: "Nombre Completo Vendedor", vendedorCorreo: "Correo Vendedor",
+            vendedorTelefono: "Teléfono Vendedor",
 
-            nombreProducto: "Nombre del Producto/Servicio", cantidad: "Cantidad", referencia: "Referencia/SKU",
-            descripcion: "Descripción",
+            // Comprador
+            compradorTipoDocumento: "Tipo Doc. Comprador", compradorDocumento: "Número Doc. Comprador",
+            compradorNombreCompleto: "Nombre Completo Comprador", compradorCorreo: "Correo Comprador",
+            compradorTelefono: "Teléfono Comprador",
 
-            precioUnitario: "Precio Unitario (COP)", impuesto: "Impuesto (%)", metodoPago: "Método de Pago", 
-            fechaVenta: "Fecha de Venta", estadoVenta: "Estado de la Venta",
+            // Inmueble
+            inmuebleTipo: "Tipo de Inmueble", inmuebleRegistro: "No. Registro Catastral",
+            inmuebleNombre: "Nombre/Título Comercial", inmuebleArea: "Área Total ($$m^2$$)",
+            inmuebleHabitaciones: "No. Habitaciones", inmuebleBanos: "No. Baños",
+            inmueblePais: "País", inmuebleDepartamento: "Departamento/Estado",
+            inmuebleCiudad: "Ciudad", inmuebleBarrio: "Barrio/Zona",
+            inmuebleEstrato: "Estrato Socioeconómico", inmuebleDireccion: "Dirección Completa",
+            inmueblePrecio: "Precio de Venta (COP)", inmuebleGaraje: "¿Tiene Garaje?",
+            inmuebleEstado: "Estado del Inmueble",
         };
         return labels[name] ?? name;
     };
 
     // Función para obtener la clase de estilo (incluyendo el resaltado de error)
     const getFieldClass = useCallback((fieldName) => {
-        // Mantiene el color morado como foco y el rojo para error
-        const errorClass = errors[fieldName] ? 'border-red-500 ring-2 ring-red-500' : 'border-gray-300 focus:ring-purple-500 focus:border-purple-500';
-        // Aseguramos el uso de la fuente sans-serif y esquinas redondeadas
-        return `w-full p-2 border rounded-md font-sans focus:outline-none transition duration-150 ${errorClass}`;
+        // Clase base para campos con estilo moderno y responsivo
+        // Se ha ajustado el padding p-2.5 para hacerlo más pequeño visualmente
+        const baseClass = "w-full p-2.5 border rounded-lg font-sans text-sm text-gray-700 bg-gray-50 transition duration-200 shadow-sm";
+        
+        // Aplica el foco púrpura y el error rojo
+        const errorClass = errors[fieldName] 
+            ? 'border-red-500 ring-1 ring-red-500 focus:ring-red-500 focus:border-red-500' 
+            : 'border-gray-300 focus:ring-purple-500 focus:border-purple-500';
+            
+        return `${baseClass} ${errorClass}`;
     }, [errors]);
 
     // Campos para validaciones de formato
     const nameFields = [
-        "primerNombreCliente", "segundoNombreCliente", "primerApellidoCliente", "segundoApellidoCliente",
+        "vendedorNombreCompleto", "compradorNombreCompleto",
     ];
-    const docFields = [ NUMERO_DOC_CLI ];
-    const phoneFields = [ "telefonoCliente" ];
-    const emailFields = [ "correoCliente" ];
+    const docFields = [ VENDEDOR_DOC, COMPRADOR_DOC ];
+    const phoneFields = [ "vendedorTelefono", "compradorTelefono" ];
+    const emailFields = [ "vendedorCorreo", "compradorCorreo" ];
 
     // --- UTILITY: Formatea un número con separadores de miles ---
     const formatNumberWithThousandsSeparator = (value) => {
@@ -139,7 +185,7 @@ export default function SalesForm({ onClose, onSubmit }) {
         if (type === "checkbox") {
             valuesRef.current[name] = checked;
         } else {
-            // Manejo de campos de moneda (ej: precioUnitario)
+            // Manejo de campos de moneda (ej: inmueblePrecio)
             if (currencyFields.includes(name)) {
                 cleanValue = value.replace(/[^0-9]/g, ''); // Solo dígitos
                 const formattedValue = formatNumberWithThousandsSeparator(cleanValue);
@@ -190,21 +236,19 @@ export default function SalesForm({ onClose, onSubmit }) {
             // 2. Validar formato y longitud (solo si no hay un error de obligatoriedad y el campo tiene valor)
             if (!errorMessage && value.toString().trim()) {
                 if (nameFields.includes(name) && !isValidName(value)) {
-                    errorMessage = `Solo se permiten letras.`;
+                    errorMessage = `Solo se permiten letras, espacios y acentos.`;
                 } else if (docFields.includes(name)) {
                     if (!isValidNumeric(value)) {
-                        errorMessage = `Solo se permiten números.`;
+                        errorMessage = `Solo se permiten dígitos.`;
                     } else if (value.length < minLengthDoc) {
-                        errorMessage = `Debe tener un mínimo de ${minLengthDoc} números.`;
+                        errorMessage = `Debe tener un mínimo de ${minLengthDoc} dígitos.`;
                     }
                 } else if (phoneFields.includes(name) && !isValidNumeric(value)) {
-                    errorMessage = `Solo se permiten números.`;
+                    errorMessage = `Solo se permiten dígitos.`;
                 } else if (emailFields.includes(name) && !isValidEmail(value)) {
                     errorMessage = `El correo electrónico debe contener un '@' y ser válido.`;
                 } else if (strictNumericFields.includes(name) && !isValidNumeric(value)) { 
                     errorMessage = `Solo se permiten números enteros.`;
-                } else if (name === 'impuesto' && (parseFloat(value) < 0 || parseFloat(value) > 100)) {
-                    errorMessage = `El impuesto debe ser entre 0 y 100%.`;
                 }
             }
             
@@ -240,7 +284,7 @@ export default function SalesForm({ onClose, onSubmit }) {
             // B. Validación de Obligatoriedad y > 0 para números estrictos/moneda
             if (isRequired && (strictNumericFields.includes(fieldName) || currencyFields.includes(fieldName))) {
                  if (!value.toString().trim() || parseFloat(value) <= 0 || isNaN(parseFloat(value))) {
-                     error = "Este campo es obligatorio y debe ser mayor a 0.";
+                     error = "Este campo es obligatorio y debe ser un número mayor a 0.";
                  }
             }
 
@@ -260,8 +304,6 @@ export default function SalesForm({ onClose, onSubmit }) {
                     error = `Debe contener un '@' y ser válido.`;
                 } else if (strictNumericFields.includes(fieldName) && !isValidNumeric(value)) { 
                     error = `Solo se permiten números enteros.`;
-                } else if (fieldName === 'impuesto' && value.trim() && (parseFloat(value) < 0 || parseFloat(value) > 100)) {
-                    error = `El impuesto debe ser entre 0 y 100%.`;
                 }
             }
             
@@ -316,8 +358,8 @@ export default function SalesForm({ onClose, onSubmit }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         
-        // En el envío final, validamos TODOS los campos obligatorios
-        const allFieldsToValidate = Object.values(stepFields).flat();
+        // En el envío final, validamos TODOS los campos
+        const allFieldsToValidate = requiredFields; // Solo validamos los obligatorios al final
         const { currentErrors, hasError, firstErrorField } = runValidation(allFieldsToValidate);
 
         setErrors(currentErrors);
@@ -327,6 +369,7 @@ export default function SalesForm({ onClose, onSubmit }) {
             let targetStep = 1;
             if (stepFields[2].includes(firstErrorField)) targetStep = 2;
             else if (stepFields[3].includes(firstErrorField)) targetStep = 3;
+            else if (stepFields[4].includes(firstErrorField)) targetStep = 4;
             
             setStep(targetStep);
             
@@ -344,7 +387,7 @@ export default function SalesForm({ onClose, onSubmit }) {
         const payload = { ...valuesRef.current };
         if (onSubmit) onSubmit(payload);
         onClose?.();
-        console.log("Formulario de Venta Enviado:", payload);
+        console.log("Formulario de Inmueble Enviado:", payload);
     };
 
     // Field: componente auxiliar reutilizando el estilo
@@ -359,19 +402,44 @@ export default function SalesForm({ onClose, onSubmit }) {
         const isStrictNumeric = strictNumericFields.includes(name) || currencyFields.includes(name);
         const isNameField = nameFields.includes(name);
 
-        const needsBlurValidation = isDocField || isNameField || isPhoneField || isEmailField || isRequired || isStrictNumeric || name === 'impuesto';
+        const needsBlurValidation = isDocField || isNameField || isPhoneField || isEmailField || isRequired || isStrictNumeric;
         const onBlurHandler = needsBlurValidation ? handleInputBlur : undefined;
         
         // Establecer el tipo de input para sugerir teclado numérico
         let inputType = type;
-        if ((isDocField || isPhoneField || isStrictNumeric) && type !== 'date' && type !== 'email') {
+        if ((isDocField || isPhoneField || isStrictNumeric) && type !== 'date' && type !== 'email' && type !== 'checkbox') {
             inputType = "tel";
         } else if (isEmailField) {
             inputType = "email";
         }
 
+        // Caso especial para checkbox (ej: Garaje)
+        if (type === "checkbox") {
+            return (
+                <div className="flex items-center space-x-3 h-10">
+                    <input
+                        id={name}
+                        name={name}
+                        ref={setElRef(name)}
+                        type="checkbox"
+                        className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 shadow-sm transition duration-150"
+                        onChange={handleInputChange}
+                        onBlur={onBlurHandler}
+                    />
+                    <label htmlFor={name} className="text-sm font-semibold text-gray-700 font-sans cursor-pointer">
+                        {label}
+                        {isRequired && <span className="text-red-500 ml-1">*</span>}
+                    </label>
+                    {errorMessage && (
+                        <p className="text-red-500 text-xs mt-1 font-medium absolute top-full left-0 right-0">{errorMessage}</p>
+                    )}
+                </div>
+            );
+        }
+
         const LabelContent = (
-            <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1 font-sans">
+            // Etiqueta más pequeña
+            <label htmlFor={name} className="block text-xs font-semibold text-gray-700 mb-1 font-sans">
                 {label}
                 {isRequired && <span className="text-red-500 ml-1">*</span>}
             </label>
@@ -379,7 +447,7 @@ export default function SalesForm({ onClose, onSubmit }) {
 
         if (as === "select") {
             return (
-                <div>
+                <div className="flex flex-col">
                     {LabelContent}
                     <select
                         id={name}
@@ -398,35 +466,36 @@ export default function SalesForm({ onClose, onSubmit }) {
                         ))}
                     </select>
                     {errorMessage && (
-                        <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
+                        <p className="text-red-500 text-xs mt-1 font-medium">{errorMessage}</p>
                     )}
                 </div>
             );
         }
         
         if (as === "textarea") {
+            // El textarea ocupa 2 columnas en desktop para mejor usabilidad
             return (
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2 flex flex-col">
                     {LabelContent}
                     <textarea
                         id={name}
                         name={name}
                         ref={setElRef(name)}
-                        className={getFieldClass(name) + " h-24 resize-none"} 
+                        className={`${getFieldClass(name)} h-20 resize-none`} // Altura reducida
                         placeholder={placeholder}
                         defaultValue={(displayValuesRef.current[name] || initial[name]) ?? ""} 
                         onChange={handleInputChange}
                         onBlur={onBlurHandler}
                     />
                     {errorMessage && (
-                        <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
+                        <p className="text-red-500 text-xs mt-1 font-medium">{errorMessage}</p>
                     )}
                 </div>
             );
         }
 
         return (
-            <div>
+            <div className="flex flex-col">
                 {LabelContent}
                 <input
                     id={name}
@@ -440,59 +509,60 @@ export default function SalesForm({ onClose, onSubmit }) {
                     onBlur={onBlurHandler} 
                 />
                 {errorMessage && (
-                    <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
+                    <p className="text-red-500 text-xs mt-1 font-medium">{errorMessage}</p>
                 )}
             </div>
         );
     };
 
-    // Cálculo del total
-    const precio = parseFloat(valuesRef.current.precioUnitario) || 0;
-    const cantidad = parseFloat(valuesRef.current.cantidad) || 0;
-    const subtotal = precio * cantidad;
-    const impuestoTasa = (parseFloat(valuesRef.current.impuesto) || 0) / 100;
-    const valorImpuesto = subtotal * impuestoTasa;
-    const total = subtotal + valorImpuesto;
-
-    const formattedTotal = formatNumberWithThousandsSeparator(total);
-    const formattedSubtotal = formatNumberWithThousandsSeparator(subtotal);
-    const formattedImpuesto = formatNumberWithThousandsSeparator(valorImpuesto);
+    // Formato simple para el precio final (sin cálculos complejos)
+    const formattedPrice = formatNumberWithThousandsSeparator(valuesRef.current.inmueblePrecio || 0);
 
     return (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex justify-center items-center z-50 overflow-y-auto font-sans">
-            <div className="bg-white w-full max-w-4xl rounded-xl shadow-2xl p-6 relative my-8">
-                {/* Botón de cierre: Estilo consistente */}
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-purple-600 p-2 rounded-full hover:bg-purple-50 transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+        // Contenedor principal del modal: Oscurece el fondo y centra el contenido
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-80 flex justify-center items-center p-4 z-50 overflow-y-auto font-sans">
+            {/* Contenedor del formulario: Diseño de tarjeta moderna */}
+            {/* Se ha cambiado el max-w-4xl a max-w-3xl para reducir el tamaño */}
+            <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl p-5 sm:p-6 relative my-8 transform transition-all duration-300">
+                
+                {/* Botón de cierre */}
+                <button onClick={onClose} className="absolute top-3 right-3 text-gray-500 hover:text-purple-600 p-1 rounded-full transition duration-150">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                 </button>
 
-                <h2 className="text-2xl font-bold mb-3">Registro de Venta</h2>
+                {/* Título principal más pequeño */}
+                <h2 className="text-2xl font-bold mb-3">Registro de Nuevo Inmueble</h2>
 
                 {/* Barra de progreso */}
                 <div className="mb-6">
-                    <div className="w-full bg-purple-200 h-2 rounded-full">
+                    <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
                         <div
-                            className="bg-purple-600 h-2 rounded-full transition-all duration-300 shadow-md"
+                            className="bg-purple-600 h-1.5 rounded-full transition-all duration-500 ease-in-out shadow-lg shadow-purple-400/50"
                             style={{ width: `${(step / totalSteps) * 100}%` }}
                         />
                     </div>
-                    <p className="text-sm text-purple-700 font-semibold mt-2">
+                    {/* Texto de paso más pequeño y compacto */}
+                    <p className="text-xs text-purple-700 font-bold mt-2 text-center">
                         Paso {step} de {totalSteps}:{" "}
-                        {step === 1 ? "Datos del Cliente" : step === 2 ? "Detalles del Producto" : "Cierre y Pago"}
-                        {" "} (Campos obligatorios marcados con *)
+                        <span className="font-semibold text-gray-600">
+                            {step === 1 ? "Datos del Vendedor" : 
+                             step === 2 ? "Datos del Comprador" : 
+                             step === 3 ? "Detalles de la Propiedad" : "Precio de Venta"}
+                        </span>
                     </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* PASO 1: Datos del Cliente */}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* PASO 1: Datos del Vendedor */}
                     {step === 1 && (
                         <div>
-                            <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Datos del Cliente</h3>
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                            {/* Subtítulo más discreto */}
+                            <h3 className="text-lg font-bold text-purple-700 mb-3 pb-1 border-b border-purple-100">1. Información del Vendedor</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4"> {/* Reducción de gap */}
                                 <Field
-                                    name="tipoDocCliente"
+                                    name="vendedorTipoDocumento"
                                     as="select"
                                     options={[
                                         { value: "CC", label: "Cédula de Ciudadanía (CC)" },
@@ -500,70 +570,115 @@ export default function SalesForm({ onClose, onSubmit }) {
                                         { value: "NIT", label: "NIT" },
                                     ]}
                                 />
-                                <Field name={NUMERO_DOC_CLI} placeholder="Mínimo 8 dígitos. Solo números." />
-                                <Field name="primerNombreCliente" placeholder="Primer Nombre" />
-                                <Field name="segundoNombreCliente" placeholder="Segundo Nombre (Opcional)" />
-                                <Field name="primerApellidoCliente" placeholder="Primer Apellido" />
-                                <Field name="segundoApellidoCliente" placeholder="Segundo Apellido (Opcional)" />
-                                <Field name="correoCliente" placeholder="ejemplo@dominio.com" type="email" />
-                                <Field name="telefonoCliente" placeholder="Ej: 3001234567" />
+                                <Field name={VENDEDOR_DOC} placeholder="Mínimo 8 dígitos (Solo números)" />
+                                <Field name="vendedorNombreCompleto" placeholder="Nombre completo" />
+                                <Field name="vendedorCorreo" placeholder="correo@dominio.com" type="email" />
+                                <Field name="vendedorTelefono" placeholder="Ej: 3001234567" />
                             </div>
                         </div>
                     )}
 
-                    {/* PASO 2: Detalles del Producto/Servicio */}
+                    {/* PASO 2: Datos del Comprador */}
                     {step === 2 && (
                         <div>
-                            <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Detalles del Producto/Servicio</h3>
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                                <Field name="nombreProducto" placeholder="Ej: Consultoría de Software" />
-                                <Field name="cantidad" placeholder="Solo números enteros mayores a 0." />
-                                <Field name="referencia" placeholder="Opcional. Ej: SKU-001" />
-                                <Field name="descripcion" as="textarea" placeholder="Descripción detallada del producto o servicio." />
+                            {/* Subtítulo más discreto */}
+                            <h3 className="text-lg font-bold text-purple-700 mb-3 pb-1 border-b border-purple-100">2. Información del Comprador</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4"> {/* Reducción de gap */}
+                                <Field
+                                    name="compradorTipoDocumento"
+                                    as="select"
+                                    options={[
+                                        { value: "CC", label: "Cédula de Ciudadanía (CC)" },
+                                        { value: "CE", label: "Cédula de Extranjería (CE)" },
+                                        { value: "NIT", label: "NIT" },
+                                    ]}
+                                />
+                                <Field name={COMPRADOR_DOC} placeholder="Mínimo 8 dígitos (Solo números)" />
+                                <Field name="compradorNombreCompleto" placeholder="Nombre completo" />
+                                <Field name="compradorCorreo" placeholder="correo@dominio.com" type="email" />
+                                <Field name="compradorTelefono" placeholder="Ej: 3001234567" />
                             </div>
                         </div>
                     )}
 
-                    {/* PASO 3: Cierre y Pago */}
+                    {/* PASO 3: Detalles de la Propiedad */}
                     {step === 3 && (
                         <div>
-                            <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Datos Financieros y Cierre</h3>
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-6">
-                                <Field name="precioUnitario" placeholder="Valor sin formato. Se aplicará formato de miles." />
-                                <Field name="impuesto" placeholder="0 a 100. Ej: 19 (Opcional)" />
+                            {/* Subtítulo más discreto */}
+                            <h3 className="text-lg font-bold text-purple-700 mb-3 pb-1 border-b border-purple-100">3. Detalles y Ubicación del Inmueble</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4"> {/* Reducción de gap */}
+                                {/* Propiedad */}
                                 <Field
-                                    name="metodoPago"
+                                    name="inmuebleTipo"
                                     as="select"
                                     options={[
-                                        { value: "Transferencia", label: "Transferencia Bancaria" },
-                                        { value: "Efectivo", label: "Efectivo" },
-                                        { value: "Tarjeta", label: "Tarjeta de Crédito/Débito" },
-                                        { value: "Otro", label: "Otro" },
+                                        { value: "Casa", label: "Casa" },
+                                        { value: "Apartamento", label: "Apartamento" },
+                                        { value: "Oficina", label: "Oficina" },
+                                        { value: "Lote", label: "Lote/Terreno" },
                                     ]}
                                 />
-                                <Field name="fechaVenta" type="date" />
+                                <Field name="inmuebleRegistro" placeholder="No. de matrícula inmobiliaria" />
+                                <div className="md:col-span-2">
+                                    <Field name="inmuebleNombre" placeholder="Ej: Apartamento 501, Edificio La Torre" />
+                                </div>
+                                <Field name="inmuebleArea" placeholder="Área en metros cuadrados (Solo números)" />
+                                <Field name="inmuebleHabitaciones" placeholder="Cantidad de habitaciones" />
+                                <Field name="inmuebleBanos" placeholder="Cantidad de baños" />
+                                <Field name="inmuebleEstrato" placeholder="Estrato (1 a 6)" />
+                                
+                                {/* Ubicación */}
+                                <Field name="inmueblePais" placeholder="País" />
+                                <Field name="inmuebleDepartamento" placeholder="Departamento o Estado" />
+                                <Field name="inmuebleCiudad" placeholder="Ciudad" />
+                                <Field name="inmuebleBarrio" placeholder="Barrio o Zona" />
+                                <div className="md:col-span-2">
+                                    <Field name="inmuebleDireccion" as="textarea" placeholder="Dirección completa, ej: Carrera 10 # 25-50" />
+                                </div>
+
+                                {/* Adicionales y Estado */}
+                                <Field name="inmuebleGaraje" type="checkbox" />
                                 <Field
-                                    name="estadoVenta"
+                                    name="inmuebleEstado"
                                     as="select"
                                     options={[
-                                        { value: "Pendiente", label: "Pendiente de Pago" },
-                                        { value: "Pagado", label: "Pagado y Cerrado" },
-                                        { value: "Cancelado", label: "Cancelado" },
+                                        { value: "Disponible", label: "Disponible para Venta" },
+                                        { value: "En Negociacion", label: "En Negociación" },
+                                        { value: "Vendido", label: "Vendido/Transferido" },
                                     ]}
                                 />
                             </div>
+                        </div>
+                    )}
 
-                            {/* Resumen del Cálculo Financiero */}
-                            <div className="p-4 bg-purple-50 border border-purple-300 rounded-lg shadow-inner text-gray-800">
-                                <h4 className="text-lg font-bold mb-2 text-purple-800">Resumen de la Venta</h4>
-                                <div className="grid grid-cols-2 gap-2 text-sm">
-                                    <p className="font-medium">Subtotal:</p>
-                                    <p className="text-right">$ {formattedSubtotal}</p>
-                                    <p className="font-medium">Impuesto ({valuesRef.current.impuesto || 0}%):</p>
-                                    <p className="text-right">$ {formattedImpuesto}</p>
-                                    <div className="col-span-2 border-t border-purple-300 pt-2 flex justify-between font-extrabold text-base">
-                                        <span>TOTAL A PAGAR:</span>
-                                        <span className="text-purple-600">$ {formattedTotal}</span>
+                    {/* PASO 4: Precio de Venta */}
+                    {step === 4 && (
+                        <div>
+                            {/* Subtítulo más discreto */}
+                            <h3 className="text-lg font-bold text-purple-700 mb-3 pb-1 border-b border-purple-100">4. Precio de Venta</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4 mb-6 max-w-xl mx-auto">
+                                <Field name="inmueblePrecio" placeholder="Precio total (Ej: 150.000.000)" />
+                            </div>
+
+                            {/* Resumen del Precio */}
+                            <div className="p-4 bg-purple-50 border border-purple-300 rounded-xl shadow-inner text-gray-800 max-w-xl mx-auto">
+                                <h4 className="text-base font-extrabold mb-2 text-purple-800 border-b border-purple-200 pb-1">Resumen de la Propiedad</h4>
+                                <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between">
+                                        <p className="font-medium text-gray-700">Tipo/Nombre:</p>
+                                        <p className="text-right font-medium text-gray-900">{valuesRef.current.inmuebleTipo || "N/A"} - {valuesRef.current.inmuebleNombre || "N/A"}</p>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <p className="font-medium text-gray-700">Ubicación:</p>
+                                        <p className="text-right font-medium text-gray-900">{valuesRef.current.inmuebleCiudad || "N/A"}</p>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <p className="font-medium text-gray-700">Garaje:</p>
+                                        <p className="text-right font-medium text-gray-900">{valuesRef.current.inmuebleGaraje ? "Sí" : "No"}</p>
+                                    </div>
+                                    <div className="border-t border-purple-400 pt-2 flex justify-between items-center font-extrabold text-lg mt-2">
+                                        <span className="text-gray-900">PRECIO FINAL:</span>
+                                        <span className="text-purple-700">$ {formattedPrice}</span>
                                     </div>
                                 </div>
                             </div>
@@ -572,35 +687,37 @@ export default function SalesForm({ onClose, onSubmit }) {
 
                     {/* Botones de Navegación (Pie del formulario) */}
                     <div className="pt-4 border-t mt-6 flex justify-between">
+                        {/* Botón Atrás: Siempre a la izquierda y solo si no es el primer paso */}
                         {step > 1 && (
                             <button
                                 type="button"
                                 onClick={prevStep}
-                                className="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition duration-150"
+                                className="px-5 py-2 text-sm bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition duration-150"
                             >
                                 Atrás
                             </button>
                         )}
-                        <div className="flex-grow" /> {/* Espaciador */}
+                        {/* Espaciador (solo aparece si el botón Atrás no está) */}
+                        {step === 1 && <div />}
                         
+                        {/* Botón Siguiente: Primario, color púrpura, solo si no es el último paso */}
                         {step < totalSteps && (
                             <button
                                 type="button"
                                 onClick={handleNextStep}
-                                // Estilo de botón morado y con sombra consistente
-                                className="px-6 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-lg shadow-purple-200 hover:bg-purple-700 transition duration-150"
+                                className="px-6 py-2 text-sm bg-purple-600 text-white font-bold rounded-lg shadow-lg shadow-purple-400/50 hover:bg-purple-700 transition duration-150 transform hover:scale-[1.02]"
                             >
                                 Siguiente
                             </button>
                         )}
                         
+                        {/* Botón Final: Principal, color púrpura, solo en el último paso */}
                         {step === totalSteps && (
                             <button
                                 type="submit"
-                                // Estilo de botón principal morado y con sombra consistente
-                                className="px-6 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-lg shadow-purple-300 hover:bg-purple-700 transition duration-150"
+                                className="px-6 py-2 text-sm bg-purple-600 text-white font-bold rounded-lg shadow-lg shadow-purple-400/50 hover:bg-purple-700 transition duration-150 transform hover:scale-[1.02]"
                             >
-                                Registrar Venta
+                                Registrar Inmueble
                             </button>
                         )}
                     </div>
