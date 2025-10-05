@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { FaTimes } from "react-icons/fa"; // Importamos el ícono de cierre
 
 export default function TenantForm({ onSubmit, onClose, nextId, initialData }) {
   // Estado del formulario
@@ -67,6 +68,7 @@ export default function TenantForm({ onSubmit, onClose, nextId, initialData }) {
 
     switch (name) {
       case "documento":
+        if (value.trim() === "") return ""; // Ya manejado por requiredFields, pero doble chequeo
         if (!/^\d+$/.test(value)) return "Solo se permiten números.";
         if (value.length < 8) return "Debe tener al menos 8 caracteres.";
         break;
@@ -78,12 +80,14 @@ export default function TenantForm({ onSubmit, onClose, nextId, initialData }) {
         return validateNameField(value, ["primerNombre", "primerApellido"].includes(name));
 
       case "correo":
+        if (value.trim() === "") return ""; // Ya manejado por requiredFields
         if (!/^.+@.+\..+$/.test(value)) {
           return "Debe ser un correo electrónico válido.";
         }
         break;
 
       case "telefono":
+        if (value.trim() === "") return ""; // Ya manejado por requiredFields
         if (!/^\d+$/.test(value)) return "Solo se permiten números.";
         if (value.length < 7) return "Debe tener al menos 7 dígitos.";
         break;
@@ -114,8 +118,9 @@ export default function TenantForm({ onSubmit, onClose, nextId, initialData }) {
     let formErrors = {};
     let isFormValid = true;
 
+    // Validación de todos los campos
     Object.keys(formData).forEach((name) => {
-      if (name !== "tipoDocumento" && name !== "id") {
+      if (name !== "tipoDocumento" && name !== "id" && name !== "segundoNombre" && name !== "segundoApellido") {
         const error = validateField(name, formData[name]);
         if (error) {
           formErrors[name] = error;
@@ -124,33 +129,58 @@ export default function TenantForm({ onSubmit, onClose, nextId, initialData }) {
       }
     });
 
+    // Validar campos opcionales que tienen reglas de formato
+    if (formData.segundoNombre.trim() !== "") {
+        const error = validateNameField(formData.segundoNombre, false);
+        if (error) {
+            formErrors.segundoNombre = error;
+            isFormValid = false;
+        }
+    }
+    if (formData.segundoApellido.trim() !== "") {
+        const error = validateNameField(formData.segundoApellido, false);
+        if (error) {
+            formErrors.segundoApellido = error;
+            isFormValid = false;
+        }
+    }
+
     setErrors(formErrors);
 
     if (!isFormValid) return;
 
     if (onSubmit) onSubmit(formData);
-    if (onClose) onClose();
+    // El onClose se llama en el componente padre si el envío fue exitoso
+    // if (onClose) onClose(); 
   };
 
   // Deshabilitar botón si hay errores o campos requeridos vacíos
-  const isButtonDisabled =
-    Object.values(errors).some((err) => err) ||
-    requiredFields.some((field) => !formData[field].trim());
+  const hasErrors = Object.values(errors).some((err) => err);
+  const hasEmptyRequiredFields = requiredFields.some((field) => !formData[field].trim());
+  const isButtonDisabled = hasErrors || hasEmptyRequiredFields;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+    // 1. TELÓN DE FONDO: Fijo, cubre todo (inset-0), fondo gris/negro (bg-black bg-opacity-50), z-index alto (z-50)
+    <div 
+        className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 p-4"
+        onClick={onClose} // Cierra al hacer clic en el fondo
+    >
+      {/* 2. CONTENIDO DEL MODAL: Tarjeta blanca y tamaño */}
+      <div 
+          className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative transform transition-all duration-300"
+          onClick={(e) => e.stopPropagation()} // Evita que el clic en el modal lo cierre
+      >
         {/* Botón cerrar */}
         <button
           onClick={onClose}
           aria-label="Cerrar formulario"
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 transition duration-150"
+          className="absolute top-4 right-4 text-gray-500 hover:text-red-600 transition duration-150 p-1"
         >
-          ✖
+          <FaTimes size={20} />
         </button>
 
         {/* Título */}
-        <h2 className="text-xl font-bold text-center text-purple-700 mb-4 border-b pb-2">
+        <h2 className="text-2xl font-bold text-center text-purple-700 mb-6 border-b pb-2">
           {formTitle}
         </h2>
 
@@ -187,8 +217,8 @@ export default function TenantForm({ onSubmit, onClose, nextId, initialData }) {
               onChange={handleChange}
               className={`w-full border rounded-lg p-2 transition duration-150 ${
                 errors.documento
-                  ? "border-red-500 ring-red-500"
-                  : "border-gray-300 focus:border-purple-500 focus:ring-purple-500"
+                  ? "border-red-500 ring-1 ring-red-500"
+                  : "border-gray-300 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
               }`}
               placeholder="Ej: 1020304050"
             />
@@ -215,8 +245,8 @@ export default function TenantForm({ onSubmit, onClose, nextId, initialData }) {
                   onChange={handleChange}
                   className={`w-full border rounded-lg p-2 transition duration-150 ${
                     errors[id]
-                      ? "border-red-500 ring-red-500"
-                      : "border-gray-300 focus:border-purple-500 focus:ring-purple-500"
+                      ? "border-red-500 ring-1 ring-red-500"
+                      : "border-gray-300 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                   }`}
                   placeholder={placeholder}
                 />
@@ -238,8 +268,8 @@ export default function TenantForm({ onSubmit, onClose, nextId, initialData }) {
               onChange={handleChange}
               className={`w-full border rounded-lg p-2 transition duration-150 ${
                 errors.correo
-                  ? "border-red-500 ring-red-500"
-                  : "border-gray-300 focus:border-purple-500 focus:ring-purple-500"
+                  ? "border-red-500 ring-1 ring-red-500"
+                  : "border-gray-300 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
               }`}
               placeholder="ejemplo@dominio.com"
             />
@@ -259,8 +289,8 @@ export default function TenantForm({ onSubmit, onClose, nextId, initialData }) {
               onChange={handleChange}
               className={`w-full border rounded-lg p-2 transition duration-150 ${
                 errors.telefono
-                  ? "border-red-500 ring-red-500"
-                  : "border-gray-300 focus:border-purple-500 focus:ring-purple-500"
+                  ? "border-red-500 ring-1 ring-red-500"
+                  : "border-gray-300 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
               }`}
               placeholder="Ej: 3001234567"
             />

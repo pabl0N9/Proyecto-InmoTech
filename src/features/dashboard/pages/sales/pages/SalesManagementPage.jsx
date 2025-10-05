@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { FaUsers, FaPlus, FaEye, FaChartBar } from "react-icons/fa";
+import { FaUsers, FaPlus, FaEye, FaChartBar, FaSearch } from "react-icons/fa";
 import DashboardLayout from "../../../../../shared/components/dashboard/Layout/DashboardLayout";
 import "../../../../../shared/styles/globals.css";
+// Importaciones de modales (asumo que contienen la estructura de modal fija y z-50)
 import SaleForm from "../components/SaleForm";
 import PurchaseTrackingModal from "../components/SalesTracking";
 import InterestedPeopleTable from "../components/InterestedPeople";
-import ViewSaleModal from "../components/ViewSale"; // ✅ nuevo modal separado
+import ViewSaleModal from "../components/ViewSale"; 
 
 // 🔹 Componente que da color según estado
 const EstadoBadge = ({ estado }) => {
@@ -91,36 +92,8 @@ export function SalesManagementPage() {
       estado: "Pendiente",
       estadoSeguimiento: "Iniciado",
 
-      // Guardar vendedor
-      vendedorTipoDocumento: saleData.vendedorTipoDocumento,
-      vendedorDocumento: saleData.vendedorDocumento,
-      vendedorNombreCompleto: saleData.vendedorNombreCompleto,
-      vendedorCorreo: saleData.vendedorCorreo,
-      vendedorTelefono: saleData.vendedorTelefono,
-
-      // Guardar comprador
-      compradorTipoDocumento: saleData.compradorTipoDocumento,
-      compradorDocumento: saleData.compradorDocumento,
-      compradorNombreCompleto: saleData.compradorNombreCompleto,
-      compradorCorreo: saleData.compradorCorreo,
-      compradorTelefono: saleData.compradorTelefono,
-
-      // Guardar inmueble
-      inmuebleTipo: saleData.inmuebleTipo,
-      inmuebleRegistro: saleData.inmuebleRegistro,
-      inmuebleNombre: saleData.inmuebleNombre,
-      inmuebleArea: saleData.inmuebleArea,
-      inmuebleHabitaciones: saleData.inmuebleHabitaciones,
-      inmuebleBanos: saleData.inmuebleBanos,
-      inmueblePais: saleData.inmueblePais,
-      inmuebleDepartamento: saleData.inmuebleDepartamento,
-      inmuebleCiudad: saleData.inmuebleCiudad,
-      inmuebleBarrio: saleData.inmuebleBarrio,
-      inmuebleEstrato: saleData.inmuebleEstrato,
-      inmuebleDireccion: saleData.inmuebleDireccion,
-      inmueblePrecio: saleData.inmueblePrecio,
-      inmuebleGaraje: saleData.inmuebleGaraje,
-      inmuebleEstado: saleData.inmuebleEstado,
+      // Guardar detalles de la transacción (simplificado)
+      ...saleData,
     };
     setVentas((prev) => [...prev, newSale]);
     handleCloseForm();
@@ -143,122 +116,135 @@ export function SalesManagementPage() {
   );
 
   return (
-    <DashboardLayout>
-      <div className="p-6">
-        <header className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Gestión de ventas</h1>
-          <div className="flex gap-3">
-            <button
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-              onClick={() => setShowInterestedPeople(true)}
-            >
-              <FaUsers /> Personas interesadas
-            </button>
-            <button
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-              onClick={() => setShowForm(true)}
-            >
-              <FaPlus /> Crear venta
-            </button>
-          </div>
-        </header>
+    <>
+      <DashboardLayout>
+        <div className="p-6">
+          <header className="flex justify-between items-center mb-6 flex-wrap gap-3">
+            <h1 className="text-2xl font-bold">Gestión de ventas</h1>
+            <div className="flex gap-3">
+              <button
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition duration-200"
+                onClick={() => setShowInterestedPeople(true)}
+              >
+                <FaUsers /> Personas interesadas
+              </button>
+              <button
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition duration-200"
+                onClick={() => setShowForm(true)}
+              >
+                <FaPlus /> Crear venta
+              </button>
+            </div>
+          </header>
 
-        {/* 🔎 Input buscador */}
-        <input
-          type="text"
-          placeholder="Buscar por registro, comprador o tipo..."
-          className="w-full max-w-lg border border-gray-300 rounded-md p-2 mb-6 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-
-        {/* Tabla */}
-        <div className="shadow-md rounded-lg overflow-hidden">
-          <div className="bg-blue-700 text-white font-semibold rounded-t-lg px-4 py-2 flex items-center gap-2">
-            <span className="mr-2">🏠</span> Lista de ventas
+          {/* 🔎 Input buscador */}
+          <div className="relative w-full max-w-lg mb-6">
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar por registro, comprador o tipo..."
+              className="w-full border border-gray-300 rounded-md p-2 pl-10 focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-150"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <table className="w-full border-collapse bg-white">
-            <thead className="bg-green-50">
-              <tr>
-                <th className="px-4 py-3 text-center">ID</th>
-                <th className="px-4 py-3 text-center">Registro</th>
-                <th className="px-4 py-3 text-center">Tipo</th>
-                <th className="px-4 py-3 text-center">Comprador</th>
-                <th className="px-4 py-3 text-center">Fecha</th>
-                <th className="px-4 py-3 text-center">Valor</th>
-                <th className="px-4 py-3 text-center">Estado</th>
-                <th className="px-4 py-3 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredVentas.length > 0 ? (
-                filteredVentas.map((v) => (
-                  <tr key={v.id} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-2 text-center">{v.id}</td>
-                    <td className="px-4 py-2 text-center">{v.registro}</td>
-                    <td className="px-4 py-2 text-center">{v.tipo}</td>
-                    <td className="px-4 py-2 text-center">{v.comprador}</td>
-                    <td className="px-4 py-2 text-center">{v.fecha}</td>
-                    <td className="px-4 py-2 text-center font-semibold">
-                      {v.valor}
-                    </td>
-                    <td className="px-4 py-2 text-center">
-                      <EstadoBadge estado={v.estado} />
-                    </td>
-                    <td className="px-4 py-2 text-center flex gap-3 justify-center">
-                      <button
-                        className="text-green-600 hover:text-green-800"
-                        onClick={() => handleViewClick(v)}
-                      >
-                        <FaEye />
-                      </button>
-                      <button
-                        className="text-purple-600 hover:text-purple-800"
-                        onClick={() => handleTrackingClick(v)}
-                      >
-                        <FaChartBar />
-                      </button>
+
+          {/* Tabla */}
+          <div className="shadow-md rounded-lg overflow-x-auto">
+            <div className="bg-blue-700 text-white font-semibold rounded-t-lg px-4 py-2 flex items-center gap-2">
+              <span className="mr-2">🏠</span> Lista de ventas ({filteredVentas.length} resultados)
+            </div>
+            <table className="w-full min-w-[700px] border-collapse bg-white">
+              <thead className="bg-green-50">
+                <tr>
+                  <th className="px-4 py-3 text-center w-12">ID</th>
+                  <th className="px-4 py-3 text-center w-24">Registro</th>
+                  <th className="px-4 py-3 text-center w-20">Tipo</th>
+                  <th className="px-4 py-3 text-center w-40">Comprador</th>
+                  <th className="px-4 py-3 text-center w-24">Fecha</th>
+                  <th className="px-4 py-3 text-center w-24">Valor</th>
+                  <th className="px-4 py-3 text-center w-24">Estado</th>
+                  <th className="px-4 py-3 text-center w-24">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredVentas.length > 0 ? (
+                  filteredVentas.map((v) => (
+                    <tr key={v.id} className="border-t hover:bg-gray-50">
+                      <td className="px-4 py-2 text-center">{v.id}</td>
+                      <td className="px-4 py-2 text-center">{v.registro}</td>
+                      <td className="px-4 py-2 text-center">{v.tipo}</td>
+                      <td className="px-4 py-2 text-center truncate max-w-[150px]">{v.comprador}</td>
+                      <td className="px-4 py-2 text-center">{v.fecha}</td>
+                      <td className="px-4 py-2 text-center font-semibold text-purple-700">
+                        {v.valor}
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <EstadoBadge estado={v.estado} />
+                      </td>
+                      <td className="px-4 py-2 text-center flex gap-3 justify-center">
+                        <button
+                          aria-label="Ver detalles de la venta"
+                          className="text-green-600 hover:text-green-800 transition duration-150 p-1"
+                          onClick={() => handleViewClick(v)}
+                        >
+                          <FaEye />
+                        </button>
+                        <button
+                          aria-label="Seguimiento de compra"
+                          className="text-purple-600 hover:text-purple-800 transition duration-150 p-1"
+                          onClick={() => handleTrackingClick(v)}
+                        >
+                          <FaChartBar />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan="8"
+                      className="px-4 py-4 text-center text-gray-500"
+                    >
+                      No se encontraron resultados
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan="8"
-                    className="px-4 py-4 text-center text-gray-500"
-                  >
-                    No se encontraron resultados
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+      </DashboardLayout>
 
-        {/* Formularios y Modales */}
-        {showForm && (
-          <SaleForm onSubmit={handleSaveSale} onClose={handleCloseForm} />
-        )}
+      {/* --- MODALES RENDERIZADOS FUERA DEL LAYOUT --- */}
+      {/* 1. Formulario de Creación/Edición */}
+      {showForm && (
+        <SaleForm onSubmit={handleSaveSale} onClose={handleCloseForm} />
+      )}
 
+      {/* 2. Modal de Visualización (ViewSaleModal) */}
+      {viewingSale && (
         <ViewSaleModal
           sale={viewingSale}
           onClose={() => setViewingSale(null)}
         />
+      )}
 
-        {showInterestedPeople && (
-          <div className="bg-white p-6 rounded-xl shadow-lg w-11/12 max-w-5xl relative">
-            <InterestedPeopleTable
-              onClose={() => setShowInterestedPeople(false)}
-            />
-          </div>
-        )}
+      {/* 3. Modal de Personas Interesadas (InterestedPeopleTable) */}
+      {showInterestedPeople && (
+        <InterestedPeopleTable
+          onClose={() => setShowInterestedPeople(false)}
+        />
+      )}
 
+      {/* 4. Modal de Seguimiento (PurchaseTrackingModal) */}
+      {trackingSale && (
         <PurchaseTrackingModal
           venta={trackingSale}
           onClose={() => setTrackingSale(null)}
           onUpdate={handleUpdateTracking}
         />
-      </div>
-    </DashboardLayout>
+      )}
+    </>
   );
 }

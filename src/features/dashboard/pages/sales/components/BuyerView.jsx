@@ -1,13 +1,6 @@
 import React from "react";
-import { FaImage } from "react-icons/fa"; // Para el placeholder de la imagen
+import { FaImage } from "react-icons/fa";
 
-/**
- * Modal para visualizar la información completa de un comprador, 
- * siguiendo el diseño de la plantilla proporcionada.
- * * @param {object} props
- * @param {object} props.buyer - El objeto del comprador a mostrar.
- * @param {function} props.onClose - Función para cerrar el modal.
- */
 export default function BuyerView({ buyer, onClose }) {
   if (!buyer) return null; // No renderizar si no hay datos de comprador
 

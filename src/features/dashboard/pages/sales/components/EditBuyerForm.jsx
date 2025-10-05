@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-/**
- * Formulario dedicado exclusivamente a la edición de un comprador existente.
- *
- * @param {object} props
- * @param {object} props.buyerData - El objeto completo del comprador a editar (debe incluir el ID).
- * @param {function} props.onUpdate - Función a llamar al enviar el formulario. Recibe el objeto del comprador actualizado.
- * @param {function} props.onClose - Función para cerrar el formulario.
- */
 export default function EditBuyerForm({ buyerData, onUpdate, onClose }) {
-  // Inicializa el estado con los datos del comprador recibidos por prop
   const [formData, setFormData] = useState(buyerData);
   const [errors, setErrors] = useState({});
   const [isEditing, setIsEditing] = useState(false); // Asumo un estado para el botón
