@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const useSidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedItem, setExpandedItem] = useState(null);
   const [activeItem, setActiveItem] = useState('dashboard');
   const [activeSubItem, setActiveSubItem] = useState(null);
+  const navigate = useNavigate();
 
   const toggleSidebar = useCallback(() => {
     setIsCollapsed(prev => !prev);
@@ -26,22 +28,41 @@ export const useSidebar = () => {
       setActiveItem(item.id);
       setActiveSubItem(null);
       setExpandedItem(null);
-    }
-  }, [isCollapsed, toggleExpandedItem]);
 
-  const handleSubItemClick = useCallback((subItem, parentId) => {
-    setActiveItem(parentId);
-    setActiveSubItem(subItem.id);
-  }, []);
+      // Navegación específica para "Gestion de ventas"
+      if (item.id === 'ventas') {
+        navigate('/dashboard/buyersManagement');
+      }
+      if (item.id === 'arriendos') {
+        navigate('/dashboard/leasesManagement');
+      }
+    }
+  }, [isCollapsed, toggleExpandedItem, navigate]);
+
+  const handleSubItemClick = useCallback((subItemId) => {
+    // Buscar el subItem correcto basado en el ID
+    const allSubItems = [
+      { id: 'dashboard', path: '/dashboard' },
+      { id: 'gestion-compradores', path: '/dashboard/buyersManagement' },
+      { id: 'gestion-ventas', path: '/dashboard/salesManagement' },
+      { id: 'gestion-arrendatarios', path: '/dashboard/leasesManagement' },
+      { id: 'gestion-arriendos', path: '/dashboard/renantManagement' }
+    ];
+    
+    const subItem = allSubItems.find(item => item.id === subItemId);
+    if (subItem) {
+      navigate(subItem.path);
+    }
+  }, [navigate]);
 
   return {
     isCollapsed,
+    toggleSidebar,
     expandedItem,
+    toggleExpandedItem,
     activeItem,
     activeSubItem,
-    toggleSidebar,
-    toggleExpandedItem,
     handleItemClick,
-    handleSubItemClick
+    handleSubItemClick,
   };
 };

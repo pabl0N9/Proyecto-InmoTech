@@ -87,13 +87,13 @@ function App() {
         {/* Dashboard routes without navbar/footer */}
         <Route path="/dashboard" element={<DashboardPage />} />
 
-        <Route path="/sales/salesManagement" element={<SalesManagementPage />} />
+        <Route path="/dashboard/salesManagement" element={<SalesManagementPage />} />
 
-        <Route path="/sales/buyersManagement" element={<BuyersManagementPage/>} />
+        <Route path="/dashboard/buyersManagement" element={<BuyersManagementPage/>} />
 
-        <Route path="/leases/leasesManagement" element={<LeasesManagementPage/>}/>
+        <Route path="/dashboard/leasesManagement" element={<LeasesManagementPage/>}/>
 
-        <Route path="/leases/renantManagement" element={<RenantManagementPage/>}/>
+        <Route path="/dashboard/renantManagement" element={<RenantManagementPage/>}/>
 
       </Routes>
       <Toaster />

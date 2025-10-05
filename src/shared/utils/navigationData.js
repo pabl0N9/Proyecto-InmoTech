@@ -65,14 +65,14 @@ import {
       isExpandable: true,
       subItems: [
         {
-          id: 'gestion-comprador',
+          id: 'gestion-compradores',
           title: 'Gestión de Comprador',
-          path: '/sales/buyersManagement'
+          path: '/dashboard/buyersManagement'
         },
         {
           id: 'gestion-ventas',
           title: 'Gestión de Ventas',
-          path: '/sales/salesManagement'
+          path: '/dashboard/salesManagement'
         }
       ]
     },
@@ -83,14 +83,14 @@ import {
       isExpandable: true,
       subItems: [
         {
-          id: 'gestion-arrendatario',
+          id: 'gestion-arrendatarios',
           title: 'Gestión de Arrendatario',
-          path: '/arriendos/arrendatario'
+          path: '/dashboard/leasesManagement'
         },
         {
           id: 'gestion-arriendos',
           title: 'Gestión de Arriendos',
-          path: '/arriendos/gestion'
+          path: '/dashboard/renantManagement'
         }
       ]
     },
