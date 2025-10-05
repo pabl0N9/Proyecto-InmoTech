@@ -1,723 +1,611 @@
-import React, { useState } from "react";
+import React, { useRef, useState, useCallback } from "react";
 
-export default function SaleForm({ onSubmit, onClose }) {
-  const initialFormData = {
-    vendedorTipoDocumento: "CC",
-    vendedorDocumento: "",
-    vendedorNombreCompleto: "",
-    vendedorCorreo: "",
-    vendedorTelefono: "",
+// Lista de campos que deben ser obligatorios para la venta
+const requiredFields = [
+    // Cliente
+    "tipoDocCliente", "numeroDocCliente", "primerNombreCliente", 
+    "primerApellidoCliente", "telefonoCliente", "correoCliente",
+    // Producto/Servicio
+    "nombreProducto", "cantidad", 
+    // Financiero
+    "precioUnitario", "metodoPago", "fechaVenta", "estadoVenta",
+];
 
-    compradorTipoDocumento: "CC",
-    compradorDocumento: "",
-    compradorNombreCompleto: "",
-    compradorCorreo: "",
-    compradorTelefono: "",
+// Nombres de los campos que requieren formato especial (Documento, Numérico, Moneda)
+const NUMERO_DOC_CLI = "numeroDocCliente";
 
-    inmuebleTipo: "",
-    inmuebleRegistro: "",
-    inmuebleNombre: "",
-    inmuebleArea: "",
-    inmuebleHabitaciones: "",
-    inmuebleBanos: "",
-    inmueblePais: "Colombia",
-    inmuebleDepartamento: "",
-    inmuebleCiudad: "",
-    inmuebleBarrio: "",
-    inmuebleEstrato: "",
-    inmuebleDireccion: "",
-    inmueblePrecio: "", // guardamos sólo dígitos (raw)
-    inmuebleGaraje: false,
-    inmuebleEstado: "Disponible",
-  };
+export default function SalesForm({ onClose, onSubmit }) {
+    const [step, setStep] = useState(1);
+    // Estado para manejar los errores en línea.
+    const [errors, setErrors] = useState({});
+    const totalSteps = 3; // Reducido a 3 pasos para el formulario de ventas
 
-  const [formData, setFormData] = useState(initialFormData);
-  const [errors, setErrors] = useState({});
+    const initial = {
+        // Datos del Cliente
+        tipoDocCliente: "", numeroDocCliente: "", primerNombreCliente: "", segundoNombreCliente: "",
+        primerApellidoCliente: "", segundoApellidoCliente: "", correoCliente: "", telefonoCliente: "",
 
-  const requiredFields = [
-    "vendedorDocumento",
-    "vendedorNombreCompleto",
-    "vendedorCorreo",
-    "vendedorTelefono",
-    "compradorDocumento",
-    "compradorNombreCompleto",
-    "compradorCorreo",
-    "compradorTelefono",
-    "inmuebleTipo",
-    "inmuebleRegistro",
-    "inmuebleNombre",
-    "inmuebleArea",
-    "inmuebleHabitaciones",
-    "inmuebleBanos",
-    "inmuebleDepartamento",
-    "inmuebleCiudad",
-    "inmuebleEstrato",
-    "inmuebleDireccion",
-    "inmueblePrecio",
-  ];
+        // Detalles del Producto/Servicio
+        nombreProducto: "", cantidad: "", referencia: "", descripcion: "",
 
-  // Formatea para mostrar precio (recibe raw digits)
-  const formatPriceForDisplay = (raw) => {
-    if (!raw) return "";
-    const n = parseInt(raw.replace(/\D/g, ""), 10);
-    if (Number.isNaN(n)) return "";
-    return new Intl.NumberFormat("es-CO").format(n);
-  };
-
-  // Validación por campo
-  const validateField = (name, value) => {
-    let error = "";
-
-    // required
-    if (
-      requiredFields.includes(name) &&
-      (value === "" || (typeof value === "string" && value.trim() === ""))
-    ) {
-      return "Este campo es obligatorio.";
-    }
-
-    // Sólo validar **número de documento** (no el tipo)
-    if (name === "vendedorDocumento" || name === "compradorDocumento") {
-      if (value.length > 0 && !/^\d+$/.test(value)) {
-        error = "Solo se permiten números.";
-      } else if (value.length > 0 && value.length < 8) {
-        error = "Mínimo 8 dígitos.";
-      }
-    } else if (name.includes("NombreCompleto")) {
-      if (value.length > 0 && !/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(value)) {
-        error = "Solo se permiten letras y espacios.";
-      }
-    } else if (name.includes("Correo")) {
-      if (value.length > 0 && !/^.+@.+\..+$/.test(value)) {
-        error = "Debe ser un correo válido.";
-      }
-    } else if (name.includes("Telefono")) {
-      if (value.length > 0 && !/^\d+$/.test(value)) {
-        error = "Solo se permiten números.";
-      }
-    } else if (name === "inmuebleArea") {
-      // Área: enteros > 0
-      if (value !== "" && !/^\d+$/.test(value)) {
-        error = "Debe ser un número entero.";
-      } else if (value !== "" && parseInt(value, 10) <= 0) {
-        error = "Debe ser mayor que 0.";
-      }
-    } else if (name === "inmueblePrecio") {
-      // inmueblePrecio está guardado como raw digits string
-      const raw = String(value).replace(/\D/g, "");
-      if (raw === "" || isNaN(parseInt(raw, 10))) {
-        error = "Debe ingresar un precio válido.";
-      } else if (parseInt(raw, 10) <= 0) {
-        error = "Debe ser mayor que 0.";
-      }
-    }
-
-    return error;
-  };
-
-  // Helper para sanitizar valores numéricos en inputs
-  const keepDigits = (v) => v.toString().replace(/\D/g, "");
-
-  const handleChange = (e) => {
-    const { name, value: rawValue, type, checked } = e.target;
-    let value = type === "checkbox" ? checked : rawValue;
-
-    // Sanitizar campos numéricos para evitar caracteres indeseados
-    if (
-      name === "vendedorDocumento" ||
-      name === "compradorDocumento" ||
-      name === "vendedorTelefono" ||
-      name === "compradorTelefono" ||
-      name === "inmuebleArea"
-    ) {
-      value = keepDigits(value);
-    }
-
-    // Precio: guardamos sólo dígitos en formData.inmueblePrecio
-    if (name === "inmueblePrecio") {
-      value = keepDigits(value); // raw digits
-    }
-
-    setFormData((prev) => ({ ...prev, [name]: value }));
-
-    const fieldError = validateField(name, value);
-    setErrors((prev) => ({ ...prev, [name]: fieldError }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    // Validar todos los campos que nos interesan
-    let formErrors = {};
-    let isFormValid = true;
-
-    Object.keys(formData).forEach((name) => {
-      // Ignorar campos que no requieren validación estricta de formato
-      if (
-        name.includes("TipoDocumento") ||
-        name === "inmueblePais" ||
-        name === "inmuebleGaraje" ||
-        name === "inmuebleEstado" ||
-        name === "inmuebleBarrio"
-      )
-        return;
-
-      const error = validateField(name, formData[name]);
-      if (error) {
-        formErrors[name] = error;
-        isFormValid = false;
-      }
-    });
-
-    // Validar que vendedor y comprador no sean la misma persona (documento y/o correo)
-    const vendDoc = String(formData.vendedorDocumento || "").trim();
-    const compDoc = String(formData.compradorDocumento || "").trim();
-    const vendMail = String(formData.vendedorCorreo || "").trim().toLowerCase();
-    const compMail = String(formData.compradorCorreo || "").trim().toLowerCase();
-
-    if (vendDoc && compDoc && vendDoc === compDoc) {
-      formErrors.compradorDocumento = "El comprador no puede tener el mismo documento que el vendedor.";
-      isFormValid = false;
-    }
-
-    if (vendMail && compMail && vendMail === compMail) {
-      formErrors.compradorCorreo = "El comprador no puede tener el mismo correo que el vendedor.";
-      isFormValid = false;
-    }
-
-    setErrors(formErrors);
-
-    if (!isFormValid) {
-      console.error("Errores de validación:", formErrors);
-      return;
-    }
-
-    // Preparar payload final: convertir area y precio a números
-    const finalData = {
-      ...formData,
-      inmuebleArea: formData.inmuebleArea !== "" ? parseInt(formData.inmuebleArea, 10) : null,
-      // inmueblePrecio guardado en raw digits; enviar como número
-      inmueblePrecio:
-        formData.inmueblePrecio !== "" ? parseInt(String(formData.inmueblePrecio).replace(/\D/g, ""), 10) : null,
+        // Datos Financieros y Cierre
+        precioUnitario: "", impuesto: "", metodoPago: "", fechaVenta: "", estadoVenta: "",
     };
 
-    console.log("Datos de venta enviados:", finalData);
+    // refs para mantener TODOS los valores sin causar re-renders en cada letra
+    const valuesRef = useRef({ ...initial });
+    // Ref para mantener los valores formateados visibles en los inputs
+    const displayValuesRef = useRef({ ...initial });
+    const elRefs = useRef({});
+    const errorFocusTimeout = useRef(null); 
 
-    if (onSubmit) onSubmit(finalData);
-    if (onClose) onClose();
-  };
+    // Lista de campos que deben ser estrictamente numéricos (solo dígitos)
+    const strictNumericFields = [
+        "cantidad", "impuesto"
+    ];
+    
+    // Campos que requieren formato de miles
+    const currencyFields = ["precioUnitario"];
 
-  const hasErrors = Object.values(errors).some((err) => err);
-  const hasMissingRequiredFields = requiredFields.some(
-    (name) =>
-      !formData[name] || (typeof formData[name] === "string" && formData[name].trim() === "")
-  );
+    // Campos agrupados por paso para la validación
+    const stepFields = {
+        1: [
+            "tipoDocCliente", NUMERO_DOC_CLI, "primerNombreCliente", "segundoNombreCliente",
+            "primerApellidoCliente", "segundoApellidoCliente", "correoCliente", "telefonoCliente",
+        ],
+        2: [
+            "nombreProducto", "cantidad", "referencia", "descripcion",
+        ],
+        3: [
+            "precioUnitario", "impuesto", "metodoPago", "fechaVenta", "estadoVenta"
+        ],
+    };
 
-  const inputClass = (name) =>
-    `w-full rounded-md p-2 focus:outline-none focus:ring-2 transition duration-150 ${
-      errors[name] ? "border-2 border-red-500 focus:ring-red-500" : "border border-gray-300 focus:ring-purple-500"
-    }`;
-  const labelClass = "block text-sm font-medium text-gray-700 mt-2";
-  const requiredSpan = <span className="text-red-500">*</span>;
-  const errorText = (name) =>
-    errors[name] && <p className="text-red-500 text-xs mt-1 font-semibold">{errors[name]}</p>;
+    const getLabel = (name) => {
+        const labels = {
+            tipoDocCliente: "Tipo de Documento", numeroDocCliente: "Número de Documento", primerNombreCliente: "Primer Nombre",
+            segundoNombreCliente: "Segundo Nombre", primerApellidoCliente: "Primer Apellido", segundoApellidoCliente: "Segundo Apellido",
+            correoCliente: "Correo Electrónico", telefonoCliente: "Teléfono",
 
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto transform transition-all duration-300">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-semibold p-1 rounded-full hover:bg-gray-100"
-        >
-          ✖
-        </button>
+            nombreProducto: "Nombre del Producto/Servicio", cantidad: "Cantidad", referencia: "Referencia/SKU",
+            descripcion: "Descripción",
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-2">Crear venta</h2>
+            precioUnitario: "Precio Unitario (COP)", impuesto: "Impuesto (%)", metodoPago: "Método de Pago", 
+            fechaVenta: "Fecha de Venta", estadoVenta: "Estado de la Venta",
+        };
+        return labels[name] ?? name;
+    };
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Datos del vendedor */}
-          <section className="p-4 bg-gray-50 rounded-lg shadow-inner">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Datos del vendedor</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="vendedorTipoDocumento" className={labelClass}>
-                  Tipo de documento{requiredSpan}
-                </label>
-                <select
-                  id="vendedorTipoDocumento"
-                  name="vendedorTipoDocumento"
-                  value={formData.vendedorTipoDocumento}
-                  onChange={handleChange}
-                  className={inputClass("vendedorTipoDocumento")}
-                  required
-                >
-                  <option value="CC">CC</option>
-                  <option value="CE">CE</option>
-                  <option value="NIT">NIT</option>
-                </select>
-              </div>
+    // Función para obtener la clase de estilo (incluyendo el resaltado de error)
+    const getFieldClass = useCallback((fieldName) => {
+        // Mantiene el color morado como foco y el rojo para error
+        const errorClass = errors[fieldName] ? 'border-red-500 ring-2 ring-red-500' : 'border-gray-300 focus:ring-purple-500 focus:border-purple-500';
+        // Aseguramos el uso de la fuente sans-serif y esquinas redondeadas
+        return `w-full p-2 border rounded-md font-sans focus:outline-none transition duration-150 ${errorClass}`;
+    }, [errors]);
 
-              <div>
-                <label htmlFor="vendedorDocumento" className={labelClass}>
-                  Número de documento{requiredSpan}
-                </label>
+    // Campos para validaciones de formato
+    const nameFields = [
+        "primerNombreCliente", "segundoNombreCliente", "primerApellidoCliente", "segundoApellidoCliente",
+    ];
+    const docFields = [ NUMERO_DOC_CLI ];
+    const phoneFields = [ "telefonoCliente" ];
+    const emailFields = [ "correoCliente" ];
+
+    // --- UTILITY: Formatea un número con separadores de miles ---
+    const formatNumberWithThousandsSeparator = (value) => {
+        if (!value) return "";
+        // 1. Limpiar el valor de cualquier separador no numérico
+        const cleanValue = value.toString().replace(/[^0-9]/g, '');
+        if (cleanValue === "") return "";
+        
+        // 2. Formatear con separador de miles (usando punto para Colombia - es-CO)
+        const formatter = new Intl.NumberFormat('es-CO', { 
+            style: 'decimal',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+        return formatter.format(cleanValue);
+    };
+
+    const setElRef = (name) => (el) => {
+        if (!el) return;
+        elRefs.current[name] = el;
+        if (valuesRef.current[name] === undefined || valuesRef.current[name] === null) {
+            valuesRef.current[name] = initial[name] ?? "";
+        }
+        
+        // Inicializar el valor de visualización si es un campo de moneda
+        if (currencyFields.includes(name) && valuesRef.current[name]) {
+            displayValuesRef.current[name] = formatNumberWithThousandsSeparator(valuesRef.current[name].toString());
+        } else {
+            displayValuesRef.current[name] = valuesRef.current[name];
+        }
+
+        // Sincronizar el valor inicial en el elemento del DOM
+        if (el.type === "checkbox") {
+            el.checked = !!valuesRef.current[name];
+        } else {
+            if (displayValuesRef.current[name] !== undefined) {
+                try { el.value = displayValuesRef.current[name]; } catch (err) { /* ignore */ }
+            }
+        }
+    };
+
+    const handleInputChange = (e) => {
+        let { name, type, value, checked } = e.target;
+        let cleanValue = value;
+
+        if (type === "checkbox") {
+            valuesRef.current[name] = checked;
+        } else {
+            // Manejo de campos de moneda (ej: precioUnitario)
+            if (currencyFields.includes(name)) {
+                cleanValue = value.replace(/[^0-9]/g, ''); // Solo dígitos
+                const formattedValue = formatNumberWithThousandsSeparator(cleanValue);
+                
+                displayValuesRef.current[name] = formattedValue;
+                e.target.value = formattedValue; // Forzar la actualización visual
+            } else {
+                displayValuesRef.current[name] = value;
+            }
+            
+            // Guardar siempre el valor LIMPIO (solo dígitos si es numérico con formato) o el valor original
+            valuesRef.current[name] = cleanValue;
+        }
+
+        // Limpieza de error en vivo
+        if (errors[name] && cleanValue.length > 0) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
+    };
+
+    // --- FUNCIONES DE VALIDACIÓN DE FORMATO ---
+    const isValidName = (value) => /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/.test(value);
+    const isValidNumeric = (value) => /^\d*$/.test(value); // Solo dígitos (0-9)
+    const isValidEmail = (value) => value.includes('@') && /\S+@\S+\.\S+/.test(value);
+
+    // Handler para verificar obligatoriedad, longitud y formato al salir del campo
+    const handleInputBlur = (e) => {
+        const { name } = e.target;
+        // Tomamos el valor limpio de la ref
+        const value = valuesRef.current[name] || ""; 
+        
+        let errorMessage = null;
+        const minLengthDoc = 8;
+        const isRequired = requiredFields.includes(name);
+
+        setErrors(prev => {
+            const newErrors = { ...prev };
+
+            // 1. Validar OBLIGATORIO
+            if (isRequired && !value.toString().trim()) { 
+                errorMessage = "Este campo es obligatorio.";
+            }
+
+            // 2. Validar formato y longitud (solo si no hay un error de obligatoriedad y el campo tiene valor)
+            if (!errorMessage && value.toString().trim()) {
+                if (nameFields.includes(name) && !isValidName(value)) {
+                    errorMessage = `Solo se permiten letras.`;
+                } else if (docFields.includes(name)) {
+                    if (!isValidNumeric(value)) {
+                        errorMessage = `Solo se permiten números.`;
+                    } else if (value.length < minLengthDoc) {
+                        errorMessage = `Debe tener un mínimo de ${minLengthDoc} números.`;
+                    }
+                } else if (phoneFields.includes(name) && !isValidNumeric(value)) {
+                    errorMessage = `Solo se permiten números.`;
+                } else if (emailFields.includes(name) && !isValidEmail(value)) {
+                    errorMessage = `El correo electrónico debe contener un '@' y ser válido.`;
+                } else if (strictNumericFields.includes(name) && !isValidNumeric(value)) { 
+                    errorMessage = `Solo se permiten números enteros.`;
+                } else if (name === 'impuesto' && (parseFloat(value) < 0 || parseFloat(value) > 100)) {
+                    errorMessage = `El impuesto debe ser entre 0 y 100%.`;
+                }
+            }
+            
+            // Aplicar el error (si lo hay) o limpiar el error existente
+            if (errorMessage) {
+                newErrors[name] = errorMessage;
+            } else {
+                delete newErrors[name];
+            }
+
+            return newErrors;
+        });
+    };
+    
+    // --- LÓGICA DE VALIDACIÓN CENTRAL ---
+    const runValidation = (fieldsToCheck) => {
+        let currentErrors = { ...errors };
+        let hasError = false;
+        let firstErrorField = null;
+        const minLengthDoc = 8;
+        
+        for (const fieldName of fieldsToCheck) {
+            const value = valuesRef.current[fieldName] || "";
+            let error = null;
+
+            const isRequired = requiredFields.includes(fieldName);
+            
+            // A. Validación de Obligatoriedad
+            if (isRequired && !value.toString().trim()) { 
+                error = "Este campo es obligatorio.";
+            } 
+            
+            // B. Validación de Obligatoriedad y > 0 para números estrictos/moneda
+            if (isRequired && (strictNumericFields.includes(fieldName) || currencyFields.includes(fieldName))) {
+                 if (!value.toString().trim() || parseFloat(value) <= 0 || isNaN(parseFloat(value))) {
+                     error = "Este campo es obligatorio y debe ser mayor a 0.";
+                 }
+            }
+
+            // C. Validación de Formato (usa el valor limpio)
+            if (!error && value.toString().trim()) {
+                if (nameFields.includes(fieldName) && !isValidName(value)) {
+                    error = `Solo se permiten letras, espacios y acentos.`;
+                } else if (docFields.includes(fieldName)) {
+                    if (!isValidNumeric(value)) {
+                        error = `Solo se permiten dígitos.`;
+                    } else if (value.length < minLengthDoc) {
+                        error = `Debe tener un mínimo de ${minLengthDoc} dígitos.`;
+                    }
+                } else if (phoneFields.includes(fieldName) && !isValidNumeric(value)) {
+                    error = `Solo se permiten dígitos.`;
+                } else if (emailFields.includes(fieldName) && !isValidEmail(value)) {
+                    error = `Debe contener un '@' y ser válido.`;
+                } else if (strictNumericFields.includes(fieldName) && !isValidNumeric(value)) { 
+                    error = `Solo se permiten números enteros.`;
+                } else if (fieldName === 'impuesto' && value.trim() && (parseFloat(value) < 0 || parseFloat(value) > 100)) {
+                    error = `El impuesto debe ser entre 0 y 100%.`;
+                }
+            }
+            
+            // D. Actualizar el estado de errores
+            if (error) {
+                currentErrors[fieldName] = error;
+                hasError = true;
+                if (!firstErrorField) {
+                    firstErrorField = fieldName;
+                }
+            } else {
+                delete currentErrors[fieldName];
+            }
+        }
+        
+        // Re-evaluar firstErrorField
+        if (!firstErrorField) {
+            for (const fieldName of fieldsToCheck) {
+                if (currentErrors[fieldName]) {
+                    firstErrorField = fieldName;
+                    break;
+                }
+            }
+        }
+        
+        return { currentErrors, hasError, firstErrorField };
+    };
+
+    const handleNextStep = () => {
+        const fieldsToValidate = stepFields[step];
+        
+        const { currentErrors, hasError, firstErrorField } = runValidation(fieldsToValidate);
+
+        setErrors(currentErrors);
+
+        if (hasError) {
+            // Enfocar el primer campo con error
+            if (errorFocusTimeout.current) clearTimeout(errorFocusTimeout.current);
+            errorFocusTimeout.current = setTimeout(() => {
+                const el = elRefs.current[firstErrorField];
+                if (el) el.focus();
+            }, 50);
+            return; // Bloquea el avance
+        }
+
+        // Si no hay errores, avanza al siguiente paso
+        setStep((s) => Math.min(s + 1, totalSteps));
+    };
+
+    const prevStep = () => setStep((s) => Math.max(s - 1, 1));
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        
+        // En el envío final, validamos TODOS los campos obligatorios
+        const allFieldsToValidate = Object.values(stepFields).flat();
+        const { currentErrors, hasError, firstErrorField } = runValidation(allFieldsToValidate);
+
+        setErrors(currentErrors);
+
+        if (hasError) {
+            // Determinar a qué paso debe volver para mostrar el error
+            let targetStep = 1;
+            if (stepFields[2].includes(firstErrorField)) targetStep = 2;
+            else if (stepFields[3].includes(firstErrorField)) targetStep = 3;
+            
+            setStep(targetStep);
+            
+            // Enfocar el primer campo con error
+            if (errorFocusTimeout.current) clearTimeout(errorFocusTimeout.current);
+            errorFocusTimeout.current = setTimeout(() => {
+                const el = elRefs.current[firstErrorField];
+                if (el) el.focus();
+            }, 50);
+            
+            return; // Bloquea el envío
+        }
+
+        // Si no hay errores, se procede con el envío
+        const payload = { ...valuesRef.current };
+        if (onSubmit) onSubmit(payload);
+        onClose?.();
+        console.log("Formulario de Venta Enviado:", payload);
+    };
+
+    // Field: componente auxiliar reutilizando el estilo
+    const Field = ({ name, as = "input", options = [], placeholder, type = "text" }) => {
+        const label = getLabel(name);
+        const errorMessage = errors[name];
+        const isRequired = requiredFields.includes(name);
+
+        const isDocField = docFields.includes(name);
+        const isPhoneField = phoneFields.includes(name);
+        const isEmailField = emailFields.includes(name);
+        const isStrictNumeric = strictNumericFields.includes(name) || currencyFields.includes(name);
+        const isNameField = nameFields.includes(name);
+
+        const needsBlurValidation = isDocField || isNameField || isPhoneField || isEmailField || isRequired || isStrictNumeric || name === 'impuesto';
+        const onBlurHandler = needsBlurValidation ? handleInputBlur : undefined;
+        
+        // Establecer el tipo de input para sugerir teclado numérico
+        let inputType = type;
+        if ((isDocField || isPhoneField || isStrictNumeric) && type !== 'date' && type !== 'email') {
+            inputType = "tel";
+        } else if (isEmailField) {
+            inputType = "email";
+        }
+
+        const LabelContent = (
+            <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1 font-sans">
+                {label}
+                {isRequired && <span className="text-red-500 ml-1">*</span>}
+            </label>
+        );
+
+        if (as === "select") {
+            return (
+                <div>
+                    {LabelContent}
+                    <select
+                        id={name}
+                        name={name}
+                        ref={setElRef(name)}
+                        className={getFieldClass(name)} 
+                        defaultValue={initial[name] ?? ""}
+                        onChange={handleInputChange}
+                        onBlur={onBlurHandler}
+                    >
+                        <option value="">Seleccione...</option>
+                        {options.map((op) => (
+                            <option key={op.value} value={op.value}>
+                                {op.label}
+                            </option>
+                        ))}
+                    </select>
+                    {errorMessage && (
+                        <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
+                    )}
+                </div>
+            );
+        }
+        
+        if (as === "textarea") {
+            return (
+                <div className="col-span-2">
+                    {LabelContent}
+                    <textarea
+                        id={name}
+                        name={name}
+                        ref={setElRef(name)}
+                        className={getFieldClass(name) + " h-24 resize-none"} 
+                        placeholder={placeholder}
+                        defaultValue={(displayValuesRef.current[name] || initial[name]) ?? ""} 
+                        onChange={handleInputChange}
+                        onBlur={onBlurHandler}
+                    />
+                    {errorMessage && (
+                        <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
+                    )}
+                </div>
+            );
+        }
+
+        return (
+            <div>
+                {LabelContent}
                 <input
-                  type="text"
-                  id="vendedorDocumento"
-                  name="vendedorDocumento"
-                  value={formData.vendedorDocumento}
-                  onChange={handleChange}
-                  className={inputClass("vendedorDocumento")}
-                  required
-                  inputMode="numeric"
+                    id={name}
+                    name={name}
+                    ref={setElRef(name)}
+                    className={getFieldClass(name)} 
+                    type={inputType}
+                    placeholder={placeholder}
+                    defaultValue={(displayValuesRef.current[name] || initial[name]) ?? ""} 
+                    onChange={handleInputChange}
+                    onBlur={onBlurHandler} 
                 />
-                {errorText("vendedorDocumento")}
-              </div>
-
-              <div className="col-span-1 sm:col-span-2">
-                <label htmlFor="vendedorNombreCompleto" className={labelClass}>
-                  Nombre completo{requiredSpan}
-                </label>
-                <input
-                  type="text"
-                  id="vendedorNombreCompleto"
-                  name="vendedorNombreCompleto"
-                  value={formData.vendedorNombreCompleto}
-                  onChange={handleChange}
-                  className={inputClass("vendedorNombreCompleto")}
-                  required
-                />
-                {errorText("vendedorNombreCompleto")}
-              </div>
-
-              <div>
-                <label htmlFor="vendedorCorreo" className={labelClass}>
-                  Correo{requiredSpan}
-                </label>
-                <input
-                  type="email"
-                  id="vendedorCorreo"
-                  name="vendedorCorreo"
-                  value={formData.vendedorCorreo}
-                  onChange={handleChange}
-                  className={inputClass("vendedorCorreo")}
-                  required
-                />
-                {errorText("vendedorCorreo")}
-              </div>
-
-              <div>
-                <label htmlFor="vendedorTelefono" className={labelClass}>
-                  Teléfono{requiredSpan}
-                </label>
-                <input
-                  type="text"
-                  id="vendedorTelefono"
-                  name="vendedorTelefono"
-                  value={formData.vendedorTelefono}
-                  onChange={handleChange}
-                  className={inputClass("vendedorTelefono")}
-                  required
-                  inputMode="tel"
-                />
-                {errorText("vendedorTelefono")}
-              </div>
+                {errorMessage && (
+                    <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
+                )}
             </div>
-          </section>
+        );
+    };
 
-          <hr className="border-gray-300 my-6" />
+    // Cálculo del total
+    const precio = parseFloat(valuesRef.current.precioUnitario) || 0;
+    const cantidad = parseFloat(valuesRef.current.cantidad) || 0;
+    const subtotal = precio * cantidad;
+    const impuestoTasa = (parseFloat(valuesRef.current.impuesto) || 0) / 100;
+    const valorImpuesto = subtotal * impuestoTasa;
+    const total = subtotal + valorImpuesto;
 
-          {/* Datos del comprador */}
-          <section className="p-4 bg-gray-50 rounded-lg shadow-inner">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Datos del comprador</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="compradorTipoDocumento" className={labelClass}>
-                  Tipo de documento{requiredSpan}
-                </label>
-                <select
-                  id="compradorTipoDocumento"
-                  name="compradorTipoDocumento"
-                  value={formData.compradorTipoDocumento}
-                  onChange={handleChange}
-                  className={inputClass("compradorTipoDocumento")}
-                  required
-                >
-                  <option value="CC">CC</option>
-                  <option value="CE">CE</option>
-                  <option value="NIT">NIT</option>
-                </select>
-              </div>
+    const formattedTotal = formatNumberWithThousandsSeparator(total);
+    const formattedSubtotal = formatNumberWithThousandsSeparator(subtotal);
+    const formattedImpuesto = formatNumberWithThousandsSeparator(valorImpuesto);
 
-              <div>
-                <label htmlFor="compradorDocumento" className={labelClass}>
-                  Número de documento{requiredSpan}
-                </label>
-                <input
-                  type="text"
-                  id="compradorDocumento"
-                  name="compradorDocumento"
-                  value={formData.compradorDocumento}
-                  onChange={handleChange}
-                  className={inputClass("compradorDocumento")}
-                  required
-                  inputMode="numeric"
-                />
-                {errorText("compradorDocumento")}
-              </div>
+    return (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex justify-center items-center z-50 overflow-y-auto font-sans">
+            <div className="bg-white w-full max-w-4xl rounded-xl shadow-2xl p-6 relative my-8">
+                {/* Botón de cierre: Estilo consistente */}
+                <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-purple-600 p-2 rounded-full hover:bg-purple-50 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                </button>
 
-              <div className="col-span-1 sm:col-span-2">
-                <label htmlFor="compradorNombreCompleto" className={labelClass}>
-                  Nombre completo{requiredSpan}
-                </label>
-                <input
-                  type="text"
-                  id="compradorNombreCompleto"
-                  name="compradorNombreCompleto"
-                  value={formData.compradorNombreCompleto}
-                  onChange={handleChange}
-                  className={inputClass("compradorNombreCompleto")}
-                  required
-                />
-                {errorText("compradorNombreCompleto")}
-              </div>
+                <h2 className="text-2xl font-bold mb-3">Registro de Venta</h2>
 
-              <div>
-                <label htmlFor="compradorCorreo" className={labelClass}>
-                  Correo{requiredSpan}
-                </label>
-                <input
-                  type="email"
-                  id="compradorCorreo"
-                  name="compradorCorreo"
-                  value={formData.compradorCorreo}
-                  onChange={handleChange}
-                  className={inputClass("compradorCorreo")}
-                  required
-                />
-                {errorText("compradorCorreo")}
-              </div>
+                {/* Barra de progreso */}
+                <div className="mb-6">
+                    <div className="w-full bg-purple-200 h-2 rounded-full">
+                        <div
+                            className="bg-purple-600 h-2 rounded-full transition-all duration-300 shadow-md"
+                            style={{ width: `${(step / totalSteps) * 100}%` }}
+                        />
+                    </div>
+                    <p className="text-sm text-purple-700 font-semibold mt-2">
+                        Paso {step} de {totalSteps}:{" "}
+                        {step === 1 ? "Datos del Cliente" : step === 2 ? "Detalles del Producto" : "Cierre y Pago"}
+                        {" "} (Campos obligatorios marcados con *)
+                    </p>
+                </div>
 
-              <div>
-                <label htmlFor="compradorTelefono" className={labelClass}>
-                  Teléfono{requiredSpan}
-                </label>
-                <input
-                  type="text"
-                  id="compradorTelefono"
-                  name="compradorTelefono"
-                  value={formData.compradorTelefono}
-                  onChange={handleChange}
-                  className={inputClass("compradorTelefono")}
-                  required
-                  inputMode="tel"
-                />
-                {errorText("compradorTelefono")}
-              </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* PASO 1: Datos del Cliente */}
+                    {step === 1 && (
+                        <div>
+                            <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Datos del Cliente</h3>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                                <Field
+                                    name="tipoDocCliente"
+                                    as="select"
+                                    options={[
+                                        { value: "CC", label: "Cédula de Ciudadanía (CC)" },
+                                        { value: "CE", label: "Cédula de Extranjería (CE)" },
+                                        { value: "NIT", label: "NIT" },
+                                    ]}
+                                />
+                                <Field name={NUMERO_DOC_CLI} placeholder="Mínimo 8 dígitos. Solo números." />
+                                <Field name="primerNombreCliente" placeholder="Primer Nombre" />
+                                <Field name="segundoNombreCliente" placeholder="Segundo Nombre (Opcional)" />
+                                <Field name="primerApellidoCliente" placeholder="Primer Apellido" />
+                                <Field name="segundoApellidoCliente" placeholder="Segundo Apellido (Opcional)" />
+                                <Field name="correoCliente" placeholder="ejemplo@dominio.com" type="email" />
+                                <Field name="telefonoCliente" placeholder="Ej: 3001234567" />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PASO 2: Detalles del Producto/Servicio */}
+                    {step === 2 && (
+                        <div>
+                            <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Detalles del Producto/Servicio</h3>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                                <Field name="nombreProducto" placeholder="Ej: Consultoría de Software" />
+                                <Field name="cantidad" placeholder="Solo números enteros mayores a 0." />
+                                <Field name="referencia" placeholder="Opcional. Ej: SKU-001" />
+                                <Field name="descripcion" as="textarea" placeholder="Descripción detallada del producto o servicio." />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PASO 3: Cierre y Pago */}
+                    {step === 3 && (
+                        <div>
+                            <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Datos Financieros y Cierre</h3>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-6">
+                                <Field name="precioUnitario" placeholder="Valor sin formato. Se aplicará formato de miles." />
+                                <Field name="impuesto" placeholder="0 a 100. Ej: 19 (Opcional)" />
+                                <Field
+                                    name="metodoPago"
+                                    as="select"
+                                    options={[
+                                        { value: "Transferencia", label: "Transferencia Bancaria" },
+                                        { value: "Efectivo", label: "Efectivo" },
+                                        { value: "Tarjeta", label: "Tarjeta de Crédito/Débito" },
+                                        { value: "Otro", label: "Otro" },
+                                    ]}
+                                />
+                                <Field name="fechaVenta" type="date" />
+                                <Field
+                                    name="estadoVenta"
+                                    as="select"
+                                    options={[
+                                        { value: "Pendiente", label: "Pendiente de Pago" },
+                                        { value: "Pagado", label: "Pagado y Cerrado" },
+                                        { value: "Cancelado", label: "Cancelado" },
+                                    ]}
+                                />
+                            </div>
+
+                            {/* Resumen del Cálculo Financiero */}
+                            <div className="p-4 bg-purple-50 border border-purple-300 rounded-lg shadow-inner text-gray-800">
+                                <h4 className="text-lg font-bold mb-2 text-purple-800">Resumen de la Venta</h4>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <p className="font-medium">Subtotal:</p>
+                                    <p className="text-right">$ {formattedSubtotal}</p>
+                                    <p className="font-medium">Impuesto ({valuesRef.current.impuesto || 0}%):</p>
+                                    <p className="text-right">$ {formattedImpuesto}</p>
+                                    <div className="col-span-2 border-t border-purple-300 pt-2 flex justify-between font-extrabold text-base">
+                                        <span>TOTAL A PAGAR:</span>
+                                        <span className="text-purple-600">$ {formattedTotal}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Botones de Navegación (Pie del formulario) */}
+                    <div className="pt-4 border-t mt-6 flex justify-between">
+                        {step > 1 && (
+                            <button
+                                type="button"
+                                onClick={prevStep}
+                                className="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition duration-150"
+                            >
+                                Atrás
+                            </button>
+                        )}
+                        <div className="flex-grow" /> {/* Espaciador */}
+                        
+                        {step < totalSteps && (
+                            <button
+                                type="button"
+                                onClick={handleNextStep}
+                                // Estilo de botón morado y con sombra consistente
+                                className="px-6 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-lg shadow-purple-200 hover:bg-purple-700 transition duration-150"
+                            >
+                                Siguiente
+                            </button>
+                        )}
+                        
+                        {step === totalSteps && (
+                            <button
+                                type="submit"
+                                // Estilo de botón principal morado y con sombra consistente
+                                className="px-6 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-lg shadow-purple-300 hover:bg-purple-700 transition duration-150"
+                            >
+                                Registrar Venta
+                            </button>
+                        )}
+                    </div>
+                </form>
             </div>
-          </section>
-
-          <hr className="border-gray-300 my-6" />
-
-          {/* Datos del inmueble */}
-          <section className="p-4 bg-gray-50 rounded-lg shadow-inner">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Datos del inmueble</h3>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="inmuebleTipo" className={labelClass}>
-                  Tipo de Inmueble{requiredSpan}
-                </label>
-                <select
-                  id="inmuebleTipo"
-                  name="inmuebleTipo"
-                  value={formData.inmuebleTipo}
-                  onChange={handleChange}
-                  className={inputClass("inmuebleTipo")}
-                  required
-                >
-                  <option value="">Seleccione...</option>
-                  <option value="Apartamento">Apartamento</option>
-                  <option value="Casa">Casa</option>
-                  <option value="Lote">Lote</option>
-                  <option value="Apartaestudio">Apartaestudio</option>
-                </select>
-                {errorText("inmuebleTipo")}
-              </div>
-
-              <div>
-                <label htmlFor="inmuebleRegistro" className={labelClass}>
-                  Registro Inmobiliario{requiredSpan}
-                </label>
-                <input
-                  type="text"
-                  id="inmuebleRegistro"
-                  name="inmuebleRegistro"
-                  value={formData.inmuebleRegistro}
-                  onChange={handleChange}
-                  className={inputClass("inmuebleRegistro")}
-                  required
-                />
-                {errorText("inmuebleRegistro")}
-              </div>
-
-              <div className="col-span-2">
-                <label htmlFor="inmuebleNombre" className={labelClass}>
-                  Nombre del Inmueble{requiredSpan}
-                </label>
-                <input
-                  type="text"
-                  id="inmuebleNombre"
-                  name="inmuebleNombre"
-                  value={formData.inmuebleNombre}
-                  onChange={handleChange}
-                  className={inputClass("inmuebleNombre")}
-                  required
-                />
-                {errorText("inmuebleNombre")}
-              </div>
-
-              <div>
-                <label htmlFor="inmuebleArea" className={labelClass}>
-                  Área (m²){requiredSpan}
-                </label>
-                <input
-                  type="text"
-                  id="inmuebleArea"
-                  name="inmuebleArea"
-                  value={formData.inmuebleArea}
-                  onChange={handleChange}
-                  className={inputClass("inmuebleArea")}
-                  required
-                  inputMode="numeric"
-                  placeholder="Ej: 120"
-                />
-                {errorText("inmuebleArea")}
-              </div>
-
-              <div>
-                <label htmlFor="inmuebleHabitaciones" className={labelClass}>
-                  Habitaciones{requiredSpan}
-                </label>
-                <select
-                  id="inmuebleHabitaciones"
-                  name="inmuebleHabitaciones"
-                  value={formData.inmuebleHabitaciones}
-                  onChange={handleChange}
-                  className={inputClass("inmuebleHabitaciones")}
-                  required
-                >
-                  <option value="">#</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4+">4+</option>
-                </select>
-                {errorText("inmuebleHabitaciones")}
-              </div>
-
-              <div>
-                <label htmlFor="inmuebleBanos" className={labelClass}>
-                  Baños{requiredSpan}
-                </label>
-                <select
-                  id="inmuebleBanos"
-                  name="inmuebleBanos"
-                  value={formData.inmuebleBanos}
-                  onChange={handleChange}
-                  className={inputClass("inmuebleBanos")}
-                  required
-                >
-                  <option value="">#</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3+">3+</option>
-                </select>
-                {errorText("inmuebleBanos")}
-              </div>
-
-              <div>
-                <label htmlFor="inmueblePais" className={labelClass}>
-                  País{requiredSpan}
-                </label>
-                <select
-                  id="inmueblePais"
-                  name="inmueblePais"
-                  value={formData.inmueblePais}
-                  onChange={handleChange}
-                  className={inputClass("inmueblePais")}
-                  required
-                >
-                  <option value="Colombia">Colombia</option>
-                  <option value="Otro">Otro</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="inmuebleDepartamento" className={labelClass}>
-                  Departamento{requiredSpan}
-                </label>
-                <input
-                  type="text"
-                  id="inmuebleDepartamento"
-                  name="inmuebleDepartamento"
-                  value={formData.inmuebleDepartamento}
-                  onChange={handleChange}
-                  className={inputClass("inmuebleDepartamento")}
-                  required
-                />
-                {errorText("inmuebleDepartamento")}
-              </div>
-
-              <div>
-                <label htmlFor="inmuebleCiudad" className={labelClass}>
-                  Ciudad{requiredSpan}
-                </label>
-                <input
-                  type="text"
-                  id="inmuebleCiudad"
-                  name="inmuebleCiudad"
-                  value={formData.inmuebleCiudad}
-                  onChange={handleChange}
-                  className={inputClass("inmuebleCiudad")}
-                  required
-                />
-                {errorText("inmuebleCiudad")}
-              </div>
-
-              <div>
-                <label htmlFor="inmuebleBarrio" className={labelClass}>
-                  Barrio
-                </label>
-                <input
-                  type="text"
-                  id="inmuebleBarrio"
-                  name="inmuebleBarrio"
-                  value={formData.inmuebleBarrio}
-                  onChange={handleChange}
-                  className={inputClass("inmuebleBarrio")}
-                />
-                {errorText("inmuebleBarrio")}
-              </div>
-
-              <div>
-                <label htmlFor="inmuebleEstrato" className={labelClass}>
-                  Estrato{requiredSpan}
-                </label>
-                <select
-                  id="inmuebleEstrato"
-                  name="inmuebleEstrato"
-                  value={formData.inmuebleEstrato}
-                  onChange={handleChange}
-                  className={inputClass("inmuebleEstrato")}
-                  required
-                >
-                  <option value="">#</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5">5</option>
-                  <option value="6">6</option>
-                </select>
-                {errorText("inmuebleEstrato")}
-              </div>
-
-              <div className="col-span-2">
-                <label htmlFor="inmuebleDireccion" className={labelClass}>
-                  Dirección{requiredSpan}
-                </label>
-                <input
-                  type="text"
-                  id="inmuebleDireccion"
-                  name="inmuebleDireccion"
-                  value={formData.inmuebleDireccion}
-                  onChange={handleChange}
-                  className={inputClass("inmuebleDireccion")}
-                  required
-                />
-                {errorText("inmuebleDireccion")}
-              </div>
-
-              <div>
-                <label htmlFor="inmueblePrecio" className={labelClass}>
-                  Precio (COP){requiredSpan}
-                </label>
-                <input
-                  type="text"
-                  id="inmueblePrecio"
-                  name="inmueblePrecio"
-                  value={formatPriceForDisplay(formData.inmueblePrecio)}
-                  onChange={(e) =>
-                    // onChange recibe un string con puntos o sin; extraemos los dígitos y delegamos
-                    handleChange({
-                      target: { name: "inmueblePrecio", value: e.target.value },
-                    })
-                  }
-                  className={inputClass("inmueblePrecio")}
-                  required
-                  inputMode="numeric"
-                  placeholder="Ej: 1.200.000"
-                />
-                {errorText("inmueblePrecio")}
-              </div>
-
-              <div className="flex items-center pt-4">
-                <input
-                  type="checkbox"
-                  id="inmuebleGaraje"
-                  name="inmuebleGaraje"
-                  checked={formData.inmuebleGaraje}
-                  onChange={handleChange}
-                  className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                />
-                <label htmlFor="inmuebleGaraje" className="ml-2 block text-sm font-medium text-gray-700">
-                  Garaje
-                </label>
-              </div>
-
-              <div>
-                <label htmlFor="inmuebleEstado" className={labelClass}>
-                  Estado
-                </label>
-                <select
-                  id="inmuebleEstado"
-                  name="inmuebleEstado"
-                  value={formData.inmuebleEstado}
-                  onChange={handleChange}
-                  className={inputClass("inmuebleEstado")}
-                >
-                  <option value="Disponible">Disponible</option>
-                  <option value="Vendido">Vendido</option>
-                  <option value="En trámite">En trámite</option>
-                </select>
-              </div>
-            </div>
-          </section>
-
-          {/* Botones */}
-          <div className="flex justify-end space-x-4 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={hasErrors || hasMissingRequiredFields}
-              className={`px-4 py-2 rounded-lg text-white font-semibold transition ${
-                hasErrors || hasMissingRequiredFields
-                  ? "bg-purple-400 cursor-not-allowed"
-                  : "bg-purple-600 hover:bg-purple-700"
-              }`}
-            >
-              Guardar venta
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+        </div>
+    );
 }
