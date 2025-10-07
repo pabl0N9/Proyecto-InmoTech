@@ -181,7 +181,9 @@ const CreateReportModal = ({
       nombre: '',
       descripcion: '',
       seguimientos: [],
-      expandido: true
+      expandido: true,
+      activo: true, // Nuevo campo para soft delete
+      fechaAnulacion: null // Fecha cuando se anuló
     };
     setRubros(prev => [...prev, nuevoRubro]);
   };
@@ -191,6 +193,28 @@ const CreateReportModal = ({
     setRubros(prev => prev.map(rubro => 
       rubro.id === id ? { ...rubro, [field]: value } : rubro
     ));
+  };
+
+  // Anular/Reactivar rubro (soft delete)
+  const toggleRubroActivo = (id) => {
+    setRubros(prev => prev.map(rubro => 
+      rubro.id === id 
+        ? { 
+            ...rubro, 
+            activo: !rubro.activo,
+            fechaAnulacion: !rubro.activo ? null : new Date().toISOString()
+          } 
+        : rubro
+    ));
+  };
+
+  // Eliminar rubro permanentemente (solo para rubros nuevos sin guardar)
+  const eliminarRubroPermanente = (id) => {
+    const rubro = rubros.find(r => r.id === id);
+    if (rubro && !rubro.nombre.trim()) {
+      // Solo eliminar si es un rubro vacío recién creado
+      setRubros(prev => prev.filter(rubro => rubro.id !== id));
+    }
   };
 
   // Eliminar rubro
@@ -211,7 +235,9 @@ const CreateReportModal = ({
       id: Date.now(),
       descripcion: '',
       fecha: getCurrentDate(),
-      estado: 'pendiente'
+      estado: 'pendiente',
+      activo: true,
+      fechaAnulacion: null
     };
     
     setRubros(prev => prev.map(rubro => 
@@ -230,6 +256,38 @@ const CreateReportModal = ({
             seguimientos: rubro.seguimientos.map(seg => 
               seg.id === seguimientoId ? { ...seg, [field]: value } : seg
             )
+          }
+        : rubro
+    ));
+  };
+
+  // Anular/Reactivar seguimiento (soft delete)
+  const toggleSeguimientoActivo = (rubroId, seguimientoId) => {
+    setRubros(prev => prev.map(rubro => 
+      rubro.id === rubroId 
+        ? {
+            ...rubro,
+            seguimientos: rubro.seguimientos.map(seg => 
+              seg.id === seguimientoId 
+                ? { 
+                    ...seg, 
+                    activo: !seg.activo,
+                    fechaAnulacion: !seg.activo ? null : new Date().toISOString()
+                  } 
+                : seg
+            )
+          }
+        : rubro
+    ));
+  };
+
+  // Eliminar seguimiento permanentemente (solo para seguimientos nuevos sin guardar)
+  const eliminarSeguimientoPermanente = (rubroId, seguimientoId) => {
+    setRubros(prev => prev.map(rubro => 
+      rubro.id === rubroId 
+        ? {
+            ...rubro,
+            seguimientos: rubro.seguimientos.filter(seg => seg.id !== seguimientoId)
           }
         : rubro
     ));
@@ -283,6 +341,10 @@ const CreateReportModal = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Filtrar rubros activos para mostrar
+  const rubrosVisibles = rubros.filter(rubro => rubro.activo !== false);
+  const rubrosAnulados = rubros.filter(rubro => rubro.activo === false);
+
   if (!isOpen) return null;
 
   return ReactDOM.createPortal(
@@ -302,27 +364,27 @@ const CreateReportModal = ({
           className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="bg-gradient-to-r from-teal-600 to-teal-700 px-6 py-4 text-white">
+         {/* Header */}
+          <div className="bg-white px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <FileText className="w-6 h-6" />
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <FileText className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold">
+                  <h2 className="text-xl font-semibold text-gray-800">
                     {initialData ? 'Editar Reporte' : 'Crear Nuevo Reporte'}
                   </h2>
-                  <p className="text-teal-100 text-sm">
+                  <p className="text-gray-500 text-sm">
                     {formData.fechaCreacion}
                   </p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
           </div>
@@ -333,7 +395,7 @@ const CreateReportModal = ({
               {/* Información Básica */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <UserIcon className="w-5 h-5 mr-2 text-teal-600" />
+                  <UserIcon className="w-5 h-5 mr-2 text-blue-600" />
                   Información Básica
                 </h3>
                 
@@ -461,7 +523,7 @@ const CreateReportModal = ({
               {/* Archivos e Imágenes */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <UploadIcon className="w-5 h-5 mr-2 text-teal-600" />
+                  <UploadIcon className="w-5 h-5 mr-2 text-blue-600" />
                   Archivos e Imágenes
                 </h3>
 
@@ -574,7 +636,7 @@ const CreateReportModal = ({
               {/* Seguimiento General */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <CalendarIcon className="w-5 h-5 mr-2 text-teal-600" />
+                  <CalendarIcon className="w-5 h-5 mr-2 text-blue-600" />
                   Seguimiento General
                 </h3>
                 
@@ -590,147 +652,259 @@ const CreateReportModal = ({
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                    <CheckIcon className="w-5 h-5 mr-2 text-teal-600" />
+                    <FileText className="w-5 h-5 mr-2 text-blue-600" />
                     Rubros del Proyecto
                   </h3>
                   <Button
                     type="button"
                     onClick={agregarRubro}
-                    variant="outline"
                     size="sm"
-                    className="flex items-center space-x-1"
+                    className="bg-blue-600 hover:bg-blue-700"
                   >
-                    <PlusIcon className="w-4 h-4" />
-                    <span>Agregar Rubro</span>
+                    <PlusIcon className="w-4 h-4 mr-2" />
+                    Agregar Rubro
                   </Button>
                 </div>
 
                 <div className="space-y-4">
-                  {rubros.map((rubro) => (
-                    <div key={rubro.id} className="bg-white rounded-lg border">
-                      <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <button
-                            type="button"
-                            onClick={() => toggleRubro(rubro.id)}
-                            className="flex items-center space-x-2 text-left"
-                          >
-                            {rubro.expandido ? (
-                              <ChevronDownIcon className="w-4 h-4 text-gray-500" />
-                            ) : (
-                              <ChevronRightIcon className="w-4 h-4 text-gray-500" />
-                            )}
-                            <span className="font-medium text-gray-800">
-                              {rubro.nombre || 'Nuevo Rubro'}
-                            </span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => eliminarRubro(rubro.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
+                  {/* Rubros Activos */}
+                  {rubrosVisibles.map((rubro) => (
+                    <div key={rubro.id} className="bg-white border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <button
+                          type="button"
+                          onClick={() => toggleRubro(rubro.id)}
+                          className="flex items-center space-x-2 text-gray-700 hover:text-gray-900"
+                        >
+                          {rubro.expandido ? (
+                            <ChevronDownIcon className="w-4 h-4" />
+                          ) : (
+                            <ChevronRightIcon className="w-4 h-4" />
+                          )}
+                          <span className="font-medium">
+                            {rubro.nombre || 'Nuevo Rubro'}
+                          </span>
+                        </button>
+                        
+                        <div className="flex items-center space-x-2">
+                          {initialData && (
+                            <Button
+                              type="button"
+                              onClick={() => toggleRubroActivo(rubro.id)}
+                              size="sm"
+                              variant="outline"
+                              className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                            >
+                              Anular
+                            </Button>
+                          )}
+                          {!initialData && !rubro.nombre.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => eliminarRubroPermanente(rubro.id)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
+                      </div>
 
-                        {rubro.expandido && (
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Nombre del Rubro
-                                </label>
-                                <Input
-                                  value={rubro.nombre}
-                                  onChange={(e) => editarRubro(rubro.id, 'nombre', e.target.value)}
-                                  placeholder="Ej: Plomería, Electricidad..."
-                                />
-                              </div>
-                            </div>
-
+                      {rubro.expandido && (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Descripción
+                                Nombre del Rubro
                               </label>
-                              <Textarea
-                                value={rubro.descripcion}
-                                onChange={(e) => editarRubro(rubro.id, 'descripcion', e.target.value)}
-                                placeholder="Descripción detallada del rubro..."
-                                rows={2}
+                              <Input
+                                value={rubro.nombre}
+                                onChange={(e) => editarRubro(rubro.id, 'nombre', e.target.value)}
+                                placeholder="Ej: Plomería, Electricidad..."
                               />
                             </div>
+                          </div>
 
-                            {/* Seguimientos del Rubro */}
-                            <div>
-                              <div className="flex items-center justify-between mb-2">
-                                <label className="block text-sm font-medium text-gray-700">
-                                  Seguimientos
-                                </label>
-                                <Button
-                                  type="button"
-                                  onClick={() => agregarSeguimientoRubro(rubro.id)}
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex items-center space-x-1"
-                                >
-                                  <PlusIcon className="w-3 h-3" />
-                                  <span>Agregar</span>
-                                </Button>
-                              </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Descripción
+                            </label>
+                            <Textarea
+                              value={rubro.descripcion}
+                              onChange={(e) => editarRubro(rubro.id, 'descripcion', e.target.value)}
+                              placeholder="Descripción detallada del rubro..."
+                              rows={2}
+                            />
+                          </div>
 
-                              <div className="space-y-2">
-                                {rubro.seguimientos.map((seguimiento) => (
-                                  <div key={seguimiento.id} className="bg-gray-50 p-3 rounded border">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-                                      <div>
-                                        <Input
-                                          value={seguimiento.fecha}
-                                          onChange={(e) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'fecha', e.target.value)}
-                                          type="date"
-                                          className="text-xs"
-                                        />
-                                      </div>
-                                      <div>
-                                        <Select 
-                                          value={seguimiento.estado} 
-                                          onValueChange={(value) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'estado', value)}
+                          {/* Seguimientos del rubro */}
+                          <div className="border-t pt-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-sm font-medium text-gray-700">
+                                Seguimientos del Rubro
+                              </h4>
+                              <Button
+                                type="button"
+                                onClick={() => agregarSeguimientoRubro(rubro.id)}
+                                size="sm"
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                <PlusIcon className="w-3 h-3 mr-1" />
+                                Agregar
+                              </Button>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              {rubro.seguimientos.filter(seg => seg.activo !== false).map((seguimiento) => (
+                                <div key={seguimiento.id} className="bg-gray-50 rounded p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center space-x-2">
+                                      <CalendarIcon className="w-3 h-3 text-gray-400" />
+                                      <Input
+                                        type="date"
+                                        value={seguimiento.fecha}
+                                        onChange={(e) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'fecha', e.target.value)}
+                                        className="text-xs h-6 w-32"
+                                      />
+                                      <Select
+                                        value={seguimiento.estado}
+                                        onValueChange={(value) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'estado', value)}
+                                      >
+                                        <SelectTrigger className="text-xs h-6 w-24">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="pendiente">Pendiente</SelectItem>
+                                          <SelectItem value="en-proceso">En Proceso</SelectItem>
+                                          <SelectItem value="completado">Completado</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                      {initialData && (
+                                        <Button
+                                          type="button"
+                                          onClick={() => toggleSeguimientoActivo(rubro.id, seguimiento.id)}
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-orange-600 border-orange-600 hover:bg-orange-50 text-xs px-2 py-1"
                                         >
-                                          <SelectTrigger className="text-xs">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="pendiente">Pendiente</SelectItem>
-                                            <SelectItem value="en-proceso">En Proceso</SelectItem>
-                                            <SelectItem value="completado">Completado</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div className="flex items-center space-x-1">
+                                          Anular
+                                        </Button>
+                                      )}
+                                      {!initialData && !seguimiento.descripcion.trim() && (
                                         <button
                                           type="button"
-                                          onClick={() => eliminarSeguimientoRubro(rubro.id, seguimiento.id)}
+                                          onClick={() => eliminarSeguimientoPermanente(rubro.id, seguimiento.id)}
                                           className="text-red-500 hover:text-red-700"
                                         >
                                           <TrashIcon className="w-3 h-3" />
                                         </button>
-                                      </div>
+                                      )}
                                     </div>
-                                    <Textarea
-                                      value={seguimiento.descripcion}
-                                      onChange={(e) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'descripcion', e.target.value)}
-                                      placeholder="Descripción del seguimiento..."
-                                      rows={2}
-                                      className="text-xs"
-                                    />
                                   </div>
-                                ))}
-                              </div>
+                                  <Textarea
+                                    value={seguimiento.descripcion}
+                                    onChange={(e) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'descripcion', e.target.value)}
+                                    placeholder="Descripción del seguimiento..."
+                                    rows={2}
+                                    className="text-xs"
+                                  />
+                                </div>
+                              ))}
+
+                              {/* Seguimientos Anulados */}
+                              {initialData && rubro.seguimientos.filter(seg => seg.activo === false).length > 0 && (
+                                <div className="mt-3">
+                                  <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center">
+                                    <XCircleIcon className="w-3 h-3 mr-1" />
+                                    Seguimientos Anulados ({rubro.seguimientos.filter(seg => seg.activo === false).length})
+                                  </h5>
+                                  <div className="space-y-2">
+                                    {rubro.seguimientos.filter(seg => seg.activo === false).map((seguimiento) => (
+                                      <div key={seguimiento.id} className="bg-red-50 rounded p-3 opacity-60">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <div className="flex items-center space-x-2">
+                                            <CalendarIcon className="w-3 h-3 text-gray-400" />
+                                            <span className="text-xs text-gray-600">{seguimiento.fecha}</span>
+                                            <Badge variant="secondary" className="text-xs">
+                                              {seguimiento.estado}
+                                            </Badge>
+                                            <span className="text-xs text-red-600">
+                                              (Anulado: {new Date(seguimiento.fechaAnulacion).toLocaleDateString()})
+                                            </span>
+                                          </div>
+                                          <Button
+                                            type="button"
+                                            onClick={() => toggleSeguimientoActivo(rubro.id, seguimiento.id)}
+                                            size="sm"
+                                            variant="outline"
+                                            className="text-green-600 border-green-600 hover:bg-green-50 text-xs px-2 py-1"
+                                          >
+                                            Reactivar
+                                          </Button>
+                                        </div>
+                                        <p className="text-xs text-gray-600 line-through">
+                                          {seguimiento.descripcion || 'Sin descripción'}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))}
+
+                  {/* Rubros Anulados */}
+                  {rubrosAnulados.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-sm font-medium text-gray-500 mb-3 flex items-center">
+                        <XCircleIcon className="w-4 h-4 mr-2" />
+                        Rubros Anulados ({rubrosAnulados.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {rubrosAnulados.map((rubro) => (
+                          <div key={rubro.id} className="bg-gray-100 border border-gray-300 rounded-lg p-3 opacity-60">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <XCircleIcon className="w-4 h-4 text-red-500" />
+                                <div>
+                                  <span className="font-medium text-gray-700 line-through">
+                                    {rubro.nombre || 'Rubro sin nombre'}
+                                  </span>
+                                  <p className="text-xs text-gray-500">
+                                    Anulado el {new Date(rubro.fechaAnulacion).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                type="button"
+                                onClick={() => toggleRubroActivo(rubro.id)}
+                                size="sm"
+                                variant="outline"
+                                className="text-green-600 border-green-600 hover:bg-green-50"
+                              >
+                                Reactivar
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {rubrosVisibles.length === 0 && rubrosAnulados.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                      <p>No hay rubros agregados</p>
+                      <p className="text-sm">Haz clic en "Agregar Rubro" para comenzar</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </form>
@@ -752,7 +926,7 @@ const CreateReportModal = ({
               type="submit"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="bg-teal-600 hover:bg-teal-700 text-white flex items-center space-x-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2"
             >
               <SaveIcon className="w-4 h-4" />
               <span>{isSubmitting ? 'Guardando...' : submitLabel}</span>

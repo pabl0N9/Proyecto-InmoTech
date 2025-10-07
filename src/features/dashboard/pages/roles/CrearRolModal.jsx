@@ -28,6 +28,7 @@ const modulesData = [
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Building2,
     color: "bg-slate-50 border-slate-200",
+    iconColor: "text-slate-600",
     description: "Administración completa del portafolio inmobiliario"
   },
   {
@@ -35,7 +36,8 @@ const modulesData = [
     key: "gClientes",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Users,
-    color: "bg-blue-50 border-blue-200",
+    color: "bg-slate-50 border-slate-200",
+    iconColor: "text-slate-600",
     description: "Control de base de datos de clientes y prospectos"
   },
   {
@@ -43,7 +45,8 @@ const modulesData = [
     key: "gCitas",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Calendar,
-    color: "bg-emerald-50 border-emerald-200",
+    color: "bg-slate-50 border-slate-200",
+    iconColor: "text-slate-600",
     description: "Programación y seguimiento de citas comerciales"
   },
   {
@@ -51,7 +54,8 @@ const modulesData = [
     key: "gComprador",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: ShoppingCart,
-    color: "bg-orange-50 border-orange-200",
+    color: "bg-slate-50 border-slate-200",
+    iconColor: "text-slate-600",
     description: "Administración de clientes compradores potenciales"
   },
   {
@@ -59,7 +63,8 @@ const modulesData = [
     key: "gVentas",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: DollarSign,
-    color: "bg-green-50 border-green-200",
+    color: "bg-slate-50 border-slate-200",
+    iconColor: "text-slate-600",
     description: "Control de procesos de venta y transacciones"
   },
   {
@@ -67,7 +72,8 @@ const modulesData = [
     key: "gArrendatario",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Home,
-    color: "bg-purple-50 border-purple-200",
+    color: "bg-slate-50 border-slate-200",
+    iconColor: "text-slate-600",
     description: "Administración de inquilinos y contratos de arriendo"
   },
   {
@@ -75,7 +81,8 @@ const modulesData = [
     key: "gArriendos",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Key,
-    color: "bg-indigo-50 border-indigo-200",
+    color: "bg-slate-50 border-slate-200",
+    iconColor: "text-slate-600",
     description: "Control de propiedades en arriendo y pagos"
   },
   {
@@ -83,7 +90,8 @@ const modulesData = [
     key: "gReporteInmuebles",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: BarChart3,
-    color: "bg-cyan-50 border-cyan-200",
+    color: "bg-slate-50 border-slate-200",
+    iconColor: "text-slate-600",
     description: "Generación de informes y análisis de mercado"
   },
   {
@@ -91,7 +99,8 @@ const modulesData = [
     key: "usuarios",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: User,
-    color: "bg-gray-50 border-gray-200",
+    color: "bg-slate-50 border-slate-200",
+    iconColor: "text-slate-600",
     description: "Control de acceso y gestión de personal"
   },
   {
@@ -99,7 +108,8 @@ const modulesData = [
     key: "roles",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Shield,
-    color: "bg-red-50 border-red-200",
+    color: "bg-slate-50 border-slate-200",
+    iconColor: "text-slate-600",
     description: "Configuración de permisos y niveles de acceso"
   },
 ];
@@ -118,6 +128,10 @@ export default function CrearRolModal({ isOpen, onClose, onSave }) {
       ...mod,
       enabled: true,
       permisosSeleccionados: [...mod.permisos],
+      permissions: mod.permisos.reduce((acc, permiso) => {
+        acc[permiso] = true;
+        return acc;
+      }, {})
     }))
   );
   const [errors, setErrors] = useState({});
@@ -174,6 +188,26 @@ export default function CrearRolModal({ isOpen, onClose, onSave }) {
           ? {
               ...mod,
               permisosSeleccionados: mod.permisosSeleccionados.includes(permiso)
+                ? mod.permisosSeleccionados.filter((p) => p !== permiso)
+                : [...mod.permisosSeleccionados, permiso],
+            }
+          : mod
+      )
+    );
+    setErrors(prev => ({ ...prev, permisos: undefined }));
+  };
+  
+  const togglePermission = (index, permiso) => {
+    setModules((prev) =>
+      prev.map((mod, i) =>
+        i === index
+          ? {
+              ...mod,
+              permissions: {
+                ...mod.permissions,
+                [permiso]: !mod.permissions[permiso]
+              },
+              permisosSeleccionados: mod.permissions[permiso]
                 ? mod.permisosSeleccionados.filter((p) => p !== permiso)
                 : [...mod.permisosSeleccionados, permiso],
             }
@@ -354,44 +388,50 @@ export default function CrearRolModal({ isOpen, onClose, onSave }) {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.03 }}
-                        className={`border-2 rounded-lg transition-all duration-200 ${
+                        className={`border-2 rounded-xl transition-all duration-200 hover:shadow-md ${
                           module.enabled 
-                            ? `${module.color} shadow-sm` 
+                            ? 'bg-white border-slate-300 shadow-sm' 
                             : 'bg-gray-50 border-gray-200'
                         }`}
                       >
                         {/* Header del módulo */}
-                        <div className="p-4 border-b border-gray-200">
+                        <div className="p-4 border-b border-gray-100">
                           <div className="flex items-start justify-between">
                             <div className="flex items-start gap-3 flex-1">
-                              <div className={`p-2 rounded-lg ${
-                                module.enabled ? 'bg-white shadow-sm' : 'bg-gray-100'
+                              <div className={`p-2.5 rounded-lg transition-colors ${
+                                module.enabled 
+                                  ? 'bg-slate-100 border border-slate-200' 
+                                  : 'bg-gray-100 border border-gray-200'
                               }`}>
                                 <IconComponent 
-                                  className={`w-4 h-4 ${module.enabled ? 'text-gray-700' : 'text-gray-400'}`}
+                                  className={`w-5 h-5 ${
+                                    module.enabled 
+                                      ? module.iconColor || 'text-slate-600' 
+                                      : 'text-gray-400'
+                                  }`}
                                 />
                               </div>
                               <div className="flex-1">
-                                <h4 className={`font-semibold text-sm ${
-                                  module.enabled ? 'text-gray-800' : 'text-gray-500'
+                                <h4 className={`font-semibold text-sm leading-tight ${
+                                  module.enabled ? 'text-slate-800' : 'text-gray-500'
                                 }`}>
                                   {module.name}
                                 </h4>
-                                <p className={`text-xs mt-1 ${
-                                  module.enabled ? 'text-gray-600' : 'text-gray-400'
+                                <p className={`text-xs mt-1.5 leading-relaxed ${
+                                  module.enabled ? 'text-slate-600' : 'text-gray-400'
                                 }`}>
                                   {module.description}
                                 </p>
                               </div>
                             </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
+                            <label className="relative inline-flex items-center cursor-pointer ml-2">
                               <input
                                 type="checkbox"
                                 checked={module.enabled}
                                 onChange={() => toggleModule(index)}
                                 className="sr-only peer"
                               />
-                              <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-600"></div>
+                              <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                             </label>
                           </div>
                         </div>
@@ -402,23 +442,37 @@ export default function CrearRolModal({ isOpen, onClose, onSave }) {
                             <div className="grid grid-cols-2 gap-2">
                               {module.permisos.map((permiso) => {
                                 const config = permissionConfig[permiso];
-                                const IconPermiso = config.icon;
-                                const isSelected = module.permisosSeleccionados.includes(permiso);
+                                const IconComponent = config.icon;
+                                const isChecked = module.permissions[permiso];
                                 
                                 return (
-                                  <button
+                                  <label
                                     key={permiso}
-                                    type="button"
-                                    onClick={() => togglePermiso(index, permiso)}
-                                    className={`flex items-center gap-2 p-2 rounded-lg border-2 transition-all text-xs font-medium ${
-                                      isSelected
-                                        ? `${config.bg} ${config.color} border-current shadow-sm`
-                                        : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                                    className={`flex items-center gap-2 p-2.5 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                                      isChecked
+                                        ? `${config.bg} ${config.color.replace('text-', 'border-')} border-opacity-30`
+                                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                                     }`}
                                   >
-                                    <IconPermiso className="w-3 h-3" />
-                                    <span>{permiso}</span>
-                                  </button>
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => togglePermission(index, permiso)}
+                                      className="sr-only"
+                                    />
+                                    <div className={`p-1 rounded ${isChecked ? 'bg-white shadow-sm' : 'bg-gray-100'}`}>
+                                      <IconComponent 
+                                        className={`w-3.5 h-3.5 ${
+                                          isChecked ? config.color : 'text-gray-400'
+                                        }`}
+                                      />
+                                    </div>
+                                    <span className={`text-xs font-medium ${
+                                      isChecked ? config.color : 'text-gray-500'
+                                    }`}>
+                                      {permiso}
+                                    </span>
+                                  </label>
                                 );
                               })}
                             </div>

@@ -4,7 +4,8 @@ import { Input } from '@/shared/components/ui/input'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
 import { Badge } from '@/shared/components/ui/badge'
-import { PlusIcon, EditIcon, TrashIcon, UploadIcon, FileIcon, ImageIcon, ChevronDownIcon, ChevronRightIcon, CheckIcon, UserIcon, CalendarIcon, SaveIcon, XCircleIcon } from 'lucide-react'
+import { PlusIcon, EditIcon, TrashIcon, UploadIcon, FileIcon, ImageIcon, ChevronDownIcon, ChevronRightIcon, CheckIcon, UserIcon, CalendarIcon, SaveIcon, XCircleIcon, ClipboardListIcon, ClockIcon, BuildingIcon, MapPinIcon, FileTextIcon } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 export function ReportForm({ 
   initialData = {}, 
@@ -13,6 +14,8 @@ export function ReportForm({
   submitLabel = 'Guardar Reporte',
   isSubmitting = false
 }) {
+  // Determinar si estamos en modo edición basándose en si hay un ID o datos específicos del reporte
+  const isEditMode = initialData && (initialData.id || initialData.tipoReporte || initialData.propietario)
   // Función para obtener la fecha actual en formato ISO
   const getCurrentDate = () => {
     return new Date().toISOString().split('T')[0]
@@ -47,12 +50,14 @@ export function ReportForm({
 
   // Estados del formulario
   const [formData, setFormData] = useState({...defaultFormData, ...(initialData || {})})
-  const [rubros, setRubros] = useState((initialData && initialData.rubros) || [
+  const [rubros, setRubros] = useState((initialData && initialData.rubros) || (isEditMode ? [
     {
       id: 1,
       nombre: 'Baños',
       descripcion: 'Inspección y reparaciones de baños',
       estado: 'En proceso',
+      activo: true,
+      fechaAnulacion: null,
       seguimientos: [
         {
           id: 1,
@@ -77,13 +82,17 @@ export function ReportForm({
       nombre: 'Ventanas',
       descripcion: 'Revisión y mantenimiento de ventanas',
       estado: 'Pendiente',
+      activo: true,
+      fechaAnulacion: null,
       seguimientos: []
     }
-  ])
+  ] : []))
   const [imagenes, setImagenes] = useState([])
   const [archivos, setArchivos] = useState([])
   const [expandedRubros, setExpandedRubros] = useState({})
   const rubroInputRefs = useRef({})
+  const [errors, setErrors] = useState({})  
+  const formRef = useRef(null)
 
   // Estados para seguimientos específicos
   const [seguimientos, setSeguimientos] = useState((initialData && initialData.seguimientos) || [])
@@ -176,6 +185,8 @@ export function ReportForm({
       nombre: '',
       descripcion: '',
       estado: 'Pendiente',
+      activo: true, // Nuevo campo para soft delete
+      fechaAnulacion: null, // Fecha cuando se anuló
       seguimientos: []
     }
     setRubros([...rubros, nuevoRubro])
@@ -194,6 +205,28 @@ export function ReportForm({
     ))
   }
 
+  // Anular/Reactivar rubro (soft delete)
+  const toggleRubroActivo = (id) => {
+    setRubros(rubros.map(rubro => 
+      rubro.id === id 
+        ? { 
+            ...rubro, 
+            activo: !rubro.activo,
+            fechaAnulacion: !rubro.activo ? null : new Date().toISOString()
+          } 
+        : rubro
+    ))
+  }
+
+  // Eliminar rubro permanentemente (solo para rubros nuevos sin guardar)
+  const eliminarRubroPermanente = (id) => {
+    const rubro = rubros.find(r => r.id === id)
+    if (rubro && !rubro.nombre.trim()) {
+      // Solo eliminar si es un rubro vacío recién creado
+      setRubros(rubros.filter(rubro => rubro.id !== id))
+    }
+  }
+  
   const eliminarRubro = (id) => {
     setRubros(rubros.filter(rubro => rubro.id !== id))
   }
@@ -245,6 +278,8 @@ export function ReportForm({
       [rubroId]: !prev[rubroId]
     }))
   }
+  
+  const toggleRubroExpansion = toggleRubro
 
   // Obtener color del estado
   const getStatusColor = (status) => {
@@ -273,16 +308,20 @@ export function ReportForm({
     }
   }
 
+  // Filtrar rubros para mostrar
+  const rubrosActivos = rubros.filter(rubro => rubro.activo !== false)
+  const rubrosAnulados = rubros.filter(rubro => rubro.activo === false)
+  
   // Calcular resumen de progreso
   const calcularResumen = () => {
-    const totalRubros = rubros.length
-    const totalSeguimientos = rubros.reduce((acc, rubro) => acc + rubro.seguimientos.length, 0)
-    const totalProcesos = rubros.reduce((acc, rubro) => {
+    const totalRubros = rubrosActivos.length
+    const totalSeguimientos = rubrosActivos.reduce((acc, rubro) => acc + rubro.seguimientos.length, 0)
+    const totalProcesos = rubrosActivos.reduce((acc, rubro) => {
       return acc + rubro.seguimientos.reduce((segAcc, seg) => segAcc + (seg.subSeguimientos || 0), 0)
     }, 0) + totalSeguimientos
 
-    const pendientes = rubros.filter(r => r.estado === 'Pendiente').length
-    const enProceso = rubros.filter(r => r.estado === 'En proceso').length
+    const pendientes = rubrosActivos.filter(r => r.estado === 'Pendiente').length
+    const enProceso = rubrosActivos.filter(r => r.estado === 'En proceso').length
 
     return { 
       totalRubros, 
@@ -611,7 +650,8 @@ export function ReportForm({
             </div>
 
             <div className="space-y-4">
-              {rubros.map((rubro, index) => (
+              {/* Rubros Activos */}
+              {rubrosActivos.map((rubro, index) => (
                 <motion.div
                   key={rubro.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -665,14 +705,26 @@ export function ReportForm({
                         <Badge variant={rubro.estado === 'Completado' ? 'default' : 'secondary'}>
                           {rubro.seguimientos.length} seguimientos
                         </Badge>
-                        <Button
-                          onClick={() => eliminarRubro(rubro.id)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </Button>
+                        {isEditMode && (
+                          <Button
+                            onClick={() => toggleRubroActivo(rubro.id)}
+                            variant="outline"
+                            size="sm"
+                            className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                          >
+                            Anular
+                          </Button>
+                        )}
+                        {!isEditMode && !rubro.nombre.trim() && (
+                          <Button
+                            onClick={() => eliminarRubroPermanente(rubro.id)}
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -776,7 +828,44 @@ export function ReportForm({
                 </motion.div>
               ))}
               
-              {rubros.length === 0 && (
+              {/* Rubros Anulados */}
+              {rubrosAnulados.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-slate-500 mb-3 flex items-center">
+                    <XCircleIcon className="w-4 h-4 mr-2" />
+                    Rubros Anulados ({rubrosAnulados.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {rubrosAnulados.map((rubro) => (
+                      <div key={rubro.id} className="bg-slate-100 border border-slate-300 rounded-lg p-3 opacity-60">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <XCircleIcon className="w-4 h-4 text-red-500" />
+                            <div>
+                              <span className="font-medium text-slate-700 line-through">
+                                {rubro.nombre || 'Rubro sin nombre'}
+                              </span>
+                              <p className="text-xs text-slate-500">
+                                Anulado el {new Date(rubro.fechaAnulacion).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => toggleRubroActivo(rubro.id)}
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600 border-green-600 hover:bg-green-50"
+                          >
+                            Reactivar
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {rubrosActivos.length === 0 && rubrosAnulados.length === 0 && (
                 <div className="text-center py-8 text-slate-500 border-2 border-dashed border-slate-300 rounded-lg">
                   <ClipboardListIcon className="w-12 h-12 mx-auto mb-4 text-slate-400" />
                   <p className="font-medium">No hay rubros agregados</p>

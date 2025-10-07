@@ -236,9 +236,9 @@ const Reports = () => {
               />
               <ReportsTable
                 reports={filteredReports}
-                onViewReport={handleViewReport}
-                onEditReport={handleEditReport}
-                onDeleteReport={handleDeleteReport}
+                onView={handleViewReport}
+                onEdit={handleEditReport}
+                onDelete={handleDeleteReport}
               />
             </motion.div>
           )}
