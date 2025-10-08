@@ -34,7 +34,7 @@ const modulesData = [
     key: "gClientes",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Users,
-    color: "bg-blue-50 border-blue-200",
+    color: "bg-slate-50 border-slate-200",
     description: "Control de base de datos de clientes y prospectos"
   },
   {
@@ -42,7 +42,7 @@ const modulesData = [
     key: "gCitas",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Calendar,
-    color: "bg-emerald-50 border-emerald-200",
+    color: "bg-slate-50 border-slate-200",
     description: "Programación y seguimiento de citas comerciales"
   },
   {
@@ -50,7 +50,7 @@ const modulesData = [
     key: "gComprador",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: ShoppingCart,
-    color: "bg-orange-50 border-orange-200",
+    color: "bg-slate-50 border-slate-200",
     description: "Administración de clientes compradores potenciales"
   },
   {
@@ -58,7 +58,7 @@ const modulesData = [
     key: "gVentas",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: DollarSign,
-    color: "bg-green-50 border-green-200",
+    color: "bg-slate-50 border-slate-200",
     description: "Control de procesos de venta y transacciones"
   },
   {
@@ -66,7 +66,7 @@ const modulesData = [
     key: "gArrendatario",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Home,
-    color: "bg-purple-50 border-purple-200",
+    color: "bg-slate-50 border-slate-200",
     description: "Administración de inquilinos y contratos de arriendo"
   },
   {
@@ -74,7 +74,7 @@ const modulesData = [
     key: "gArriendos",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Key,
-    color: "bg-indigo-50 border-indigo-200",
+    color: "bg-slate-50 border-slate-200",
     description: "Control de propiedades en arriendo y pagos"
   },
   {
@@ -82,7 +82,7 @@ const modulesData = [
     key: "gReporteInmuebles",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: BarChart3,
-    color: "bg-cyan-50 border-cyan-200",
+    color: "bg-slate-50 border-slate-200",
     description: "Generación de informes y análisis de mercado"
   },
   {
@@ -90,7 +90,7 @@ const modulesData = [
     key: "usuarios",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: User,
-    color: "bg-gray-50 border-gray-200",
+    color: "bg-slate-50 border-slate-200",
     description: "Control de acceso y gestión de personal"
   },
   {
@@ -98,7 +98,7 @@ const modulesData = [
     key: "roles",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Shield,
-    color: "bg-red-50 border-red-200",
+    color: "bg-slate-50 border-slate-200",
     description: "Configuración de permisos y niveles de acceso"
   },
 ];
@@ -142,6 +142,17 @@ export default function VerRolModal({ isOpen, onClose, rol }) {
     return Object.entries(permisos)
       .filter(([_, value]) => value === true)
       .map(([key]) => key);
+  };
+
+  // Helper para obtener módulos con permisos activos
+  const getModulosConPermisos = () => {
+    return modulesData.filter(modulo => {
+      const permisosActivos = getPermisosGrupo(modulo.key);
+      return permisosActivos.length > 0;
+    }).map(modulo => ({
+      ...modulo,
+      permisosActivos: getPermisosGrupo(modulo.key)
+    }));
   };
 
   // Vista completa para Super Admin
@@ -327,94 +338,185 @@ export default function VerRolModal({ isOpen, onClose, rol }) {
     );
   }
 
-  // Vista simple para roles normales (código original)
-  const estadoActivo = rol?.estado;
+  // Vista mejorada para roles normales - SOLO MÓDULOS CON PERMISOS
+  const modulosConPermisos = getModulosConPermisos();
+  const totalPermisosActivos = modulosConPermisos.reduce((total, modulo) => 
+    total + modulo.permisosActivos.length, 0
+  );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg w-[650px] relative max-h-[90vh] overflow-y-auto">
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-          aria-label="Cerrar"
-        >
-          &#x2715;
-        </button>
-
-        <h2 className="text-xl font-bold mb-4">Ver rol</h2>
-
-        {/* Nombre */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-1">Nombre</label>
-          <input
-            type="text"
-            value={rol?.nombre || ""}
-            disabled
-            className="w-full border rounded px-3 py-2 bg-gray-100 cursor-not-allowed"
-          />
-        </div>
-
-        {/* Permission groups */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          {permissionGroups.map(({ key, label }) => {
-            const permisosActivos = getPermisosGrupo(key);
-            const tienePermisos = permisosActivos.length > 0;
-            
-            return (
-              <div
-                key={key}
-                className="border rounded p-3 flex flex-col gap-2 min-w-[150px]"
-              >
-                <div className="font-semibold flex items-center justify-between">
-                  <span>{label}</span>
-                  <input
-                    type="checkbox"
-                    checked={tienePermisos}
-                    disabled
-                    className="w-4 h-4 accent-blue-600"
-                  />
-                </div>
-                
-                {tienePermisos ? (
-                  <div className="text-sm">
-                    <p className="font-medium mb-1">Permisos activos:</p>
-                    <ul className="list-disc pl-5">
-                      {permisosActivos.map(permiso => (
-                        <li key={permiso} className="capitalize">{permiso}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 italic">Sin permisos</p>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Estado group */}
-          <div className="border rounded p-3 flex flex-col gap-2 min-w-[150px] justify-center">
-            <div className="font-semibold mb-2">Estado</div>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={estadoActivo}
-                disabled
-                className="w-4 h-4 accent-blue-600"
-              />
-              <span>Activo</span>
-            </label>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
+        {/* Header del rol */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 relative">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors"
+            aria-label="Cerrar"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          
+          <div className="flex items-center space-x-4">
+            <div className="bg-white/20 p-3 rounded-lg">
+              <Shield className="h-8 w-8" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold">Detalles del Rol</h2>
+              <p className="text-blue-100">Permisos y módulos asignados</p>
+            </div>
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex justify-end">
-          <button
-            onClick={onClose}
-            className="text-cyan-600 border border-cyan-600 px-4 py-1 rounded hover:bg-cyan-100"
-          >
-            Cerrar
-          </button>
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          {/* Información del rol */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+              <label className="block text-sm font-medium text-blue-700 mb-2">Nombre del Rol</label>
+              <div className="text-xl font-semibold text-blue-900 flex items-center space-x-2">
+                <Shield className="h-5 w-5" />
+                <span>{rol?.nombre || "Sin nombre"}</span>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
+              <label className="block text-sm font-medium text-green-700 mb-2">Estado</label>
+              <div className="flex items-center space-x-2">
+                {rol?.estado ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <span className="text-green-600 font-medium">Activo</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-5 w-5 text-red-600" />
+                    <span className="text-red-600 font-medium">Inactivo</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+              <label className="block text-sm font-medium text-purple-700 mb-2">Permisos Totales</label>
+              <div className="text-xl font-semibold text-purple-900">
+                {totalPermisosActivos}
+              </div>
+              <div className="text-sm text-purple-600">
+                {modulosConPermisos.length} módulos activos
+              </div>
+            </div>
+          </div>
+
+          {/* Mensaje si no hay permisos */}
+          {modulosConPermisos.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="bg-gray-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                <Shield className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Sin Permisos Asignados</h3>
+              <p className="text-gray-500">Este rol no tiene permisos asignados a ningún módulo.</p>
+            </div>
+          ) : (
+            <>
+              {/* Resumen de permisos por tipo */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                  <span>Resumen de Permisos</span>
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {Object.entries(permissionConfig).map(([key, config]) => {
+                    const Icon = config.icon;
+                    const count = modulosConPermisos.filter(modulo => 
+                      modulo.permisosActivos.includes(key)
+                    ).length;
+                    
+                    return (
+                      <div key={key} className={`${config.bg} border rounded-lg p-4 text-center shadow-sm`}>
+                        <Icon className={`h-6 w-6 ${config.color} mx-auto mb-2`} />
+                        <div className="text-2xl font-bold text-gray-900">{count}</div>
+                        <div className="text-sm text-gray-600">{config.label}</div>
+                        <div className="text-xs text-gray-500 mt-1">módulos</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Módulos con permisos */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                  <Building2 className="h-5 w-5 text-blue-600" />
+                  <span>Módulos con Permisos Asignados</span>
+                </h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {modulosConPermisos.map((modulo) => {
+                    const Icon = modulo.icon;
+                    
+                    return (
+                      <div
+                        key={modulo.key}
+                        className={`${modulo.color} border-2 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow`}
+                      >
+                        {/* Header del módulo */}
+                        <div className="flex items-start space-x-4 mb-4">
+                          <div className="p-3 rounded-lg bg-white/80">
+                            <Icon className="h-6 w-6 text-gray-700" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-lg font-semibold text-gray-900">{modulo.name}</h4>
+                            <p className="text-sm text-gray-600 mt-1">{modulo.description}</p>
+                          </div>
+                          <div className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {modulo.permisosActivos.length} permisos
+                          </div>
+                        </div>
+
+                        {/* Permisos activos del módulo */}
+                        <div className="grid grid-cols-2 gap-3">
+                          {modulo.permisosActivos.map((permiso) => {
+                            const config = permissionConfig[permiso];
+                            const PermisoIcon = config?.icon || Eye;
+                            
+                            return (
+                              <div
+                                key={permiso}
+                                className="flex items-center space-x-3 p-3 rounded-lg border bg-white/90 shadow-sm"
+                              >
+                                <div className={`p-2 rounded-md ${config?.bg || 'bg-gray-50'}`}>
+                                  <PermisoIcon className={`h-4 w-4 ${config?.color || 'text-gray-600'}`} />
+                                </div>
+                                <div className="flex-1">
+                                  <span className="text-sm font-medium text-gray-900 capitalize">
+                                    {permiso}
+                                  </span>
+                                </div>
+                                <div>
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="bg-gray-50 px-6 py-4 border-t">
+          <div className="flex justify-end">
+            <button
+              onClick={onClose}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-md"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       </div>
     </div>

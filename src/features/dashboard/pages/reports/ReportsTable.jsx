@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
-import { EyeIcon, EditIcon, TrashIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { EyeIcon, EditIcon, DownloadIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 
-export function ReportsTable({ reports = [], onView, onEdit, onDelete }) {
+export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
   const [sortField, setSortField] = useState(null)
   const [sortDirection, setSortDirection] = useState('asc')
   const [currentPage, setCurrentPage] = useState(1)
@@ -57,17 +57,15 @@ export function ReportsTable({ reports = [], onView, onEdit, onDelete }) {
 
   // Función para obtener el color del estado
   const getStatusColor = (estado) => {
-    switch (estado?.toLowerCase()) {
-      case 'en proceso':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'cotizando':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'sin novedades':
-        return 'bg-gray-100 text-gray-800 border-gray-200'
-      case 'completado':
+    switch (estado) {
+      case 'Completado':
         return 'bg-green-100 text-green-800 border-green-200'
-      case 'pendiente':
-        return 'bg-orange-100 text-orange-800 border-orange-200'
+      case 'En proceso':
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'Cotizando':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'Sin novedades':
+        return 'bg-gray-100 text-gray-800 border-gray-200'
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
@@ -151,10 +149,11 @@ export function ReportsTable({ reports = [], onView, onEdit, onDelete }) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onDelete?.(report)}
-            className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1"
+            onClick={() => onDownloadPDF?.(report)}
+            className="text-purple-600 hover:text-purple-800 hover:bg-purple-50 p-1"
+            title="Descargar PDF"
           >
-            <TrashIcon className="h-4 w-4" />
+            <DownloadIcon className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -216,7 +215,7 @@ export function ReportsTable({ reports = [], onView, onEdit, onDelete }) {
               <SortableHeader field="tipoReporte" className="w-28">Reporte</SortableHeader>
               <SortableHeader field="fecha" className="w-24">Fecha</SortableHeader>
               <SortableHeader field="estado" className="w-24">Estado</SortableHeader>
-              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                 Acciones
               </th>
             </tr>
@@ -227,23 +226,17 @@ export function ReportsTable({ reports = [], onView, onEdit, onDelete }) {
                 <td className="px-3 py-4 text-sm font-medium text-gray-900">
                   {report.id}
                 </td>
-                <td className="px-3 py-4 text-sm text-gray-900 capitalize">
-                  <div className="truncate max-w-24" title={report.ubicacion}>
-                    {report.ubicacion}
-                  </div>
+                <td className="px-3 py-4 text-sm text-gray-900">
+                  <div className="capitalize">{report.ubicacion}</div>
                 </td>
                 <td className="px-3 py-4 text-sm text-gray-900 capitalize">
-                  <div className="truncate max-w-20" title={report.tipoInmueble}>
-                    {report.tipoInmueble}
-                  </div>
+                  {report.tipoInmueble}
                 </td>
                 <td className="px-3 py-4 text-sm text-gray-900">
-                  <div className="truncate max-w-32" title={report.propietario}>
-                    {report.propietario}
-                  </div>
+                  {report.propietario}
                 </td>
-                <td className="px-3 py-4 text-sm text-gray-900 capitalize">
-                  <div className="truncate max-w-28" title={report.tipoReporte}>
+                <td className="px-3 py-4 text-sm text-gray-900">
+                  <div className="max-w-xs">
                     {report.tipoReporte}
                   </div>
                 </td>
@@ -278,11 +271,11 @@ export function ReportsTable({ reports = [], onView, onEdit, onDelete }) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onDelete?.(report)}
-                      className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1"
-                      title="Eliminar reporte"
+                      onClick={() => onDownloadPDF?.(report)}
+                      className="text-purple-600 hover:text-purple-800 hover:bg-purple-50 p-1"
+                      title="Descargar PDF"
                     >
-                      <TrashIcon className="h-4 w-4" />
+                      <DownloadIcon className="h-4 w-4" />
                     </Button>
                   </div>
                 </td>
@@ -346,10 +339,10 @@ export function ReportsTable({ reports = [], onView, onEdit, onDelete }) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onDelete?.(report)}
-                      className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1"
+                      onClick={() => onDownloadPDF?.(report)}
+                      className="text-purple-600 hover:text-purple-800 hover:bg-purple-50 p-1"
                     >
-                      <TrashIcon className="h-4 w-4" />
+                      <DownloadIcon className="h-4 w-4" />
                     </Button>
                   </div>
                 </td>
@@ -450,11 +443,7 @@ export function ReportsTable({ reports = [], onView, onEdit, onDelete }) {
       {sortedReports.length === 0 && (
         <div className="text-center py-12">
           <div className="text-gray-500">
-            <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay reportes</h3>
-            <p className="text-gray-500">No se encontraron reportes para mostrar.</p>
+            No se encontraron reportes
           </div>
         </div>
       )}

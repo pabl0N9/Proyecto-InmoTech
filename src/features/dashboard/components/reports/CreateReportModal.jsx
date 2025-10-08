@@ -21,7 +21,8 @@ import {
   SaveIcon, 
   XCircleIcon,
   X,
-  FileText
+  FileText,
+  ClipboardList as ClipboardListIcon
 } from 'lucide-react';
 
 const CreateReportModal = ({ 
@@ -427,12 +428,11 @@ const CreateReportModal = ({
                         <SelectValue placeholder="Seleccione el tipo" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Apartamento">Apartamento</SelectItem>
                         <SelectItem value="Casa">Casa</SelectItem>
+                        <SelectItem value="Apartamento">Apartamento</SelectItem>
+                        <SelectItem value="Apartaestudio">Apartaestudio</SelectItem>
                         <SelectItem value="Local">Local</SelectItem>
-                        <SelectItem value="Oficina">Oficina</SelectItem>
-                        <SelectItem value="PENT">PENT</SelectItem>
-                        <SelectItem value="Bodega">Bodega</SelectItem>
+                        <SelectItem value="Finca">Finca</SelectItem>
                       </SelectContent>
                     </Select>
                     {errors.tipoInmueble && (
@@ -739,49 +739,38 @@ const CreateReportModal = ({
 
                           {/* Seguimientos del rubro */}
                           <div className="border-t pt-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-sm font-medium text-gray-700">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-sm font-medium text-gray-700 flex items-center">
+                                <ClipboardListIcon className="w-4 h-4 mr-2 text-blue-600" />
                                 Seguimientos del Rubro
+                                <Badge variant="secondary" className="ml-2 text-xs">
+                                  {rubro.seguimientos.filter(seg => seg.activo !== false).length}
+                                </Badge>
                               </h4>
                               <Button
                                 type="button"
                                 onClick={() => agregarSeguimientoRubro(rubro.id)}
                                 size="sm"
                                 variant="outline"
-                                className="text-xs"
+                                className="text-blue-600 border-blue-600 hover:bg-blue-50 text-xs px-3 py-1"
                               >
                                 <PlusIcon className="w-3 h-3 mr-1" />
-                                Agregar
+                                Nuevo Seguimiento
                               </Button>
                             </div>
                             
                             <div className="space-y-2">
-                              {rubro.seguimientos.filter(seg => seg.activo !== false).map((seguimiento) => (
-                                <div key={seguimiento.id} className="bg-gray-50 rounded p-3">
-                                  <div className="flex items-center justify-between mb-2">
+                              {rubro.seguimientos.filter(seg => seg.activo !== false).map((seguimiento, index) => (
+                                <div key={seguimiento.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                                  {/* Header del seguimiento */}
+                                  <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center space-x-2">
-                                      <CalendarIcon className="w-3 h-3 text-gray-400" />
-                                      <Input
-                                        type="date"
-                                        value={seguimiento.fecha}
-                                        onChange={(e) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'fecha', e.target.value)}
-                                        className="text-xs h-6 w-32"
-                                      />
-                                      <Select
-                                        value={seguimiento.estado}
-                                        onValueChange={(value) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'estado', value)}
-                                      >
-                                        <SelectTrigger className="text-xs h-6 w-24">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="pendiente">Pendiente</SelectItem>
-                                          <SelectItem value="en-proceso">En Proceso</SelectItem>
-                                          <SelectItem value="completado">Completado</SelectItem>
-                                        </SelectContent>
-                                      </Select>
+                                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <span className="text-xs font-medium text-blue-600">#{index + 1}</span>
+                                      </div>
+                                      <span className="text-sm font-medium text-gray-700">Seguimiento {index + 1}</span>
                                     </div>
-                                    <div className="flex items-center space-x-1">
+                                    <div className="flex items-center space-x-2">
                                       {initialData && (
                                         <Button
                                           type="button"
@@ -790,29 +779,137 @@ const CreateReportModal = ({
                                           variant="outline"
                                           className="text-orange-600 border-orange-600 hover:bg-orange-50 text-xs px-2 py-1"
                                         >
+                                          <XCircleIcon className="w-3 h-3 mr-1" />
                                           Anular
                                         </Button>
                                       )}
                                       {!initialData && !seguimiento.descripcion.trim() && (
-                                        <button
+                                        <Button
                                           type="button"
                                           onClick={() => eliminarSeguimientoPermanente(rubro.id, seguimiento.id)}
-                                          className="text-red-500 hover:text-red-700"
+                                          size="sm"
+                                          variant="ghost"
+                                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                         >
                                           <TrashIcon className="w-3 h-3" />
-                                        </button>
+                                        </Button>
                                       )}
                                     </div>
                                   </div>
-                                  <Textarea
-                                    value={seguimiento.descripcion}
-                                    onChange={(e) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'descripcion', e.target.value)}
-                                    placeholder="Descripción del seguimiento..."
-                                    rows={2}
-                                    className="text-xs"
-                                  />
+
+                                  {/* Campos organizados en grid */}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                    <div>
+                                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                                        <CalendarIcon className="w-3 h-3 inline mr-1" />
+                                        Fecha
+                                      </label>
+                                      <Input
+                                        type="date"
+                                        value={seguimiento.fecha}
+                                        onChange={(e) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'fecha', e.target.value)}
+                                        className="text-xs h-8"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                                        Estado
+                                      </label>
+                                      <Select
+                                        value={seguimiento.estado}
+                                        onValueChange={(value) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'estado', value)}
+                                      >
+                                        <SelectTrigger className="text-xs h-8">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="pendiente">
+                                            <div className="flex items-center">
+                                              <div className="w-2 h-2 bg-yellow-400 rounded-full mr-2"></div>
+                                              Pendiente
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="en-proceso">
+                                            <div className="flex items-center">
+                                              <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
+                                              En Proceso
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="completado">
+                                            <div className="flex items-center">
+                                              <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                                              Completado
+                                            </div>
+                                          </SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+
+                                  {/* Campo de responsable */}
+                                  <div className="mb-3">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                      <UserIcon className="w-3 h-3 inline mr-1" />
+                                      Responsable
+                                    </label>
+                                    <Input
+                                      value={seguimiento.responsable || ''}
+                                      onChange={(e) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'responsable', e.target.value)}
+                                      placeholder="Nombre del responsable"
+                                      className="text-xs h-8"
+                                    />
+                                  </div>
+
+                                  {/* Descripción */}
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                      <FileText className="w-3 h-3 inline mr-1" />
+                                      Descripción
+                                    </label>
+                                    <Textarea
+                                      value={seguimiento.descripcion}
+                                      onChange={(e) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'descripcion', e.target.value)}
+                                      placeholder="Describe las actividades realizadas o por realizar..."
+                                      rows={2}
+                                      className="text-xs resize-none"
+                                    />
+                                  </div>
+
+                                  {/* Indicador de estado visual */}
+                                  <div className="mt-3 pt-2 border-t border-gray-100">
+                                    <div className="flex items-center justify-between text-xs text-gray-500">
+                                      <span>Estado actual:</span>
+                                      <div className="flex items-center">
+                                        <div className={`w-2 h-2 rounded-full mr-2 ${
+                                          seguimiento.estado === 'completado' ? 'bg-green-400' :
+                                          seguimiento.estado === 'en-proceso' ? 'bg-blue-400' : 'bg-yellow-400'
+                                        }`}></div>
+                                        <span className="capitalize">{seguimiento.estado || 'pendiente'}</span>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
                               ))}
+
+                              {/* Indicador de progreso del rubro */}
+                              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-medium text-gray-700">Progreso del rubro:</span>
+                                  <span className="text-gray-600">
+                                    {rubro.seguimientos.filter(seg => seg.activo !== false && seg.estado === 'completado').length} de {rubro.seguimientos.filter(seg => seg.activo !== false).length} completados
+                                  </span>
+                                </div>
+                                <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                    style={{
+                                      width: `${rubro.seguimientos.filter(seg => seg.activo !== false).length > 0 
+                                        ? (rubro.seguimientos.filter(seg => seg.activo !== false && seg.estado === 'completado').length / rubro.seguimientos.filter(seg => seg.activo !== false).length) * 100 
+                                        : 0}%`
+                                    }}
+                                  ></div>
+                                </div>
+                              </div>
 
                               {/* Seguimientos Anulados */}
                               {initialData && rubro.seguimientos.filter(seg => seg.activo === false).length > 0 && (

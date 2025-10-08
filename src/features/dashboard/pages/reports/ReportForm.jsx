@@ -456,10 +456,10 @@ export function ReportForm({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="casa">Casa</SelectItem>
-                    <SelectItem value="departamento">Departamento</SelectItem>
-                    <SelectItem value="terreno">Terreno</SelectItem>
-                    <SelectItem value="oficina">Oficina</SelectItem>
-                    <SelectItem value="local">Local Comercial</SelectItem>
+                    <SelectItem value="apartamento">Apartamento</SelectItem>
+                    <SelectItem value="apartaestudio">Apartaestudio</SelectItem>
+                    <SelectItem value="local">Local</SelectItem>
+                    <SelectItem value="finca">Finca</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.tipoInmueble && (
