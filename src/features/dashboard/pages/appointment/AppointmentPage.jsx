@@ -31,6 +31,7 @@ const CitasPage = () => {
   const [selectedCita, setSelectedCita] = useState(null);
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'calendar'
+  const [loadingStatusChanges, setLoadingStatusChanges] = useState(new Set());
   const { toast } = useToast();
 
   // Filtrar citas
@@ -147,6 +148,7 @@ const CitasPage = () => {
   const handleStatusChangeRequest = (cita, newStatus) => {
     setSelectedCita(cita);
     setPendingStatusChange({ citaId: cita.id, newStatus });
+    setLoadingStatusChanges(prev => new Set(prev).add(cita.id));
     setIsStatusChangeModalOpen(true);
   };
 
@@ -157,6 +159,12 @@ const CitasPage = () => {
         estado: pendingStatusChange.newStatus
       };
       updateAppointment(updatedCita);
+
+      setLoadingStatusChanges(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(pendingStatusChange.citaId);
+        return newSet;
+      });
 
       setIsStatusChangeModalOpen(false);
       setSelectedCita(null);
@@ -346,6 +354,7 @@ const CitasPage = () => {
               onEdit={handleEditClick}
               onDelete={handleDeleteClick}
               onStatusChange={handleStatusChangeRequest}
+              loadingStatusChanges={loadingStatusChanges}
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={setCurrentPage}

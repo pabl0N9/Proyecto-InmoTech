@@ -1,11 +1,12 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import ReactDOM from 'react-dom';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../../../../shared/components/ui/button';
 import { Input } from '../../../../shared/components/ui/input';
 import { Textarea } from '../../../../shared/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../shared/components/ui/select';
 import { Badge } from '../../../../shared/components/ui/badge';
+import PropertyAutocomplete from '../../../../shared/components/ui/PropertyAutocomplete';
+import { usePropertyAutocomplete } from '../../../../shared/hooks/usePropertyAutocomplete';
 import { 
   PlusIcon, 
   EditIcon, 
@@ -22,7 +23,9 @@ import {
   XCircleIcon,
   X,
   FileText,
-  ClipboardList as ClipboardListIcon
+  ClipboardList as ClipboardListIcon,
+  Building,
+  AlertCircle
 } from 'lucide-react';
 
 const CreateReportModal = ({ 
@@ -32,6 +35,17 @@ const CreateReportModal = ({
   initialData = null,
   submitLabel = 'Crear Reporte'
 }) => {
+  // Hook de autocompletado de propiedades
+  const {
+    searchTerm,
+    setSearchTerm,
+    filteredProperties,
+    selectedProperty,
+    selectProperty,
+    clearSelection,
+    searchByReference
+  } = usePropertyAutocomplete();
+
   // Función para obtener la fecha actual en formato ISO
   const getCurrentDate = () => {
     return new Date().toISOString().split('T')[0];
@@ -71,6 +85,8 @@ const CreateReportModal = ({
   const [archivos, setArchivos] = useState((initialData && initialData.archivos) || []);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPropertyInfo, setShowPropertyInfo] = useState(false);
+  const [activeTab, setActiveTab] = useState('cliente');
 
   // Referencias para los inputs de archivos
   const imageInputRef = useRef(null);
@@ -84,13 +100,19 @@ const CreateReportModal = ({
         setRubros(initialData.rubros || []);
         setImagenes(initialData.imagenes || []);
         setArchivos(initialData.archivos || []);
+        // Si hay una referencia inicial, buscar la propiedad
+        if (initialData.referencia) {
+          setSearchTerm(initialData.referencia);
+        }
       } else {
         setFormData(defaultFormData);
         setRubros([]);
         setImagenes([]);
         setArchivos([]);
+        clearSelection();
       }
       setErrors({});
+      setShowPropertyInfo(false);
     }
   }, [isOpen, initialData]);
 
@@ -138,8 +160,44 @@ const CreateReportModal = ({
     }
   };
 
+  // Manejar selección de propiedad desde el autocompletado
+  const handlePropertySelect = (property) => {
+    const propertyData = selectProperty(property);
+    
+    // Actualizar los campos del formulario con los datos de la propiedad
+    setFormData(prev => ({
+      ...prev,
+      ...propertyData
+    }));
+
+    // Mostrar información de la propiedad seleccionada
+    setShowPropertyInfo(true);
+
+    // Limpiar errores de los campos que se autocompletaron
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.ubicacion;
+      delete newErrors.tipoInmueble;
+      delete newErrors.referencia;
+      delete newErrors.propietario;
+      return newErrors;
+    });
+  };
+
+  // Manejar cambio en el campo de referencia
+  const handleReferenceChange = (value) => {
+    setSearchTerm(value);
+    handleChange('referencia', value);
+    
+    // Si el campo se vacía, limpiar la selección
+    if (!value.trim()) {
+      clearSelection();
+      setShowPropertyInfo(false);
+    }
+  };
+
   // Manejar imágenes
-  const handleImagenes = (e) => {
+  const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     const newImages = files.map(file => ({
       id: Date.now() + Math.random(),
@@ -153,7 +211,7 @@ const CreateReportModal = ({
   };
 
   // Manejar archivos
-  const handleArchivos = (e) => {
+  const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
     const newFiles = files.map(file => ({
       id: Date.now() + Math.random(),
@@ -348,288 +406,458 @@ const CreateReportModal = ({
 
   if (!isOpen) return null;
 
-  return ReactDOM.createPortal(
+  return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        onClick={onClose}
-      >
+      {isOpen && (
         <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          transition={{ type: "spring", duration: 0.3 }}
-          className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={onClose}
         >
-         {/* Header */}
-          <div className="bg-white px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileText className="w-6 h-6 text-blue-600" />
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.9, opacity: 0, y: 20 }}
+r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
+          className="bg-white rounded-2xl shadow-2xl ring-1 ring-gray-900/10 w-full max-w-5xl max-h-[85vh] overflow-hidden border-2 border-gray-200 mx-auto flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+          }}
+        >
+          {/* Header Mejorado con estilo slate */}
+          <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-800">
+                {initialData ? 'Editar Reporte' : 'Nuevo Reporte'}
+              </h2>
+              <p className="text-slate-600 mt-1">
+                {initialData ? 'Modifica la información del reporte inmobiliario' : 'Crea un nuevo reporte inmobiliario detallado'}
+              </p>
+              <div className="flex gap-4 mt-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  <span className="text-slate-600">{formData.fechaCreacion}</span>
                 </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-800">
-                    {initialData ? 'Editar Reporte' : 'Crear Nuevo Reporte'}
-                  </h2>
-                  <p className="text-gray-500 text-sm">
-                    {formData.fechaCreacion}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                  <span className="text-slate-600">Estado: {formData.estado}</span>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
             </div>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onClose}
+              className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-slate-500" />
+            </motion.button>
           </div>
 
-          {/* Content */}
-          <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              {/* Información Básica */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <UserIcon className="w-5 h-5 mr-2 text-blue-600" />
-                  Información Básica
-                </h3>
+          {/* Content Reorganizado */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="flex justify-center p-6">
+              <form onSubmit={handleSubmit} className="w-full max-w-4xl">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Ubicación *
-                    </label>
-                    <Input
-                      value={formData.ubicacion}
-                      onChange={(e) => handleChange('ubicacion', e.target.value)}
-                      placeholder="Ingrese la ubicación"
-                      className={errors.ubicacion ? 'border-red-500' : ''}
+                {/* Columna Izquierda - Información Principal */}
+                <div className="lg:col-span-2 space-y-6">
+                  
+                  {/* Sección 1: Identificación de Propiedad */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                    <div className="flex items-center mb-4">
+                      <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                        <Building className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Identificación de Propiedad
+                      </h3>
+                    </div>
+                    
+                    {/* Referencia del Inmueble - Destacado */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Referencia del Inmueble *
+                      </label>
+                      <PropertyAutocomplete
+                        value={searchTerm}
+                        onChange={handleReferenceChange}
+                        onPropertySelect={handlePropertySelect}
+                        onSearchChange={setSearchTerm}
+                        filteredProperties={filteredProperties}
+                        placeholder="Buscar por referencia (ej: J001) o nombre..."
+                        className="w-full"
+                        error={!!errors.referencia}
+                      />
+                      {errors.referencia && (
+                        <p className="text-red-500 text-xs mt-1">{errors.referencia}</p>
+                      )}
+                    </div>
+
+                    {/* Información de la propiedad seleccionada */}
+                    {showPropertyInfo && selectedProperty && (
+                      <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl">
+                        <div className="flex items-start space-x-3">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <Building className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-green-900 mb-2">
+                              ✓ Propiedad Encontrada
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2 text-xs text-green-700">
+                              <p><span className="font-medium">Título:</span> {selectedProperty.title}</p>
+                              <p><span className="font-medium">Área:</span> {selectedProperty.area}</p>
+                              <p><span className="font-medium">Precio:</span> {selectedProperty.price}</p>
+                              <p><span className="font-medium">Estado:</span> {selectedProperty.status}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              clearSelection();
+                              setShowPropertyInfo(false);
+                              setFormData(prev => ({
+                                ...prev,
+                                ubicacion: '',
+                                tipoInmueble: '',
+                                referencia: '',
+                                propietario: ''
+                              }));
+                              setSearchTerm('');
+                            }}
+                            className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded-lg transition-colors"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Grid de campos básicos */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Ubicación */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          Ubicación *
+                          {selectedProperty && (
+                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center">
+                              <CheckIcon className="h-3 w-3 mr-1" />
+                              Auto
+                            </span>
+                          )}
+                        </label>
+                        <Input
+                          value={formData.ubicacion}
+                          onChange={(e) => handleChange('ubicacion', e.target.value)}
+                          placeholder="Ingrese la ubicación"
+                          className={`${errors.ubicacion ? 'border-red-500' : ''} ${selectedProperty ? 'bg-green-50 border-green-300' : ''}`}
+                          readOnly={!!selectedProperty}
+                        />
+                        {errors.ubicacion && (
+                          <p className="text-red-500 text-xs mt-1">{errors.ubicacion}</p>
+                        )}
+                      </div>
+
+                      {/* Tipo de Inmueble */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          Tipo de Inmueble *
+                          {selectedProperty && (
+                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center">
+                              <CheckIcon className="h-3 w-3 mr-1" />
+                              Auto
+                            </span>
+                          )}
+                        </label>
+                        <Select 
+                          value={formData.tipoInmueble} 
+                          onValueChange={(value) => handleChange('tipoInmueble', value)}
+                          disabled={!!selectedProperty}
+                        >
+                          <SelectTrigger className={`${errors.tipoInmueble ? 'border-red-500' : ''} ${selectedProperty ? 'bg-green-50 border-green-300' : ''}`}>
+                            <SelectValue placeholder="Seleccione el tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Casa">Casa</SelectItem>
+                            <SelectItem value="Apartamento">Apartamento</SelectItem>
+                            <SelectItem value="Apartaestudio">Apartaestudio</SelectItem>
+                            <SelectItem value="Local">Local</SelectItem>
+                            <SelectItem value="Finca">Finca</SelectItem>
+                            <SelectItem value="Bodega">Bodega</SelectItem>
+                            <SelectItem value="Oficina">Oficina</SelectItem>
+                            <SelectItem value="Lote">Lote</SelectItem>
+                            <SelectItem value="Edificio">Edificio</SelectItem>
+                            <SelectItem value="Otro">Otro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {errors.tipoInmueble && (
+                          <p className="text-red-500 text-xs mt-1">{errors.tipoInmueble}</p>
+                        )}
+                      </div>
+
+                      {/* Propietario */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          Propietario *
+                          {selectedProperty && (
+                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center">
+                              <CheckIcon className="h-3 w-3 mr-1" />
+                              Auto
+                            </span>
+                          )}
+                        </label>
+                        <Input
+                          value={formData.propietario}
+                          onChange={(e) => handleChange('propietario', e.target.value)}
+                          placeholder="Nombre del propietario"
+                          className={`${errors.propietario ? 'border-red-500' : ''} ${selectedProperty ? 'bg-green-50 border-green-300' : ''}`}
+                          readOnly={!!selectedProperty}
+                        />
+                        {errors.propietario && (
+                          <p className="text-red-500 text-xs mt-1">{errors.propietario}</p>
+                        )}
+                      </div>
+
+                      {/* Tipo de Reporte */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Tipo de Reporte *
+                        </label>
+                        <Input
+                          value={formData.tipoReporte}
+                          onChange={(e) => handleChange('tipoReporte', e.target.value)}
+                          placeholder="Ej: Daño reparar, Techos, etc."
+                          className={errors.tipoReporte ? 'border-red-500' : ''}
+                        />
+                        {errors.tipoReporte && (
+                          <p className="text-red-500 text-xs mt-1">{errors.tipoReporte}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sección 2: Descripción */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                    <div className="flex items-center mb-4">
+                      <div className="p-2 bg-orange-100 rounded-lg mr-3">
+                        <FileText className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Descripción del Reporte
+                      </h3>
+                    </div>
+                    
+                    <Textarea
+                      value={formData.descripcion}
+                      onChange={(e) => handleChange('descripcion', e.target.value)}
+                      placeholder="Descripción detallada del reporte..."
+                      className="min-h-[120px] resize-none"
+                      rows={5}
                     />
-                    {errors.ubicacion && (
-                      <p className="text-red-500 text-xs mt-1">{errors.ubicacion}</p>
-                    )}
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tipo de Inmueble *
-                    </label>
-                    <Select 
-                      value={formData.tipoInmueble} 
-                      onValueChange={(value) => handleChange('tipoInmueble', value)}
-                    >
-                      <SelectTrigger className={errors.tipoInmueble ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Seleccione el tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Casa">Casa</SelectItem>
-                        <SelectItem value="Apartamento">Apartamento</SelectItem>
-                        <SelectItem value="Apartaestudio">Apartaestudio</SelectItem>
-                        <SelectItem value="Local">Local</SelectItem>
-                        <SelectItem value="Finca">Finca</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {errors.tipoInmueble && (
-                      <p className="text-red-500 text-xs mt-1">{errors.tipoInmueble}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Referencia *
-                    </label>
-                    <Input
-                      value={formData.referencia}
-                      onChange={(e) => handleChange('referencia', e.target.value)}
-                      placeholder="Ej: J001"
-                      className={errors.referencia ? 'border-red-500' : ''}
-                    />
-                    {errors.referencia && (
-                      <p className="text-red-500 text-xs mt-1">{errors.referencia}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Propietario *
-                    </label>
-                    <Input
-                      value={formData.propietario}
-                      onChange={(e) => handleChange('propietario', e.target.value)}
-                      placeholder="Nombre del propietario"
-                      className={errors.propietario ? 'border-red-500' : ''}
-                    />
-                    {errors.propietario && (
-                      <p className="text-red-500 text-xs mt-1">{errors.propietario}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tipo de Reporte *
-                    </label>
-                    <Input
-                      value={formData.tipoReporte}
-                      onChange={(e) => handleChange('tipoReporte', e.target.value)}
-                      placeholder="Ej: Baño reparar, Techos, etc."
-                      className={errors.tipoReporte ? 'border-red-500' : ''}
-                    />
-                    {errors.tipoReporte && (
-                      <p className="text-red-500 text-xs mt-1">{errors.tipoReporte}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Estado
-                    </label>
+                {/* Columna Derecha - Estado y Acciones */}
+                <div className="space-y-6">
+                  
+                  {/* Estado del Reporte */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                    <div className="flex items-center mb-4">
+                      <div className="p-2 bg-purple-100 rounded-lg mr-3">
+                        <AlertCircle className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Estado
+                      </h3>
+                    </div>
+                    
                     <Select 
                       value={formData.estado} 
                       onValueChange={(value) => handleChange('estado', value)}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Seleccione el estado" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="En proceso">En proceso</SelectItem>
-                        <SelectItem value="Cotizando">Cotizando</SelectItem>
-                        <SelectItem value="Sin novedades">Sin novedades</SelectItem>
-                        <SelectItem value="Completado">Completado</SelectItem>
-                        <SelectItem value="Cancelado">Cancelado</SelectItem>
+                        <SelectItem value="Pendiente">
+                          <div className="flex items-center">
+                            <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
+                            Pendiente
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="En proceso">
+                          <div className="flex items-center">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                            En proceso
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Completado">
+                          <div className="flex items-center">
+                            <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                            Completado
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Cancelado">
+                          <div className="flex items-center">
+                            <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+                            Cancelado
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
 
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descripción
-                  </label>
-                  <Textarea
-                    value={formData.descripcion}
-                    onChange={(e) => handleChange('descripcion', e.target.value)}
-                    placeholder="Descripción detallada del reporte..."
-                    rows={3}
-                  />
+                  {/* Información Adicional */}
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-5">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                      Información del Reporte
+                    </h4>
+                    <div className="space-y-2 text-sm text-gray-600">
+                      <div className="flex justify-between">
+                        <span>Fecha de creación:</span>
+                        <span className="font-medium">{formData.fechaCreacion}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Hora:</span>
+                        <span className="font-medium">{formData.horaCreacion}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Estado actual:</span>
+                        <span className={`font-medium px-2 py-1 rounded-full text-xs ${
+                          formData.estado === 'Completado' ? 'bg-green-100 text-green-800' :
+                          formData.estado === 'En proceso' ? 'bg-blue-100 text-blue-800' :
+                          formData.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {formData.estado || 'Sin definir'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Archivos e Imágenes */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <UploadIcon className="w-5 h-5 mr-2 text-blue-600" />
-                  Archivos e Imágenes
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Imágenes */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Imágenes
-                    </label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                      <input
-                        ref={imageInputRef}
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={handleImagenes}
-                        className="hidden"
-                      />
-                      <ImageIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600 mb-2">
-                        Arrastra imágenes aquí o
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => imageInputRef.current?.click()}
-                      >
-                        Seleccionar Imágenes
-                      </Button>
-                    </div>
-
-                    {imagenes.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        {imagenes.map((imagen) => (
-                          <div key={imagen.id} className="flex items-center justify-between bg-white p-2 rounded border">
-                            <div className="flex items-center space-x-2">
-                              <ImageIcon className="w-4 h-4 text-blue-500" />
-                              <span className="text-sm truncate">{imagen.name}</span>
-                              <span className="text-xs text-gray-500">
-                                ({formatFileSize(imagen.size)})
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => eliminarImagen(imagen.id)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
+              {/* Sección de Imágenes y Archivos - Ancho completo */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                
+                {/* Imágenes */}
+                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="p-2 bg-green-100 rounded-lg mr-3">
+                        <ImageIcon className="w-5 h-5 text-green-600" />
                       </div>
-                    )}
-                  </div>
-
-                  {/* Archivos */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Archivos
-                    </label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        onChange={handleArchivos}
-                        className="hidden"
-                      />
-                      <FileIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600 mb-2">
-                        Arrastra archivos aquí o
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        Seleccionar Archivos
-                      </Button>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Imágenes
+                      </h3>
                     </div>
-
-                    {archivos.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        {archivos.map((archivo) => (
-                          <div key={archivo.id} className="flex items-center justify-between bg-white p-2 rounded border">
-                            <div className="flex items-center space-x-2">
-                              <FileIcon className="w-4 h-4 text-green-500" />
-                              <span className="text-sm truncate">{archivo.name}</span>
-                              <span className="text-xs text-gray-500">
-                                ({formatFileSize(archivo.size)})
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => eliminarArchivo(archivo.id)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <input
+                      type="file"
+                      ref={imageInputRef}
+                      onChange={handleImageUpload}
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => imageInputRef.current?.click()}
+                      className="flex items-center space-x-2 border-green-300 text-green-700 hover:bg-green-50"
+                    >
+                      <UploadIcon className="w-4 h-4" />
+                      <span>Subir</span>
+                    </Button>
                   </div>
+                  
+                  {imagenes.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {imagenes.map((imagen, index) => (
+                        <div key={imagen.id} className="relative group">
+                          <img
+                            src={imagen.url}
+                            alt={`Imagen ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => eliminarImagen(imagen.id)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+                      <ImageIcon className="w-8 h-8 mx-auto mb-2" />
+                      <p className="text-sm">No hay imágenes</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Archivos */}
+                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                        <FileIcon className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Archivos
+                      </h3>
+                    </div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      multiple
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center space-x-2 border-blue-300 text-blue-700 hover:bg-blue-50"
+                    >
+                      <UploadIcon className="w-4 h-4" />
+                      <span>Subir</span>
+                    </Button>
+                  </div>
+                  
+                  {archivos.length > 0 ? (
+                    <div className="space-y-2">
+                      {archivos.map((archivo, index) => (
+                        <div key={archivo.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                          <div className="flex items-center space-x-3">
+                            <FileIcon className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-700 truncate">
+                              {archivo.name}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => eliminarArchivo(archivo.id)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+                      <FileIcon className="w-8 h-8 mx-auto mb-2" />
+                      <p className="text-sm">No hay archivos</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1005,34 +1233,43 @@ const CreateReportModal = ({
                 </div>
               </div>
             </form>
+            </div>
           </div>
 
-          {/* Footer */}
-          <div className="bg-gray-50 px-6 py-4 border-t flex items-center justify-end space-x-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="flex items-center space-x-2"
-            >
-              <XCircleIcon className="w-4 h-4" />
-              <span>Cancelar</span>
-            </Button>
-            <Button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2"
-            >
-              <SaveIcon className="w-4 h-4" />
-              <span>{isSubmitting ? 'Guardando...' : submitLabel}</span>
-            </Button>
+          {/* Footer - Siempre visible */}
+          <div className="bg-slate-50 border-t border-slate-200 px-8 py-6 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-slate-600">
+                Campos obligatorios marcados con *
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                  className="flex items-center space-x-2 px-6"
+                >
+                  <XCircleIcon className="w-4 h-4" />
+                  <span>Cancelar</span>
+                </Button>
+                <Button
+                  type="submit"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white flex items-center space-x-2 px-6 shadow-lg"
+                >
+                  <SaveIcon className="w-4 h-4" />
+                  <span>{isSubmitting ? 'Guardando...' : submitLabel}</span>
+                </Button>
+              </div>
+            </div>
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>,
-    document.body
+      )}
+    </AnimatePresence>
   );
 };
 

@@ -85,7 +85,7 @@ const AppointmentCard = ({
       onClick={onClick}
       role="button"
       tabIndex={0}
-      aria-label={`Cita con ${appointment.cliente} para ${appointment.propiedad} el ${appointment.fecha} a las ${appointment.hora}`}
+      aria-label={`Cita con ${appointment.cliente} para ${appointment.servicio} el ${appointment.fecha} a las ${appointment.hora}`}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -104,7 +104,7 @@ const AppointmentCard = ({
       </div>
       <div className="flex items-center gap-1">
         <MapPin className="w-3 h-3 flex-shrink-0" />
-        <span className="truncate">{appointment.propiedad}</span>
+        <span className="truncate">{appointment.servicio}</span>
       </div>
     </motion.div>
   );

@@ -141,8 +141,8 @@ const ViewAppointmentModal = ({ isOpen, onClose, cita }) => {
       },
       {
       icon: Home,
-      label: 'Propiedad',
-      value: cita.propiedad,
+      label: 'Servicio',
+      value: cita.servicio,
       color: 'text-indigo-600',
       bgColor: 'bg-indigo-50'
     }
