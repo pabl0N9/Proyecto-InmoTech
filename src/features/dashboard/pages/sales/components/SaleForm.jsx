@@ -105,7 +105,7 @@ export default function SalesForm({ onClose, onSubmit }) {
 
             // Inmueble
             inmuebleTipo: "Tipo de Inmueble", inmuebleRegistro: "No. Registro Catastral",
-            inmuebleNombre: "Nombre/Título Comercial", inmuebleArea: "Área Total ($$m^2$$)",
+            inmuebleNombre: "Nombre/Título Comercial", inmuebleArea: "Área Total",
             inmuebleHabitaciones: "No. Habitaciones", inmuebleBanos: "No. Baños",
             inmueblePais: "País", inmuebleDepartamento: "Departamento/Estado",
             inmuebleCiudad: "Ciudad", inmuebleBarrio: "Barrio/Zona",
@@ -533,7 +533,7 @@ export default function SalesForm({ onClose, onSubmit }) {
                 </button>
 
                 {/* Título principal más pequeño */}
-                <h2 className="text-2xl font-bold mb-3">Registro de Nuevo Inmueble</h2>
+                <h2 className="text-2xl font-bold mb-3">Nueva venta</h2>
 
                 {/* Barra de progreso */}
                 <div className="mb-6">
