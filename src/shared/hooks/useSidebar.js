@@ -12,10 +12,6 @@ export const useSidebar = () => {
   const location = useLocation();
   const sidebarRef = useRef(null);
 
-  const navigate = useNavigate();
-  const location = useLocation();
-  const sidebarRef = useRef(null);
-
   /** 🔹 Alternar visibilidad de la barra lateral */
   const toggleSidebar = useCallback(() => {
     setIsCollapsed(prev => !prev);
@@ -106,19 +102,6 @@ export const useSidebar = () => {
       setActiveItem('dashboard');
       setActiveSubItem(null);
       setExpandedItem(null);
-      if (item.path) {
-        navigate(item.path);
-      }
-    }
-  }, [isCollapsed, toggleExpandedItem, navigate]);
-
-  const handleSubItemClick = useCallback((subItemId) => {
-    const allSubItems = navigationItems.flatMap(item =>
-      item.subItems ? item.subItems.map(sub => ({ ...sub, parentId: item.id })) : []
-    );
-    const subItem = allSubItems.find(item => item.id === subItemId);
-    if (subItem) {
-      navigate(subItem.path);
     }
   }, [location.pathname]);
 
