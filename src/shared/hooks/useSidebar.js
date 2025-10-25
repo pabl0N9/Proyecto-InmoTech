@@ -8,6 +8,9 @@ export const useSidebar = () => {
   const [expandedItem, setExpandedItem] = useState(null);
   const [activeItem, setActiveItem] = useState('dashboard');
   const [activeSubItem, setActiveSubItem] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const sidebarRef = useRef(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -103,6 +106,19 @@ export const useSidebar = () => {
       setActiveItem('dashboard');
       setActiveSubItem(null);
       setExpandedItem(null);
+      if (item.path) {
+        navigate(item.path);
+      }
+    }
+  }, [isCollapsed, toggleExpandedItem, navigate]);
+
+  const handleSubItemClick = useCallback((subItemId) => {
+    const allSubItems = navigationItems.flatMap(item =>
+      item.subItems ? item.subItems.map(sub => ({ ...sub, parentId: item.id })) : []
+    );
+    const subItem = allSubItems.find(item => item.id === subItemId);
+    if (subItem) {
+      navigate(subItem.path);
     }
   }, [location.pathname]);
 
