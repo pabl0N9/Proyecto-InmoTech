@@ -1,9 +1,9 @@
 import React, { useState, useRef } from "react";
 import ReactDOM from 'react-dom';
 import { FaUserPlus, FaEye, FaEdit, FaSearch, FaTrash, FaTimes } from "react-icons/fa";
-import "../../../../../shared/styles/globals.css";
-import BuyerForm from "../components/BuyerForm";
-import BuyerViewModal from "../components/BuyerView";
+import "../../../../shared/styles/globals.css"
+import BuyerForm from "../../components/sales/BuyerForm";
+import BuyerViewModal from "../../components/sales/BuyerView";
 
 export function BuyersManagementPage() {
     const [compradores, setCompradores] = useState([

@@ -17,10 +17,10 @@ import RegisterPage from './features/auth/pages/RegisterPage'
 
 // Dashboard pages
 import DashboardPage from './features/dashboard/DashboardPage'
-import { SalesManagementPage } from './features/dashboard/pages/sales/pages/SalesManagementPage'
-import { BuyersManagementPage } from './features/dashboard/pages/sales/pages/BuyerManagementPage'
-import { LeasesManagementPage } from './features/dashboard/pages/leases/pages/LeasesManagementPage'
-import { RenantManagementPage } from './features/dashboard/pages/leases/pages/RenantManagementPage'
+import { SalesManagementPage } from './features/dashboard/pages/sales/SalesManagementPage'
+import { BuyersManagementPage } from './features/dashboard/pages/sales/BuyerManagementPage'
+import { LeasesManagementPage } from './features/dashboard/pages/leases/LeasesManagementPage'
+import { RenantManagementPage } from './features/dashboard/pages/leases/RenantManagementPage'
 import AppointmentPage from './features/dashboard/pages/appointment/AppointmentPage'
 
 function App() {
