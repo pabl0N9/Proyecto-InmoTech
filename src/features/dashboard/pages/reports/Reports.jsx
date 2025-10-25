@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import DashboardLayout from '../../../../shared/components/dashboard/Layout/DashboardLayout'
 import { ReportsHeader } from './ReportsHeader'
 import { ReportsTable } from './ReportsTable'
 import CreateReportModal from '../../components/reports/CreateReportModal'
@@ -605,60 +604,58 @@ const Reports = () => {
 
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <ReportsHeader
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          onNewReport={handleNewReport}
-          onDownloadPDF={handleDownloadPDF}
-          onDownloadExcel={handleDownloadExcel}
+    <div className="space-y-6">
+      <ReportsHeader
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onNewReport={handleNewReport}
+        onDownloadPDF={handleDownloadPDF}
+        onDownloadExcel={handleDownloadExcel}
+        reports={filteredReports}
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <ReportsTable
           reports={filteredReports}
-        />
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <ReportsTable
-            reports={filteredReports}
-            onView={handleViewReport}
-            onEdit={handleEditReport}
-            onDownloadPDF={handleDownloadReportPDF}
-          />
-        </motion.div>
-
-        {/* Modals */}
-        <CreateReportModal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-          onSubmit={handleCreateReport}
-          submitLabel="Crear Reporte"
-        />
-
-        <CreateReportModal
-          isOpen={isEditModalOpen}
-          onClose={() => {
-            setIsEditModalOpen(false)
-            setSelectedReport(null)
-          }}
-          onSubmit={handleUpdateReport}
-          initialData={selectedReport}
-          submitLabel="Actualizar Reporte"
-        />
-
-        <ViewReportModal
-          isOpen={isViewModalOpen}
-          onClose={() => {
-            setIsViewModalOpen(false)
-            setSelectedReport(null)
-          }}
-          report={selectedReport}
+          onView={handleViewReport}
           onEdit={handleEditReport}
+          onDownloadPDF={handleDownloadReportPDF}
         />
-      </div>
-    </DashboardLayout>
+      </motion.div>
+
+      {/* Modals */}
+      <CreateReportModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateReport}
+        submitLabel="Crear Reporte"
+      />
+
+      <CreateReportModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setSelectedReport(null)
+        }}
+        onSubmit={handleUpdateReport}
+        initialData={selectedReport}
+        submitLabel="Actualizar Reporte"
+      />
+
+      <ViewReportModal
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false)
+          setSelectedReport(null)
+        }}
+        report={selectedReport}
+        onEdit={handleEditReport}
+      />
+    </div>
   )
 }
 

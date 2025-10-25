@@ -1,24 +1,27 @@
-# TODO: Guardar citas en localStorage inmediatamente para persistencia
+# TODO: Dashboard Role-Based Access Control
 
-## Información Recopilada
-- PropertyVisitModal envía datos a PropertyDetailsPage, que llama addAppointment del AppointmentContext
-- AppointmentContext guarda en estado y localStorage vía useEffect, pero si la página se recarga inmediatamente después de addAppointment, el useEffect puede no ejecutarse a tiempo
-- El problema es que los datos no aparecen en dashboard/citas después de enviar el formulario
+## Task: Organize dashboard access based on user roles
+- Super Admin and Admin: Full access to all modules
+- Employees: Access to all modules except "Seguridad" (users and roles)
+
+## Information Gathered
+- User roles: 'Super Admin', 'Admin', 'Empleado', 'Cliente', 'Propietario'
+- Navigation items defined in `src/shared/utils/navigationData.js`
+- Sidebar component renders navigation items in `src/shared/components/dashboard/Sidebar/Sidebar.jsx`
+- AuthContext provides user authentication and role checking via `useAuth` hook
+- Backend routes already protected with role-based middleware
 
 ## Plan
-- Modificar addAppointment en AppointmentContext para guardar en localStorage de manera síncrona inmediatamente
-- Leer las citas actuales de localStorage, agregar la nueva, guardar de vuelta
-- Mantener el useEffect existente para consistencia
+- Modify `Sidebar.jsx` to conditionally filter navigation items based on user role
+- Import `useAuth` hook to access user roles
+- Filter out 'seguridad' module for 'Empleado' role
+- Ensure Super Admin and Admin see all modules
 
-## Archivos a editar
-- src/shared/contexts/AppointmentContext.jsx
+## Dependent Files to Edit
+- `src/shared/components/dashboard/Sidebar/Sidebar.jsx`
 
-## Pasos de implementación
-- [x] Modificar la función addAppointment para guardar inmediatamente en localStorage
-- [x] Cambiar inicialización de estado para cargar desde localStorage
-- [x] Probar enviando el formulario, recargando la página y verificando el dashboard
-
-## Pasos de seguimiento
-- [ ] Verificar que las citas persistan después de recargar la página
-- [ ] Asegurar que no haya errores de consola
-- [ ] Confirmar que el dashboard muestra las citas guardadas
+## Followup Steps
+- Test dashboard rendering for different user roles
+- Verify that 'seguridad' module is hidden for employees
+- Confirm that Super Admin and Admin can see all modules
+- Ensure navigation still works correctly after filtering

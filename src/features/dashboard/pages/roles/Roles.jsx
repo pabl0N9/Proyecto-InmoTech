@@ -3,7 +3,6 @@ import CrearRolModal from "./CrearRolModal";
 import EditarRolModal from "./EditarRolModal"; 
 import VerRolModal from "./VerRolModal";
 import "./Switch.css";
-import DashboardLayout from "../../../../shared/components/dashboard/Layout/DashboardLayout";
 
 // Componente Toast para notificaciones
 const Toast = ({ message, type, onClose }) => {
@@ -410,8 +409,6 @@ const RolesContent = () => {
 
 export default function Roles() {
   return (
-    <DashboardLayout>
-      <RolesContent />
-    </DashboardLayout>
+    <RolesContent />
   );
 }

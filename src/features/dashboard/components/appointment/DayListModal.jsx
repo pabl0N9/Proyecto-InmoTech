@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Clock, User, MapPin } from 'lucide-react';
 import AppointmentCard from './AppointmentCard';
@@ -10,7 +11,9 @@ const DayListModal = ({
   appointments = [],
   onViewAppointment,
   onEditAppointment,
-  onDeleteAppointment
+  onDeleteAppointment,
+  onAcceptAppointment,
+  onRejectAppointment
 }) => {
   // Close on escape
   useEffect(() => {
@@ -46,7 +49,7 @@ const DayListModal = ({
     });
   };
 
-  return (
+  return ReactDOM.createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -55,7 +58,7 @@ const DayListModal = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000]"
             onClick={onClose}
           />
 
@@ -65,7 +68,7 @@ const DayListModal = ({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
           >
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
               {/* Header */}
@@ -135,24 +138,49 @@ const DayListModal = ({
 
                         {/* Actions */}
                         <div className="flex gap-2 mt-3">
-                          <button
-                            onClick={() => onViewAppointment(appointment)}
-                            className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
-                          >
-                            Ver
-                          </button>
-                          <button
-                            onClick={() => onEditAppointment(appointment)}
-                            className="flex-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => onDeleteAppointment(appointment)}
-                            className="flex-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
-                          >
-                            Eliminar
-                          </button>
+                          {appointment.estado === 'solicitada' ? (
+                            <>
+                              <button
+                                onClick={() => onViewAppointment(appointment)}
+                                className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                              >
+                                Ver
+                              </button>
+                              <button
+                                onClick={() => onAcceptAppointment && onAcceptAppointment(appointment)}
+                                className="flex-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
+                              >
+                                Aceptar
+                              </button>
+                              <button
+                                onClick={() => onRejectAppointment && onRejectAppointment(appointment)}
+                                className="flex-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+                              >
+                                Cancelar
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => onViewAppointment(appointment)}
+                                className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                              >
+                                Ver
+                              </button>
+                              <button
+                                onClick={() => onEditAppointment(appointment)}
+                                className="flex-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => onDeleteAppointment(appointment)}
+                                className="flex-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+                              >
+                                Eliminar
+                              </button>
+                            </>
+                          )}
                         </div>
                       </motion.div>
                     ))}
@@ -163,7 +191,8 @@ const DayListModal = ({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

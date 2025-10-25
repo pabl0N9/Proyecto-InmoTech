@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save } from 'lucide-react';
 
@@ -51,81 +52,84 @@ const ConfirmationDialog = ({
 
   const styles = getVariantStyles();
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
+  return ReactDOM.createPortal(
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          onClick={onClose}
+        />
 
-      {/* Dialog */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ duration: 0.2, type: "spring", stiffness: 300, damping: 30 }}
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden"
-      >
-        <div className="p-6">
-          <div className="text-center">
-            {/* Icon */}
-            {showIcon && (
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4" style={{ backgroundColor: styles.iconBg }}>
-                <svg className={`h-6 w-6 ${styles.iconColor}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={styles.iconPath} />
-                </svg>
+        {/* Dialog */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.2, type: "spring", stiffness: 300, damping: 30 }}
+          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden"
+        >
+          <div className="p-6">
+            <div className="text-center">
+              {/* Icon */}
+              {showIcon && (
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4" style={{ backgroundColor: styles.iconBg }}>
+                  <svg className={`h-6 w-6 ${styles.iconColor}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={styles.iconPath} />
+                  </svg>
+                </div>
+              )}
+
+              {/* Title */}
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                {title}
+              </h3>
+
+              {/* Message */}
+              <p className="text-slate-600 mb-6 leading-relaxed">
+                {message}
+              </p>
+
+              {/* Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={onClose}
+                  disabled={isLoading}
+                  className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 font-medium"
+                >
+                  {cancelText}
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={onConfirm}
+                  disabled={isLoading}
+                  className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg transition-colors text-white font-medium disabled:opacity-50 ${styles.buttonBg}`}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      {confirmText}
+                    </>
+                  )}
+                </motion.button>
               </div>
-            )}
-
-            {/* Title */}
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              {title}
-            </h3>
-
-            {/* Message */}
-            <p className="text-slate-600 mb-6 leading-relaxed">
-              {message}
-            </p>
-
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onClose}
-                disabled={isLoading}
-                className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 font-medium"
-              >
-                {cancelText}
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onConfirm}
-                disabled={isLoading}
-                className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg transition-colors text-white font-medium disabled:opacity-50 ${styles.buttonBg}`}
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Procesando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    {confirmText}
-                  </>
-                )}
-              </motion.button>
             </div>
           </div>
-        </div>
-      </motion.div>
-    </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>,
+    document.body
   );
 };
 

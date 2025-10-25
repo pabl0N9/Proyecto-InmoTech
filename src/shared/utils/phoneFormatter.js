@@ -25,19 +25,19 @@ export const formatPhoneNumber = (currentValue, previousValue = '', isDeleting =
     }
   }
 
-  // 🔹 Limitar longitud máxima (+57 + 9 dígitos)
-  if (cleaned.length > 13) {
-    cleaned = cleaned.substring(0, 13);
+  // 🔹 Limitar longitud máxima (+57 + 10 dígitos)
+  if (cleaned.length > 14) {
+    cleaned = cleaned.substring(0, 14);
   }
 
   // 🔹 Aplicar formato progresivo
-  if (cleaned.length >= 12) {
+  if (cleaned.length >= 13) {
     return `${cleaned.substring(0, 3)} ${cleaned.substring(3, 6)} ${cleaned.substring(6, 9)} ${cleaned.substring(9, 13)}`;
-  } else if (cleaned.length >= 9) {
+  } else if (cleaned.length >= 10) {
     return `${cleaned.substring(0, 3)} ${cleaned.substring(3, 6)} ${cleaned.substring(6, 9)} ${cleaned.substring(9)}`;
-  } else if (cleaned.length >= 6) {
+  } else if (cleaned.length >= 7) {
     return `${cleaned.substring(0, 3)} ${cleaned.substring(3, 6)} ${cleaned.substring(6)}`;
-  } else if (cleaned.length >= 3) {
+  } else if (cleaned.length >= 4) {
     return `${cleaned.substring(0, 3)} ${cleaned.substring(3)}`;
   }
 

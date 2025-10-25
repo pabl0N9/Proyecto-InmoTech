@@ -56,6 +56,11 @@ const SummaryStep = ({ formData }) => {
         bg: 'bg-green-100',
         text: 'text-green-800',
         label: 'Confirmada'
+      },
+      solicitada: {
+        bg: 'bg-indigo-100',
+        text: 'text-indigo-800',
+        label: 'Solicitada'
       }
     };
 
