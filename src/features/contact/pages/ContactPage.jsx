@@ -94,7 +94,7 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg mb-1">Horario de Atención</h3>
-                      <p className="text-gray-600">Lunes - Sábado: 8:00 AM - 1:00 PM, 2:00 pm - 5:00 PM</p>
+                      <p className="text-gray-600">Lunes - Sábado: 8:00 am - 1:00 pm, 2:00 pm - 5:00 pm</p>
                       <p className="text-gray-600">Domingos: Cerrado</p>
                     </div>
                   </CardContent>

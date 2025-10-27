@@ -5,8 +5,38 @@ import { cn } from "@/shared/utils/cn"
 const ToastContext = createContext()
 
 const ToastProvider = ({ children }) => {
+  const [toasts, setToasts] = useState([])
+
+  const toast = ({ ...props }) => {
+    const id = Math.random().toString(36).substring(2, 9)
+    const newToast = {
+      ...props,
+      id,
+      open: true,
+    }
+
+    setToasts((prevToasts) => [...prevToasts, newToast])
+
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+      setToasts((prevToasts) => prevToasts.filter((t) => t.id !== id))
+    }, 5000)
+
+    return {
+      id: id,
+      dismiss: () => setToasts((prevToasts) => prevToasts.filter((t) => t.id !== id)),
+      update: (props) => setToasts((prevToasts) =>
+        prevToasts.map((t) => t.id === id ? { ...t, ...props } : t)
+      ),
+    }
+  }
+
+  const dismiss = (toastId) => {
+    setToasts((prevToasts) => prevToasts.filter((t) => t.id !== toastId))
+  }
+
   return (
-    <ToastContext.Provider value={{}}>
+    <ToastContext.Provider value={{ toasts, toast, dismiss }}>
       {children}
     </ToastContext.Provider>
   )

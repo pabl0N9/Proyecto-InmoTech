@@ -4,9 +4,13 @@ import Sidebar from '../Sidebar/Sidebar';
 import Header from '../Header/Header';
 import { useSidebar } from '../../../hooks/useSidebar';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useToast } from '../../../hooks/use-toast';
 
 const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+  const { toast } = useToast();
   const {
     isCollapsed,
     expandedItem,
@@ -14,12 +18,44 @@ const DashboardLayout = ({ children }) => {
     activeSubItem,
     toggleSidebar,
     handleItemClick,
-    handleSubItemClick
+    handleSubItemClick,
+    sidebarRef
   } = useSidebar();
 
-  const handleLogout = () => {
-    // Aquí puedes implementar tu lógica de logout
-    console.log('Cerrando sesión...');
+  const handleLogout = async () => {
+    try {
+      console.log('🔐 Cerrando sesión...');
+      await logout();
+
+      // Mostrar notificación de éxito
+      toast({
+        title: "👋 ¡Hasta luego!",
+        description: "Tu sesión ha sido cerrada exitosamente.",
+        variant: "success",
+      });
+
+      console.log('✅ Sesión cerrada exitosamente');
+
+      // Pequeño delay para que se vea la notificación antes de redirigir
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+
+    } catch (error) {
+      console.error('❌ Error al cerrar sesión:', error);
+
+      // Mostrar notificación de error pero aún así redirigir
+      toast({
+        title: "⚠️ Error al cerrar sesión",
+        description: "Hubo un problema, pero serás redirigido a la página principal.",
+        variant: "destructive",
+      });
+
+      // Redirigir después de un delay más corto en caso de error
+      setTimeout(() => {
+        navigate('/');
+      }, 1000);
+    }
   };
 
   const handleGoToSite = () => {
@@ -28,11 +64,11 @@ const DashboardLayout = ({ children }) => {
 
   const contentVariants = {
     expanded: {
-      marginLeft: '280px',
+      marginLeft: ['80px', '280px', '280px', '280px'],
       transition: { duration: 0.3, ease: "easeOut" }
     },
     collapsed: {
-      marginLeft: '80px',
+      marginLeft: ['20px', '80px', '80px', '80px'],
       transition: { duration: 0.3, ease: "easeOut" }
     }
   };
@@ -54,6 +90,7 @@ const DashboardLayout = ({ children }) => {
           onSubItemClick={handleSubItemClick}
           onLogout={handleLogout}
           onGoToSite={handleGoToSite}
+          ref={sidebarRef}
         />
       </div>
 
@@ -65,12 +102,12 @@ const DashboardLayout = ({ children }) => {
       >
         <Header />
 
-        <main className="p-6">
+        <main className="p-4 md:p-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-white/60 backdrop-blur-sm border border-slate-200/60 rounded-2xl shadow-xl shadow-slate-200/20 p-8 min-h-[calc(100vh-8rem)]"
+            className="bg-white/60 backdrop-blur-sm border border-slate-200/60 rounded-2xl shadow-xl shadow-slate-200/20 p-4 md:p-8 min-h-[calc(100vh-6rem)] md:min-h-[calc(100vh-8rem)]"
           >
             {children}
           </motion.div>
@@ -84,7 +121,7 @@ const DashboardLayout = ({ children }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-20 lg:hidden"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-20 md:hidden"
             onClick={toggleSidebar}
           />
         )}

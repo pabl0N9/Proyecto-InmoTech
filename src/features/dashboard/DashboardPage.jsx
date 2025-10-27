@@ -130,11 +130,7 @@ const DashboardContent = () => {
 };
 
 const DashboardPage = () => {
-  return (
-    <DashboardLayout>
-      <DashboardContent />
-    </DashboardLayout>
-  );
+  return <DashboardContent />;
 };
 
 export default DashboardPage;

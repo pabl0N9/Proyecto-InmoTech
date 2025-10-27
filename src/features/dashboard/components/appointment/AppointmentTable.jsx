@@ -1,0 +1,767 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, Calendar, Clock, MapPin, Phone, Mail, Check, X } from 'lucide-react';
+import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
+import StatusSelector from '../../../../shared/components/ui/StatusSelector';
+
+const AppointmentTable = ({
+  citas,
+  onView,
+  onEdit,
+  onDelete,
+  onStatusChange,
+  onAcceptAppointment,
+  onRejectAppointment,
+  loadingStatusChanges,
+  currentPage,
+  totalPages,
+  onPageChange
+}) => {
+  const getStatusBadge = (estado) => {
+    const statusConfig = {
+      programada: {
+        bg: 'bg-yellow-100',
+        text: 'text-yellow-800',
+        label: 'Programada'
+      },
+      confirmada: {
+        bg: 'bg-green-100',
+        text: 'text-green-800',
+        label: 'Confirmada'
+      },
+      cancelada: {
+        bg: 'bg-red-100',
+        text: 'text-red-800',
+        label: 'Cancelada'
+      },
+      completada: {
+        bg: 'bg-purple-100',
+        text: 'text-purple-800',
+        label: 'Completada'
+      },
+      're agendada': {
+        bg: 'bg-orange-100',
+        text: 'text-orange-800',
+        label: 'Re Agendada'
+      },
+      solicitada: {
+        bg: 'bg-indigo-100',
+        text: 'text-indigo-800',
+        label: 'Solicitada'
+      }
+    };
+
+    const config = statusConfig[estado] || statusConfig.programada;
+
+    return (
+      <span
+        className={`inline-flex w-[124px] min-w-0 flex-none items-center gap-1 px-1.5 py-1.5 rounded-md border text-xs font-medium transition-all duration-200 truncate whitespace-nowrap justify-center ${config.bg} ${config.borderColor} ${config.text} ${estado === 'cancelada' ? 'opacity-60' : ''}`}
+      >
+        {config.label}
+      </span>
+    );
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+
+    try {
+      // Si ya es una fecha válida, formatearla
+      let date;
+
+      // Manejar diferentes formatos de fecha
+      if (dateString.includes('T')) {
+        // Formato ISO (2023-12-25T10:30:00Z)
+        date = new Date(dateString);
+      } else if (dateString.includes('-')) {
+        // Formato YYYY-MM-DD
+        date = new Date(dateString);
+      } else if (dateString.includes('/')) {
+        // Formato DD/MM/YYYY o MM/DD/YYYY
+        date = new Date(dateString);
+      } else {
+        // Si no es un formato reconocible, devolver el string original
+        return dateString;
+      }
+
+      // Verificar si la fecha es válida
+      if (isNaN(date.getTime())) {
+        return dateString;
+      }
+
+      return date.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  const getDocumentTypeLabel = (tipoDocumento) => {
+    const documentTypes = {
+      'CC': 'Cédula de Ciudadanía',
+      'CE': 'Cédula de Extranjería',
+      'NIT': 'NIT',
+      'PASAPORTE': 'Pasaporte',
+      'TI': 'Tarjeta de Identidad'
+    };
+    return documentTypes[tipoDocumento] || tipoDocumento;
+  };
+
+  const formatDocumentInfo = (tipoDocumento, numeroDocumento) => {
+    if (!tipoDocumento || !numeroDocumento) return '-';
+    return `${tipoDocumento} ${numeroDocumento}`;
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return '-';
+
+    try {
+      // Si es un timestamp ISO completo (1970-01-01T10:00:00.000Z)
+      if (typeof timeString === 'string' && timeString.includes('T') && timeString.includes('Z')) {
+        return formatTimeFromTimestamp(timeString);
+      }
+
+      // Si es un string simple de hora (formato TIME de SQL Server)
+      if (typeof timeString === 'string' && timeString.includes(':')) {
+        return formatTimeFromSQL(timeString);
+      }
+
+      // Si es un objeto Date o timestamp, usar la función del citaApiService
+      const citaApiService = require('../../../../shared/services/citaApiService').default;
+      return citaApiService.formatHoraDesdeAPI(timeString);
+    } catch (error) {
+      console.error('❌ Error formateando hora:', error);
+      return formatTimeFallback(timeString);
+    }
+  };
+
+  const formatTimeFromTimestamp = (timestampString) => {
+    try {
+      // Parsear el timestamp ISO y extraer solo la hora
+      const date = new Date(timestampString);
+
+      if (isNaN(date.getTime())) {
+        console.warn('⚠️ Timestamp inválido:', timestampString);
+        return timestampString;
+      }
+
+      // Extraer horas y minutos del timestamp
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+
+      // Convertir de 24 horas a 12 horas
+      const isPM = hours >= 12;
+      let hours12 = hours;
+
+      if (hours === 0) {
+        hours12 = 12; // 00:XX -> 12:XX AM
+      } else if (hours > 12) {
+        hours12 = hours - 12; // 13:XX -> 1:XX PM
+      } else if (hours === 12) {
+        hours12 = 12; // 12:XX -> 12:XX PM
+      }
+
+      const ampm = isPM ? 'PM' : 'AM';
+      return `${hours12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+
+    } catch (error) {
+      console.error('❌ Error en formatTimeFromTimestamp:', error);
+      return timestampString;
+    }
+  };
+
+  const formatTimeFromSQL = (timeString) => {
+    try {
+      // Limpiar el string de hora (quitar posibles caracteres extra)
+      const cleanTime = timeString.trim();
+
+      // Si ya tiene formato 12 horas (AM/PM), devolverlo tal cual
+      if (cleanTime.toLowerCase().includes('am') || cleanTime.toLowerCase().includes('pm')) {
+        return cleanTime;
+      }
+
+      // Parsear formato HH:MM:SS o HH:MM
+      const timeMatch = cleanTime.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+      if (!timeMatch) {
+        console.warn('⚠️ Formato de hora no reconocido:', cleanTime);
+        return cleanTime;
+      }
+
+      const hours = parseInt(timeMatch[1], 10);
+      const minutes = parseInt(timeMatch[2], 10);
+
+      if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        console.warn('⚠️ Hora fuera de rango:', { hours, minutes });
+        return cleanTime;
+      }
+
+      // Convertir de 24 horas a 12 horas
+      const isPM = hours >= 12;
+      let hours12 = hours;
+
+      if (hours === 0) {
+        hours12 = 12; // 00:XX -> 12:XX AM
+      } else if (hours > 12) {
+        hours12 = hours - 12; // 13:XX -> 1:XX PM
+      } else if (hours === 12) {
+        hours12 = 12; // 12:XX -> 12:XX PM
+      }
+
+      const ampm = isPM ? 'PM' : 'AM';
+      return `${hours12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+
+    } catch (error) {
+      console.error('❌ Error en formatTimeFromSQL:', error);
+      return timeString;
+    }
+  };
+
+  const formatTimeFallback = (timeString) => {
+    if (!timeString) return '-';
+
+    try {
+      // Clean multiple AM/PM suffixes for display safety
+      let cleanedTime = timeString;
+      const amMatches = timeString.match(/\b(am|AM)\b/g);
+      const pmMatches = timeString.match(/\b(pm|PM)\b/g);
+      const totalSuffixes = (amMatches ? amMatches.length : 0) + (pmMatches ? pmMatches.length : 0);
+
+      if (totalSuffixes > 1) {
+        // Keep only the last suffix
+        const lastAM = amMatches && amMatches.length > 0 ? amMatches[amMatches.length - 1] : null;
+        const lastPM = pmMatches && pmMatches.length > 0 ? pmMatches[pmMatches.length - 1] : null;
+
+        // Remove all suffixes first
+        cleanedTime = timeString.replace(/\s*\b(am|pm)\b/gi, '');
+
+        // Add back the last suffix
+        if (lastPM) {
+          cleanedTime += ' ' + lastPM.toLowerCase();
+        } else if (lastAM) {
+          cleanedTime += ' ' + lastAM.toLowerCase();
+        }
+
+        cleanedTime = cleanedTime.trim();
+      }
+
+      // Si ya tiene am/pm (minúsculas o mayúsculas), devolver como está
+      if (cleanedTime.includes('am') || cleanedTime.includes('pm') ||
+          cleanedTime.includes('AM') || cleanedTime.includes('PM')) {
+        return cleanedTime;
+      }
+
+      // Convertir de formato 24 horas a 12 horas
+      const [hours, minutes] = cleanedTime.split(':');
+      if (!hours || !minutes) return cleanedTime;
+
+      const hour24 = parseInt(hours, 10);
+      if (isNaN(hour24)) return cleanedTime;
+
+      const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+      const ampm = hour24 >= 12 ? 'PM' : 'AM';
+
+      return `${hour12}:${minutes} ${ampm}`;
+    } catch (error) {
+      console.error('❌ Error en formatTimeFallback:', error);
+      return timeString;
+    }
+  };
+
+  // Helper para obtener el nombre del cliente
+  const getClientName = (cita) => {
+    // Si cliente es un string (formato simple)
+    if (typeof cita.cliente === 'string') return cita.cliente;
+
+    // Si cliente es un objeto con datos anidados (formato de API)
+    if (cita.cliente?.nombre_completo && cita.cliente?.apellido_completo) {
+      const nombreCompleto = `${cita.cliente.nombre_completo} ${cita.cliente.apellido_completo}`.trim();
+      if (nombreCompleto) return nombreCompleto;
+    }
+
+    // Si los datos están directamente en la cita (formato plano)
+    if (cita.nombre_completo && cita.apellido_completo) {
+      const nombreCompleto = `${cita.nombre_completo} ${cita.apellido_completo}`.trim();
+      if (nombreCompleto) return nombreCompleto;
+    }
+
+    // Si cliente tiene primer_nombre y primer_apellido (formato separado)
+    if (cita.cliente?.primer_nombre && cita.cliente?.primer_apellido) {
+      const nombre = [cita.cliente.primer_nombre, cita.cliente.segundo_nombre].filter(Boolean).join(' ');
+      const apellido = [cita.cliente.primer_apellido, cita.cliente.segundo_apellido].filter(Boolean).join(' ');
+      const nombreCompleto = `${nombre} ${apellido}`.trim();
+      if (nombreCompleto) return nombreCompleto;
+    }
+
+    // Si los datos separados están directamente en la cita
+    if (cita.primer_nombre && cita.primer_apellido) {
+      const nombre = [cita.primer_nombre, cita.segundo_nombre].filter(Boolean).join(' ');
+      const apellido = [cita.primer_apellido, cita.segundo_apellido].filter(Boolean).join(' ');
+      const nombreCompleto = `${nombre} ${apellido}`.trim();
+      if (nombreCompleto) return nombreCompleto;
+    }
+
+    // Si cliente tiene dataValues (formato Sequelize)
+    if (cita.cliente?.dataValues?.nombre_completo && cita.cliente?.dataValues?.apellido_completo) {
+      const nombreCompleto = `${cita.cliente.dataValues.nombre_completo} ${cita.cliente.dataValues.apellido_completo}`.trim();
+      if (nombreCompleto) return nombreCompleto;
+    }
+
+    // Fallback: usar información disponible
+    if (cita.cliente?.tipo_documento && cita.cliente?.numero_documento) {
+      return `${cita.cliente.tipo_documento} ${cita.cliente.numero_documento}`;
+    }
+
+    if (cita.cliente?.correo) {
+      return cita.cliente.correo;
+    }
+
+    // Último recurso: mostrar "Cliente"
+    return 'Cliente';
+  };
+
+  // Helper para obtener la fecha de la cita
+  const getAppointmentDate = (cita) => {
+    return cita.fecha_cita || cita.fecha;
+  };
+
+  // Helper para obtener la hora de la cita
+  const getAppointmentTime = (cita) => {
+    return cita.hora_inicio || cita.hora;
+  };
+
+  // Helper para obtener el nombre del servicio
+  const getServiceName = (cita) => {
+    if (typeof cita.servicio === 'string') return cita.servicio;
+    if (cita.servicio?.nombre_servicio) return cita.servicio.nombre_servicio;
+    return 'Servicio';
+  };
+
+  // Helper para obtener el nombre de la propiedad
+  const getPropertyName = (cita) => {
+    if (typeof cita.propiedad === 'string') return cita.propiedad;
+    if (cita.propiedad?.titulo) return cita.propiedad.titulo;
+    if (cita.propiedad?.direccion) return cita.propiedad.direccion;
+    return 'Propiedad';
+  };
+
+  // Helper para obtener el teléfono
+  const getClientPhone = (cita) => {
+    // Formato plano en la cita
+    if (cita.telefono) return cita.telefono;
+
+    // Formato anidado en cliente
+    if (cita.cliente?.telefono) return cita.cliente.telefono;
+
+    // Formato Sequelize
+    if (cita.cliente?.dataValues?.telefono) return cita.cliente.dataValues.telefono;
+
+    return '-';
+  };
+
+  // Helper para obtener el email
+  const getClientEmail = (cita) => {
+    // Formato plano en la cita
+    if (cita.email) return cita.email;
+
+    // Formato anidado en cliente (puede ser 'correo' o 'email')
+    if (cita.cliente?.correo) return cita.cliente.correo;
+    if (cita.cliente?.email) return cita.cliente.email;
+
+    // Formato Sequelize
+    if (cita.cliente?.dataValues?.correo) return cita.cliente.dataValues.correo;
+    if (cita.cliente?.dataValues?.email) return cita.cliente.dataValues.email;
+
+    return '-';
+  };
+
+  // Helper para obtener tipo de documento
+  const getClientDocumentType = (cita) => {
+    // Formato plano en la cita
+    if (cita.tipoDocumento) return cita.tipoDocumento;
+    if (cita.tipo_documento) return cita.tipo_documento;
+
+    // Formato anidado en cliente
+    if (cita.cliente?.tipoDocumento) return cita.cliente.tipoDocumento;
+    if (cita.cliente?.tipo_documento) return cita.cliente.tipo_documento;
+
+    // Formato Sequelize
+    if (cita.cliente?.dataValues?.tipoDocumento) return cita.cliente.dataValues.tipoDocumento;
+    if (cita.cliente?.dataValues?.tipo_documento) return cita.cliente.dataValues.tipo_documento;
+
+    return '';
+  };
+
+  // Helper para obtener número de documento
+  const getClientDocumentNumber = (cita) => {
+    // Formato plano en la cita
+    if (cita.numeroDocumento) return cita.numeroDocumento;
+    if (cita.numero_documento) return cita.numero_documento;
+
+    // Formato anidado en cliente
+    if (cita.cliente?.numeroDocumento) return cita.cliente.numeroDocumento;
+    if (cita.cliente?.numero_documento) return cita.cliente.numero_documento;
+
+    // Formato Sequelize
+    if (cita.cliente?.dataValues?.numeroDocumento) return cita.cliente.dataValues.numeroDocumento;
+    if (cita.cliente?.dataValues?.numero_documento) return cita.cliente.dataValues.numero_documento;
+
+    return '';
+  };
+
+  // Componente para vista móvil
+  const MobileAppointmentCard = ({ cita }) => {
+    const isSolicitada = cita.estado === 'solicitada';
+    const isCancelled = cita.estado === 'cancelada';
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`bg-white rounded-lg border border-slate-200 p-4 mb-4 ${isCancelled ? 'opacity-60' : ''}`}
+      >
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <h3 className="font-medium text-slate-800">{getClientName(cita)}</h3>
+            <p className="text-sm text-slate-600">{getServiceName(cita)}</p>
+          </div>
+          {isSolicitada ? (
+            getStatusBadge(cita.estado)
+          ) : (
+            <StatusSelector
+              value={cita.id_estado_cita}
+              onChange={(newStatus) => onStatusChange(cita, newStatus)}
+              loading={loadingStatusChanges.has(cita.id)}
+              className="w-32"
+            />
+          )}
+        </div>
+
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <Calendar className="w-4 h-4" />
+            <span>{formatDate(cita.fecha_cita || cita.fecha)}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <Clock className="w-4 h-4" />
+            <span>{formatTime(cita.hora_inicio || cita.hora)}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <MapPin className="w-4 h-4" />
+            <span>{getPropertyName(cita)}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <Phone className="w-4 h-4" />
+            <span>{formatPhoneNumber(getClientPhone(cita))}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <Mail className="w-4 h-4" />
+            <span>{getClientEmail(cita)}</span>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          {isSolicitada ? (
+            <>
+              <motion.button
+                key={`mobile-view-${cita.id}`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onView(cita)}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                <Eye className="w-4 h-4" />
+                Ver
+              </motion.button>
+              <motion.button
+                key={`mobile-accept-${cita.id}`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onAcceptAppointment(cita)}
+                className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+              >
+                <Check className="w-4 h-4" />
+                Aceptar
+              </motion.button>
+              <motion.button
+                key={`mobile-reject-${cita.id}`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onRejectAppointment(cita)}
+                className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+                Cancelar
+              </motion.button>
+            </>
+          ) : (
+            <>
+              <motion.button
+                key={`mobile-view-${cita.id}`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onView(cita)}
+                className="flex items-center gap-2 px-3 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
+              >
+                <Eye className="w-4 h-4" />
+                Ver
+              </motion.button>
+              <motion.button
+                key={`mobile-edit-${cita.id}`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onEdit(cita)}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                <Edit className="w-4 h-4" />
+                Editar
+              </motion.button>
+              <motion.button
+                key={`mobile-delete-${cita.id}`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onDelete(cita)}
+                className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                Eliminar
+              </motion.button>
+            </>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
+      {/* Desktop Table */}
+      <div className="hidden md:block">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Cliente
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Servicio
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Fecha & Hora
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Estado
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Contacto
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Documento
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {citas.map((cita, index) => {
+                const isSolicitada = cita.estado === 'solicitada';
+                const isCancelled = cita.estado === 'cancelada';
+
+                return (
+                  <motion.tr
+                    key={cita.id || `cita-${index}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`hover:bg-slate-50 transition-colors ${isCancelled ? 'opacity-60' : ''}`}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-slate-900">{getClientName(cita)}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-slate-900">{getServiceName(cita)}</div>
+                      <div className="text-sm text-slate-500">{getPropertyName(cita)}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm text-slate-900">{formatDate(cita.fecha_cita || cita.fecha)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Clock className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm text-slate-500">{formatTime(cita.hora_inicio || cita.hora)}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {isSolicitada ? (
+                        getStatusBadge(cita.estado)
+                      ) : (
+                        <StatusSelector
+                          value={cita.id_estado_cita}
+                          onChange={(newStatus) => onStatusChange(cita, newStatus)}
+                          loading={loadingStatusChanges.has(cita.id)}
+                          className="w-44"
+                        />
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm text-slate-900">{formatPhoneNumber(getClientPhone(cita))}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Mail className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm text-slate-500">{getClientEmail(cita)}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-slate-900">
+                        {formatDocumentInfo(getClientDocumentType(cita), getClientDocumentNumber(cita))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        {isSolicitada ? (
+                          <>
+                            <motion.button
+                              key={`view-${cita.id}`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onView(cita)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Ver detalles"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              key={`accept-${cita.id}`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onAcceptAppointment(cita)}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title="Aceptar cita"
+                            >
+                              <Check className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              key={`reject-${cita.id}`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onRejectAppointment(cita)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Cancelar cita"
+                            >
+                              <X className="w-4 h-4" />
+                            </motion.button>
+                          </>
+                        ) : (
+                          <>
+                            <motion.button
+                              key={`view-${cita.id}`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onView(cita)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Ver detalles"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              key={`edit-${cita.id}`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onEdit(cita)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Editar cita"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              key={`delete-${cita.id}`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onDelete(cita)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Eliminar cita"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </motion.button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden p-4">
+        {citas.map((cita, index) => (
+          <MobileAppointmentCard key={cita.id || `mobile-cita-${index}`} cita={cita} />
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="px-6 py-4 border-t border-slate-200 bg-slate-50">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-slate-600">
+              Página {currentPage} de {totalPages}
+            </div>
+            <div className="flex items-center space-x-2">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2 text-slate-600 hover:bg-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </motion.button>
+
+              {[...Array(totalPages)].map((_, index) => {
+                const page = index + 1;
+                const isCurrentPage = page === currentPage;
+
+                return (
+                  <motion.button
+                    key={page}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onPageChange(page)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                      isCurrentPage
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-600 hover:bg-white'
+                    }`}
+                  >
+                    {page}
+                  </motion.button>
+                );
+              })}
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2 text-slate-600 hover:bg-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </motion.button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AppointmentTable;

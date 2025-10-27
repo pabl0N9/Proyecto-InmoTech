@@ -3,6 +3,8 @@ import Navbar from './shared/components/Navbar'
 import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
 import { Toaster } from './shared/components/ui/toaster'
+import DashboardLayout from './shared/components/dashboard/Layout/DashboardLayout'
+import ProtectedRoute, { EmployeeRoute } from './shared/components/ProtectedRoute'
 
 // Pages
 import HomePage from './features/properties/pages/HomePage'
@@ -13,84 +15,188 @@ import AboutPage from './features/about/pages/AboutPage'
 import ServicesPage from './features/services/pages/ServicesPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
-import DashboardPage from "./features/dashboard/DashboardPage";
-import InmueblesDashboardPage from './features/dashboard/pages/Inmuebles/InmueblesDashboardPage'
-import OwnerDashboardPage from './features/dashboard/pages/propertyOwner/OwnerDashboardPage'
 
-
-
-
+// Dashboard pages
+import DashboardPage from './features/dashboard/DashboardPage'
+import { SalesManagementPage } from './features/dashboard/pages/sales/pages/SalesManagementPage'
+import { BuyersManagementPage } from './features/dashboard/pages/sales/pages/BuyerManagementPage'
+import { LeasesManagementPage } from './features/dashboard/pages/leases/pages/LeasesManagementPage'
+import { RenantManagementPage } from './features/dashboard/pages/leases/pages/RenantManagementPage'
+import AppointmentPage from './features/dashboard/pages/appointment/AppointmentPage'
+import Reports from './features/dashboard/pages/reports/Reports'
+import Roles from './features/dashboard/pages/roles/Roles'
 
 function App() {
   return (
     <div className="min-h-screen flex flex-col">
       <ScrollToTop />
       <Routes>
+
         {/* Public routes with navbar and footer */}
-        <Route path="/" element={
-          <>
-            <Navbar />
-            <HomePage />
-            <Footer />
-          </>
-        } />
-        <Route path="/inmuebles" element={
-          <>
-            <Navbar />
-            <PropertiesPage />
-            <Footer />
-          </>
-        } />
-        <Route path="/inmuebles/:id" element={
-          <>
-            <Navbar />
-            <PropertyDetailsPage />
-            <Footer />
-          </>
-        } />
-        <Route path="/contactanos" element={
-          <>
-            <Navbar />
-            <ContactPage />
-            <Footer />
-          </>
-        } />
-        <Route path="/nosotros" element={
-          <>
-            <Navbar />
-            <AboutPage />
-            <Footer />
-          </>
-        } />
-        <Route path="/servicios" element={
-          <>
-            <Navbar />
-            <ServicesPage />
-            <Footer />
-          </>
-        } />
+        <Route
+          path="/"
+          element={
+            <>
+              <Navbar />
+              <HomePage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/inmuebles"
+          element={
+            <>
+              <Navbar />
+              <PropertiesPage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/inmuebles/:id"
+          element={
+            <>
+              <Navbar />
+              <PropertyDetailsPage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/contactanos"
+          element={
+            <>
+              <Navbar />
+              <ContactPage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/nosotros"
+          element={
+            <>
+              <Navbar />
+              <AboutPage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/servicios"
+          element={
+            <>
+              <Navbar />
+              <ServicesPage />
+              <Footer />
+            </>
+          }
+        />
 
         {/* Auth routes with navbar/footer */}
-        <Route path="/login" element={
-          <>
-            <Navbar />
-            <LoginPage />
-            <Footer />
-          </>
-        } />
-        <Route path="/registro" element={
-          <>
-            <Navbar />
-            <RegisterPage />
-            <Footer />
-          </>
-        } />
+        <Route
+          path="/login"
+          element={
+            <>
+              <Navbar />
+              <LoginPage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/registro"
+          element={
+            <>
+              <Navbar />
+              <RegisterPage />
+              <Footer />
+            </>
+          }
+        />
 
-        {/* Dashboard routes without navbar/footer */}
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/dashboard/inmuebles" element={<InmueblesDashboardPage />} /> 
-        <Route path='/dashboard/owners' element={<OwnerDashboardPage/>}/>
-
+        {/* Dashboard routes with sidebar layout */}
+        <Route
+          path="/dashboard"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <DashboardPage />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/dashboard/salesManagement"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <SalesManagementPage />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/dashboard/buyersManagement"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <BuyersManagementPage />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/dashboard/leasesManagement"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <LeasesManagementPage />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/dashboard/renantManagement"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <RenantManagementPage />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/dashboard/citas"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <AppointmentPage />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/reportes/gestion"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <Reports />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/seguridad/roles"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <Roles />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
 
       </Routes>
       <Toaster />

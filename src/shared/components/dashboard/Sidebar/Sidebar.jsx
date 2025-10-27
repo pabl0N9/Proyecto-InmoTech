@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MdMenu, MdClose } from 'react-icons/md';
 import SidebarItem from './SidebarItem';
 import { navigationItems, logoutItem, goToSiteItem } from '../../../utils/navigationData';
+import { useAuth } from '../../../contexts/AuthContext';
 import '../../../styles/globals.css';
 
-const Sidebar = ({
+const Sidebar = React.forwardRef(({
   isCollapsed,
   expandedItem,
   activeItem,
@@ -15,7 +16,8 @@ const Sidebar = ({
   onSubItemClick,
   onLogout,
   onGoToSite
-}) => {
+}, ref) => {
+  const { user, hasRole } = useAuth();
 
   const sidebarVariants = {
     expanded: {
@@ -39,6 +41,29 @@ const Sidebar = ({
     }
   };
 
+  const navRef = useRef(null);
+  const prevExpandedItem = useRef(null);
+
+  // Filter navigation items based on user role
+  const filteredNavigationItems = navigationItems.filter(item => {
+    // Hide 'seguridad' module for 'Empleado' role
+    if (item.id === 'seguridad' && hasRole('Empleado')) {
+      return false;
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    if (navRef.current) {
+      if (expandedItem === 'seguridad' && prevExpandedItem.current !== 'seguridad') {
+        navRef.current.scrollTo({ top: navRef.current.scrollHeight, behavior: 'smooth' });
+      } else if (expandedItem !== 'seguridad' && prevExpandedItem.current === 'seguridad') {
+        navRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+    prevExpandedItem.current = expandedItem;
+  }, [expandedItem]);
+
   const handleGoToSiteClick = () => {
     if (onGoToSite) {
       onGoToSite();
@@ -47,6 +72,7 @@ const Sidebar = ({
 
   return (
     <motion.div
+      ref={ref}
       variants={sidebarVariants}
       animate={isCollapsed ? 'collapsed' : 'expanded'}
       className="relative h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50 shadow-2xl shadow-slate-900/30 flex flex-col">
@@ -111,9 +137,9 @@ const Sidebar = ({
       </AnimatePresence>
 
       {/* Navegación */}
-      <div className="flex-1 py-6 overflow-y-auto overflow-x-hidden custom-scrollbar">
-        <nav className="space-y-2">
-          {navigationItems.map((item) => (
+      <div ref={navRef} className={`flex-1 py-4 ${expandedItem === 'seguridad' ? 'overflow-y-auto' : 'overflow-y-hidden'} overflow-x-hidden custom-scrollbar`}>
+        <nav className="space-y-1">
+          {filteredNavigationItems.map((item) => (
             <SidebarItem
               key={item.id}
               item={item}
@@ -192,6 +218,6 @@ const Sidebar = ({
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/30 to-transparent" />
     </motion.div>
   );
-};
+});
 
 export default Sidebar;
