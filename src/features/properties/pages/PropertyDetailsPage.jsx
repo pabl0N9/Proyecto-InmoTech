@@ -450,52 +450,7 @@ export default function PropertyDetailPage() {
             </Card>
 
             {/* Estadísticas */}
-            <Card className="border-none shadow-md">
-              <CardContent className="p-6">
-                <h3 className="font-bold text-lg mb-4">Estadísticas</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                        <Eye className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <span>Vistas</span>
-                    </div>
-                    <span className="font-bold">1,245</span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                        <Heart className="h-4 w-4 text-red-600" />
-                      </div>
-                      <span>Guardados</span>
-                    </div>
-                    <span className="font-bold">87</span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                        <Share2 className="h-4 w-4 text-green-600" />
-                      </div>
-                      <span>Compartidos</span>
-                    </div>
-                    <span className="font-bold">32</span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-                        <Calendar className="h-4 w-4 text-purple-600" />
-                      </div>
-                      <span>Visitas agendadas</span>
-                    </div>
-                    <span className="font-bold">8</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            
           </div>
         </div>
       </section>

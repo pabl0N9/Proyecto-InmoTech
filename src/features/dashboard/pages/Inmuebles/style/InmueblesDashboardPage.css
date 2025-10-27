@@ -28,19 +28,6 @@
   align-items: center;
 }
 
-.search-container {
-  margin-top: 8px;
-}
-
-.search-input {
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: none;
-  font-size: 14px;
-  width: 250px;
-  color: #000000;
-}
-
 .header-content {
   flex: 1;
 }
@@ -106,10 +93,6 @@
   display: flex;
   gap: 8px;
   justify-content: center;
-}
-
-.actions-cell {
-  text-align: center;
 }
 
 .btn-action {
@@ -193,4 +176,482 @@ select {
 
 .btn-secondary:hover {
   background: #aaa;
+}
+
+.property-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 5px 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 columnas */
+  gap: 12px;
+}
+
+.form-grid label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.form-grid input,
+.form-grid select {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.btn-cancel {
+  background: #f5f5f5;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-submit {
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Reset y estilos base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animaciones */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Tabla responsive */
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background: linear-gradient(135deg, #0062C3 0%, #004a99 100%);
+  color: white;
+}
+
+thead th {
+  padding: 16px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s;
+}
+
+tbody tr:hover {
+  background-color: #f0f9ff;
+}
+
+tbody td {
+  padding: 16px 12px;
+  font-size: 14px;
+  color: #374151;
+}
+
+/* Badges de estado */
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.badge-disponible {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge-vendido {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-arrendado {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-reservado {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* Botones de acción */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-icon {
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.btn-view {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.btn-view:hover {
+  background-color: #bae6fd;
+  transform: translateY(-1px);
+}
+
+.btn-edit {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.btn-edit:hover {
+  background-color: #fde68a;
+  transform: translateY(-1px);
+}
+
+.btn-history {
+  background-color: #e9d5ff;
+  color: #6b21a8;
+}
+
+.btn-history:hover {
+  background-color: #d8b4fe;
+  transform: translateY(-1px);
+}
+
+/* Select personalizado */
+select.estado-select {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: white;
+}
+
+select.estado-select:hover {
+  border-color: #0062C3;
+}
+
+select.estado-select:focus {
+  outline: none;
+  border-color: #0062C3;
+  box-shadow: 0 0 0 3px rgba(0, 98, 195, 0.1);
+}
+
+/* Mensaje de "sin resultados" */
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+}
+
+.no-results-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.no-results-text {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.no-results-subtext {
+  font-size: 14px;
+  color: #d1d5db;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  thead th,
+  tbody td {
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .action-buttons {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .btn-icon {
+    width: 100%;
+    padding: 6px;
+    font-size: 14px;
+  }
+  
+  thead th {
+    font-size: 11px;
+    padding: 10px 6px;
+  }
+  
+  tbody td {
+    font-size: 12px;
+    padding: 10px 6px;
+  }
+}
+
+/* Animaciones para elementos que aparecen */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.slide-in {
+  animation: slideInRight 0.4s ease-out;
+}
+
+/* Mejoras para inputs de búsqueda */
+.search-container {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.2s;
+  background-color: white;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #0062C3;
+  box-shadow: 0 0 0 3px rgba(0, 98, 195, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 18px;
+}
+
+/* Estilos para estados de carga */
+.loading-skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Estilos del Paginador */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-top: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.pagination-info span {
+  font-weight: 600;
+  color: #374151;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #0062C3;
+  transform: translateY(-1px);
+}
+
+.pagination-btn:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pagination-pages {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.pagination-page-btn {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  min-width: 40px;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.pagination-page-btn:hover {
+  background-color: #f0f9ff;
+  border-color: #0062C3;
+}
+
+.pagination-page-btn.active {
+  background-color: #0062C3;
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 98, 195, 0.2);
+}
+
+.pagination-ellipsis {
+  padding: 8px 4px;
+  color: #9ca3af;
+  font-size: 14px;
+  user-select: none;
+}
+
+/* Responsive para paginador */
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .pagination-info {
+    font-size: 13px;
+  }
+
+  .pagination-controls {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .pagination-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .pagination-page-btn {
+    padding: 6px 10px;
+    font-size: 13px;
+    min-width: 36px;
+  }
 }

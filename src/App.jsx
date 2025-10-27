@@ -14,9 +14,9 @@ import ServicesPage from './features/services/pages/ServicesPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
 import DashboardPage from "./features/dashboard/DashboardPage";
-import AdminIndexPage from './features/properties/pages/AdminIndexPage'
-import AdminDashboardPage from './features/properties/pages/AdminDashboardPage'
-import InmueblesPage from './features/dashboard/pages/Inmuebles/InmueblesDashboardPage'
+import InmueblesDashboardPage from './features/dashboard/pages/Inmuebles/InmueblesDashboardPage'
+import OwnerDashboardPage from './features/dashboard/pages/propertyOwner/OwnerDashboardPage'
+
 
 
 
@@ -88,10 +88,10 @@ function App() {
 
         {/* Dashboard routes without navbar/footer */}
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard/inmuebles" element={<InmueblesDashboardPage />} /> 
+        <Route path='/dashboard/owners' element={<OwnerDashboardPage/>}/>
 
-        {/* Admin routes without navbar/footer */}
-        <Route path="/admin" element={<AdminIndexPage />} />
-        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+
       </Routes>
       <Toaster />
     </div>

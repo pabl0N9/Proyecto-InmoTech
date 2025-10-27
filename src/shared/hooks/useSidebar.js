@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const useSidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedItem, setExpandedItem] = useState(null);
   const [activeItem, setActiveItem] = useState('dashboard');
   const [activeSubItem, setActiveSubItem] = useState(null);
+  const navigate = useNavigate();
 
   const toggleSidebar = useCallback(() => {
     setIsCollapsed(prev => !prev);
@@ -26,22 +28,35 @@ export const useSidebar = () => {
       setActiveItem(item.id);
       setActiveSubItem(null);
       setExpandedItem(null);
-    }
-  }, [isCollapsed, toggleExpandedItem]);
 
-  const handleSubItemClick = useCallback((subItem, parentId) => {
-    setActiveItem(parentId);
-    setActiveSubItem(subItem.id);
-  }, []);
+      // Navegación específica para "Gestión de Citas"
+      if (item.id === 'inmuebles') {
+        navigate('/dashboard/inmuebles');
+      }
+    }
+  }, [isCollapsed, toggleExpandedItem, navigate]);
+
+  const handleSubItemClick = useCallback((subItemId) => {
+    // Buscar el subItem correcto basado en el ID
+    const allSubItems = [
+      { id: 'inmuebles', path: '/dashboard/inmuebles' },
+      
+    ];
+    
+    const subItem = allSubItems.find(item => item.id === subItemId);
+    if (subItem) {
+      navigate(subItem.path);
+    }
+  }, [navigate]);
 
   return {
     isCollapsed,
+    toggleSidebar,
     expandedItem,
+    toggleExpandedItem,
     activeItem,
     activeSubItem,
-    toggleSidebar,
-    toggleExpandedItem,
     handleItemClick,
-    handleSubItemClick
+    handleSubItemClick,
   };
 };

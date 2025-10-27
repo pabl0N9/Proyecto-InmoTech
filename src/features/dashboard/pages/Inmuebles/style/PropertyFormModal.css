@@ -1,7 +1,7 @@
 /* Modal Form Styles */
 .property-form-modal {
-  max-height: 70vh;
-  overflow-y: auto;
+  /* Removed max-height to avoid scroll */
+  overflow-y: visible;
   padding: 20px;
 }
 

@@ -1,0 +1,98 @@
+/* OwnerListModal Styles */
+
+.owner-list-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.owner-list-modal-content {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  min-width: 400px;
+  max-width: 600px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.owner-list-modal h2.section-title {
+  margin-bottom: 15px;
+  color: #0062c3;
+  font-weight: bold;
+  border-bottom: 2px solid #0062c3;
+  padding-bottom: 10px;
+}
+
+.owner-list-modal table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.owner-list-modal thead {
+  background-color: #0062c3;
+  color: white;
+}
+
+.owner-list-modal th,
+.owner-list-modal td {
+  padding: 8px;
+  font-weight: bold;
+}
+
+.owner-list-modal th {
+  text-align: left;
+}
+
+.owner-list-modal th.actions,
+.owner-list-modal td.actions {
+  text-align: center;
+}
+
+.owner-list-modal tbody tr {
+  border-bottom: 1px solid #ddd;
+}
+
+.owner-list-modal tbody td.actions {
+  cursor: pointer;
+  text-align: center;
+}
+
+.owner-list-modal .btn-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.owner-list-modal .btn-secondary {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  transition: background-color 0.2s, color 0.2s;
+  min-width: 120px;
+}
+
+.owner-list-modal .btn-secondary:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .owner-list-modal-content {
+    min-width: 90vw;
+  }}
