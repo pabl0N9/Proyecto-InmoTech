@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 const app = require('./app');
 const { testConnection } = require('./config/database');
 const logger = require('./utils/logger');

@@ -18,20 +18,39 @@ class AuthService {
   async login(email, password) {
     try {
       console.log('🔐 Enviando solicitud de login para:', email);
-
+      
       const response = await apiClient.post('/auth/login', {
         email: email.trim().toLowerCase(),
         password
       });
-
+  
+      console.log('📦 Respuesta del servidor:', response);
+  
+      // ✅ CRÍTICO: Guardar tokens en localStorage
+      if (response.success && response.data) {
+        const { accessToken, refreshToken, user } = response.data;
+        
+        if (accessToken && refreshToken) {
+          // Guardar tokens usando apiClient
+          apiClient.setTokens(accessToken, refreshToken);
+          
+          console.log('✅ Tokens guardados en localStorage');
+          console.log('   - Access Token:', !!localStorage.getItem('inmotech_access_token'));
+          console.log('   - Refresh Token:', !!localStorage.getItem('inmotech_refresh_token'));
+        } else {
+          console.error('❌ El servidor no devolvió tokens válidos');
+        }
+      }
+  
       console.log('✅ Login exitoso');
       return response;
+      
     } catch (error) {
       console.error('❌ Error en login:', error.message);
       throw error;
     }
   }
-
+  
   /**
    * Registra un nuevo usuario
    * @param {Object} userData - Datos del usuario

@@ -1,15 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Calendar, FileText, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, User, Briefcase, FileText, CheckCircle, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import StepIndicator from '../StepIndicator';
-import CustomerStep from './steps/CustomerStep';
-import DateTimeStep from './steps/DateTimeStep';
-import DetailsStepStep from './steps/DetailsStep';
-import SummaryStepStep from './steps/SummaryStep';
+import PersonalStep from './steps/PersonalStep';
+import LaboralStep from './steps/LaboralStep';
+import RoleStep from './steps/RoleStep';
+import SummaryStep from './steps/SummaryStep';
 import { useToast } from '../../../../shared/hooks/use-toast';
-import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
-import { useAppointments } from '../../../../shared/contexts/AppointmentContext';
+import { useAdministrativos } from '../../../../shared/contexts/AdministrativosContext';
 
 const SERVICIO_MAP = {
   "Visita a Propiedad": 1,
@@ -19,24 +18,34 @@ const SERVICIO_MAP = {
 };
 
 
-const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) => {
+const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    nombre: '',
-    apellido: '',
-    telefono: '',
-    email: '',
+    // Paso 1: Información Personal
     tipoDocumento: '',
     numeroDocumento: '',
-    fecha: '',
-    hora: '',
-    servicio: '',
-    notas: '',
+    nombreCompleto: '',
+    apellidoCompleto: '',
+    email: '',
+    telefono: '',
+    password: '',
+
+    // Paso 2: Información Laboral
+    codigoEmpleado: '',
+    fechaIngreso: '',
+    cargo: '',
+    departamento: '',
+    salario: '',
+
+    // Paso 3: Rol
+    rol: '',
+
+    // Paso 4: Resumen
     estado: 'programada'
   });
   const [errors, setErrors] = useState({});
   const { toast } = useToast();
-  const { createAppointment } = useAppointments();
+  const { createAdministrativo } = useAdministrativos();
   const contentRef = useRef(null);
 
   // Scroll to top when step changes
@@ -46,47 +55,12 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     }
   }, [currentStep]);
 
-  // Set preselected date when modal opens
-  useEffect(() => {
-    if (isOpen && preselectedDate) {
-      setFormData(prev => ({ ...prev, fecha: preselectedDate }));
-    }
-  }, [isOpen, preselectedDate]);
-
   const steps = [
-    { number: 1, title: 'Cliente', icon: User },
-    { number: 2, title: 'Fecha y Hora', icon: Calendar },
-    { number: 3, title: 'Detalles', icon: FileText },
+    { number: 1, title: 'Información Personal', icon: User },
+    { number: 2, title: 'Información Laboral', icon: Briefcase },
+    { number: 3, title: 'Rol Administrativo', icon: Users },
     { number: 4, title: 'Resumen', icon: CheckCircle }
   ];
-
-  // Función para validar nombre completo
-  const validateNombre = (nombre) => {
-    if (!nombre.trim()) return 'El nombre del cliente es requerido';
-    if (nombre.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres';
-    if (nombre.trim().length > 100) return 'El nombre no puede tener más de 100 caracteres';
-    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(nombre.trim())) return 'El nombre solo puede contener letras y espacios';
-    return '';
-  };
-
-  // Función para validar teléfono colombiano
-  const validateTelefono = (telefono) => {
-    if (!telefono.trim()) return 'El teléfono es requerido';
-    const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, '');
-    if (!/^(\+57|57)?[3][0-9]{9}$/.test(telefonoLimpio)) {
-      return 'El teléfono debe tener formato colombiano (+57 XXX XXX XXXX o 3XX XXX XXXX)';
-    }
-    return '';
-  };
-
-  // Función para validar email
-  const validateEmail = (email) => {
-    if (!email.trim()) return 'El email es requerido';
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email.trim())) return 'Ingresa un email válido';
-    if (email.length > 254) return 'El email es demasiado largo';
-    return '';
-  };
 
   // Función para validar tipo de documento
   const validateTipoDocumento = (tipoDocumento) => {
@@ -136,80 +110,90 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     return '';
   };
 
-  // Función para validar fecha
-  const validateFecha = (fecha) => {
-    if (!fecha) return 'La fecha es requerida';
+  // Función para validar nombre completo
+  const validateNombre = (nombre) => {
+    if (!nombre.trim()) return 'El nombre completo es requerido';
+    if (nombre.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres';
+    if (nombre.trim().length > 100) return 'El nombre no puede tener más de 100 caracteres';
+    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(nombre.trim())) return 'El nombre solo puede contener letras y espacios';
+    return '';
+  };
+
+  // Función para validar email
+  const validateEmail = (email) => {
+    if (!email.trim()) return 'El email es requerido';
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) return 'Ingresa un email válido';
+    if (email.length > 254) return 'El email es demasiado largo';
+    return '';
+  };
+
+  // Función para validar teléfono colombiano
+  const validateTelefono = (telefono) => {
+    if (!telefono.trim()) return 'El teléfono es requerido';
+    const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, '');
+    if (!/^(\+57|57)?[3][0-9]{9}$/.test(telefonoLimpio)) {
+      return 'El teléfono debe tener formato colombiano (+57 XXX XXX XXXX o 3XX XXX XXXX)';
+    }
+    return '';
+  };
+
+  // Función para validar contraseña
+  const validatePassword = (password) => {
+    if (!password) return 'La contraseña es requerida';
+    if (password.length < 8) return 'La contraseña debe tener al menos 8 caracteres';
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      return 'La contraseña debe contener al menos una letra minúscula, una mayúscula y un número';
+    }
+    return '';
+  };
+
+  // Función para validar código de empleado
+  const validateCodigoEmpleado = (codigo) => {
+    if (!codigo.trim()) return 'El código de empleado es requerido';
+    if (codigo.trim().length < 3 || codigo.trim().length > 20) {
+      return 'El código de empleado debe tener entre 3 y 20 caracteres';
+    }
+    if (!/^[A-Z0-9\-_]+$/.test(codigo.trim())) {
+      return 'El código de empleado solo puede contener letras mayúsculas, números, guiones y guiones bajos';
+    }
+    return '';
+  };
+
+  // Función para validar fecha de ingreso
+  const validateFechaIngreso = (fecha) => {
+    if (!fecha) return 'La fecha de ingreso es requerida';
     const fechaSeleccionada = new Date(fecha);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
-    if (fechaSeleccionada < hoy) return 'No se pueden agendar citas en fechas pasadas';
+    if (fechaSeleccionada > hoy) return 'La fecha de ingreso no puede ser futura';
     return '';
   };
 
-  // Función para validar hora (horario laboral)
-  const validateHora = (hora) => {
-    if (!hora) return 'La hora es requerida';
-
-    // Check for multiple AM/PM suffixes
-    const amMatches = hora.match(/\b(am|AM)\b/g);
-    const pmMatches = hora.match(/\b(pm|PM)\b/g);
-    const totalSuffixes = (amMatches ? amMatches.length : 0) + (pmMatches ? pmMatches.length : 0);
-
-    if (totalSuffixes > 1) {
-      return 'La hora no puede tener múltiples sufijos AM/PM';
-    }
-
-    // Detectar si es AM o PM
-    const isPM = /\s*pm$/i.test(hora);
-    const isAM = /\s*am$/i.test(hora);
-
-    // Remover el sufijo ' am' o ' pm' antes de parsear
-    const horaLimpia = hora.replace(/\s*(am|pm)$/i, '');
-    let [horas, minutos] = horaLimpia.split(':').map(Number);
-
-    // Verificar que la conversión fue exitosa
-    if (isNaN(horas) || isNaN(minutos)) {
-      return 'Formato de hora inválido';
-    }
-
-    // Convertir a formato 24 horas
-    if (isPM && horas < 12) horas += 12;
-    if (isAM && horas === 12) horas = 0;
-
-    const horaDecimal = horas + (minutos / 60);
-
-    // Horario laboral: 8:00 am - 6:00 PM
-    if (horaDecimal < 8 || horaDecimal >= 18) {
-      return 'Las citas solo se pueden agendar entre las 8:00 am y las 6:00 pm';
-    }
-
-    // Verificar que sea en intervalos de 30 minutos
-    if (minutos !== 0 && minutos !== 30) {
-      return 'Las citas solo se pueden agendar en intervalos de 30 minutos (ej: 8:00 am, 8:30 am, 9:00 am)';
-    }
-
+  // Función para validar cargo
+  const validateCargo = (cargo) => {
+    if (cargo && cargo.length > 100) return 'El cargo no puede tener más de 100 caracteres';
     return '';
   };
 
-  // Función para validar servicio
-  const validateServicio = (servicio) => {
-    if (!servicio || servicio.trim() === '') {
-      return 'El servicio es requerido';
+  // Función para validar departamento
+  const validateDepartamento = (departamento) => {
+    if (departamento && departamento.length > 100) return 'El departamento no puede tener más de 100 caracteres';
+    return '';
+  };
+
+  // Función para validar salario
+  const validateSalario = (salario) => {
+    if (salario && (isNaN(salario) || parseFloat(salario) < 0)) {
+      return 'El salario debe ser un número positivo';
     }
+    return '';
+  };
 
-  const servicios = [
-    'Avalúos',
-    'Gestión de Alquileres',
-    'Asesoría Legal',
-    'Visita a Propiedad'
-  ];
-
-    // Verificar que el servicio seleccionado existe en la lista
-    if (!servicios.includes(servicio)) {
-      return 'Selecciona un servicio válido de la lista';
-    }
-
+  // Función para validar rol
+  const validateRol = (rol) => {
+    if (!rol) return 'Debe seleccionar un rol administrativo';
     return '';
   };
 
@@ -218,19 +202,23 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
 
     switch (step) {
       case 1:
-        newErrors.nombre = validateNombre(formData.nombre);
-        newErrors.apellido = validateNombre(formData.apellido);
-        newErrors.telefono = validateTelefono(formData.telefono);
-        newErrors.email = validateEmail(formData.email);
         newErrors.tipoDocumento = validateTipoDocumento(formData.tipoDocumento);
         newErrors.numeroDocumento = validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento);
+        newErrors.nombreCompleto = validateNombre(formData.nombreCompleto);
+        newErrors.apellidoCompleto = validateNombre(formData.apellidoCompleto);
+        newErrors.email = validateEmail(formData.email);
+        newErrors.telefono = validateTelefono(formData.telefono);
+        newErrors.password = validatePassword(formData.password);
         break;
       case 2:
-        newErrors.fecha = validateFecha(formData.fecha);
-        newErrors.hora = validateHora(formData.hora);
+        newErrors.codigoEmpleado = validateCodigoEmpleado(formData.codigoEmpleado);
+        newErrors.fechaIngreso = validateFechaIngreso(formData.fechaIngreso);
+        newErrors.cargo = validateCargo(formData.cargo);
+        newErrors.departamento = validateDepartamento(formData.departamento);
+        newErrors.salario = validateSalario(formData.salario);
         break;
       case 3:
-        newErrors.servicio = validateServicio(formData.servicio);
+        newErrors.rol = validateRol(formData.rol);
         break;
     }
 
@@ -241,36 +229,39 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
   const canProceedToNextStep = (step) => {
     switch (step) {
       case 1:
-        // Para el paso 1, verificar que los campos estén llenos (sin errores críticos)
         const step1Errors = {
-          nombre: validateNombre(formData.nombre),
-          apellido: validateNombre(formData.apellido),
-          telefono: validateTelefono(formData.telefono),
-          email: validateEmail(formData.email),
           tipoDocumento: validateTipoDocumento(formData.tipoDocumento),
-          numeroDocumento: validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento)
+          numeroDocumento: validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento),
+          nombreCompleto: validateNombre(formData.nombreCompleto),
+          apellidoCompleto: validateNombre(formData.apellidoCompleto),
+          email: validateEmail(formData.email),
+          telefono: validateTelefono(formData.telefono),
+          password: validatePassword(formData.password)
         };
-        return formData.nombre.trim() &&
-               formData.apellido.trim() &&
-               formData.telefono.trim() &&
-               formData.email.trim() &&
-               formData.tipoDocumento &&
+        return formData.tipoDocumento &&
                formData.numeroDocumento.trim() &&
+               formData.nombreCompleto.trim() &&
+               formData.apellidoCompleto.trim() &&
+               formData.email.trim() &&
+               formData.telefono.trim() &&
+               formData.password &&
                Object.keys(step1Errors).every(key => !step1Errors[key]);
       case 2:
-        // Para el paso 2, verificar fecha y hora
         const step2Errors = {
-          fecha: validateFecha(formData.fecha),
-          hora: validateHora(formData.hora)
+          codigoEmpleado: validateCodigoEmpleado(formData.codigoEmpleado),
+          fechaIngreso: validateFechaIngreso(formData.fechaIngreso),
+          cargo: validateCargo(formData.cargo),
+          departamento: validateDepartamento(formData.departamento),
+          salario: validateSalario(formData.salario)
         };
-        return formData.fecha &&
-               formData.hora &&
+        return formData.codigoEmpleado.trim() &&
+               formData.fechaIngreso &&
                Object.keys(step2Errors).every(key => !step2Errors[key]);
       case 3:
         const step3Errors = {
-          servicio: validateServicio(formData.servicio)
+          rol: validateRol(formData.rol)
         };
-        return formData.servicio &&
+        return formData.rol &&
                Object.keys(step3Errors).every(key => !step3Errors[key]);
       default:
         return false;
@@ -281,7 +272,6 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     if (canProceedToNextStep(currentStep)) {
       setCurrentStep(prev => Math.min(prev + 1, 4));
     } else {
-      // Si no puede proceder, mostrar validación
       validateStep(currentStep);
       toast({
         title: "Campos requeridos",
@@ -298,87 +288,73 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
   const validateAllSteps = () => {
     let allErrors = {};
     // Validate step 1
-    allErrors = { ...allErrors, ...{ nombre: validateNombre(formData.nombre), apellido: validateNombre(formData.apellido), telefono: validateTelefono(formData.telefono), email: validateEmail(formData.email), tipoDocumento: validateTipoDocumento(formData.tipoDocumento), numeroDocumento: validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento) } };
+    allErrors = { ...allErrors, ...{
+      tipoDocumento: validateTipoDocumento(formData.tipoDocumento),
+      numeroDocumento: validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento),
+      nombreCompleto: validateNombre(formData.nombreCompleto),
+      apellidoCompleto: validateNombre(formData.apellidoCompleto),
+      email: validateEmail(formData.email),
+      telefono: validateTelefono(formData.telefono),
+      password: validatePassword(formData.password)
+    } };
     // Validate step 2
-    allErrors = { ...allErrors, ...{ fecha: validateFecha(formData.fecha), hora: validateHora(formData.hora) } };
+    allErrors = { ...allErrors, ...{
+      codigoEmpleado: validateCodigoEmpleado(formData.codigoEmpleado),
+      fechaIngreso: validateFechaIngreso(formData.fechaIngreso),
+      cargo: validateCargo(formData.cargo),
+      departamento: validateDepartamento(formData.departamento),
+      salario: validateSalario(formData.salario)
+    } };
     // Validate step 3
-    allErrors = { ...allErrors, ...{ servicio: validateServicio(formData.servicio) } };
+    allErrors = { ...allErrors, ...{ rol: validateRol(formData.rol) } };
     setErrors(allErrors);
     return Object.values(allErrors).every(error => !error);
-  };
-
-  // Función para convertir hora de 12h a 24h
-  const formatHoraParaAPI = (hora) => {
-    if (!hora) return "09:00";
-
-    const horaLimpia = hora.toLowerCase().replace(/\s+/g, "");
-    const isPM = horaLimpia.includes("pm");
-    const isAM = horaLimpia.includes("am");
-
-    let [horas, minutos] = horaLimpia
-      .replace(/am|pm/g, "")
-      .split(":")
-      .map(Number);
-
-    if (isPM && horas !== 12) horas += 12;
-    if (isAM && horas === 12) horas = 0;
-
-    return `${String(horas).padStart(2, "0")}:${String(minutos || 0).padStart(2, "0")}`;
-  };
-
-  // Función para calcular hora_fin (1 hora después)
-  const calcularHoraFin = (horaInicio) => {
-    const [horas, minutos] = horaInicio.split(":").map(Number);
-    const horaFin = horas + 1;
-    return `${String(horaFin).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`;
   };
 
   const handleSubmit = async () => {
     if (validateAllSteps()) {
       try {
-        // Convertir hora_inicio a 24h
-        const horaInicio24h = formatHoraParaAPI(formData.hora);
-        const horaFin24h = calcularHoraFin(horaInicio24h);
-
-        // Preparar los datos para el backend según la estructura esperada por citaApiService
-        const citaData = {
+        // Preparar los datos para el backend según la estructura esperada
+        const administrativoData = {
           tipo_documento: formData.tipoDocumento,
           numero_documento: formData.numeroDocumento,
-          nombre_completo: formData.nombre,
-          apellido_completo: formData.apellido,
+          nombre_completo: formData.nombreCompleto,
+          apellido_completo: formData.apellidoCompleto,
           email: formData.email,
           telefono: formData.telefono,
-          fecha_cita: formData.fecha,
-          hora_inicio: horaInicio24h,
-          hora_fin: horaFin24h,
-          id_servicio: SERVICIO_MAP[formData.servicio] || 1,
-          observaciones: formData.notas || null
+          password: formData.password,
+          codigo_empleado: formData.codigoEmpleado,
+          fecha_ingreso: formData.fechaIngreso,
+          cargo: formData.cargo || null,
+          departamento: formData.departamento || null,
+          salario: formData.salario ? parseFloat(formData.salario) : null,
+          id_rol: parseInt(formData.rol)
         };
 
-        console.log("📤 Datos preparados para crear cita:", citaData);
+        console.log("📤 Datos preparados para crear administrativo:", administrativoData);
 
-        // ✅ Crear la cita usando createAppointment (crea en backend y agrega al estado)
-        await createAppointment(citaData);
+        // ✅ Crear el administrativo usando createAdministrativo
+        await createAdministrativo(administrativoData);
 
         toast({
-          title: "¡Cita creada exitosamente!",
-          description: "La cita ha sido agendada correctamente.",
+          title: "¡Administrativo creado exitosamente!",
+          description: "El administrativo ha sido registrado correctamente.",
           variant: "default"
         });
 
         handleClose();
       } catch (error) {
-        console.error("Error al crear cita:", error);
+        console.error("Error al crear administrativo:", error);
         toast({
-          title: "Error al crear la cita",
-          description: "No se pudo crear la cita. Por favor, intenta nuevamente.",
+          title: "Error al crear el administrativo",
+          description: "No se pudo registrar el administrativo. Por favor, intenta nuevamente.",
           variant: "destructive"
         });
       }
     } else {
       toast({
         title: "Campos requeridos",
-        description: "Por favor corrige los errores antes de crear la cita",
+        description: "Por favor corrige los errores antes de crear el administrativo",
         variant: "destructive"
       });
     }
@@ -387,16 +363,19 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
   const handleClose = () => {
     setCurrentStep(1);
     setFormData({
-      nombre: '',
-      apellido: '',
-      telefono: '',
-      email: '',
       tipoDocumento: '',
       numeroDocumento: '',
-      fecha: '',
-      hora: '',
-      servicio: '',
-      notas: '',
+      nombreCompleto: '',
+      apellidoCompleto: '',
+      email: '',
+      telefono: '',
+      password: '',
+      codigoEmpleado: '',
+      fechaIngreso: '',
+      cargo: '',
+      departamento: '',
+      salario: '',
+      rol: '',
       estado: 'programada'
     });
     setErrors({});
@@ -406,34 +385,9 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
   const updateFormData = (field, value) => {
     let cleanedValue = value;
 
-    // Clean 'hora' field to keep only the last valid AM/PM suffix
-    if (field === 'hora' && value) {
-      const amMatches = value.match(/\b(am|AM)\b/g);
-      const pmMatches = value.match(/\b(pm|PM)\b/g);
-      const totalSuffixes = (amMatches ? amMatches.length : 0) + (pmMatches ? pmMatches.length : 0);
-
-      if (totalSuffixes > 1) {
-        // Keep only the last suffix
-        const lastAM = amMatches && amMatches.length > 0 ? amMatches[amMatches.length - 1] : null;
-        const lastPM = pmMatches && pmMatches.length > 0 ? pmMatches[pmMatches.length - 1] : null;
-
-        // Remove all suffixes first
-        let cleaned = value.replace(/\s*\b(am|pm)\b/gi, '');
-
-        // Add back the last suffix
-        if (lastPM) {
-          cleaned += ' ' + lastPM.toLowerCase();
-        } else if (lastAM) {
-          cleaned += ' ' + lastAM.toLowerCase();
-        }
-
-        cleanedValue = cleaned.trim();
-      }
-    }
-
     // Formatear automáticamente el teléfono si es el campo de teléfono
     if (field === 'telefono') {
-      // El formateo ya se aplica directamente en CustomerStep con Smart
+      // El formateo ya se aplica directamente en PersonalStep con Smart
       // Aquí dejamos el valor tal cual
     }
     setFormData(prev => ({ ...prev, [field]: cleanedValue }));
@@ -442,15 +396,6 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     const newErrors = { ...errors };
 
     switch (field) {
-      case 'cliente':
-        newErrors.cliente = validateNombre(cleanedValue);
-        break;
-      case 'telefono':
-        newErrors.telefono = validateTelefono(cleanedValue);
-        break;
-      case 'email':
-        newErrors.email = validateEmail(cleanedValue);
-        break;
       case 'tipoDocumento':
         newErrors.tipoDocumento = validateTipoDocumento(cleanedValue);
         // Revalidar número de documento cuando cambie el tipo
@@ -461,14 +406,36 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
       case 'numeroDocumento':
         newErrors.numeroDocumento = validateNumeroDocumento(cleanedValue, formData.tipoDocumento);
         break;
-      case 'fecha':
-        newErrors.fecha = validateFecha(cleanedValue);
+      case 'nombreCompleto':
+      case 'apellidoCompleto':
+        newErrors[field] = validateNombre(cleanedValue);
         break;
-      case 'hora':
-        newErrors.hora = validateHora(cleanedValue);
+      case 'email':
+        newErrors.email = validateEmail(cleanedValue);
         break;
-      case 'servicio':
-        newErrors.servicio = validateServicio(cleanedValue);
+      case 'telefono':
+        newErrors.telefono = validateTelefono(cleanedValue);
+        break;
+      case 'password':
+        newErrors.password = validatePassword(cleanedValue);
+        break;
+      case 'codigoEmpleado':
+        newErrors.codigoEmpleado = validateCodigoEmpleado(cleanedValue);
+        break;
+      case 'fechaIngreso':
+        newErrors.fechaIngreso = validateFechaIngreso(cleanedValue);
+        break;
+      case 'cargo':
+        newErrors.cargo = validateCargo(cleanedValue);
+        break;
+      case 'departamento':
+        newErrors.departamento = validateDepartamento(cleanedValue);
+        break;
+      case 'salario':
+        newErrors.salario = validateSalario(cleanedValue);
+        break;
+      case 'rol':
+        newErrors.rol = validateRol(cleanedValue);
         break;
     }
 
@@ -479,7 +446,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     switch (currentStep) {
       case 1:
         return (
-          <CustomerStep
+          <PersonalStep
             formData={formData}
             errors={errors}
             updateFormData={updateFormData}
@@ -487,7 +454,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
         );
       case 2:
         return (
-          <DateTimeStep
+          <LaboralStep
             formData={formData}
             errors={errors}
             updateFormData={updateFormData}
@@ -495,7 +462,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
         );
       case 3:
         return (
-          <DetailsStepStep
+          <RoleStep
             formData={formData}
             errors={errors}
             updateFormData={updateFormData}
@@ -503,7 +470,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
         );
       case 4:
         return (
-          <SummaryStepStep formData={formData} />
+          <SummaryStep formData={formData} />
         );
       default:
         return null;
@@ -535,8 +502,8 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-slate-200">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800">Nueva Cita</h2>
-              <p className="text-slate-600 mt-1">Agenda una nueva cita con tu cliente</p>
+              <h2 className="text-2xl font-bold text-slate-800">Nuevo Administrativo</h2>
+              <p className="text-slate-600 mt-1">Registra un nuevo miembro del personal administrativo</p>
             </div>
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -609,7 +576,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
                   className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  Crear Cita
+                  Crear Administrativo
                 </motion.button>
               )}
             </div>
@@ -621,4 +588,4 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
   );
 };
 
-export default CreateAppointmentModal;
+export default CreateAdministrativoModal;

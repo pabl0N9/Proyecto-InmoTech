@@ -1,4 +1,5 @@
 const express = require('express');
+const Joi = require('joi');
 const router = express.Router();
 const citaController = require('../controllers/cita.controller');
 const { validate, validateQuery } = require('../middlewares/validate.middleware');
@@ -72,5 +73,18 @@ router.post(
 
 // DELETE /api/v1/citas/:id - Eliminar cita
 router.delete('/:id', strictLimiter, citaController.eliminarCita);
+
+// ✅ NUEVA RUTA OPTIMIZADA: PATCH /api/v1/citas/:id/estado - Actualizar solo el estado de la cita
+router.patch(
+  '/:id/estado',
+  strictLimiter,
+  validate(Joi.object({
+    id_estado_cita: Joi.number()
+      .integer()
+      .valid(1, 2, 3, 4, 5, 6)
+      .required()
+  })),
+  citaController.actualizarEstadoCita
+);
 
 module.exports = router;

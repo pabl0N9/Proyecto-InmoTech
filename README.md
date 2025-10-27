@@ -12,3 +12,4 @@ Currently, two official plugins are available:
 credenciales para super administrador
 
 admin@inmotech.com
+Pepipro24#

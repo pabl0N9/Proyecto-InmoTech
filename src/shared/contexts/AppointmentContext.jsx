@@ -14,6 +14,7 @@ import React, {
   useCallback,
 } from "react";
 import citaApiService, { actualizarEstadoCita } from '../services/citaApiService';
+import { useAuth } from './AuthContext';
 
 const AppointmentContext = createContext(undefined);
 
@@ -21,6 +22,7 @@ export const AppointmentProvider = ({ children }) => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { isAuthenticated, user } = useAuth();
 
   /**
    * Carga las citas desde la API
@@ -41,9 +43,16 @@ export const AppointmentProvider = ({ children }) => {
     }
   }, []);
 
+  // Cargar citas solo si hay autenticación y es un administrativo
   useEffect(() => {
-    loadAppointments();
-  }, [loadAppointments]);
+    const token = localStorage.getItem('inmotech_access_token') ||
+                  sessionStorage.getItem('inmotech_access_token');
+    if (token && isAuthenticated && user?.es_administrativo) {
+      loadAppointments();
+    } else {
+      setLoading(false);
+    }
+  }, [loadAppointments, isAuthenticated, user?.es_administrativo]);
 
   /**
    * Crea una nueva cita en el backend y la agrega al estado
@@ -167,14 +176,11 @@ export const AppointmentProvider = ({ children }) => {
             
             return { 
               ...app, 
-              ...citaActualizada, 
               estado: nuevoEstado, 
               id_estado_cita: idEstadoCita,
-              // Asegurar que siempre tenga ambos campos
-              id: citaId,
-              id_cita: citaId
+              fecha_actualizacion: citaActualizada.fecha_actualizacion
             };
-          }
+            }
           return app;
         });
         

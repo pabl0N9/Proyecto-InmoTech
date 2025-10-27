@@ -16,16 +16,17 @@ class AdministrativoService {
         const {
           email,
           password,
-          primer_nombre,
-          segundo_nombre,
-          primer_apellido,
-          segundo_apellido,
+          nombre_completo,
+          apellido_completo,
           telefono,
+          tipo_documento,
+          numero_documento,
           codigo_empleado,
           fecha_ingreso,
           cargo,
           departamento,
-          salario
+          salario,
+          id_rol
         } = adminData;
 
         // Verificar si el email ya existe
@@ -36,6 +37,16 @@ class AdministrativoService {
 
         if (personaExistente) {
           throw new Error('El correo electrónico ya está registrado');
+        }
+
+        // Verificar si el documento ya existe
+        const documentoExistente = await Persona.findOne({
+          where: { tipo_documento, numero_documento },
+          transaction: t
+        });
+
+        if (documentoExistente) {
+          throw new Error('El documento ya está registrado');
         }
 
         // Verificar si el código de empleado ya existe
@@ -50,10 +61,10 @@ class AdministrativoService {
 
         // Crear persona
         const nuevaPersona = await Persona.create({
-          primer_nombre,
-          segundo_nombre,
-          primer_apellido,
-          segundo_apellido,
+          tipo_documento,
+          numero_documento,
+          nombre_completo,
+          apellido_completo,
           correo: email,
           telefono,
           tiene_cuenta: true,
@@ -78,26 +89,66 @@ class AdministrativoService {
           estado_laboral: 'Activo'
         }, { transaction: t });
 
-        // Asignar rol administrativo
-        const rolAdmin = await Rol.findOne({
-          where: { es_rol_administrativo: true },
-          transaction: t
-        });
+        // Asignar rol administrativo específico si se proporciona
+        if (id_rol) {
+          // Verificar que el rol existe y es administrativo
+          const rolSeleccionado = await Rol.findOne({
+            where: {
+              id_rol: id_rol,
+              es_rol_administrativo: true,
+              estado: true
+            },
+            transaction: t
+          });
 
-        if (rolAdmin) {
+          if (!rolSeleccionado) {
+            throw new Error('El rol seleccionado no es válido o no es administrativo');
+          }
+
           await PersonasRol.create({
             id_persona: nuevaPersona.id_persona,
-            id_rol: rolAdmin.id_rol
+            id_rol: id_rol
           }, { transaction: t });
+        } else {
+          // Asignar rol por defecto (Empleado)
+          const rolDefault = await Rol.findOne({
+            where: {
+              nombre_rol: 'Empleado',
+              es_rol_administrativo: true,
+              estado: true
+            },
+            transaction: t
+          });
+
+          if (rolDefault) {
+            await PersonasRol.create({
+              id_persona: nuevaPersona.id_persona,
+              id_rol: rolDefault.id_rol
+            }, { transaction: t });
+          }
         }
 
         logger.info(`Administrativo registrado: ${email} (Código: ${codigo_empleado})`);
+
+        // Obtener roles asignados
+        const rolesAsignados = await PersonasRol.findAll({
+          where: { id_persona: nuevaPersona.id_persona },
+          include: [{
+            model: Rol,
+            as: 'rol',
+            where: { estado: true },
+            required: true
+          }],
+          transaction: t
+        });
+
+        const rolesNombres = rolesAsignados.map(pr => pr.rol.nombre_rol);
 
         // Generar tokens
         const payload = {
           id: nuevaPersona.id_persona,
           email: nuevaPersona.correo,
-          roles: rolAdmin ? [rolAdmin.nombre_rol] : [],
+          roles: rolesNombres,
           es_administrativo: true
         };
 
@@ -107,9 +158,9 @@ class AdministrativoService {
           user: {
             id: nuevaPersona.id_persona,
             email: nuevaPersona.correo,
-            primer_nombre: nuevaPersona.primer_nombre,
-            primer_apellido: nuevaPersona.primer_apellido,
-            roles: payload.roles,
+            nombre_completo: nuevaPersona.nombre_completo,
+            apellido_completo: nuevaPersona.apellido_completo,
+            roles: rolesNombres,
             es_administrativo: true,
             administrativo: {
               id_administrativo: nuevoAdministrativo.id_administrativo,
@@ -150,7 +201,7 @@ class AdministrativoService {
           {
             model: Persona,
             as: 'persona',
-            attributes: ['id_persona', 'primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido', 'correo', 'telefono']
+            attributes: ['id_persona', 'tipo_documento', 'numero_documento', 'nombre_completo', 'apellido_completo', 'correo', 'telefono', 'fecha_registro']
           }
         ],
         limit,
@@ -187,7 +238,7 @@ class AdministrativoService {
           {
             model: Persona,
             as: 'persona',
-            attributes: ['id_persona', 'primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido', 'correo', 'telefono', 'fecha_registro']
+            attributes: ['id_persona', 'tipo_documento', 'numero_documento', 'nombre_completo', 'apellido_completo', 'correo', 'telefono', 'fecha_registro']
           }
         ]
       });

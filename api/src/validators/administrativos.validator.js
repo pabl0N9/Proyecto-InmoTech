@@ -21,31 +21,30 @@ const handleValidationErrors = (req, res, next) => {
  * Validaciones para registro de administrativo
  */
 const validarRegistroAdmin = [
-  body('primer_nombre')
+  body('tipo_documento')
+    .isIn(['CC', 'CE', 'NIT', 'Pasaporte', 'TI'])
+    .withMessage('El tipo de documento debe ser CC, CE, NIT, Pasaporte o TI'),
+
+  body('numero_documento')
     .trim()
     .notEmpty()
-    .withMessage('El primer nombre es obligatorio')
-    .isLength({ min: 2, max: 50 })
-    .withMessage('El primer nombre debe tener entre 2 y 50 caracteres'),
+    .withMessage('El número de documento es obligatorio')
+    .isLength({ min: 6, max: 20 })
+    .withMessage('El número de documento debe tener entre 6 y 20 caracteres'),
 
-  body('segundo_nombre')
-    .optional()
-    .trim()
-    .isLength({ min: 0, max: 50 })
-    .withMessage('El segundo nombre debe tener máximo 50 caracteres'),
-
-  body('primer_apellido')
+  body('nombre_completo')
     .trim()
     .notEmpty()
-    .withMessage('El primer apellido es obligatorio')
-    .isLength({ min: 2, max: 50 })
-    .withMessage('El primer apellido debe tener entre 2 y 50 caracteres'),
+    .withMessage('El nombre completo es obligatorio')
+    .isLength({ min: 2, max: 100 })
+    .withMessage('El nombre completo debe tener entre 2 y 100 caracteres'),
 
-  body('segundo_apellido')
-    .optional()
+  body('apellido_completo')
     .trim()
-    .isLength({ min: 0, max: 50 })
-    .withMessage('El segundo apellido debe tener máximo 50 caracteres'),
+    .notEmpty()
+    .withMessage('El apellido completo es obligatorio')
+    .isLength({ min: 2, max: 100 })
+    .withMessage('El apellido completo debe tener entre 2 y 100 caracteres'),
 
   body('email')
     .isEmail()
@@ -118,29 +117,17 @@ const validarActualizacionAdmin = [
     .isObject()
     .withMessage('Los datos de persona deben ser un objeto'),
 
-  body('personaData.primer_nombre')
+  body('personaData.nombre_completo')
     .optional()
     .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('El primer nombre debe tener entre 2 y 50 caracteres'),
+    .isLength({ min: 2, max: 100 })
+    .withMessage('El nombre completo debe tener entre 2 y 100 caracteres'),
 
-  body('personaData.segundo_nombre')
+  body('personaData.apellido_completo')
     .optional()
     .trim()
-    .isLength({ min: 0, max: 50 })
-    .withMessage('El segundo nombre debe tener máximo 50 caracteres'),
-
-  body('personaData.primer_apellido')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('El primer apellido debe tener entre 2 y 50 caracteres'),
-
-  body('personaData.segundo_apellido')
-    .optional()
-    .trim()
-    .isLength({ min: 0, max: 50 })
-    .withMessage('El segundo apellido debe tener máximo 50 caracteres'),
+    .isLength({ min: 2, max: 100 })
+    .withMessage('El apellido completo debe tener entre 2 y 100 caracteres'),
 
   body('personaData.telefono')
     .optional()

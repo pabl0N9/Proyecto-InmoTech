@@ -3,7 +3,7 @@ const logger = require('../utils/logger');
 
 class RolesController {
   /**
-   * Crear un nuevo rol (solo Super Admin)
+   * Crear un nuevo rol (solo Super Administrador)
    */
   async crearRol(req, res, next) {
     try {
@@ -61,7 +61,7 @@ class RolesController {
   }
 
   /**
-   * Actualizar rol (solo Super Admin)
+   * Actualizar rol (solo Super Administrador)
    */
   async actualizarRol(req, res, next) {
     try {
@@ -83,7 +83,7 @@ class RolesController {
   }
 
   /**
-   * Eliminar rol (solo Super Admin)
+   * Eliminar rol (solo Super Administrador)
    */
   async eliminarRol(req, res, next) {
     try {

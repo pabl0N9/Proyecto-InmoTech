@@ -439,6 +439,7 @@ const CitasPage = () => {
                   <SelectValue placeholder="Todos los estados"/>
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Todos los estados">Todos los estados</SelectItem>
                   <SelectItem value="programada">Programadas</SelectItem>
                   <SelectItem value="confirmada">Confirmadas</SelectItem>
                   <SelectItem value="cancelada">Canceladas</SelectItem>
