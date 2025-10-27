@@ -8,7 +8,7 @@ import { useAppointments } from '../../../contexts/AppointmentContext';
 import { useToast } from '../../../hooks/use-toast';
 
 const Header = () => {
-  const { appointments, updateAppointment } = useAppointments();
+  const { appointments, updateAppointmentStatus } = useAppointments();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
@@ -32,37 +32,55 @@ const Header = () => {
     setIsNotificationOpen(false);
   };
 
-  const handleAcceptAppointment = () => {
+  const handleAcceptAppointment = async () => {
     if (selectedAppointment) {
-      const updatedAppointment = {
-        ...selectedAppointment,
-        estado: 'confirmada'
-      };
-      updateAppointment(updatedAppointment);
-      setIsAcceptDialogOpen(false);
-      setSelectedAppointment(null);
-      toast({
-        title: "¡Cita aceptada exitosamente!",
-        description: `La cita con ${selectedAppointment.cliente} ha sido confirmada.`,
-        variant: "default"
-      });
+      try {
+        const appointmentId = selectedAppointment.id || selectedAppointment.id_cita;
+        await updateAppointmentStatus(appointmentId, 2); // 2 = confirmada
+        setIsAcceptDialogOpen(false);
+        setSelectedAppointment(null);
+        const clientName = typeof selectedAppointment.cliente === 'object'
+          ? `${selectedAppointment.cliente.nombre_completo} ${selectedAppointment.cliente.apellido_completo}`.trim()
+          : selectedAppointment.cliente;
+        toast({
+          title: "¡Cita aceptada exitosamente!",
+          description: `La cita con ${clientName} ha sido confirmada.`,
+          variant: "default"
+        });
+      } catch (error) {
+        console.error('Error al aceptar cita:', error);
+        toast({
+          title: "Error al aceptar cita",
+          description: "No se pudo confirmar la cita. Inténtalo de nuevo.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
-  const handleRejectAppointment = () => {
+  const handleRejectAppointment = async () => {
     if (selectedAppointment) {
-      const updatedAppointment = {
-        ...selectedAppointment,
-        estado: 'cancelada'
-      };
-      updateAppointment(updatedAppointment);
-      setIsRejectDialogOpen(false);
-      setSelectedAppointment(null);
-      toast({
-        title: "¡Cita rechazada exitosamente!",
-        description: `La cita con ${selectedAppointment.cliente} ha sido cancelada.`,
-        variant: "default"
-      });
+      try {
+        const appointmentId = selectedAppointment.id || selectedAppointment.id_cita;
+        await updateAppointmentStatus(appointmentId, 6); // 6 = cancelada
+        setIsRejectDialogOpen(false);
+        setSelectedAppointment(null);
+        const clientName = typeof selectedAppointment.cliente === 'object'
+          ? `${selectedAppointment.cliente.nombre_completo} ${selectedAppointment.cliente.apellido_completo}`.trim()
+          : selectedAppointment.cliente;
+        toast({
+          title: "¡Cita rechazada exitosamente!",
+          description: `La cita con ${clientName} ha sido cancelada.`,
+          variant: "default"
+        });
+      } catch (error) {
+        console.error('Error al rechazar cita:', error);
+        toast({
+          title: "Error al rechazar cita",
+          description: "No se pudo cancelar la cita. Inténtalo de nuevo.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -155,7 +173,7 @@ const Header = () => {
         }}
         onConfirm={handleAcceptAppointment}
         title="Confirmar Cita"
-        description={`¿Estás seguro de que deseas confirmar la cita con ${selectedAppointment?.cliente}?`}
+        description={`¿Estás seguro de que deseas confirmar la cita con ${typeof selectedAppointment?.cliente === 'object' ? `${selectedAppointment.cliente.nombre_completo} ${selectedAppointment.cliente.apellido_completo}`.trim() : selectedAppointment?.cliente}?`}
         confirmText="Confirmar"
         cancelText="Cancelar"
         variant="default"
@@ -170,7 +188,7 @@ const Header = () => {
         }}
         onConfirm={handleRejectAppointment}
         title="Rechazar Cita"
-        description={`¿Estás seguro de que deseas rechazar la cita con ${selectedAppointment?.cliente}?`}
+        description={`¿Estás seguro de que deseas rechazar la cita con ${typeof selectedAppointment?.cliente === 'object' ? `${selectedAppointment.cliente.nombre_completo} ${selectedAppointment.cliente.apellido_completo}`.trim() : selectedAppointment?.cliente}?`}
         confirmText="Rechazar"
         cancelText="Cancelar"
         variant="destructive"

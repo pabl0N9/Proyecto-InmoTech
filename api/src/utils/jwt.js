@@ -49,8 +49,9 @@ class JWTUtils {
     try {
       return jwt.verify(token, JWT_SECRET);
     } catch (error) {
-      logger.error('Error verificando token de acceso:', error);
-      throw new Error('Token de acceso inválido o expirado');
+      logger.error('Error verificando token de acceso:', { message: error.message, name: error.name });
+      // Re-lanzar el error original para ser manejado por el middleware
+      throw error;
     }
   }
 

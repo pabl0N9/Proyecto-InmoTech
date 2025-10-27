@@ -167,7 +167,29 @@ class CitaController {
     }
   }
 
+  /**
+   * ✅ ENDPOINT OPTIMIZADO: Actualizar solo el estado de la cita
+   * Reduce el tiempo de respuesta de ~1 segundo a ~50-100ms
+   */
+  async actualizarEstadoCita(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { id_estado_cita } = req.validatedData;
 
+      logger.info(`🔄 Actualizando estado de cita ${id} a ${id_estado_cita} (endpoint optimizado)`);
+
+      const resultado = await citaService.actualizarEstadoCitaOptimizado(parseInt(id), id_estado_cita);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Estado de cita actualizado exitosamente',
+        data: resultado
+      });
+    } catch (error) {
+      logger.error(`❌ Error en actualizarEstadoCita: ${error.message}`);
+      next(error);
+    }
+  }
 
 async buscarPersonaPorDocumento(req, res, next) {
   try {

@@ -39,9 +39,12 @@ const Administrativo = sequelize.define('Administrativos', {
     allowNull: true
   },
   estado_laboral: {
-    type: DataTypes.ENUM('Activo', 'Inactivo', 'Suspendido', 'Retirado'),
+    type: DataTypes.STRING(50),
     allowNull: false,
-    defaultValue: 'Activo'
+    defaultValue: 'Activo',
+    validate: {
+      isIn: [['Activo', 'Inactivo', 'Suspendido', 'Retirado']]
+    }
   },
   fecha_retiro: {
     type: DataTypes.DATEONLY,

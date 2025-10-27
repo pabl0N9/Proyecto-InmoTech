@@ -81,20 +81,24 @@ const NotificationDropdown = ({
           type: "spring",
           stiffness: 300,
           damping: 30,
-          duration: 0.3
+          duration: 0.3,
         }}
         style={{
-          position: 'fixed',
+          position: "fixed",
           top: position.top,
           left: position.left,
-          width: '320px',
+          width: "320px",
         }}
         className="bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-200/60 z-[10000] overflow-hidden"
       >
         <div className="p-4 border-b border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-800">Notificaciones</h3>
+          <h3 className="text-sm font-semibold text-slate-800">
+            Notificaciones
+          </h3>
           <p className="text-xs text-slate-500 mt-1">
-            {notifications.length} cita{notifications.length !== 1 ? 's' : ''} solicitada{notifications.length !== 1 ? 's' : ''} pendiente{notifications.length !== 1 ? 's' : ''}
+            {notifications.length} cita{notifications.length !== 1 ? "s" : ""}{" "}
+            solicitada{notifications.length !== 1 ? "s" : ""} pendiente
+            {notifications.length !== 1 ? "s" : ""}
           </p>
         </div>
 
@@ -119,12 +123,45 @@ const NotificationDropdown = ({
                       <p className="text-sm font-medium text-slate-800">
                         Nueva cita solicitada
                       </p>
-                      <p className="text-xs text-slate-600 mt-1">
-                        {appointment.cliente} - {appointment.servicio}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {appointment.fecha} a las {appointment.hora}
-                      </p>
+                      <div className="text-xs text-slate-600 mt-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Cliente:</span>
+                          <span>
+                            {typeof appointment.cliente === "object"
+                              ? `${appointment.cliente.nombre_completo} ${appointment.cliente.apellido_completo}`.trim()
+                              : appointment.cliente}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Servicio:</span>
+                          <span>
+                            {typeof appointment.servicio === "object"
+                              ? appointment.servicio.nombre_servicio
+                              : appointment.servicio}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Fecha:</span>
+                          <span>
+                            {new Date(appointment.fecha_cita || appointment.fecha).toLocaleDateString('es-ES', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Hora:</span>
+                          <span>
+                            {appointment.hora_inicio || appointment.hora
+                              ? new Date(appointment.hora_inicio || appointment.hora).toLocaleTimeString('es-ES', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
+                              : 'Sin especificar'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                     <div className="flex gap-1 ml-2">
                       <motion.button

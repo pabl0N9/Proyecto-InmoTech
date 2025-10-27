@@ -25,6 +25,7 @@ import { RenantManagementPage } from './features/dashboard/pages/leases/pages/Re
 import AppointmentPage from './features/dashboard/pages/appointment/AppointmentPage'
 import Reports from './features/dashboard/pages/reports/Reports'
 import Roles from './features/dashboard/pages/roles/Roles'
+import AdministrativosPage from './features/dashboard/pages/administrativos/AdministrativosPage'
 
 function App() {
   return (
@@ -193,6 +194,16 @@ function App() {
             <EmployeeRoute>
               <DashboardLayout>
                 <Roles />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/seguridad/administrativos"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <AdministrativosPage />
               </DashboardLayout>
             </EmployeeRoute>
           }

@@ -74,8 +74,8 @@ class CitaApiService {
         id_inmueble: citaData.inmueble?.id_inmueble || citaData.id_inmueble || 1,
         id_servicio: citaData.servicio?.id_servicio || citaData.id_servicio || 1,
         fecha_cita: citaData.fecha_cita,
-        hora_inicio: citaData.hora_inicio ? citaData.hora_inicio.split('T')[1]?.substring(0,5) || citaData.hora_inicio : '09:00',
-        hora_fin: citaData.hora_fin ? citaData.hora_fin.split('T')[1]?.substring(0,5) || citaData.hora_fin : '10:00',
+        hora_inicio: this.formatHoraParaAPI(citaData.hora_inicio || '09:00'),
+        hora_fin: this.formatHoraParaAPI(citaData.hora_fin || '10:00'),
         observaciones: citaData.observaciones || null
       };
 
@@ -108,8 +108,8 @@ class CitaApiService {
         id_inmueble: citaData.inmueble?.id_inmueble || citaData.id_inmueble || 1,
         id_servicio: citaData.servicio?.id_servicio || citaData.id_servicio || 1,
         fecha_cita: citaData.fecha_cita,
-        hora_inicio: citaData.hora_inicio ? citaData.hora_inicio.split('T')[1]?.substring(0,5) || citaData.hora_inicio : '09:00',
-        hora_fin: citaData.hora_fin ? citaData.hora_fin.split('T')[1]?.substring(0,5) || citaData.hora_fin : '10:00',
+        hora_inicio: this.formatHoraParaAPI(citaData.hora_inicio || '09:00'),
+        hora_fin: this.formatHoraParaAPI(citaData.hora_fin || '10:00'),
         observaciones: citaData.observaciones || null,
         id_estado_cita: this.mapEstadoToId(citaData.estado) || citaData.id_estado_cita || 1
       };
@@ -364,9 +364,9 @@ export default citaApiService;
  */
 export const actualizarEstadoCita = async (idCita, idEstadoCita) => {
   try {
-    console.log(`🔄 Actualizando estado de cita ${idCita} a estado ${idEstadoCita}`);
+    console.log(`🔄 Actualizando estado de cita ${idCita} a estado ${idEstadoCita} (endpoint optimizado)`);
     
-    const response = await apiClient.put(`/citas/${idCita}`, {
+    const response = await apiClient.patch(`/citas/${idCita}/estado`, {
       id_estado_cita: idEstadoCita
     });
 

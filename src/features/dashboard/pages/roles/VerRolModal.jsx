@@ -300,13 +300,13 @@ export default function VerRolModal({ isOpen, onClose, rol }) {
 
                         {/* Todos los permisos para Super Admin */}
                         <div className="grid grid-cols-2 gap-3">
-                          {modulo.permisos.map((permiso) => {
+                          {modulo.permisos.map((permiso, index) => {
                             const config = permissionConfig[permiso.toLowerCase()];
                             const PermisoIcon = config?.icon || Eye;
-                            
+
                             return (
                               <div
-                                key={permiso}
+                                key={`permiso-super-${modulo.key}-${index}`}
                                 className="flex items-center space-x-3 p-3 rounded-lg border bg-white shadow-sm"
                               >
                                 <div className={`p-2 rounded-md ${config?.bg || 'bg-slate-50'}`}>
@@ -508,15 +508,15 @@ export default function VerRolModal({ isOpen, onClose, rol }) {
 
                           {/* Permisos activos del módulo */}
                           <div className="grid grid-cols-2 gap-3">
-                            {modulo.permisosActivos.map((permiso) => {
+                          {modulo.permisosActivos.map((permiso, index) => {
                               const config = permissionConfig[permiso];
                               const PermisoIcon = config?.icon || Eye;
-                              
+
                               return (
-                                <div
-                                  key={permiso}
-                                  className="flex items-center space-x-3 p-3 rounded-lg border bg-white shadow-sm"
-                                >
+                              <div
+                                key={`permiso-normal-${modulo.key}-${index}`}
+                                className="flex items-center space-x-3 p-3 rounded-lg border bg-white shadow-sm"
+                              >
                                   <div className={`p-2 rounded-md ${config?.bg || 'bg-slate-50'}`}>
                                     <PermisoIcon className={`h-4 w-4 ${config?.color || 'text-slate-600'}`} />
                                   </div>

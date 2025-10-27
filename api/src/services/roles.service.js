@@ -1,18 +1,20 @@
 const { Rol, Persona, PersonasRol } = require('../models');
 const { sequelize } = require('../config/database');
+const { Op } = require('sequelize'); // ✅ AGREGADO: Importar Op
 const logger = require('../utils/logger');
 
 class RolesService {
+  
   /**
    * Crear un nuevo rol
    * @param {Object} rolData - Datos del rol
    * @param {number} userId - ID del usuario que crea
-   * @returns {Promise<Object>} Rol creado
+   * @returns {Promise} Rol creado
    */
   async crearRol(rolData, userId) {
     const result = await sequelize.transaction(async (t) => {
       try {
-        // Verificar permisos (solo Super Admin puede crear roles)
+        // ✅ CORREGIDO: Verificar permisos con 'Super Administrador'
         const usuario = await Persona.findOne({
           where: { id_persona: userId },
           include: [
@@ -20,7 +22,11 @@ class RolesService {
               model: Rol,
               as: 'roles',
               through: { attributes: [] },
-              where: { nombre_rol: 'Super Admin' },
+              where: { 
+                nombre_rol: {
+                  [Op.in]: ['Super Administrador', 'Administrador']
+                }
+              },
               required: true
             }
           ],
@@ -31,25 +37,46 @@ class RolesService {
           throw new Error('No tienes permisos para crear roles');
         }
 
-        // Verificar que el rol no existe
-        const rolExistente = await Rol.findOne({
-          where: { nombre_rol: rolData.nombre_rol },
-          transaction: t
-        });
+// Verificar que el rol no existe (solo roles activos)
+const rolExistente = await Rol.findOne({
+  where: { 
+    nombre_rol: rolData.nombre_rol,
+    estado: true  // ✅ Solo verificar roles activos
+  },
+  transaction: t
+});
 
-        if (rolExistente) {
-          throw new Error('El rol ya existe');
-        }
+if (rolExistente) {
+  throw new Error('El rol ya existe');
+}
+
+// ✅ OPCIÓN: Reactivar rol si existe pero está inactivo
+const rolInactivo = await Rol.findOne({
+  where: { 
+    nombre_rol: rolData.nombre_rol,
+    estado: false
+  },
+  transaction: t
+});
+
+if (rolInactivo) {
+  // Reactivar el rol existente en lugar de crear uno nuevo
+  await rolInactivo.update({ estado: true }, { transaction: t });
+  logger.info(`Rol reactivado: ${rolInactivo.nombre_rol} por usuario ${userId}`);
+  return rolInactivo;
+}
 
         // Crear rol
         const rol = await Rol.create({
           nombre_rol: rolData.nombre_rol,
+          descripcion: rolData.descripcion,
+          es_rol_administrativo: rolData.es_rol_administrativo || false,
           estado: true
         }, { transaction: t });
 
         logger.info(`Rol creado: ${rol.nombre_rol} por usuario ${userId}`);
-
         return rol;
+
       } catch (error) {
         logger.error('Error creando rol:', error);
         throw error;
@@ -61,7 +88,7 @@ class RolesService {
 
   /**
    * Listar todos los roles
-   * @returns {Promise<Array>} Lista de roles
+   * @returns {Promise} Lista de roles
    */
   async listarRoles() {
     try {
@@ -80,7 +107,7 @@ class RolesService {
   /**
    * Obtener rol por ID
    * @param {number} rolId - ID del rol
-   * @returns {Promise<Object>} Rol encontrado
+   * @returns {Promise} Rol encontrado
    */
   async obtenerPorId(rolId) {
     try {
@@ -104,7 +131,7 @@ class RolesService {
    * @param {number} personaId - ID de la persona
    * @param {number} rolId - ID del rol
    * @param {number} userId - ID del usuario que asigna
-   * @returns {Promise<Object>} Asignación creada
+   * @returns {Promise} Asignación creada
    */
   async asignarRol(personaId, rolId, userId) {
     const result = await sequelize.transaction(async (t) => {
@@ -117,7 +144,11 @@ class RolesService {
               model: Rol,
               as: 'roles',
               through: { attributes: [] },
-              where: { nombre_rol: { [sequelize.Op.in]: ['Super Admin', 'Admin'] } },
+              where: { 
+                nombre_rol: { 
+                  [Op.in]: ['Super Administrador', 'Administrador'] 
+                } 
+              },
               required: true
             }
           ],
@@ -163,8 +194,8 @@ class RolesService {
         }, { transaction: t });
 
         logger.info(`Rol ${rol.nombre_rol} asignado a persona ${personaId} por usuario ${userId}`);
-
         return asignacion;
+
       } catch (error) {
         logger.error('Error asignando rol:', error);
         throw error;
@@ -179,7 +210,7 @@ class RolesService {
    * @param {number} personaId - ID de la persona
    * @param {number} rolId - ID del rol
    * @param {number} userId - ID del usuario que remueve
-   * @returns {Promise<boolean>} True si se removió
+   * @returns {Promise} True si se removió
    */
   async removerRol(personaId, rolId, userId) {
     const result = await sequelize.transaction(async (t) => {
@@ -192,7 +223,11 @@ class RolesService {
               model: Rol,
               as: 'roles',
               through: { attributes: [] },
-              where: { nombre_rol: { [sequelize.Op.in]: ['Super Admin', 'Admin'] } },
+              where: { 
+                nombre_rol: { 
+                  [Op.in]: ['Super Administrador', 'Administrador'] 
+                } 
+              },
               required: true
             }
           ],
@@ -219,10 +254,9 @@ class RolesService {
 
         // Desactivar asignación
         await asignacion.update({ estado: false }, { transaction: t });
-
         logger.info(`Rol ${rolId} removido de persona ${personaId} por usuario ${userId}`);
-
         return true;
+
       } catch (error) {
         logger.error('Error removiendo rol:', error);
         throw error;
@@ -235,7 +269,7 @@ class RolesService {
   /**
    * Listar roles de una persona
    * @param {number} personaId - ID de la persona
-   * @returns {Promise<Array>} Lista de roles de la persona
+   * @returns {Promise} Lista de roles de la persona
    */
   async listarRolesDePersona(personaId) {
     try {
@@ -268,12 +302,12 @@ class RolesService {
    * @param {number} rolId - ID del rol
    * @param {Object} updateData - Datos a actualizar
    * @param {number} userId - ID del usuario que actualiza
-   * @returns {Promise<Object>} Rol actualizado
+   * @returns {Promise} Rol actualizado
    */
   async actualizarRol(rolId, updateData, userId) {
     const result = await sequelize.transaction(async (t) => {
       try {
-        // Verificar permisos
+        // ✅ CORREGIDO: Verificar permisos con 'Super Administrador'
         const usuario = await Persona.findOne({
           where: { id_persona: userId },
           include: [
@@ -281,7 +315,11 @@ class RolesService {
               model: Rol,
               as: 'roles',
               through: { attributes: [] },
-              where: { nombre_rol: 'Super Admin' },
+              where: { 
+                nombre_rol: { 
+                  [Op.in]: ['Super Administrador', 'Administrador'] 
+                } 
+              },
               required: true
             }
           ],
@@ -293,7 +331,7 @@ class RolesService {
         }
 
         const rol = await Rol.findOne({
-          where: { id_rol: rolId, estado: true },
+          where: { id_rol: rolId },
           transaction: t
         });
 
@@ -302,16 +340,15 @@ class RolesService {
         }
 
         // No permitir cambiar nombre de roles del sistema
-        const rolesSistema = ['Super Admin', 'Admin', 'Empleado', 'Cliente', 'Propietario'];
+        const rolesSistema = ['Super Administrador', 'Administrador', 'Empleado', 'Usuario', 'Propietario'];
         if (rolesSistema.includes(rol.nombre_rol) && updateData.nombre_rol) {
           throw new Error('No se puede cambiar el nombre de roles del sistema');
         }
 
         await rol.update(updateData, { transaction: t });
-
         logger.info(`Rol actualizado: ${rolId} por usuario ${userId}`);
-
         return rol;
+
       } catch (error) {
         logger.error('Error actualizando rol:', error);
         throw error;
@@ -325,12 +362,12 @@ class RolesService {
    * Eliminar rol (lógicamente)
    * @param {number} rolId - ID del rol
    * @param {number} userId - ID del usuario que elimina
-   * @returns {Promise<boolean>} True si se eliminó
+   * @returns {Promise} True si se eliminó
    */
   async eliminarRol(rolId, userId) {
     const result = await sequelize.transaction(async (t) => {
       try {
-        // Verificar permisos
+        // ✅ CORREGIDO: Verificar permisos con 'Super Administrador' y usar Op.in
         const usuario = await Persona.findOne({
           where: { id_persona: userId },
           include: [
@@ -338,7 +375,11 @@ class RolesService {
               model: Rol,
               as: 'roles',
               through: { attributes: [] },
-              where: { nombre_rol: 'Super Admin' },
+              where: { 
+                nombre_rol: { 
+                  [Op.in]: ['Super Administrador', 'Administrador'] 
+                } 
+              },
               required: true
             }
           ],
@@ -359,16 +400,15 @@ class RolesService {
         }
 
         // No permitir eliminar roles del sistema
-        const rolesSistema = ['Super Admin', 'Admin', 'Empleado', 'Cliente', 'Propietario'];
+        const rolesSistema = ['Super Administrador', 'Administrador', 'Empleado', 'Usuario', 'Propietario'];
         if (rolesSistema.includes(rol.nombre_rol)) {
           throw new Error('No se pueden eliminar roles del sistema');
         }
 
         await rol.update({ estado: false }, { transaction: t });
-
         logger.info(`Rol eliminado: ${rolId} por usuario ${userId}`);
-
         return true;
+
       } catch (error) {
         logger.error('Error eliminando rol:', error);
         throw error;
@@ -376,6 +416,40 @@ class RolesService {
     });
 
     return result;
+  }
+
+  /**
+   * Listar personas con un rol específico
+   * @param {number} rolId - ID del rol
+   * @returns {Promise} Lista de personas con el rol
+   */
+  async listarPersonasPorRol(rolId) {
+    try {
+      const rol = await Rol.findOne({
+        where: { id_rol: rolId, estado: true },
+        include: [
+          {
+            model: Persona,
+            as: 'personas',
+            through: { 
+              attributes: ['estado', 'fecha_asignacion'],
+              where: { estado: true }
+            },
+            where: { estado: true },
+            required: false
+          }
+        ]
+      });
+
+      if (!rol) {
+        throw new Error('Rol no encontrado');
+      }
+
+      return rol.personas || [];
+    } catch (error) {
+      logger.error('Error listando personas por rol:', error);
+      throw error;
+    }
   }
 }
 

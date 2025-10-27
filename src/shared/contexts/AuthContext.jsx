@@ -1,19 +1,14 @@
 /**
  * @fileoverview Context de React para gestión global de autenticación JWT
- * @module shared/contexts/AuthContext
- * @description Provee estado y funciones para manejar autenticación en toda la aplicación
- * @author InmoTech Development Team
- * @version 1.0.0
+ * @version 2.0.0 - Corregido manejo de tokens con apiClient
  */
 
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import authService from '../services/authService';
+import { apiClient } from '../services/api.config';
 
 const AuthContext = createContext(undefined);
 
-// Constantes para localStorage
-const ACCESS_TOKEN_KEY = 'inmotech_access_token';
-const REFRESH_TOKEN_KEY = 'inmotech_refresh_token';
 const USER_KEY = 'inmotech_user';
 
 export const AuthProvider = ({ children }) => {
@@ -23,35 +18,32 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   /**
-   * Carga la información de autenticación desde localStorage o sessionStorage
+   * Carga la información de autenticación desde storage
    */
   const loadAuthFromStorage = useCallback(() => {
     try {
-      // Intentar cargar desde localStorage primero (sesión persistente)
-      let accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-      let refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+      // Verificar tokens usando apiClient (que maneja localStorage)
+      const accessToken = apiClient.getAccessToken();
+      const refreshToken = apiClient.getRefreshToken();
+      
+      // Buscar datos de usuario en localStorage o sessionStorage
       let userData = localStorage.getItem(USER_KEY);
-      let storageType = 'localStorage';
-
-      // Si no hay datos en localStorage, intentar sessionStorage (sesión temporal)
-      if (!accessToken || !userData) {
-        accessToken = sessionStorage.getItem(ACCESS_TOKEN_KEY);
-        refreshToken = sessionStorage.getItem(REFRESH_TOKEN_KEY);
+      if (!userData) {
         userData = sessionStorage.getItem(USER_KEY);
-        storageType = 'sessionStorage';
       }
 
       if (accessToken && userData) {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
         setIsAuthenticated(true);
-        console.log(`✅ Autenticación cargada desde ${storageType}:`, parsedUser.email);
+        console.log('✅ Autenticación cargada:', parsedUser.email);
       } else {
         setUser(null);
         setIsAuthenticated(false);
+        console.log('⚠️ No hay sesión activa');
       }
     } catch (error) {
-      console.error('❌ Error cargando autenticación desde storage:', error);
+      console.error('❌ Error cargando autenticación:', error);
       clearAuthData();
     } finally {
       setLoading(false);
@@ -59,16 +51,24 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Guarda la información de autenticación en localStorage
+   * Guarda la información de autenticación
    */
-  const saveAuthToStorage = useCallback((userData, accessToken, refreshToken) => {
+  const saveAuthToStorage = useCallback((userData, accessToken, refreshToken, rememberMe = false) => {
     try {
-      localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-      localStorage.setItem(USER_KEY, JSON.stringify(userData));
-      console.log('💾 Autenticación guardada en localStorage');
+      // ✅ CRÍTICO: Guardar tokens usando apiClient (siempre en localStorage)
+      apiClient.setTokens(accessToken, refreshToken);
+      
+      // Guardar info de usuario según preferencia
+      const userDataString = JSON.stringify(userData);
+      if (rememberMe) {
+        localStorage.setItem(USER_KEY, userDataString);
+        console.log('💾 Sesión persistente guardada');
+      } else {
+        sessionStorage.setItem(USER_KEY, userDataString);
+        console.log('💾 Sesión temporal guardada');
+      }
     } catch (error) {
-      console.error('❌ Error guardando autenticación en localStorage:', error);
+      console.error('❌ Error guardando autenticación:', error);
     }
   }, []);
 
@@ -76,16 +76,8 @@ export const AuthProvider = ({ children }) => {
    * Limpia toda la información de autenticación
    */
   const clearAuthData = useCallback(() => {
-    // Importar dinámicamente para evitar dependencias circulares
-    import('../services/api.config').then(({ apiClient }) => {
-      apiClient.clearTokens();
-    });
-
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    apiClient.clearTokens();
     localStorage.removeItem(USER_KEY);
-    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
-    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
     setUser(null);
     setIsAuthenticated(false);
@@ -95,71 +87,91 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Inicia sesión del usuario
-   * @param {string} email - Correo electrónico
-   * @param {string} password - Contraseña
-   * @param {boolean} rememberMe - Recordar sesión
-   * @returns {Promise<Object>} Usuario autenticado
    */
-  const login = async (email, password, rememberMe = false) => {
-    try {
-      setLoading(true);
-      setError(null);
+/**
+ * Inicia sesión del usuario
+ */
+const login = async (email, password, rememberMe = false) => {
+  try {
+    setLoading(true);
+    setError(null);
+    console.log('🔐 Intentando iniciar sesión:', email);
 
-      console.log('🔐 Intentando iniciar sesión:', email);
+    // authService.login() ya guarda los tokens automáticamente
+    const response = await authService.login(email, password);
 
-      const response = await authService.login(email, password);
+    if (response.success && response.data) {
+      const { user: userData, accessToken, refreshToken } = response.data;
+      
+      console.log('📦 Respuesta de login:', {
+        hasUser: !!userData,
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken
+      });
 
-      if (response.success && response.data) {
-        const { user: userData, accessToken, refreshToken } = response.data;
-
-        setUser(userData);
-        setIsAuthenticated(true);
-
-        // Guardar en localStorage si rememberMe está activado
-        if (rememberMe) {
-          saveAuthToStorage(userData, accessToken, refreshToken);
-        } else {
-          // Usar sessionStorage para sesión temporal
-          sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-          sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-          sessionStorage.setItem(USER_KEY, JSON.stringify(userData));
-        }
-
-        console.log('✅ Usuario autenticado:', userData.email);
-
-        return userData;
-      } else {
-        throw new Error(response.message || 'Error en la autenticación');
+      // ✅ CRÍTICO: Verificar que authService guardó los tokens
+      const savedAccessToken = apiClient.getAccessToken();
+      const savedRefreshToken = apiClient.getRefreshToken();
+      
+      console.log('🔍 Verificación de tokens guardados:');
+      console.log('   - Access Token guardado:', !!savedAccessToken);
+      console.log('   - Refresh Token guardado:', !!savedRefreshToken);
+      
+      if (!savedAccessToken || !savedRefreshToken) {
+        console.warn('⚠️ authService no guardó los tokens, guardando ahora...');
+        apiClient.setTokens(accessToken, refreshToken);
       }
-    } catch (error) {
-      console.error('❌ Error en login:', error);
-      setError(error.message || 'Error al iniciar sesión');
-      throw error;
-    } finally {
-      setLoading(false);
+
+      // Guardar info de usuario según preferencia
+      const userDataString = JSON.stringify(userData);
+      if (rememberMe) {
+        localStorage.setItem(USER_KEY, userDataString);
+        console.log('💾 Sesión persistente guardada');
+      } else {
+        sessionStorage.setItem(USER_KEY, userDataString);
+        console.log('💾 Sesión temporal guardada');
+      }
+      
+      setUser(userData);
+      setIsAuthenticated(true);
+
+      console.log('✅ Usuario autenticado:', userData.email);
+      
+      // Verificación final
+      console.log('🎯 Verificación FINAL:');
+      console.log('   - localStorage Access Token:', !!localStorage.getItem('inmotech_access_token'));
+      console.log('   - localStorage Refresh Token:', !!localStorage.getItem('inmotech_refresh_token'));
+      
+      return userData;
+    } else {
+      throw new Error(response.message || 'Error en la autenticación');
     }
-  };
+  } catch (error) {
+    console.error('❌ Error en login:', error);
+    setError(error.message || 'Error al iniciar sesión');
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
 
   /**
    * Registra un nuevo usuario
-   * @param {Object} userData - Datos del usuario
-   * @returns {Promise<Object>} Usuario registrado
    */
   const register = async (userData) => {
     try {
       setLoading(true);
       setError(null);
-
       console.log('📝 Registrando nuevo usuario:', userData.email);
 
       const response = await authService.register(userData);
 
       if (response.success && response.data) {
         const { user: newUser, accessToken, refreshToken } = response.data;
-
+        
+        saveAuthToStorage(newUser, accessToken, refreshToken, true);
         setUser(newUser);
         setIsAuthenticated(true);
-        saveAuthToStorage(newUser, accessToken, refreshToken);
 
         console.log('✅ Usuario registrado:', newUser.email);
         return newUser;
@@ -181,8 +193,7 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     try {
       setLoading(true);
-
-      // Intentar hacer logout en el backend (opcional)
+      
       try {
         await authService.logout();
       } catch (error) {
@@ -193,7 +204,6 @@ export const AuthProvider = ({ children }) => {
       console.log('👋 Sesión cerrada exitosamente');
     } catch (error) {
       console.error('❌ Error en logout:', error);
-      // Aún así limpiar datos locales
       clearAuthData();
     } finally {
       setLoading(false);
@@ -202,37 +212,24 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Refresca el token de acceso
-   * @returns {Promise<boolean>} True si se refrescó exitosamente
    */
   const refreshToken = async () => {
     try {
-      const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY) ||
-                                 sessionStorage.getItem(REFRESH_TOKEN_KEY);
-
+      const storedRefreshToken = apiClient.getRefreshToken();
+      
       if (!storedRefreshToken) {
         throw new Error('No hay token de refresco disponible');
       }
 
       console.log('🔄 Refrescando token...');
-
       const response = await authService.refreshToken(storedRefreshToken);
 
       if (response.success && response.data) {
         const { accessToken, refreshToken: newRefreshToken } = response.data;
-
-        // Actualizar tokens en storage
-        if (localStorage.getItem(ACCESS_TOKEN_KEY)) {
-          localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-          if (newRefreshToken) {
-            localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
-          }
-        } else {
-          sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-          if (newRefreshToken) {
-            sessionStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
-          }
-        }
-
+        
+        // Actualizar tokens
+        apiClient.setTokens(accessToken, newRefreshToken);
+        
         console.log('✅ Token refrescado exitosamente');
         return true;
       } else {
@@ -240,7 +237,6 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('❌ Error refrescando token:', error);
-      // Si falla el refresh, hacer logout
       clearAuthData();
       return false;
     }
@@ -248,14 +244,11 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Actualiza el perfil del usuario
-   * @param {Object} profileData - Datos del perfil a actualizar
-   * @returns {Promise<Object>} Perfil actualizado
    */
   const updateProfile = async (profileData) => {
     try {
       setLoading(true);
       setError(null);
-
       console.log('📝 Actualizando perfil...');
 
       const response = await authService.updateProfile(profileData);
@@ -288,15 +281,11 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Cambia la contraseña del usuario
-   * @param {string} currentPassword - Contraseña actual
-   * @param {string} newPassword - Nueva contraseña
-   * @returns {Promise<boolean>} True si se cambió exitosamente
    */
   const changePassword = async (currentPassword, newPassword) => {
     try {
       setLoading(true);
       setError(null);
-
       console.log('🔑 Cambiando contraseña...');
 
       const response = await authService.changePassword(currentPassword, newPassword);
@@ -318,8 +307,6 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Verifica si el usuario tiene un rol específico
-   * @param {string|string[]} roles - Rol(es) a verificar
-   * @returns {boolean} True si tiene el rol
    */
   const hasRole = useCallback((roles) => {
     if (!user || !user.roles) return false;
@@ -328,13 +315,12 @@ export const AuthProvider = ({ children }) => {
     if (Array.isArray(roles)) {
       return roles.some(role => userRoles.includes(role));
     }
+
     return userRoles.includes(roles);
   }, [user]);
 
   /**
    * Verifica si el usuario está autenticado y tiene roles específicos
-   * @param {string|string[]} allowedRoles - Roles permitidos
-   * @returns {boolean} True si tiene acceso
    */
   const hasAccess = useCallback((allowedRoles) => {
     return isAuthenticated && hasRole(allowedRoles);
@@ -351,7 +337,6 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     loading,
     error,
-
     // Funciones de autenticación
     login,
     register,
@@ -359,7 +344,6 @@ export const AuthProvider = ({ children }) => {
     refreshToken,
     updateProfile,
     changePassword,
-
     // Utilidades
     hasRole,
     hasAccess,
@@ -373,9 +357,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-/**
- * Hook personalizado para usar el contexto de autenticación
- */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

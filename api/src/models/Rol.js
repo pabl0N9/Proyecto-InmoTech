@@ -13,10 +13,15 @@ const Rol = sequelize.define('Roles', {
     allowNull: false,
     unique: true
   },
+  descripcion: {
+    type: DataTypes.STRING(200),
+    allowNull: true
+  },
   es_rol_administrativo: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
-    defaultValue: false
+    defaultValue: false,
+    field: 'es_rol_administrativo'
   },
   estado: {
     type: DataTypes.BOOLEAN,
@@ -26,7 +31,8 @@ const Rol = sequelize.define('Roles', {
   fecha_creacion: {
     type: DataTypes.DATE,
     allowNull: false,
-    defaultValue: DataTypes.NOW
+    defaultValue: DataTypes.NOW,
+    field: 'fecha_creacion'
   }
 }, {
   tableName: 'Roles',

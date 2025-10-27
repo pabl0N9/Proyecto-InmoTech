@@ -118,7 +118,13 @@ export const navigationItems = [
         id: 'usuarios',
         title: 'Usuarios',
         path: dashboardRoutes.users || '/seguridad/usuarios',
+      },      
+      {
+        id: 'administrativos',
+        title: 'Administrativos',
+        path: dashboardRoutes.administrativos || '/seguridad/administrativos',
       },
+
       {
         id: 'roles',
         title: 'Roles',

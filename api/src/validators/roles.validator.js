@@ -12,6 +12,21 @@ const crearRolSchema = Joi.object({
       'string.max': 'El nombre del rol no puede exceder 50 caracteres',
       'string.pattern.base': 'El nombre del rol solo puede contener letras y espacios',
       'any.required': 'El nombre del rol es obligatorio'
+    }),
+
+  descripcion: Joi.string()
+    .max(200)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'La descripción no puede exceder 200 caracteres'
+    }),
+
+  es_rol_administrativo: Joi.boolean()
+    .optional()
+    .default(false)
+    .messages({
+      'boolean.base': 'El campo es_rol_administrativo debe ser un valor booleano'
     })
 });
 

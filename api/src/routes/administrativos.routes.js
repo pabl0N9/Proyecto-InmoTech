@@ -1,11 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const administrativosController = require('../controllers/administrativos.controller');
+const { authenticateToken } = require('../middlewares/auth.middleware');  // ← AGREGAR ESTO
 const { validarAccesoAdmin } = require('../middlewares/admin.middleware');
 const { validarRegistroAdmin, validarActualizacionAdmin, validarCambioEstado } = require('../validators/administrativos.validator');
+const { generalLimiter } = require('../middlewares/security.middleware');
 
-// Todas las rutas requieren autenticación administrativa
-router.use(validarAccesoAdmin);
+// Aplicar rate limiting a rutas de lectura
+router.use(['/'], generalLimiter);
+
+// ✅ CRÍTICO: Primero autenticar con JWT, LUEGO verificar que sea admin
+router.use(authenticateToken);  // ← PRIMERO: Verificar token JWT
+router.use(validarAccesoAdmin); // ← SEGUNDO: Verificar que sea admin
 
 /**
  * @route POST /api/administrativos
