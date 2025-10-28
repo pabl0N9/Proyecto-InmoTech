@@ -1,19 +1,35 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, Edit, Trash2, Plus } from 'lucide-react';
+import { Eye, Edit, Trash2, Plus, Check, X } from 'lucide-react';
+import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 
 const ActionsPopover = ({
   isOpen,
   onClose,
-  position,
+  referenceElement,
   appointment = null,
   onView,
   onEdit,
   onDelete,
   onCreate,
+  onAccept,
+  onReject,
   date = null
 }) => {
   const popoverRef = useRef(null);
+
+  const { x, y, reference, floating, strategy, refs } = useFloating({
+    placement: 'right-start',
+    middleware: [offset(5), flip(), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+  });
+
+  // Sync reference element
+  React.useEffect(() => {
+    if (referenceElement) {
+      refs.setReference(referenceElement);
+    }
+  }, [referenceElement, refs]);
 
   // Close on escape
   useEffect(() => {
@@ -48,26 +64,47 @@ const ActionsPopover = ({
     onClose();
   };
 
-  const actions = appointment ? [
-    {
-      label: 'Ver',
-      icon: Eye,
-      action: () => onView(appointment),
-      color: 'text-blue-600 hover:bg-blue-50'
-    },
-    {
-      label: 'Editar',
-      icon: Edit,
-      action: () => onEdit(appointment),
-      color: 'text-green-600 hover:bg-green-50'
-    },
-    {
-      label: 'Eliminar',
-      icon: Trash2,
-      action: () => onDelete(appointment),
-      color: 'text-red-600 hover:bg-red-50'
-    }
-  ] : [
+  const actions = appointment ? (
+    appointment.estado === 'solicitada' ? [
+      {
+        label: 'Ver',
+        icon: Eye,
+        action: () => onView(appointment),
+        color: 'text-blue-600 hover:bg-blue-50'
+      },
+      {
+        label: 'Aceptar',
+        icon: Check,
+        action: () => onAccept && onAccept(appointment),
+        color: 'text-green-600 hover:bg-green-50'
+      },
+      {
+        label: 'Cancelar',
+        icon: X,
+        action: () => onReject && onReject(appointment),
+        color: 'text-red-600 hover:bg-red-50'
+      }
+    ] : [
+      {
+        label: 'Ver',
+        icon: Eye,
+        action: () => onView(appointment),
+        color: 'text-blue-600 hover:bg-blue-50'
+      },
+      {
+        label: 'Editar',
+        icon: Edit,
+        action: () => onEdit(appointment),
+        color: 'text-green-600 hover:bg-green-50'
+      },
+      {
+        label: 'Eliminar',
+        icon: Trash2,
+        action: () => onDelete(appointment),
+        color: 'text-red-600 hover:bg-red-50'
+      }
+    ]
+  ) : [
     {
       label: 'Crear cita',
       icon: Plus,
@@ -80,15 +117,19 @@ const ActionsPopover = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          ref={popoverRef}
+          ref={(node) => {
+            popoverRef.current = node;
+            refs.setFloating(node);
+          }}
           initial={{ opacity: 0, scale: 0.9, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: -10 }}
           transition={{ duration: 0.15 }}
-          className="absolute z-50 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[140px]"
+          className="z-50 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[140px] max-w-[90vw] w-auto"
           style={{
-            left: position?.x || 0,
-            top: position?.y || 0,
+            position: strategy,
+            top: y ?? 0,
+            left: x ?? 0,
           }}
           role="menu"
           aria-label={appointment ? "Acciones de cita" : "Acciones de día"}

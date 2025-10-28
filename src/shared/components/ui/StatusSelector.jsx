@@ -24,18 +24,18 @@ const StatusSelector = ({
   const selectRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  // Configuración de estados con iconos y colores
+  // Configuración de estados con iconos y colores usando IDs como keys
   const statusConfig = {
-    programada: {
-      label: 'Programada',
+    1: {
+      label: 'Solicitada',
       icon: Clock,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50',
-      borderColor: 'border-yellow-200',
-      hoverColor: 'hover:bg-yellow-100',
-      dotColor: 'bg-yellow-500'
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-50',
+      borderColor: 'border-indigo-200',
+      hoverColor: 'hover:bg-indigo-100',
+      dotColor: 'bg-indigo-500'
     },
-    confirmada: {
+    2: {
       label: 'Confirmada',
       icon: CheckCircle,
       color: 'text-green-600',
@@ -44,7 +44,25 @@ const StatusSelector = ({
       hoverColor: 'hover:bg-green-100',
       dotColor: 'bg-green-500'
     },
-    completada: {
+    3: {
+      label: 'Programada',
+      icon: Clock,
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-50',
+      borderColor: 'border-yellow-200',
+      hoverColor: 'hover:bg-yellow-100',
+      dotColor: 'bg-yellow-500'
+    },
+    4: {
+      label: 'Re Agendada',
+      icon: Clock,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
+      borderColor: 'border-orange-200',
+      hoverColor: 'hover:bg-orange-100',
+      dotColor: 'bg-orange-500'
+    },
+    5: {
       label: 'Completada',
       icon: CheckSquare,
       color: 'text-purple-600',
@@ -53,7 +71,7 @@ const StatusSelector = ({
       hoverColor: 'hover:bg-purple-100',
       dotColor: 'bg-purple-500'
     },
-    cancelada: {
+    6: {
       label: 'Cancelada',
       icon: XCircle,
       color: 'text-red-600',

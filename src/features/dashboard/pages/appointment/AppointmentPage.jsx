@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Grid3X3, List } from 'lucide-react';
-import DashboardLayout from '../../../../shared/components/dashboard/Layout/DashboardLayout';
+import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, CheckCircle, XCircle, AlertCircle, AlertTriangle, Grid3X3, List } from 'lucide-react';
 import SearchBar from '../../components/SearchBar';
 import StatsCard from '../../components/StatsCard';
 import AppointmentTable from '../../components/appointment/AppointmentTable';
@@ -11,12 +10,14 @@ import ViewAppointmentModal from '../../components/appointment/ViewAppointmentMo
 import EditAppointmentModal from '../../components/appointment/EditAppointmentModal';
 import DeleteConfirmModal from '../../../../shared/components/modals/DeleteConfirmModal';
 import StatusChangeConfirmModal from '../../../../shared/components/modals/StatusChangeConfirmModal';
+import ConfirmationDialog from '../../../../shared/components/ui/ConfirmationDialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../shared/components/ui/select';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { useAppointments } from '../../../../shared/contexts/AppointmentContext';
+import citaApiService from '../../../../shared/services/citaApiService';
 
 const CitasPage = () => {
-  const { appointments, addAppointment, updateAppointment, deleteAppointment } = useAppointments();
+  const { appointments, addAppointment, updateAppointment, deleteAppointment, updateAppointmentStatus } = useAppointments();
   const [filteredCitas, setFilteredCitas] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos los estados');
@@ -24,25 +25,38 @@ const CitasPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(4);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [preselectedDate, setPreselectedDate] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isStatusChangeModalOpen, setIsStatusChangeModalOpen] = useState(false);
+  const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [selectedCita, setSelectedCita] = useState(null);
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'calendar'
+  const [loadingStatusChanges, setLoadingStatusChanges] = useState(new Set());
   const { toast } = useToast();
 
   // Filtrar citas
   useEffect(() => {
-    let filtered = appointments;
+    let filtered = Array.isArray(appointments) ? appointments : [];
 
     if (searchTerm) {
-      filtered = filtered.filter(cita =>
-        cita.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cita.propiedad.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cita.email.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = filtered.filter(cita => {
+        const clientName = typeof cita.cliente === 'object' 
+          ? `${cita.cliente?.nombre_completo || ''} ${cita.cliente?.apellido_completo || ''}`.toLowerCase()
+          : (cita.cliente || '').toLowerCase();
+        const propertyName = typeof cita.inmueble === 'object' 
+          ? (cita.inmueble?.direccion || '').toLowerCase()
+          : (cita.propiedad || '').toLowerCase();
+        const email = typeof cita.cliente === 'object' 
+          ? (cita.cliente?.correo || '').toLowerCase()
+          : (cita.email || '').toLowerCase();
+        return clientName.includes(searchTerm.toLowerCase()) ||
+               propertyName.includes(searchTerm.toLowerCase()) ||
+               email.includes(searchTerm.toLowerCase());
+      });
     }
 
     if (statusFilter !== 'Todos los estados') {
@@ -66,13 +80,29 @@ const CitasPage = () => {
   };
 
   // Calcular estadísticas
+  const appointmentsArray = Array.isArray(appointments) ? appointments : [];
   const stats = {
-    total: appointments.length,
-    programadas: appointments.filter(c => c.estado === 'programada').length,
-    confirmadas: appointments.filter(c => c.estado === 'confirmada').length,
-    canceladas: appointments.filter(c => c.estado === 'cancelada').length,
-    completadas: appointments.filter(c => c.estado === 'completada').length
+    total: appointmentsArray.length,
+    programadas: appointmentsArray.filter(c => c.estado === 'programada').length,
+    confirmadas: appointmentsArray.filter(c => c.estado === 'confirmada').length,
+    canceladas: appointmentsArray.filter(c => c.estado === 'cancelada').length,
+    completadas: appointmentsArray.filter(c => c.estado === 'completada').length,
+    're agendada': appointmentsArray.filter(c => c.estado === 're agendada').length,
+    solicitada: appointmentsArray.filter(c => c.estado === 'solicitada').length
   };
+
+  // Detectar citas solicitadas pendientes
+  const pendingAppointments = appointmentsArray.filter(cita => cita.estado === 'solicitada');
+
+  // Detectar citas solicitadas pendientes >24 horas (para otras funcionalidades)
+  const oldPendingAppointments = appointmentsArray.filter(cita => {
+    if (cita.estado !== 'solicitada') return false;
+    const fechaCreacion = new Date(cita.fechaCreacion || cita.fecha);
+    const now = new Date();
+    const diffTime = Math.abs(now - fechaCreacion);
+    const diffHours = diffTime / (1000 * 60 * 60);
+    return diffHours > 24; // Más de 24 horas
+  });
 
   // Paginación
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -89,6 +119,7 @@ const CitasPage = () => {
     };
     addAppointment(citaWithId);
     setIsCreateModalOpen(false);
+    setPreselectedDate(null);
     toast({
       title: "¡Cita creada exitosamente!",
       description: "La cita ha sido agendada correctamente.",
@@ -119,14 +150,21 @@ const CitasPage = () => {
   };
 
   const handleDeleteCita = () => {
-    deleteAppointment(selectedCita.id);
-    setIsDeleteModalOpen(false);
-    setSelectedCita(null);
-    toast({
-      title: "¡Cita eliminada exitosamente!",
-      description: "La cita ha sido eliminada del sistema.",
-      variant: "default"
-    });
+    // En vez de eliminar, cambiamos el estado a 'cancelada'
+    if (selectedCita) {
+      const updatedCita = {
+        ...selectedCita,
+        estado: 'cancelada'
+      };
+      updateAppointment(updatedCita);
+      setIsDeleteModalOpen(false);
+      setSelectedCita(null);
+      toast({
+        title: "¡Cita cancelada exitosamente!",
+        description: "La cita ha sido marcada como cancelada.",
+        variant: "default"
+      });
+    }
   };
 
   const handleViewCita = (cita) => {
@@ -145,18 +183,24 @@ const CitasPage = () => {
   };
 
   const handleStatusChangeRequest = (cita, newStatus) => {
+    // newStatus ahora es el ID del estado, mapear a nombre
+    const estadoNombre = citaApiService.mapIdToEstado(newStatus);
     setSelectedCita(cita);
-    setPendingStatusChange({ citaId: cita.id, newStatus });
+    setPendingStatusChange({ citaId: cita.id, newStatus: estadoNombre });
+    setLoadingStatusChanges(prev => new Set(prev).add(cita.id));
     setIsStatusChangeModalOpen(true);
   };
 
   const handleStatusChangeConfirm = () => {
     if (pendingStatusChange) {
-      const updatedCita = {
-        ...selectedCita,
-        estado: pendingStatusChange.newStatus
-      };
-      updateAppointment(updatedCita);
+      // Usar updateAppointmentStatus para actualizar solo el estado
+      updateAppointmentStatus(selectedCita.id, citaApiService.mapEstadoToId(pendingStatusChange.newStatus));
+
+      setLoadingStatusChanges(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(pendingStatusChange.citaId);
+        return newSet;
+      });
 
       setIsStatusChangeModalOpen(false);
       setSelectedCita(null);
@@ -170,18 +214,70 @@ const CitasPage = () => {
     }
   };
 
+  const handleAcceptAppointmentRequest = (cita) => {
+    setSelectedCita(cita);
+    setIsAcceptDialogOpen(true);
+  };
+
+  const handleRejectAppointmentRequest = (cita) => {
+    setSelectedCita(cita);
+    setIsRejectDialogOpen(true);
+  };
+
+  const handleAcceptAppointment = () => {
+    if (selectedCita) {
+      const updatedCita = {
+        ...selectedCita,
+        estado: 'confirmada'
+      };
+      updateAppointment(updatedCita);
+      setIsAcceptDialogOpen(false);
+      setSelectedCita(null);
+      const clientName = typeof selectedCita.cliente === 'object'
+        ? `${selectedCita.cliente.nombre_completo} ${selectedCita.cliente.apellido_completo}`.trim()
+        : selectedCita.cliente;
+      toast({
+        title: "¡Cita aceptada exitosamente!",
+        description: `La cita con ${clientName} ha sido confirmada.`,
+        variant: "default"
+      });
+    }
+  };
+
+  const handleRejectAppointment = () => {
+    if (selectedCita) {
+      const updatedCita = {
+        ...selectedCita,
+        estado: 'cancelada'
+      };
+      updateAppointment(updatedCita);
+      setIsRejectDialogOpen(false);
+      setSelectedCita(null);
+      const clientName = typeof selectedCita.cliente === 'object'
+        ? `${selectedCita.cliente.nombre_completo} ${selectedCita.cliente.apellido_completo}`.trim()
+        : selectedCita.cliente;
+      toast({
+        title: "¡Cita rechazada exitosamente!",
+        description: `La cita con ${clientName} ha sido cancelada.`,
+        variant: "default"
+      });
+    }
+  };
+
   const handleRescheduleAppointment = (appointmentId, newDate) => {
-    const updatedCita = appointments.find(cita => cita.id === appointmentId);
+    const appointmentsArray = Array.isArray(appointments) ? appointments : [];
+    const updatedCita = appointmentsArray.find(cita => cita.id === appointmentId);
     if (updatedCita) {
       updateAppointment({
         ...updatedCita,
-        fecha: newDate
+        fecha: newDate,
+        estado: 're agendada'
       });
     }
 
     toast({
       title: "¡Cita reagendada exitosamente!",
-      description: `La cita ha sido movida a ${new Date(newDate).toLocaleDateString('es-ES')}.`,
+      description: `La cita ha sido movida a ${new Date(newDate).toLocaleDateString('es-ES')} y cambió al estado "Re Agendada".`,
       variant: "default"
     });
   };
@@ -191,7 +287,9 @@ const CitasPage = () => {
       programada: 'Programada',
       confirmada: 'Confirmada',
       completada: 'Completada',
-      cancelada: 'Cancelada'
+      cancelada: 'Cancelada',
+      're agendada': 'Re Agendada',
+      solicitada: 'Solicitada'
     };
     return statusLabels[status] || status;
   };
@@ -225,7 +323,7 @@ const CitasPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4"
         >
           <StatsCard
             title="Total Citas"
@@ -267,7 +365,51 @@ const CitasPage = () => {
             textColor="text-purple-600"
             bgColor="bg-purple-50"
           />
+          <StatsCard
+            title="Re Agendadas"
+            value={stats['re agendada']}
+            icon={AlertCircle}
+            color="bg-gradient-to-r from-orange-500 to-orange-600"
+            textColor="text-orange-600"
+            bgColor="bg-orange-50"
+          />
+          <StatsCard
+            title="Solicitadas"
+            value={stats.solicitada}
+            icon={AlertCircle}
+            color="bg-gradient-to-r from-indigo-500 to-indigo-600"
+            textColor="text-indigo-600"
+            bgColor="bg-indigo-50"
+          />
         </motion.div>
+
+        {/* Pending Appointments Alert */}
+        {pendingAppointments.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.05 }}
+            className="bg-yellow-50 border border-yellow-200 rounded-lg p-4"
+          >
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-yellow-600" />
+              <div>
+                <h3 className="text-sm font-medium text-yellow-800">
+                  Citas Solicitadas Pendientes
+                </h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Hay {pendingAppointments.length} cita{pendingAppointments.length > 1 ? 's' : ''} solicitada{pendingAppointments.length > 1 ? 's' : ''} que llevan más de 24 horas sin respuesta.
+                  <button
+                    onClick={() => setStatusFilter('solicitada')}
+                    className="ml-2 text-yellow-800 underline hover:text-yellow-900 font-medium"
+                  >
+                    Ver citas solicitadas
+                  </button>
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Search and Filters */}
         <motion.div
@@ -297,10 +439,13 @@ const CitasPage = () => {
                   <SelectValue placeholder="Todos los estados"/>
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Todos los estados">Todos los estados</SelectItem>
                   <SelectItem value="programada">Programadas</SelectItem>
                   <SelectItem value="confirmada">Confirmadas</SelectItem>
                   <SelectItem value="cancelada">Canceladas</SelectItem>
                   <SelectItem value="completada">Completadas</SelectItem>
+                  <SelectItem value="re agendada">Re Agendadas</SelectItem>
+                  <SelectItem value="solicitada">Solicitadas</SelectItem>
                 </SelectContent>
               </Select>
             </motion.div>
@@ -316,6 +461,19 @@ const CitasPage = () => {
             >
               <Calendar className="w-4 h-4" />
               {dateFilter === 'today' ? 'Todas las fechas' : 'Citas de hoy'}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setStatusFilter(statusFilter === 'solicitada' ? 'Todos los estados' : 'solicitada')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                statusFilter === 'solicitada'
+                  ? 'bg-indigo-600 text-white shadow-lg'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-indigo-300'
+              }`}
+            >
+              <Eye className="w-4 h-4" />
+              {statusFilter === 'solicitada' ? 'Ocultar Solicitadas' : 'Ver Solicitadas'}
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -346,6 +504,9 @@ const CitasPage = () => {
               onEdit={handleEditClick}
               onDelete={handleDeleteClick}
               onStatusChange={handleStatusChangeRequest}
+              onAcceptAppointment={handleAcceptAppointmentRequest}
+              onRejectAppointment={handleRejectAppointmentRequest}
+              loadingStatusChanges={loadingStatusChanges}
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={setCurrentPage}
@@ -357,7 +518,12 @@ const CitasPage = () => {
               onEditAppointment={handleEditClick}
               onDeleteAppointment={handleDeleteClick}
               onRescheduleAppointment={handleRescheduleAppointment}
-              onCreateAppointment={() => setIsCreateModalOpen(true)}
+              onCreateAppointment={(dateString) => {
+                setPreselectedDate(dateString);
+                setIsCreateModalOpen(true);
+              }}
+              onAcceptAppointment={handleAcceptAppointmentRequest}
+              onRejectAppointment={handleRejectAppointmentRequest}
             />
           )}
         </motion.div>
@@ -365,8 +531,12 @@ const CitasPage = () => {
         {/* Modals */}
         <CreateAppointmentModal
           isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+            setPreselectedDate(null);
+          }}
           onSubmit={handleCreateCita}
+          preselectedDate={preselectedDate}
         />
 
         <ViewAppointmentModal
@@ -386,13 +556,20 @@ const CitasPage = () => {
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
           onConfirm={handleDeleteCita}
-          title="Eliminar Cita"
-          message={`¿Estás seguro de que deseas eliminar la cita con ${selectedCita?.cliente}? Esta acción no se puede deshacer.`}
+          title="Cancelar Cita"
+          message={`¿Estás seguro de que deseas cancelar la cita con ${typeof selectedCita?.cliente === 'object' ? `${selectedCita.cliente.nombre_completo} ${selectedCita.cliente.apellido_completo}`.trim() : selectedCita?.cliente}? La cita pasará al estado "Cancelada".`}
         />
 
         <StatusChangeConfirmModal
           isOpen={isStatusChangeModalOpen}
           onClose={() => {
+            setLoadingStatusChanges(prev => {
+              const newSet = new Set(prev);
+              if (pendingStatusChange?.citaId) {
+                newSet.delete(pendingStatusChange.citaId);
+              }
+              return newSet;
+            });
             setIsStatusChangeModalOpen(false);
             setSelectedCita(null);
             setPendingStatusChange(null);
@@ -402,12 +579,47 @@ const CitasPage = () => {
           message="¿Estás seguro de que deseas cambiar el estado de esta cita?"
           currentStatus={selectedCita?.estado}
           newStatus={pendingStatusChange?.newStatus}
-          citaInfo={selectedCita ? {
-            cliente: selectedCita.cliente,
-            propiedad: selectedCita.propiedad,
-            fecha: selectedCita.fecha,
-            hora: selectedCita.hora
-          } : null}
+          citaInfo={
+            selectedCita
+              ? {
+                  cliente: typeof selectedCita.cliente === 'object'
+                    ? `${selectedCita.cliente.nombre_completo} ${selectedCita.cliente.apellido_completo}`
+                    : selectedCita.cliente,
+                  propiedad: selectedCita.propiedad,
+                  fecha: selectedCita.fecha,
+                  hora: selectedCita.hora
+                }
+              : null
+          }
+        />
+
+        {/* Confirmation Dialogs for Accept/Reject */}
+        <ConfirmationDialog
+          isOpen={isAcceptDialogOpen}
+          onClose={() => {
+            setIsAcceptDialogOpen(false);
+            setSelectedCita(null);
+          }}
+          onConfirm={handleAcceptAppointment}
+          title="Aceptar Cita Solicitada"
+          message={`¿Estás seguro de que deseas aceptar la cita solicitada con ${typeof selectedCita?.cliente === 'object' ? `${selectedCita.cliente.nombre_completo} ${selectedCita.cliente.apellido_completo}`.trim() : selectedCita?.cliente}? La cita pasará al estado "Confirmada".`}
+          confirmText="Aceptar Cita"
+          cancelText="Cancelar"
+          variant="success"
+        />
+
+        <ConfirmationDialog
+          isOpen={isRejectDialogOpen}
+          onClose={() => {
+            setIsRejectDialogOpen(false);
+            setSelectedCita(null);
+          }}
+          onConfirm={handleRejectAppointment}
+          title="Rechazar Cita Solicitada"
+          message={`¿Estás seguro de que deseas rechazar la cita solicitada con ${typeof selectedCita?.cliente === 'object' ? `${selectedCita.cliente.nombre_completo} ${selectedCita.cliente.apellido_completo}`.trim() : selectedCita?.cliente}? La cita pasará al estado "Cancelada".`}
+          confirmText="Rechazar Cita"
+          cancelText="Cancelar"
+          variant="danger"
         />
       </div>
   );

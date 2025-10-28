@@ -46,6 +46,7 @@ input:checked + .switch-slider:before {
 }
 
 input:disabled + .switch-slider {
-  opacity: 0.5;
+  background-color: #9ca3af; /* gris para deshabilitado */
+  opacity: 0.8;
   cursor: not-allowed;
 }

@@ -20,7 +20,9 @@ const StatusChangeConfirmModal = ({
       programada: 'Programada',
       confirmada: 'Confirmada',
       completada: 'Completada',
-      cancelada: 'Cancelada'
+      cancelada: 'Cancelada',
+      're agendada': 'Re Agendada',
+      solicitada: 'Solicitada'
     };
     return statusLabels[status] || status;
   };
@@ -30,7 +32,9 @@ const StatusChangeConfirmModal = ({
       programada: 'text-yellow-600 bg-yellow-100',
       confirmada: 'text-green-600 bg-green-100',
       completada: 'text-purple-600 bg-purple-100',
-      cancelada: 'text-red-600 bg-red-100'
+      cancelada: 'text-red-600 bg-red-100',
+      're agendada': 'text-orange-600 bg-orange-100',
+      solicitada: 'text-indigo-600 bg-indigo-100'
     };
     return statusColors[status] || 'text-gray-600 bg-gray-100';
   };

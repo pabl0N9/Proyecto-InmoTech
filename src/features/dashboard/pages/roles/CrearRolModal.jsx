@@ -121,7 +121,7 @@ const permissionConfig = {
   "Ver": { icon: Eye, color: "text-gray-600", bg: "bg-gray-50" }
 };
 
-export default function CrearRolModal({ isOpen, onClose, onSave }) {
+  export default function CrearRolModal({ isOpen, onClose, onSubmit }) {
   const [nombre, setNombre] = useState("");
   const [modules, setModules] = useState(
     modulesData.map((mod) => ({
@@ -138,6 +138,7 @@ export default function CrearRolModal({ isOpen, onClose, onSave }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const formRef = useRef(null);
 
+  
   // Scroll to top when modal opens
   useEffect(() => {
     if (isOpen && formRef.current) {
@@ -219,22 +220,18 @@ export default function CrearRolModal({ isOpen, onClose, onSave }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Prevent multiple submissions
+    
     if (isSubmitting) return;
-
     if (!validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
-
     try {
-      // Convertir el formato de permisos para que coincida con el esperado
+      // Convertir el formato de permisos
       const permisos = {};
       modules.forEach((mod) => {
         if (mod.enabled && mod.permisosSeleccionados.length > 0) {
-          // Crear objeto con formato: { crear: true, editar: true, eliminar: true, ver: true }
           const permisosObj = {};
           mod.permisosSeleccionados.forEach((permiso) => {
             permisosObj[permiso.toLowerCase()] = true;
@@ -243,15 +240,15 @@ export default function CrearRolModal({ isOpen, onClose, onSave }) {
         }
       });
 
-      // Crear el nuevo rol con estado activo por defecto
+      // ✅ CORREGIDO: El formato debe ser nombre_rol, no nombre
       const nuevoRol = {
-        nombre: nombre.trim(),
-        estado: true,
+        nombre_rol: nombre.trim(), // ✅ Cambiar "nombre" por "nombre_rol"
         permisos
       };
 
-      await onSave(nuevoRol);
-      
+      // ✅ CAMBIAR onSave por onSubmit
+      await onSubmit(nuevoRol);
+
       // Limpiar el formulario
       setNombre("");
       setModules(
@@ -259,17 +256,28 @@ export default function CrearRolModal({ isOpen, onClose, onSave }) {
           ...mod,
           enabled: true,
           permisosSeleccionados: [...mod.permisos],
+          permissions: mod.permisos.reduce((acc, permiso) => {
+            acc[permiso] = true;
+            return acc;
+          }, {}),
         }))
       );
       setErrors({});
-      onClose();
+      
+      // ✅ No cerrar aquí - dejar que Roles.jsx lo maneje después de éxito
+      // onClose();
+      
     } catch (error) {
       console.error('Error al crear rol:', error);
+      // Mostrar error en el modal
+      setErrors({ submit: error.message || 'Error al crear el rol' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+
+  
   const handleClose = () => {
     setErrors({});
     setNombre("");
@@ -278,6 +286,10 @@ export default function CrearRolModal({ isOpen, onClose, onSave }) {
         ...mod,
         enabled: true,
         permisosSeleccionados: [...mod.permisos],
+        permissions: mod.permisos.reduce((acc, permiso) => {
+          acc[permiso] = true;
+          return acc;
+        }, {}),
       }))
     );
     onClose();

@@ -32,9 +32,14 @@ export const navigationItems = [
       {
         id: 'gestion-inmuebles',
         title: 'Gestión de Inmuebles',
-        path: dashboardRoutes.properties || '/inmuebles/gestion',
+        path: dashboardRoutes.properties
       },
-    ],
+      {
+        id: 'gestion-propietarios',
+        title: 'Gestión de Propietarios',
+        path: dashboardRoutes.owners
+      }
+    ]
   },
   {
     id: 'citas',
@@ -113,7 +118,13 @@ export const navigationItems = [
         id: 'usuarios',
         title: 'Usuarios',
         path: dashboardRoutes.users || '/seguridad/usuarios',
+      },      
+      {
+        id: 'administrativos',
+        title: 'Administrativos',
+        path: dashboardRoutes.administrativos || '/seguridad/administrativos',
       },
+
       {
         id: 'roles',
         title: 'Roles',

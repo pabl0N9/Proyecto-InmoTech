@@ -4,6 +4,7 @@ import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
 import { Toaster } from './shared/components/ui/toaster'
 import DashboardLayout from './shared/components/dashboard/Layout/DashboardLayout'
+import ProtectedRoute, { EmployeeRoute } from './shared/components/ProtectedRoute'
 
 // Pages
 import HomePage from './features/properties/pages/HomePage'
@@ -22,6 +23,9 @@ import { BuyersManagementPage } from './features/dashboard/pages/sales/BuyerMana
 import { LeasesManagementPage } from './features/dashboard/pages/leases/LeasesManagementPage'
 import { RenantManagementPage } from './features/dashboard/pages/leases/RenantManagementPage'
 import AppointmentPage from './features/dashboard/pages/appointment/AppointmentPage'
+import Reports from './features/dashboard/pages/reports/Reports'
+import Roles from './features/dashboard/pages/roles/Roles'
+import AdministrativosPage from './features/dashboard/pages/administrativos/AdministrativosPage'
 
 function App() {
   return (
@@ -117,49 +121,91 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <DashboardLayout>
-              <DashboardPage />
-            </DashboardLayout>
+            <EmployeeRoute>
+              <DashboardLayout>
+                <DashboardPage />
+              </DashboardLayout>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/dashboard/salesManagement"
           element={
-            <DashboardLayout>
-              <SalesManagementPage />
-            </DashboardLayout>
+            <EmployeeRoute>
+              <DashboardLayout>
+                <SalesManagementPage />
+              </DashboardLayout>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/dashboard/buyersManagement"
           element={
-            <DashboardLayout>
-              <BuyersManagementPage />
-            </DashboardLayout>
+            <EmployeeRoute>
+              <DashboardLayout>
+                <BuyersManagementPage />
+              </DashboardLayout>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/dashboard/leasesManagement"
           element={
-            <DashboardLayout>
-              <LeasesManagementPage />
-            </DashboardLayout>
+            <EmployeeRoute>
+              <DashboardLayout>
+                <LeasesManagementPage />
+              </DashboardLayout>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/dashboard/renantManagement"
           element={
-            <DashboardLayout>
-              <RenantManagementPage />
-            </DashboardLayout>
+            <EmployeeRoute>
+              <DashboardLayout>
+                <RenantManagementPage />
+              </DashboardLayout>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/dashboard/citas"
           element={
-            <DashboardLayout>
-              <AppointmentPage />
-            </DashboardLayout>
+            <EmployeeRoute>
+              <DashboardLayout>
+                <AppointmentPage />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/reportes/gestion"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <Reports />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/seguridad/roles"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <Roles />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/seguridad/administrativos"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <AdministrativosPage />
+              </DashboardLayout>
+            </EmployeeRoute>
           }
         />
 

@@ -129,7 +129,9 @@ const AppointmentCalendar = ({
   onEditAppointment,
   onDeleteAppointment,
   onRescheduleAppointment,
-  onCreateAppointment
+  onCreateAppointment,
+  onAcceptAppointment,
+  onRejectAppointment
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeAppointment, setActiveAppointment] = useState(null);
@@ -189,23 +191,23 @@ const AppointmentCalendar = ({
   // Get appointments for a specific date, considering temporary reschedules
   const getAppointmentsForDate = (day) => {
     if (!day) return [];
-
     const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-    // Filter appointments that are originally on this date
-    const originalAppointments = citas.filter(cita => cita.fecha === dateString);
-
+    
+    // ✅ CORREGIDO: Usar fecha_cita en lugar de fecha
+    const originalAppointments = citas.filter(cita => cita.fecha_cita === dateString || cita.fecha === dateString);
+    
     // Include appointments temporarily rescheduled to this date
     const tempAppointments = Object.entries(tempRescheduledAppointments)
       .filter(([_, newDate]) => newDate === dateString)
-      .map(([id, _]) => citas.find(cita => cita.id.toString() === id))
+      .map(([id, _]) => citas.find(cita => 
+        (cita.id_cita?.toString() === id) || (cita.id?.toString() === id)
+      ))
       .filter(Boolean);
-
+    
     const result = [...originalAppointments, ...tempAppointments];
-
     return result;
   };
-
+  
   // Navigate months
   const navigateMonth = (direction) => {
     setCurrentDate(prev => {
@@ -233,20 +235,24 @@ const AppointmentCalendar = ({
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
-  
     setActiveAppointment(null);
   
     if (!over) return;
   
-    const appointment = active.data.current?.appointment || 
-      (active.id && citas.find(cita => `appointment-${cita.id}` === active.id));
+    // ✅ CORREGIDO: Buscar por id_cita o id
+    const appointment = active.data.current?.appointment ||
+      (active.id && citas.find(cita => 
+        `appointment-${cita.id_cita}` === active.id || `appointment-${cita.id}` === active.id
+      ));
+  
     const targetDay = over.data.current?.day;
     const targetDate = over.data.current?.date;
   
     if (!appointment || !targetDate) return;
   
-    // Check if dropping on same date
-    if (appointment.fecha === targetDate) return;
+    // ✅ CORREGIDO: Comparar con fecha_cita
+    const appointmentDate = appointment.fecha_cita || appointment.fecha;
+    if (appointmentDate === targetDate) return;
   
     // Validate date is not in the past
     const today = new Date().toISOString().split('T')[0];
@@ -259,10 +265,13 @@ const AppointmentCalendar = ({
       return;
     }
   
+    // ✅ CORREGIDO: Usar id_cita o id
+    const appointmentId = appointment.id_cita || appointment.id;
+    
     // Temporarily update appointment date for visual feedback
     setTempRescheduledAppointments(prev => ({
       ...prev,
-      [appointment.id]: targetDate
+      [appointmentId]: targetDate
     }));
   
     // Show confirmation modal
@@ -272,41 +281,43 @@ const AppointmentCalendar = ({
       newDate: targetDate
     });
   };
-    
+      
   const handleRescheduleConfirm = () => {
     if (rescheduleConfirm.appointment && rescheduleConfirm.newDate) {
-      onRescheduleAppointment(rescheduleConfirm.appointment.id, rescheduleConfirm.newDate);
-
-      // Remove from temp reschedules
+      // ✅ CORREGIDO: Usar id_cita o id
+      const appointmentId = rescheduleConfirm.appointment.id_cita || rescheduleConfirm.appointment.id;
+      onRescheduleAppointment(appointmentId, rescheduleConfirm.newDate);
+      
       setTempRescheduledAppointments(prev => {
         const copy = { ...prev };
-        delete copy[rescheduleConfirm.appointment.id];
+        delete copy[appointmentId];
         return copy;
       });
     }
-
     setRescheduleConfirm({ isOpen: false, appointment: null, newDate: null });
   };
   
   const handleRescheduleCancel = () => {
     // Remove from temp reschedules to revert visual change
     if (rescheduleConfirm.appointment) {
+      // ✅ CORREGIDO: Usar id_cita o id
+      const appointmentId = rescheduleConfirm.appointment.id_cita || rescheduleConfirm.appointment.id;
       setTempRescheduledAppointments(prev => {
         const copy = { ...prev };
-        delete copy[rescheduleConfirm.appointment.id];
+        delete copy[appointmentId];
         return copy;
       });
     }
     setRescheduleConfirm({ isOpen: false, appointment: null, newDate: null });
   };
-
+  
   const handleAppointmentClick = (appointment, event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
     setPopoverState({
       isOpen: true,
-      position: { x: rect.left, y: rect.bottom + 5 },
+      position: null,
       appointment,
-      date: null
+      date: null,
+      referenceElement: event.currentTarget,
     });
   };
 
@@ -315,12 +326,13 @@ const AppointmentCalendar = ({
   };
 
   const handleMoreClick = (appointments) => {
-    const date = appointments[0]?.fecha;
+    // ✅ CORREGIDO: Usar fecha_cita
+    const date = appointments[0]?.fecha_cita || appointments[0]?.fecha;
     setDayListModal({ isOpen: true, date, appointments });
   };
-
+  
   const closePopover = () => {
-    setPopoverState({ isOpen: false, position: null, appointment: null, date: null });
+    setPopoverState({ isOpen: false, position: null, appointment: null, date: null, referenceElement: null });
   };
 
   const closeDayListModal = () => {
@@ -411,12 +423,20 @@ const AppointmentCalendar = ({
               <span>Confirmada</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded"></div>
+              <div className="w-3 h-3 bg-purple-100 border border-purple-200 rounded"></div>
               <span>Completada</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-red-100 border border-red-200 rounded"></div>
               <span>Cancelada</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-orange-100 border border-orange-200 rounded"></div>
+              <span>Re Agendada</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-indigo-100 border border-indigo-200 rounded"></div>
+              <span>Solicitada</span>
             </div>
           </div>
         </div>
@@ -440,13 +460,15 @@ const AppointmentCalendar = ({
       <ActionsPopover
         isOpen={popoverState.isOpen}
         onClose={closePopover}
-        position={popoverState.position}
+        referenceElement={popoverState.referenceElement}
         appointment={popoverState.appointment}
         date={popoverState.date}
         onView={onViewAppointment}
         onEdit={onEditAppointment}
         onDelete={onDeleteAppointment}
         onCreate={onCreateAppointment}
+        onAccept={onAcceptAppointment}
+        onReject={onRejectAppointment}
       />
 
       {/* Day List Modal */}
@@ -458,6 +480,8 @@ const AppointmentCalendar = ({
         onViewAppointment={onViewAppointment}
         onEditAppointment={onEditAppointment}
         onDeleteAppointment={onDeleteAppointment}
+        onAcceptAppointment={onAcceptAppointment}
+        onRejectAppointment={onRejectAppointment}
       />
 
       {/* Reschedule Confirmation Modal */}

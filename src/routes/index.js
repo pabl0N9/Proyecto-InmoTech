@@ -23,6 +23,7 @@ export const publicNavigationLinks = [
 export const dashboardRoutes = {
   dashboard: '/dashboard',
   properties: '/inmuebles/gestion',
+  owners: '/inmuebles/propietarios',
   appointments: '/dashboard/citas',
   clients: '/dashboard/citas/clientes',
   sales: '/dashboard/salesManagement',
@@ -32,7 +33,8 @@ export const dashboardRoutes = {
   reports: '/reportes/gestion',
   security: '/seguridad',
   users: '/seguridad/usuarios',
-  roles: '/seguridad/roles'
+  roles: '/seguridad/roles',
+  administrativos: '/seguridad/administrativos'
 };
 
 // Combinación de todas las rutas para acceso fácil
