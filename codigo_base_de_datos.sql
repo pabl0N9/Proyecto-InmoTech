@@ -75,26 +75,26 @@ BEGIN
     CREATE TABLE Personas (
         -- Identificador único de la persona
         id_persona INT PRIMARY KEY IDENTITY(1,1),
-
+        
         -- Información de documento (permite identificación sin duplicados)
         tipo_documento VARCHAR(5) NOT NULL CHECK (tipo_documento IN ('CC', 'CE', 'NIT', 'Pasaporte', 'TI')),
         numero_documento VARCHAR(20) NOT NULL,
-
+        
         -- Nombres completos (unificados para simplicidad y mejor ordenamiento)
         nombre_completo VARCHAR(100) NOT NULL,
         apellido_completo VARCHAR(100) NOT NULL,
-
+        
         -- Información de contacto
         correo VARCHAR(100) NOT NULL,             -- Obligatorio, usado para login
         telefono VARCHAR(20) NULL,                -- Formato: +57 XXX XXX XXXX
-
+        
         -- Control de cuenta
         tiene_cuenta BIT NOT NULL DEFAULT 0,      -- 0: Persona sin cuenta (solo datos en citas), 1: Usuario registrado
         estado BIT NOT NULL DEFAULT 1,            -- 0: Inactivo, 1: Activo
-
+        
         -- Auditoría
         fecha_registro DATETIME2(3) NOT NULL DEFAULT GETDATE(),
-
+        
         -- Constraints para integridad de datos
         CONSTRAINT UQ_Persona_Documento UNIQUE (tipo_documento, numero_documento),  -- No duplicar documentos
         CONSTRAINT UQ_Persona_Correo UNIQUE (correo),                                -- Email único para login
@@ -126,7 +126,7 @@ BEGIN
         contrasena VARCHAR(255) NOT NULL,                  -- Hash bcrypt de la contraseña
         fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
         ultimo_acceso DATETIME2(3) NULL,                   -- Se actualiza en cada login exitoso
-
+        
         CONSTRAINT FK_Acceso_Persona FOREIGN KEY (id_persona) REFERENCES Personas(id_persona) ON DELETE CASCADE
     );
     PRINT '✅ Tabla Acceso creada';
@@ -173,14 +173,40 @@ BEGIN
         id_rol INT NOT NULL,
         estado BIT NOT NULL DEFAULT 1,                    -- Permite desactivar rol sin eliminarlo
         fecha_asignacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
-
+        
         CONSTRAINT FK_PersonasRol_Persona FOREIGN KEY (id_persona) REFERENCES Personas(id_persona) ON DELETE CASCADE,
         CONSTRAINT FK_PersonasRol_Rol FOREIGN KEY (id_rol) REFERENCES Roles(id_rol) ON DELETE CASCADE,
         CONSTRAINT UQ_PersonasRol_Unico UNIQUE (id_persona, id_rol)  -- No duplicar asignaciones
     );
     PRINT '✅ Tabla Personas_rol creada';
 END
+
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- Tabla: Permisos
+-- Descripción: Almacena los permisos específicos por módulo para cada rol
+-- Relación: Un rol puede tener múltiples permisos por módulo
+-- ---------------------------------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Permisos]') AND type = 'U')
+BEGIN
+    CREATE TABLE Permisos (
+        id_permiso INT PRIMARY KEY IDENTITY(1,1),
+        id_rol INT NOT NULL,
+        modulo VARCHAR(50) NOT NULL,                    -- Ej: "gInmuebles", "gClientes"
+        permiso VARCHAR(50) NOT NULL,                   -- Ej: "crear", "editar", "eliminar", "ver"
+        estado BIT NOT NULL DEFAULT 1,
+        fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
+
+        CONSTRAINT FK_Permisos_Rol FOREIGN KEY (id_rol) REFERENCES Roles(id_rol) ON DELETE CASCADE,
+        CONSTRAINT UQ_Permiso_Unico UNIQUE (id_rol, modulo, permiso)
+    );
+    PRINT '✅ Tabla Permisos creada';
+END
 GO
+
+-- Índice para búsquedas por rol
+CREATE NONCLUSTERED INDEX IX_Permisos_Rol ON Permisos(id_rol);
+
 
 -- Índices para consultas de roles
 CREATE NONCLUSTERED INDEX IX_PersonasRol_Persona ON Personas_rol(id_persona);  -- Obtener roles de una persona
@@ -207,26 +233,23 @@ BEGIN
     CREATE TABLE Administrativos (
         id_administrativo INT PRIMARY KEY IDENTITY(1,1),
         id_persona INT NOT NULL UNIQUE,                   -- Relación 1:1 con Personas
-
+        
         -- Información laboral
         codigo_empleado VARCHAR(20) UNIQUE NOT NULL,      -- Código único del empleado (ej: EMP-001, ADMIN-002)
         fecha_ingreso DATE NOT NULL,                      -- Fecha de contratación
         cargo VARCHAR(100) NULL,                          -- Ej: Agente Inmobiliario, Gerente de Ventas
         departamento VARCHAR(100) NULL,                   -- Ej: Ventas, Administración, Tecnología
-
-        -- Información adicional (opcional, para gestión de RR.HH.)
-        salario DECIMAL(15,2) NULL,                       -- Salario mensual (confidencial)
-
+                
         -- Estado laboral
         estado_laboral VARCHAR(50) NOT NULL DEFAULT 'Activo' CHECK (estado_laboral IN ('Activo', 'Inactivo', 'Suspendido', 'Retirado')),
         fecha_retiro DATE NULL,                           -- Solo si estado_laboral = 'Retirado'
-
+        
         -- Observaciones administrativas
         observaciones TEXT NULL,
-
+        
         -- Auditoría
         fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
-
+        
         -- Relaciones y validaciones
         CONSTRAINT FK_Administrativos_Persona FOREIGN KEY (id_persona) REFERENCES Personas(id_persona) ON DELETE CASCADE,
         CONSTRAINT CHK_Administrativos_FechaRetiro CHECK (fecha_retiro IS NULL OR fecha_retiro >= fecha_ingreso)
@@ -253,30 +276,30 @@ IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[In
 BEGIN
     CREATE TABLE Inmuebles (
         id_inmueble INT PRIMARY KEY IDENTITY(1,1),
-
+        
         -- Identificación única del inmueble
         registro_inmobiliario VARCHAR(50) NOT NULL UNIQUE,  -- Matrícula inmobiliaria
-
+        
         -- Ubicación
         pais VARCHAR(50) NOT NULL,
         departamento VARCHAR(50) NOT NULL,
         ciudad VARCHAR(50) NOT NULL,
         barrio VARCHAR(50) NULL,
         direccion VARCHAR(100) NOT NULL,
-
+        
         -- Características básicas
         categoria VARCHAR(50) NULL,                         -- Casa, Apartamento, Local, Oficina, Lote
         precio_venta DECIMAL(15,2) NULL,                    -- Si está en venta
         precio_arriendo DECIMAL(15,2) NULL,                 -- Si está en arriendo
         area_construida DECIMAL(10,2) NULL,                 -- Metros cuadrados construidos
         area_terreno DECIMAL(10,2) NULL,                    -- Metros cuadrados de terreno
-
+        
         -- Descripción detallada
         descripcion TEXT NULL,
-
+        
         -- Estado del inmueble
         estado VARCHAR(50) NOT NULL DEFAULT 'Disponible',  -- Disponible, Vendido, Arrendado, En Negociación
-
+        
         -- Auditoría
         fecha_registro DATETIME2(3) NOT NULL DEFAULT GETDATE()
     );
@@ -305,7 +328,7 @@ BEGIN
         fecha_inicio DATE NOT NULL,                         -- Desde cuándo es propietario
         fecha_final DATE NULL,                              -- NULL = propietario actual
         estado VARCHAR(20) NOT NULL DEFAULT 'Activo',       -- Activo, Inactivo
-
+        
         CONSTRAINT FK_Propiedad_Inmueble FOREIGN KEY (id_inmueble) REFERENCES Inmuebles(id_inmueble) ON DELETE CASCADE,
         CONSTRAINT FK_Propiedad_Persona FOREIGN KEY (id_persona) REFERENCES Personas(id_persona),
         CONSTRAINT CHK_Propiedad_Fechas CHECK (fecha_final IS NULL OR fecha_final >= fecha_inicio)
@@ -331,7 +354,7 @@ BEGIN
         descripcion TEXT NULL,
         duracion_estimada INT NOT NULL DEFAULT 45,          -- En minutos
         estado BIT NOT NULL DEFAULT 1,                      -- 1: Activo, 0: Inactivo
-
+        
         CONSTRAINT CHK_ServicioCita_Duracion CHECK (duracion_estimada > 0 AND duracion_estimada <= 480)
     );
     PRINT '✅ Tabla Servicios_cita creada';
@@ -376,37 +399,37 @@ IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Ci
 BEGIN
     CREATE TABLE Citas (
         id_cita INT PRIMARY KEY IDENTITY(1,1),
-
+        
         -- Personas involucradas
         id_persona INT NOT NULL,                            -- Cliente que solicita la cita
         id_inmueble INT NOT NULL,                           -- Inmueble a visitar
         id_servicio INT NOT NULL,                           -- Tipo de servicio (Visita, Avalúo, etc.)
         id_usuario_creador INT NULL,                        -- Quién creó la cita (puede ser el cliente o un agente)
-
+        
         -- Fecha y hora
         fecha_cita DATE NOT NULL,
         hora_inicio TIME(0) NOT NULL,
         hora_fin TIME(0) NOT NULL,
-
+        
         -- Estado y asignación
         id_estado_cita INT NOT NULL DEFAULT 1,              -- Default: Solicitada
         id_agente_asignado INT NULL,                        -- Agente que atenderá la cita (se asigna al confirmar)
-
+        
         -- Información adicional
         observaciones TEXT NULL,                            -- Notas del cliente o agente
         motivo_cancelacion VARCHAR(500) NULL,               -- Solo si se cancela
-
+        
         -- Reagendamiento
         es_reagendada BIT NOT NULL DEFAULT 0,               -- 1: Esta cita es un reagendamiento
         id_cita_original INT NULL,                          -- Referencia a la cita original (si es reagendamiento)
-
+        
         -- Auditoría de estados (timestamps de cambios)
         fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
         fecha_confirmacion DATETIME2(3) NULL,               -- Cuándo el agente confirmó
         fecha_cancelacion DATETIME2(3) NULL,                -- Cuándo se canceló
         fecha_completada DATETIME2(3) NULL,                 -- Cuándo se completó
         fecha_actualizacion DATETIME2(3) NULL,              -- Última modificación
-
+        
         -- Foreign Keys
         CONSTRAINT FK_Citas_Persona FOREIGN KEY (id_persona) REFERENCES Personas(id_persona),
         CONSTRAINT FK_Citas_Inmueble FOREIGN KEY (id_inmueble) REFERENCES Inmuebles(id_inmueble) ON DELETE CASCADE,
@@ -415,7 +438,7 @@ BEGIN
         CONSTRAINT FK_Citas_Agente FOREIGN KEY (id_agente_asignado) REFERENCES Personas(id_persona),
         CONSTRAINT FK_Citas_Creador FOREIGN KEY (id_usuario_creador) REFERENCES Personas(id_persona),
         CONSTRAINT FK_Citas_CitaOriginal FOREIGN KEY (id_cita_original) REFERENCES Citas(id_cita),
-
+        
         -- Validaciones
         CONSTRAINT CHK_Citas_HoraValida CHECK (hora_fin > hora_inicio),
         CONSTRAINT CHK_Citas_FechaFuturo CHECK (fecha_cita >= CAST(GETDATE() AS DATE))
@@ -453,31 +476,31 @@ IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[No
 BEGIN
     CREATE TABLE Notificaciones (
         id_notificacion INT PRIMARY KEY IDENTITY(1,1),
-
+        
         -- Tipo y contenido
         tipo_notificacion VARCHAR(50) NOT NULL CHECK (tipo_notificacion IN ('CITA_SOLICITADA', 'CITA_CANCELADA', 'CITA_REAGENDADA', 'CITA_CONFIRMADA', 'CITA_COMPLETADA', 'SISTEMA', 'ALERTA')),
         titulo VARCHAR(200) NOT NULL,
         mensaje TEXT NOT NULL,
-
+        
         -- Relación con cita (si aplica)
         id_cita INT NULL,
-
+        
         -- Destinatarios (puede ser por rol o por persona individual)
         id_rol_destino INT NULL,                            -- Notificar a todos con este rol
         id_persona_destino INT NULL,                        -- Notificar a persona específica
-
+        
         -- Estado de lectura
         leida BIT NOT NULL DEFAULT 0,                       -- 0: No leída, 1: Leída
         fecha_leida DATETIME2(3) NULL,
-
+        
         -- Auditoría
         fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
-
+        
         -- Foreign Keys
         CONSTRAINT FK_Notificaciones_Cita FOREIGN KEY (id_cita) REFERENCES Citas(id_cita) ON DELETE CASCADE,
         CONSTRAINT FK_Notificaciones_Rol FOREIGN KEY (id_rol_destino) REFERENCES Roles(id_rol),
         CONSTRAINT FK_Notificaciones_Persona FOREIGN KEY (id_persona_destino) REFERENCES Personas(id_persona),
-
+        
         -- Al menos uno debe estar presente
         CONSTRAINT CHK_Notificaciones_Destino CHECK (id_rol_destino IS NOT NULL OR id_persona_destino IS NOT NULL)
     );
@@ -507,26 +530,26 @@ BEGIN
     CREATE TABLE Reportes (
         id_reporte INT PRIMARY KEY IDENTITY(1,1),
         id_inmueble INT NOT NULL,
-
+        
         -- Tipo y contenido
         tipo_reporte VARCHAR(50) NOT NULL,                  -- Mantenimiento, Daño, Queja, Sugerencia
         titulo VARCHAR(200) NOT NULL,
         descripcion TEXT NOT NULL,
-
+        
         -- Prioridad y estado
         prioridad VARCHAR(20) NOT NULL DEFAULT 'Media' CHECK (prioridad IN ('Baja', 'Media', 'Alta', 'Urgente')),
         estado VARCHAR(50) NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'En Proceso', 'Resuelto', 'Cerrado')),
-
+        
         -- Quién reporta
         id_persona_reporta INT NOT NULL,
-
+        
         -- Fechas
         fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
         fecha_resolucion DATETIME2(3) NULL,                 -- Cuándo se resolvió
-
+        
         -- Observaciones de resolución
         observaciones_resolucion TEXT NULL,
-
+        
         -- Foreign Keys
         CONSTRAINT FK_Reportes_Inmueble FOREIGN KEY (id_inmueble) REFERENCES Inmuebles(id_inmueble) ON DELETE CASCADE,
         CONSTRAINT FK_Reportes_Persona FOREIGN KEY (id_persona_reporta) REFERENCES Personas(id_persona)
@@ -560,16 +583,16 @@ RETURNS BIT
 AS
 BEGIN
     DECLARE @resultado BIT = 0;
-
+    
     -- Verificar si existe en Administrativos con estado Activo
     IF EXISTS (
-        SELECT 1
-        FROM Administrativos
-        WHERE id_persona = @id_persona
+        SELECT 1 
+        FROM Administrativos 
+        WHERE id_persona = @id_persona 
           AND estado_laboral = 'Activo'
     )
         SET @resultado = 1;
-
+    
     RETURN @resultado;
 END
 GO
@@ -589,7 +612,7 @@ IF OBJECT_ID('dbo.vw_PersonalAdministrativo', 'V') IS NOT NULL
 GO
 
 CREATE VIEW dbo.vw_PersonalAdministrativo AS
-SELECT
+SELECT 
     -- Datos del administrativo
     a.id_administrativo,
     a.codigo_empleado,
@@ -597,20 +620,20 @@ SELECT
     a.departamento,
     a.fecha_ingreso,
     a.estado_laboral,
-
+    
     -- Datos de la persona
     p.id_persona,
     p.tipo_documento,
     p.numero_documento,
     p.correo,
     p.telefono,
-
+    
     -- Nombre completo concatenado
     CONCAT(p.nombre_completo, ' ', p.apellido_completo) AS nombre_completo,
-
+    
     -- Roles concatenados (separados por coma)
     STRING_AGG(r.nombre_rol, ', ') AS roles,
-
+    
     -- Último acceso
     acc.ultimo_acceso
 FROM Administrativos a
@@ -619,7 +642,7 @@ LEFT JOIN Acceso acc ON p.id_persona = acc.id_persona
 LEFT JOIN Personas_rol pr ON p.id_persona = pr.id_persona AND pr.estado = 1
 LEFT JOIN Roles r ON pr.id_rol = r.id_rol AND r.estado = 1
 WHERE p.estado = 1  -- Solo personas activas
-GROUP BY
+GROUP BY 
     a.id_administrativo, a.codigo_empleado, a.cargo, a.departamento, a.fecha_ingreso, a.estado_laboral,
     p.id_persona, p.tipo_documento, p.numero_documento, p.correo, p.telefono,
     p.nombre_completo, p.apellido_completo,
@@ -652,7 +675,7 @@ BEGIN
     -- Roles de clientes
     ('Usuario', 'Rol por defecto al registrarse en el sistema', 0),
     ('Propietario', 'Usuarios que tienen inmuebles registrados a su nombre', 0);
-
+    
     PRINT '✅ Roles insertados:';
     PRINT '   - Super Administrador (Administrativo)';
     PRINT '   - Administrador (Administrativo)';
@@ -678,7 +701,7 @@ BEGIN
     ('Reagendada', 4, 'Cita reagendada a nueva fecha y hora', 0),
     ('Completada', 5, 'Cita completada exitosamente', 1),
     ('Cancelada', 6, 'Cita cancelada por alguna de las partes', 1);
-
+    
     PRINT '✅ Estados de cita insertados (6 estados)';
 END
 ELSE
@@ -697,7 +720,7 @@ BEGIN
     ('Avalúos', 'Servicio de avalúo y tasación profesional de inmuebles', 60),
     ('Gestión de Alquileres', 'Asesoría sobre gestión y administración de alquileres', 30),
     ('Asesoría Legal', 'Consulta legal relacionada con transacciones inmobiliarias', 45);
-
+    
     PRINT '✅ Servicios de cita insertados (4 servicios)';
 END
 ELSE
@@ -713,25 +736,25 @@ GO
 IF NOT EXISTS (SELECT 1 FROM Personas WHERE numero_documento = '999999999')
 BEGIN
     -- Insertar Persona
-    INSERT INTO Personas (tipo_documento, numero_documento, nombre_completo, apellido_completo, correo, telefono, tiene_cuenta)
+    INSERT INTO Personas (tipo_documento, numero_documento, nombre_completo, apellido_completo, correo, telefono, tiene_cuenta) 
     VALUES ('CC', '999999999', 'Super', 'Admin', 'admin@inmotech.com', '+57 300 000 0000', 1);
-
+    
     DECLARE @id_super_admin INT = SCOPE_IDENTITY();
-
+    
     -- Insertar Acceso (contraseña hasheada con bcrypt: "Admin123!")
     -- ⚠️ IMPORTANTE: En producción, cambiar esta contraseña inmediatamente después del primer login
-    INSERT INTO Acceso (id_persona, contrasena)
+    INSERT INTO Acceso (id_persona, contrasena) 
     VALUES (@id_super_admin, '$2b$10$rKvFJZEJfRJdLx6jxL5zMeyPh8s9JZCvC.yMFNyV8HQKZ6yFN.JxC');
-
+    
     -- Insertar en tabla Administrativos (personal interno)
-    INSERT INTO Administrativos (id_persona, codigo_empleado, fecha_ingreso, cargo, departamento, estado_laboral)
+    INSERT INTO Administrativos (id_persona, codigo_empleado, fecha_ingreso, cargo, departamento, estado_laboral) 
     VALUES (@id_super_admin, 'ADMIN-001', GETDATE(), 'Super Administrador', 'Tecnología', 'Activo');
-
+    
     -- Asignar rol Super Administrador
     DECLARE @id_rol_super INT = (SELECT id_rol FROM Roles WHERE nombre_rol = 'Super Administrador');
-    INSERT INTO Personas_rol (id_persona, id_rol)
+    INSERT INTO Personas_rol (id_persona, id_rol) 
     VALUES (@id_super_admin, @id_rol_super);
-
+    
     PRINT '';
     PRINT '✅ Super Administrador creado exitosamente';
     PRINT '';
@@ -759,12 +782,12 @@ IF NOT EXISTS (SELECT 1 FROM Inmuebles WHERE registro_inmobiliario = 'INM-001-TE
 BEGIN
     INSERT INTO Inmuebles (registro_inmobiliario, pais, departamento, ciudad, barrio, direccion, categoria, precio_venta, area_construida, descripcion)
     VALUES (
-        'INM-001-TEST',
-        'Colombia',
-        'Antioquia',
-        'Medellín',
-        'El Poblado',
-        'Calle 50 # 45-20',
+        'INM-001-TEST', 
+        'Colombia', 
+        'Antioquia', 
+        'Medellín', 
+        'El Poblado', 
+        'Calle 50 # 45-20', 
         'Apartamento',
         450000000.00,
         120.50,
@@ -786,8 +809,8 @@ PRINT '';
 
 -- Contar tablas creadas
 DECLARE @TotalTablas INT;
-SELECT @TotalTablas = COUNT(*)
-FROM INFORMATION_SCHEMA.TABLES
+SELECT @TotalTablas = COUNT(*) 
+FROM INFORMATION_SCHEMA.TABLES 
 WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_CATALOG = 'InmobiliariaDB';
 
 PRINT '📊 RESUMEN DE LA BASE DE DATOS:';

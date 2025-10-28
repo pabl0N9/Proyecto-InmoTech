@@ -1,4 +1,4 @@
-const { Rol, Persona, PersonasRol } = require('../models');
+const { Rol, Persona, PersonasRol, Permiso } = require('../models');
 const { sequelize } = require('../config/database');
 const { Op } = require('sequelize'); // ✅ AGREGADO: Importar Op
 const logger = require('../utils/logger');
@@ -74,6 +74,27 @@ if (rolInactivo) {
           estado: true
         }, { transaction: t });
 
+        // Crear permisos si se enviaron
+        if (rolData.permisos && Object.keys(rolData.permisos).length > 0) {
+          const permisosData = [];
+          Object.entries(rolData.permisos).forEach(([modulo, permisosModulo]) => {
+            Object.entries(permisosModulo).forEach(([permiso, valor]) => {
+              if (valor === true) {
+                permisosData.push({
+                  id_rol: rol.id_rol,
+                  modulo,
+                  permiso: permiso.toLowerCase(),
+                  estado: true
+                });
+              }
+            });
+          });
+
+          if (permisosData.length > 0) {
+            await Permiso.bulkCreate(permisosData, { transaction: t });
+          }
+        }
+
         logger.info(`Rol creado: ${rol.nombre_rol} por usuario ${userId}`);
         return rol;
 
@@ -94,6 +115,14 @@ if (rolInactivo) {
     try {
       const roles = await Rol.findAll({
         where: { estado: true },
+        include: [
+          {
+            model: Permiso,
+            as: 'permisos',
+            where: { estado: true },
+            required: false
+          }
+        ],
         order: [['nombre_rol', 'ASC']]
       });
 
@@ -112,7 +141,15 @@ if (rolInactivo) {
   async obtenerPorId(rolId) {
     try {
       const rol = await Rol.findOne({
-        where: { id_rol: rolId, estado: true }
+        where: { id_rol: rolId, estado: true },
+        include: [
+          {
+            model: Permiso,
+            as: 'permisos',
+            where: { estado: true },
+            required: false
+          }
+        ]
       });
 
       if (!rol) {
@@ -345,7 +382,44 @@ if (rolInactivo) {
           throw new Error('No se puede cambiar el nombre de roles del sistema');
         }
 
-        await rol.update(updateData, { transaction: t });
+        // Actualizar el rol (sin permisos)
+        const { permisos, ...updateFields } = updateData; // Separar permisos
+        await rol.update(updateFields, { transaction: t });
+
+        // Si se enviaron permisos, actualizarlos
+        if (permisos) {
+          // Desactivar permisos existentes
+          await Permiso.update(
+            { estado: false },
+            { where: { id_rol: rolId }, transaction: t }
+          );
+
+          // Reactivar o crear permisos según se necesite
+          for (const [modulo, permisosModulo] of Object.entries(permisos)) {
+            for (const [permiso, valor] of Object.entries(permisosModulo)) {
+              if (valor === true) {
+                // Buscar si ya existe el permiso (desactivado o activo)
+                const [permisoExistente, created] = await Permiso.findOrCreate({
+                  where: {
+                    id_rol: rolId,
+                    modulo,
+                    permiso: permiso.toLowerCase()
+                  },
+                  defaults: {
+                    estado: true
+                  },
+                  transaction: t
+                });
+
+                // Si no se creó (ya existía), reactivarlo
+                if (!created) {
+                  await permisoExistente.update({ estado: true }, { transaction: t });
+                }
+              }
+            }
+          }
+        }
+
         logger.info(`Rol actualizado: ${rolId} por usuario ${userId}`);
         return rol;
 

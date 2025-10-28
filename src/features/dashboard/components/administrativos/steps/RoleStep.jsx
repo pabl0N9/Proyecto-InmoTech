@@ -13,7 +13,20 @@ const RoleStep = ({ formData, errors, updateFormData }) => {
         const roles = await rolesApiService.obtenerRoles();
         // Filtrar solo roles administrativos
         const rolesAdministrativos = roles.filter(rol => rol.es_administrativo || rol.es_rol_administrativo);
-        setRoles(rolesAdministrativos);
+        // Orden especial: Super Administrador (ID 1) y Administrador (ID 2) primero, luego el resto por ID
+        const rolesSorted = rolesAdministrativos.sort((a, b) => {
+          // Super Administrador siempre primero
+          if (a.id == 1) return -1;
+          if (b.id == 1) return 1;
+
+          // Administrador siempre segundo
+          if (a.id == 2) return -1;
+          if (b.id == 2) return 1;
+
+          // Resto ordenados por ID
+          return parseInt(a.id, 10) - parseInt(b.id, 10);
+        });
+        setRoles(rolesSorted);
       } catch (error) {
         console.error('Error cargando roles:', error);
       } finally {

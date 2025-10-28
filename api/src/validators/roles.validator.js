@@ -27,6 +27,13 @@ const crearRolSchema = Joi.object({
     .default(false)
     .messages({
       'boolean.base': 'El campo es_rol_administrativo debe ser un valor booleano'
+    }),
+
+  permisos: Joi.object()
+    .optional()
+    .default({})
+    .messages({
+      'object.base': 'Los permisos deben ser un objeto'
     })
 });
 
@@ -44,7 +51,14 @@ const actualizarRolSchema = Joi.object({
     }),
 
   estado: Joi.boolean()
+    .optional(),
+
+  permisos: Joi.object()
     .optional()
+    .default({})
+    .messages({
+      'object.base': 'Los permisos deben ser un objeto'
+    })
 })
   .min(1)
   .messages({

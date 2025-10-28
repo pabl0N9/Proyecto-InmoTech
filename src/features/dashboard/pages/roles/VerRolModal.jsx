@@ -142,7 +142,7 @@ export default function VerRolModal({ isOpen, onClose, rol }) {
   const getPermisosGrupo = (groupKey) => {
     const permisos = rol?.permisos?.[groupKey] || {};
     return Object.entries(permisos)
-      .filter(([_, value]) => value === true)
+      .filter(([key, value]) => value === true && key && key.trim() !== '')
       .map(([key]) => key);
   };
 
@@ -459,21 +459,23 @@ export default function VerRolModal({ isOpen, onClose, rol }) {
                     <span>Resumen de Permisos</span>
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(permissionConfig).map(([key, config]) => {
-                      const Icon = config.icon;
-                      const count = modulosConPermisos.filter(modulo => 
-                        modulo.permisosActivos.includes(key)
-                      ).length;
-                      
-                      return (
-                        <div key={key} className={`${config.bg} border rounded-lg p-4 text-center shadow-sm`}>
-                          <Icon className={`h-6 w-6 ${config.color} mx-auto mb-2`} />
-                          <div className="text-2xl font-bold text-slate-900">{count}</div>
-                          <div className="text-sm text-slate-600">{config.label}</div>
-                          <div className="text-xs text-slate-500 mt-1">módulos</div>
-                        </div>
-                      );
-                    })}
+                    {Object.entries(permissionConfig)
+                      .filter(([key, config]) => key && key.trim() !== '')
+                      .map(([key, config]) => {
+                        const Icon = config.icon;
+                        const count = modulosConPermisos.filter(modulo =>
+                          modulo.permisosActivos && modulo.permisosActivos.includes(key)
+                        ).length;
+
+                        return (
+                          <div key={key && key.trim() !== '' ? key : `permiso-${Math.random()}`} className={`${config.bg} border rounded-lg p-4 text-center shadow-sm`}>
+                            <Icon className={`h-6 w-6 ${config.color} mx-auto mb-2`} />
+                            <div className="text-2xl font-bold text-slate-900">{count}</div>
+                            <div className="text-sm text-slate-600">{config.label}</div>
+                            <div className="text-xs text-slate-500 mt-1">módulos</div>
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
 
@@ -508,15 +510,17 @@ export default function VerRolModal({ isOpen, onClose, rol }) {
 
                           {/* Permisos activos del módulo */}
                           <div className="grid grid-cols-2 gap-3">
-                          {modulo.permisosActivos.map((permiso, index) => {
+                          {modulo.permisosActivos
+                            .filter(permiso => permiso && permiso.trim() !== '')
+                            .map((permiso, index) => {
                               const config = permissionConfig[permiso];
                               const PermisoIcon = config?.icon || Eye;
 
                               return (
-                              <div
-                                key={`permiso-normal-${modulo.key}-${index}`}
-                                className="flex items-center space-x-3 p-3 rounded-lg border bg-white shadow-sm"
-                              >
+                                <div
+                                  key={`permiso-normal-${modulo.key}-${permiso}-${index}`}
+                                  className="flex items-center space-x-3 p-3 rounded-lg border bg-white shadow-sm"
+                                >
                                   <div className={`p-2 rounded-md ${config?.bg || 'bg-slate-50'}`}>
                                     <PermisoIcon className={`h-4 w-4 ${config?.color || 'text-slate-600'}`} />
                                   </div>

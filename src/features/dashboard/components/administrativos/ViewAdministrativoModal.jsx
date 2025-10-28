@@ -159,16 +159,6 @@ const ViewAdministrativoModal = ({ isOpen, onClose, administrativo }) => {
                       </p>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                    <DollarSign className="w-4 h-4 text-slate-500" />
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide">Salario</p>
-                      <p className="text-sm font-medium text-slate-800">
-                        {formatCurrency(administrativo.salario)}
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

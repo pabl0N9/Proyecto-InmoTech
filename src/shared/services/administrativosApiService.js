@@ -142,21 +142,6 @@ class AdministrativosApiService {
       return fechaString;
     }
   }
-
-  /**
-   * Formatear salario para display
-   * @param {number} salario - Salario
-   * @returns {string} Salario formateado
-   */
-  formatSalario(salario) {
-    if (!salario) return '-';
-
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    }).format(salario);
-  }
 }
 
 export default new AdministrativosApiService();

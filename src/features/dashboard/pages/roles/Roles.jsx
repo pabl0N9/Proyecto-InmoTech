@@ -35,9 +35,19 @@ const RolesContent = () => {
       setError(null);
       console.log('🔐 Cargando roles para usuario administrativo:', user?.email);
       const rolesData = await rolesApiService.obtenerRoles();
-      const rolesSorted = (rolesData || []).sort((a, b) => 
-        parseInt(a.id, 10) - parseInt(b.id, 10)
-      );
+      // Orden especial: Super Administrador (ID 1) y Administrador (ID 2) primero, luego el resto por ID
+      const rolesSorted = (rolesData || []).sort((a, b) => {
+        // Super Administrador siempre primero
+        if (a.id == 1) return -1;
+        if (b.id == 1) return 1;
+
+        // Administrador siempre segundo
+        if (a.id == 2) return -1;
+        if (b.id == 2) return 1;
+
+        // Resto ordenados por ID
+        return parseInt(a.id, 10) - parseInt(b.id, 10);
+      });
       setRoles(rolesSorted);
     } catch (err) {
       console.error('❌ Error al cargar roles:', err);
@@ -96,10 +106,17 @@ const RolesContent = () => {
     }
   };
 
-  const handleActualizarRol = async (rolId, datosActualizados) => {
+  const handleActualizarRol = async (rolEditado) => {
     try {
-      console.log('✏️ Actualizando rol:', rolId, datosActualizados);
-      await rolesApiService.actualizarRol(rolId, datosActualizados);
+      console.log('✏️ Actualizando rol:', {id: rolEditado.id, nombre_rol: rolEditado.nombre_rol});
+
+      const datosActualizados = {
+        nombre_rol: rolEditado.nombre_rol,
+        estado: rolEditado.estado,
+        permisos: rolEditado.permisos
+      };
+
+      await rolesApiService.actualizarRol(rolEditado.id, datosActualizados);
       await cargarRoles();
       toast({
         title: "Rol actualizado",
@@ -421,7 +438,7 @@ const RolesContent = () => {
     setRolSeleccionado(null);
   }}
   rol={rolSeleccionado}
-  onSubmit={handleActualizarRol}
+  onSave={handleActualizarRol}
 />
 
 <VerRolModal

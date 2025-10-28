@@ -6,6 +6,7 @@ const EstadoCita = require('./EstadoCita');
 const Cita = require('./Cita');
 const Notificacion = require('./Notificacion');
 const Rol = require('./Rol');
+const Permiso = require('./Permiso');  // <-- AGREGADO
 const Acceso = require('./Acceso');
 const PersonasRol = require('./PersonasRol');
 const PropiedadInmueble = require('./PropiedadInmueble');
@@ -125,6 +126,19 @@ Persona.belongsToMany(Rol, {
   as: 'roles'
 });
 
+// Asociaciones de Permiso
+Permiso.belongsTo(Rol, {
+  foreignKey: 'id_rol',
+  as: 'rol'
+});
+
+Rol.hasMany(Permiso, {
+  foreignKey: 'id_rol',
+  as: 'permisos'
+});
+
+// FIN ASOCIACIONES DE PERMISOS
+
 Rol.belongsToMany(Persona, {
   through: PersonasRol,
   foreignKey: 'id_rol',
@@ -185,6 +199,7 @@ module.exports = {
   Cita,
   Notificacion,
   Rol,
+  Permiso,  // <-- AGREGADO
   Acceso,
   PersonasRol,
   PropiedadInmueble,
