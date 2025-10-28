@@ -208,6 +208,22 @@ function App() {
             </EmployeeRoute>
           }
         />
+        <Route
+          path="/reportes/gestion"
+          element={
+            <DashboardLayout>
+              <Reports />
+            </DashboardLayout>
+          }
+        />
+        <Route
+          path="/seguridad/roles"
+          element={
+            <DashboardLayout>
+              <Roles />
+            </DashboardLayout>
+          }
+        />
 
       </Routes>
       <Toaster />
