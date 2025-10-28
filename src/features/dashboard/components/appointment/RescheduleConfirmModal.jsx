@@ -3,161 +3,206 @@ import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, User, MapPin } from 'lucide-react';
 
-const RescheduleConfirmModal = ({
-  isOpen,
-  onCancel,
-  onConfirm,
-  appointment,
-  newDate
-}) => {
-  if (!isOpen) return null;
+const RescheduleConfirmModal = ({ isOpen, onCancel, onConfirm, appointment, newDate }) => {
+  if (!isOpen || !appointment) return null;
 
-  // Función para convertir formato 24 horas a 12 horas con AM/PM
+  // ✅ CORREGIDO: Función para convertir formato ISO a 12 horas
   const formatTime = (timeString) => {
     if (!timeString) return '';
+    
+    // Manejar formato ISO (1970-01-01T06:00:00.000Z)
+    if (timeString.includes('T') && timeString.includes('Z')) {
+      const date = new Date(timeString);
+      if (!isNaN(date.getTime())) {
+        const hours = date.getUTCHours();
+        const minutes = date.getUTCMinutes();
+        const isPM = hours >= 12;
+        const hours12 = hours === 0 ? 12 : (hours > 12 ? hours - 12 : hours);
+        return `${hours12}:${String(minutes).padStart(2, '0')} ${isPM ? 'pm' : 'am'}`;
+      }
+    }
+    
+    // Clean multiple AM/PM suffixes for display safety
+    let cleanedTime = timeString;
+    const amMatches = timeString.match(/\b(am|AM)\b/g);
+    const pmMatches = timeString.match(/\b(pm|PM)\b/g);
+    const totalSuffixes = (amMatches ? amMatches.length : 0) + (pmMatches ? pmMatches.length : 0);
 
-    // Si ya tiene AM/PM, devolver como está
-    if (timeString.includes('AM') || timeString.includes('PM')) {
-      return timeString;
+    if (totalSuffixes > 1) {
+      const lastAM = amMatches && amMatches.length > 0 ? amMatches[amMatches.length - 1] : null;
+      const lastPM = pmMatches && pmMatches.length > 0 ? pmMatches[pmMatches.length - 1] : null;
+      cleanedTime = timeString.replace(/\s*\b(am|pm)\b/gi, '');
+      
+      if (lastPM) {
+        cleanedTime += ' ' + lastPM.toLowerCase();
+      } else if (lastAM) {
+        cleanedTime += ' ' + lastAM.toLowerCase();
+      }
+      
+      cleanedTime = cleanedTime.trim();
     }
 
-    // Convertir de formato 24 horas a 12 horas
-    const [hours, minutes] = timeString.split(':');
+    if (cleanedTime.includes('am') || cleanedTime.includes('pm') ||
+        cleanedTime.includes('AM') || cleanedTime.includes('PM')) {
+      return cleanedTime;
+    }
+
+    const [hours, minutes] = cleanedTime.split(':');
     const hour24 = parseInt(hours, 10);
+    
+    if (isNaN(hour24)) return cleanedTime;
+    
     const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
-    const ampm = hour24 >= 12 ? 'PM' : 'AM';
+    const ampm = hour24 >= 12 ? 'pm' : 'am';
 
     return `${hour12}:${minutes} ${ampm}`;
   };
 
+  // ✅ CORREGIDO: Extraer datos de objetos anidados
+  const cliente = appointment.cliente || {};
+  const servicio = appointment.servicio || {};
+  const inmueble = appointment.inmueble || {};
+
+  const clienteNombre = cliente.nombre_completo && cliente.apellido_completo
+    ? `${cliente.nombre_completo} ${cliente.apellido_completo}`
+    : cliente.nombre_completo || 'Cliente no especificado';
+
+  const clienteTelefono = cliente.telefono || 'No especificado';
+  const servicioNombre = servicio.nombre_servicio || 'Servicio no especificado';
+  const inmuebleInfo = inmueble.direccion || 'Propiedad no especificada';
+  
+  // ✅ CORREGIDO: Usar fecha_cita en lugar de fecha
+  const fechaActual = appointment.fecha_cita || appointment.fecha;
+  const horaActual = formatTime(appointment.hora_inicio || appointment.hora || '');
+
+  // ✅ CORREGIDO: Función para formatear fecha con validación
+  const formatearFecha = (dateString) => {
+    if (!dateString) return 'Fecha no especificada';
+    
+    try {
+      const [year, month, day] = dateString.split('-').map(Number);
+      const dateObj = new Date(year, month - 1, day);
+      
+      if (isNaN(dateObj.getTime())) {
+        return 'Fecha inválida';
+      }
+      
+      return dateObj.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Fecha inválida';
+    }
+  };
+
   return ReactDOM.createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Full-screen blurred backdrop covering entire page */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/60 backdrop-blur-md"
-        onClick={onCancel}
-      />
-
-      {/* Modal */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ duration: 0.2, type: "spring", stiffness: 300, damping: 30 }}
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-auto overflow-hidden z-[101]"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
       >
-        <div className="p-6">
-          {/* Header with icon */}
-          <div className="text-center mb-6">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
-              <Calendar className="h-8 w-8 text-blue-600" />
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Calendar className="w-6 h-6" />
+            Confirmar Reagendamiento
+          </h2>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Instrucción */}
+          <p className="text-gray-600 text-sm">
+            Revisa los detalles antes de confirmar el cambio
+          </p>
+
+          {/* Información de la cita */}
+          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+            {/* Cliente */}
+            <div className="flex items-center gap-3">
+              <User className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-xs text-gray-500">Cliente</p>
+                <p className="font-semibold text-gray-900">{clienteNombre}</p>
+              </div>
             </div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
-              Confirmar reagendado
-            </h3>
-            <p className="text-slate-600">
-              Revisa los detalles antes de confirmar el cambio
-            </p>
+
+            {/* Teléfono */}
+            <div className="flex items-center gap-3">
+              <Clock className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-xs text-gray-500">Teléfono</p>
+                <p className="font-semibold text-gray-900">{clienteTelefono}</p>
+              </div>
+            </div>
+
+            {/* Servicio/Propiedad */}
+            <div className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-xs text-gray-500">Servicio</p>
+                <p className="font-semibold text-gray-900">{servicioNombre}</p>
+              </div>
+            </div>
+
+            {/* Hora */}
+            <div className="flex items-center gap-3">
+              <Clock className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-xs text-gray-500">Hora</p>
+                <p className="font-semibold text-gray-900">{horaActual}</p>
+              </div>
+            </div>
           </div>
 
-          {/* Appointment details */}
-          {appointment && (
-            <div className="bg-slate-50 rounded-xl p-4 mb-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <User className="w-5 h-5 text-slate-500 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium text-slate-900">{appointment.cliente}</p>
-                    <p className="text-sm text-slate-600">{appointment.telefono}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <MapPin className="w-5 h-5 text-slate-500 flex-shrink-0" />
-                  <p className="text-slate-700">{appointment.propiedad}</p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-slate-500 flex-shrink-0" />
-                  <p className="text-slate-700">{formatTime(appointment.hora)}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Date change info */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-6 border border-blue-200">
-            <div className="text-center">
-              <p className="text-sm text-slate-600 mb-2">Fecha actual</p>
-              <p className="font-semibold text-slate-900 mb-3">
-                {appointment ? (() => {
-                  const [year, month, day] = appointment.fecha.split('-').map(Number);
-                  const dateObj = new Date(year, month - 1, day);
-                  return dateObj.toLocaleDateString('es-ES', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  });
-                })() : ''}
+          {/* Comparación de fechas */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Fecha actual */}
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-xs font-medium text-red-600 mb-2">Fecha actual</p>
+              <p className="text-sm font-semibold text-gray-900">
+                {formatearFecha(fechaActual)}
               </p>
+            </div>
 
-              <div className="flex items-center justify-center mb-3">
-                <div className="flex-1 h-px bg-blue-300"></div>
-                <div className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-full">
-                  Cambiar a
-                </div>
-                <div className="flex-1 h-px bg-blue-300"></div>
-              </div>
-
-              <p className="text-sm text-slate-600 mb-2">Nueva fecha</p>
-              <p className="font-semibold text-blue-600">
-                {newDate ? (() => {
-                  const [year, month, day] = newDate.split('-').map(Number);
-                  const dateObj = new Date(year, month - 1, day);
-                  return dateObj.toLocaleDateString('es-ES', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  });
-                })() : ''}
+            {/* Nueva fecha */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-xs font-medium text-green-600 mb-2">Nueva fecha</p>
+              <p className="text-sm font-semibold text-gray-900">
+                {formatearFecha(newDate)}
               </p>
             </div>
           </div>
 
-          {/* Confirmation message */}
-          <div className="text-center mb-6">
-            <p className="text-slate-700">
-              ¿Estás seguro de que deseas reagendar esta cita?
-            </p>
-            <p className="text-sm text-slate-500 mt-1">
+          {/* Advertencia */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p className="text-sm text-amber-800">
+              <span className="font-semibold">¿Estás seguro de que deseas reagendar esta cita?</span>
+              <br />
               Esta acción actualizará permanentemente la fecha de la cita.
             </p>
           </div>
+        </div>
 
-          {/* Action buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={onCancel}
-              className="px-6 py-3 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium"
-            >
-              Cancelar
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={onConfirm}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-colors font-medium shadow-lg hover:shadow-xl"
-            >
-              Confirmar reagendado
-            </motion.button>
-          </div>
+        {/* Footer - Botones */}
+        <div className="bg-gray-50 px-6 py-4 flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Confirmar Reagendamiento
+          </button>
         </div>
       </motion.div>
     </div>,

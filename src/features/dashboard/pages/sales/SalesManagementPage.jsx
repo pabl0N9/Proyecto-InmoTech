@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import ReactDOM from 'react-dom';
 import { FaUsers, FaPlus, FaEye, FaChartBar, FaSearch } from "react-icons/fa";
-import "../../../../../shared/styles/globals.css";
-// Importaciones de modales (asumo que contienen la estructura de modal fija y z-50)
-import SaleForm from "../components/SaleForm";
-import PurchaseTrackingModal from "../components/SalesTracking";
-import InterestedPeopleTable from "../components/InterestedPeople";
-import ViewSaleModal from "../components/ViewSale"; 
+import "../../../../shared/styles/globals.css";
+import SaleForm from "../../components/sales/SaleForm";
+import PurchaseTrackingModal from "../../components/sales/SalesTracking";
+import InterestedPeopleTable from "../../components/sales/InterestedPeople";
+import ViewSaleModal from "../../components/sales/ViewSale"; 
 
 // 🔹 Componente que da color según estado
 const EstadoBadge = ({ estado }) => {

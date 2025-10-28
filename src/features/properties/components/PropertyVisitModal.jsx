@@ -20,51 +20,84 @@ import {
 import { formatPhoneNumber } from '../../../shared/utils/phoneFormatter';
 import { useToast } from '../../../shared/hooks/use-toast';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../shared/components/ui/select';
+import citaApiService from '../../../shared/services/citaApiService';
+import { apiClient } from '../../../shared/services/api.config';
+import { useAppointments } from '../../../shared/contexts/AppointmentContext';
+
 
 const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [formData, setFormData] = useState({
-    nombreCompleto: '',
+    nombres: "", // "Juan Carlos" o "María"
+    apellidos: "", // "Pérez González" o "García"
     tipoDocumento: '',
-    numeroDocumento: '',
-    telefono: '',
-    email: '',
-    fecha: '',
-    hora: '',
-    mensaje: ''
+    numeroDocumento: "",
+    telefono: "",
+    email: "",
+    fecha: "",
+    hora: "",
+    mensaje: "",
   });
   const [errors, setErrors] = useState({});
-  const [prevPhone, setPrevPhone] = useState('');
+  const [prevPhone, setPrevPhone] = useState("");
+  // ⭐ AGREGADO: Estado para loading
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // ⭐ AGREGADO: Estado para búsqueda automática
+  const [isSearchingPerson, setIsSearchingPerson] = useState(false);
 
   const { toast } = useToast();
+  const { addExistingAppointment } = useAppointments();
 
   const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
   ];
 
-  const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const daysOfWeek = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
   const availableHours = [
-    '08:00 am', '08:30 am', '09:00 am', '09:30 am', '10:00 am', '10:30 am',
-    '11:00 am', '11:30 am', '02:00 pm', '02:30 pm', '03:00 pm', '03:30 pm',
-    '04:00 pm', '04:30 pm', '05:00 pm', '05:30 pm'
+    "08:00 am",
+    "08:30 am",
+    "09:00 am",
+    "09:30 am",
+    "10:00 am",
+    "10:30 am",
+    "11:00 am",
+    "11:30 am",
+    "02:00 pm",
+    "02:30 pm",
+    "03:00 pm",
+    "03:30 pm",
+    "04:00 pm",
+    "04:30 pm",
+    "05:00 pm",
+    "05:30 pm",
   ];
 
   const tiposDocumento = [
-    { value: 'Cédula de Ciudadanía', label: 'Cédula de Ciudadanía (CC)' },
-    { value: 'Cédula de Extranjería', label: 'Cédula de Extranjería (CE)' },
-    { value: 'NIT', label: 'NIT' },
-    { value: 'Pasaporte', label: 'Pasaporte' },
-    { value: 'Tarjeta de Identidad', label: 'Tarjeta de Identidad (TI)' }
+    { value: "Cédula de Ciudadanía", label: "Cédula de Ciudadanía (CC)" },
+    { value: "Cédula de Extranjería", label: "Cédula de Extranjería (CE)" },
+    { value: "NIT", label: "NIT" },
+    { value: "Pasaporte", label: "Pasaporte" },
+    { value: "Tarjeta de Identidad", label: "Tarjeta de Identidad (TI)" },
   ];
 
   const tipoDocumentoMap = {
-    'Cédula de Ciudadanía': 'CC',
-    'Cédula de Extranjería': 'CE',
-    'NIT': 'NIT',
-    'Pasaporte': 'Pasaporte',
-    'Tarjeta de Identidad': 'TI'
+    "Cédula de Ciudadanía": "CC",
+    "Cédula de Extranjería": "CE",
+    NIT: "NIT",
+    Pasaporte: "Pasaporte",
+    "Tarjeta de Identidad": "TI",
   };
 
   const getDaysInMonth = (date) => {
@@ -83,7 +116,7 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
       days.push({
         date: prevDate,
         isCurrentMonth: false,
-        isDisabled: true
+        isDisabled: true,
       });
     }
 
@@ -92,16 +125,16 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
       const date = new Date(year, month, day);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       // Deshabilitar domingos (día 0)
       const isDisabled = date < today || date.getDay() === 0;
-      
+
       days.push({
         date,
         isCurrentMonth: true,
         isDisabled,
         isToday: date.toDateString() === today.toDateString(),
-        isSunday: date.getDay() === 0
+        isSunday: date.getDay() === 0,
       });
     }
 
@@ -112,7 +145,7 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
       days.push({
         date: nextDate,
         isCurrentMonth: false,
-        isDisabled: true
+        isDisabled: true,
       });
     }
 
@@ -120,138 +153,172 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
   };
 
   const formatDateForInput = (date) => {
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   };
 
   // Función para validar nombre completo (igual que dashboard)
-  const validateNombre = (nombre) => {
-    if (!nombre.trim()) return 'El nombre del cliente es requerido';
-    if (nombre.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres';
-    if (nombre.trim().length > 100) return 'El nombre no puede tener más de 100 caracteres';
-    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(nombre.trim())) return 'El nombre solo puede contener letras y espacios';
-    return '';
+  // ✅ Validar nombres
+  const validateNombres = (nombres) => {
+    if (!nombres.trim()) return "Los nombres son requeridos";
+    if (nombres.trim().length < 2)
+      return "Los nombres deben tener al menos 2 caracteres";
+    if (nombres.trim().length > 50)
+      return "Los nombres no pueden tener más de 50 caracteres";
+    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(nombres.trim()))
+      return "Los nombres solo pueden contener letras y espacios";
+    return "";
+  };
+
+  // ✅ Validar apellidos
+  const validateApellidos = (apellidos) => {
+    if (!apellidos.trim()) return "Los apellidos son requeridos";
+    if (apellidos.trim().length < 2)
+      return "Los apellidos deben tener al menos 2 caracteres";
+    if (apellidos.trim().length > 50)
+      return "Los apellidos no pueden tener más de 50 caracteres";
+    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(apellidos.trim()))
+      return "Los apellidos solo pueden contener letras y espacios";
+    return "";
   };
 
   // Función para validar teléfono colombiano (igual que dashboard)
   const validateTelefono = (telefono) => {
-    if (!telefono.trim()) return 'El teléfono es requerido';
-    const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, '');
+    if (!telefono.trim()) return "El teléfono es requerido";
+    const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, "");
     if (!/^(\+57|57)?[3][0-9]{9}$/.test(telefonoLimpio)) {
-      return 'El teléfono debe tener formato colombiano (+57 XXX XXX XXXX o 3XX XXX XXXX)';
+      return "El teléfono debe tener formato colombiano (+57 XXX XXX XXXX o 3XX XXX XXXX)";
     }
-    return '';
+    return "";
   };
 
   // Función para validar email (igual que dashboard)
   const validateEmail = (email) => {
-    if (!email.trim()) return 'El email es requerido';
+    if (!email.trim()) return "El email es requerido";
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email.trim())) return 'Ingresa un email válido';
-    if (email.length > 254) return 'El email es demasiado largo';
-    return '';
+    if (!emailRegex.test(email.trim())) return "Ingresa un email válido";
+    if (email.length > 254) return "El email es demasiado largo";
+    return "";
   };
 
   // Función para validar tipo de documento (igual que dashboard)
   const validateTipoDocumento = (tipoDocumento) => {
-    if (!tipoDocumento) return 'El tipo de documento es requerido';
-    return '';
+    if (!tipoDocumento) return "El tipo de documento es requerido";
+    return "";
   };
 
   // Función para validar número de documento (igual que dashboard)
-const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
-  if (!numeroDocumento.trim()) return 'El número de documento es requerido';
+  const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
+    if (!numeroDocumento.trim()) return "El número de documento es requerido";
 
-  const numeroLimpio = numeroDocumento.replace(/[\s\-\.]/g, '');
+    const numeroLimpio = numeroDocumento.replace(/[\s\-\.]/g, "");
 
-  switch (tipoDocumento) {
-    case 'Cédula de Ciudadanía':
-      if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
-        return 'La cédula debe tener entre 8 y 10 dígitos';
-      }
-      break;
-    case 'Cédula de Extranjería':
-      if (!/^[0-9]{6,10}$/.test(numeroLimpio)) {
-        return 'La cédula de extranjería debe tener entre 6 y 10 dígitos';
-      }
-      break;
-    case 'NIT':
-      if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
-        return 'El NIT debe tener entre 8 y 10 dígitos';
-      }
-      break;
-    case 'Pasaporte':
-      if (numeroLimpio.length < 6 || numeroLimpio.length > 20) {
-        return 'El pasaporte debe tener entre 6 y 20 caracteres';
-      }
-      if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) {
-        return 'El pasaporte solo puede contener letras y números';
-      }
-      break;
-    case 'Tarjeta de Identidad':
-      if (!/^[0-9]{10,11}$/.test(numeroLimpio)) {
-        return 'La tarjeta de identidad debe tener 10 u 11 dígitos';
-      }
-      break;
-    default:
-      return 'Tipo de documento no válido';
-  }
+    switch (tipoDocumento) {
+      case "Cédula de Ciudadanía":
+        if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
+          return "La cédula debe tener entre 8 y 10 dígitos";
+        }
+        break;
+      case "Cédula de Extranjería":
+        if (!/^[0-9]{6,10}$/.test(numeroLimpio)) {
+          return "La cédula de extranjería debe tener entre 6 y 10 dígitos";
+        }
+        break;
+      case "NIT":
+        if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
+          return "El NIT debe tener entre 8 y 10 dígitos";
+        }
+        break;
+      case "Pasaporte":
+        if (numeroLimpio.length < 6 || numeroLimpio.length > 20) {
+          return "El pasaporte debe tener entre 6 y 20 caracteres";
+        }
+        if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) {
+          return "El pasaporte solo puede contener letras y números";
+        }
+        break;
+      case "Tarjeta de Identidad":
+        if (!/^[0-9]{10,11}$/.test(numeroLimpio)) {
+          return "La tarjeta de identidad debe tener 10 u 11 dígitos";
+        }
+        break;
+      default:
+        return "Tipo de documento no válido";
+    }
 
-  return '';
-};
+    return "";
+  };
 
   // Función para validar fecha (igual que dashboard)
   const validateFecha = (fecha) => {
-    if (!fecha) return 'La fecha es requerida';
+    if (!fecha) return "La fecha es requerida";
     const fechaSeleccionada = new Date(fecha);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
-    if (fechaSeleccionada < hoy) return 'No se pueden agendar citas en fechas pasadas';
-    return '';
+    if (fechaSeleccionada < hoy)
+      return "No se pueden agendar citas en fechas pasadas";
+    return "";
   };
 
   // Función para validar hora (horario laboral como dashboard)
   const validateHora = (hora) => {
-    if (!hora) return 'La hora es requerida';
+    if (!hora) return "La hora es requerida";
 
     // Lista de horas válidas
     const validHours = [
-      '08:00 am', '08:30 am', '09:00 am', '09:30 am', '10:00 am', '10:30 am',
-      '11:00 am', '11:30 am', '02:00 pm', '02:30 pm', '03:00 pm', '03:30 pm',
-      '04:00 pm', '04:30 pm', '05:00 pm', '05:30 pm'
+      "08:00 am",
+      "08:30 am",
+      "09:00 am",
+      "09:30 am",
+      "10:00 am",
+      "10:30 am",
+      "11:00 am",
+      "11:30 am",
+      "02:00 pm",
+      "02:30 pm",
+      "03:00 pm",
+      "03:30 pm",
+      "04:00 pm",
+      "04:30 pm",
+      "05:00 pm",
+      "05:30 pm",
     ];
 
     if (!validHours.includes(hora)) {
-      return 'Las citas solo se pueden agendar entre las 8:00 am y las 6:00 pm';
+      return "Las citas solo se pueden agendar entre las 8:00 am y las 6:00 pm";
     }
 
-    return '';
+    return "";
   };
 
   const validateForm = () => {
     const newErrors = {};
 
-    // Validar todos los campos usando las funciones del dashboard
-    newErrors.nombreCompleto = validateNombre(formData.nombreCompleto);
+    // ✅ Validar nombres y apellidos
+    newErrors.nombres = validateNombres(formData.nombres);
+    newErrors.apellidos = validateApellidos(formData.apellidos);
     newErrors.telefono = validateTelefono(formData.telefono);
     newErrors.email = validateEmail(formData.email);
     newErrors.tipoDocumento = validateTipoDocumento(formData.tipoDocumento);
-    newErrors.numeroDocumento = validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento);
+    newErrors.numeroDocumento = validateNumeroDocumento(
+      formData.numeroDocumento,
+      formData.tipoDocumento
+    );
     newErrors.fecha = validateFecha(formData.fecha);
     newErrors.hora = validateHora(formData.hora);
 
     setErrors(newErrors);
-    return Object.values(newErrors).every(error => !error);
+    return Object.values(newErrors).every((error) => !error);
   };
 
   const parseTime = (timeString) => {
-    const [time, period] = timeString.split(' ');
-    const [hours, minutes] = time.split(':');
+    const [time, period] = timeString.split(" ");
+    const [hours, minutes] = time.split(":");
     let hour24 = parseInt(hours);
 
-    if (period === 'am' && hour24 !== 12) {
+    if (period === "am" && hour24 !== 12) {
       hour24 += 12;
-    } else if (period === 'pm' && hour24 === 12) {
+    } else if (period === "pm" && hour24 === 12) {
       hour24 = 0;
     }
 
@@ -260,44 +327,85 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
     return date;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      const citaData = {
-        cliente: formData.nombreCompleto,
-        telefono: formData.telefono,
-        email: formData.email,
-        fecha: formData.fecha,
-        hora: formData.hora,
-        propiedad: property?.title || 'Propiedad no especificada',
-        notas: `Tipo de documento: ${tiposDocumento.find(t => t.value === formData.tipoDocumento)?.label}, Número: ${formData.numeroDocumento}. ${formData.mensaje ? 'Mensaje: ' + formData.mensaje : ''}`,
-        estado: 'programada',
-        tipoDocumento: tipoDocumentoMap[formData.tipoDocumento] || formData.tipoDocumento,
-        numeroDocumento: formData.numeroDocumento,
-        mensaje: formData.mensaje
-      };
-      
-      onSubmit(citaData);
-      handleClose();
-    } else {
+  
+    if (!validateForm()) {
       toast({
         title: "Por favor, corrige los errores",
-        description: "Revisa los campos marcados en rojo y completa la información requerida.",
-        variant: "destructive"
+        variant: "destructive",
       });
+      return;
+    }
+  
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+  
+    try {
+      // ✅ DATOS CORRECTOS con los nombres que espera el backend
+      const citaData = {
+        tipo_documento: tipoDocumentoMap[formData.tipoDocumento] || formData.tipoDocumento,
+        numero_documento: formData.numeroDocumento.replace(/[\s.-]/g, ''),
+        nombre_completo: formData.nombres.trim(),      // ✅ CAMBIO
+        apellido_completo: formData.apellidos.trim(),  // ✅ CAMBIO
+        email: formData.email.trim(),                  // ✅ CAMBIO (era correo)
+        telefono: formData.telefono,
+        fecha_cita: formData.fecha,                   // ✅ CAMBIO (con guión bajo)
+        hora_inicio: parseTime(formData.hora).toTimeString().substring(0, 5), // ✅ FORMATO HH:MM
+        hora_fin: calcularHoraFin(parseTime(formData.hora).toTimeString().substring(0, 5)), // ✅ FORMATO HH:MM
+        id_inmueble: property?.id || 1,               // ✅ CAMBIO (con guión bajo)
+        id_servicio: 1,                               // ✅ CAMBIO (con guión bajo)
+        observaciones: formData.mensaje || null
+      };
+  
+      console.log('📤 Datos de cita a enviar:', citaData);
+  
+      // Crear la cita
+      const nuevaCita = await citaApiService.crearCita(citaData);
+  
+      // Agregar al contexto
+      addExistingAppointment(nuevaCita);
+  
+      toast({
+        title: "¡Visita agendada exitosamente!",
+        variant: "default",
+      });
+  
+      handleClose();
+  
+    } catch (error) {
+      console.error('❌ Error al crear cita:', error);
+      toast({
+        title: "Error al agendar la visita",
+        description: error.message || "Por favor intenta nuevamente",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
+    
+  
+  // ✅ Función auxiliar para calcular hora fin
+  const calcularHoraFin = (horaInicio) => {
+    // Remover am/pm si existe
+    const horaLimpia = horaInicio.replace(/\s?(am|pm)/i, '');
+    const [hora, minutos] = horaLimpia.split(':');
+    const horaFin = parseInt(hora) + 1;
+    return `${horaFin.toString().padStart(2, '0')}:${minutos || '00'}`;
+  };
+  
   const handleClose = () => {
     setFormData({
-      nombreCompleto: '',
-      tipoDocumento: '',
-      numeroDocumento: '',
-      telefono: '',
-      email: '',
-      fecha: '',
-      hora: '',
-      mensaje: ''
+      nombres: "", // ✅ Actualizado
+      apellidos: "", // ✅ Actualizado
+      tipoDocumento: "",
+      numeroDocumento: "",
+      telefono: "",
+      email: "",
+      fecha: "",
+      hora: "",
+      mensaje: "",
     });
     setErrors({});
     onClose();
@@ -305,88 +413,200 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
 
   // Función para verificar si se puede proceder (similar a canProceedToNextStep del dashboard)
   const canSubmit = () => {
-    const requiredFields = ['nombreCompleto', 'telefono', 'email', 'tipoDocumento', 'numeroDocumento', 'fecha', 'hora'];
-    const hasAllRequired = requiredFields.every(field => formData[field].trim() !== '');
+    const requiredFields = [
+      "nombres",
+      "apellidos",
+      "telefono",
+      "email",
+      "tipoDocumento",
+      "numeroDocumento",
+      "fecha",
+      "hora",
+    ];
+    const hasAllRequired = requiredFields.every(
+      (field) => formData[field].trim() !== ""
+    );
 
     if (!hasAllRequired) return false;
 
-    // Verificar que no hay errores en los campos requeridos
     const newErrors = {};
-    newErrors.nombreCompleto = validateNombre(formData.nombreCompleto);
+    newErrors.nombres = validateNombres(formData.nombres);
+    newErrors.apellidos = validateApellidos(formData.apellidos);
     newErrors.telefono = validateTelefono(formData.telefono);
     newErrors.email = validateEmail(formData.email);
     newErrors.tipoDocumento = validateTipoDocumento(formData.tipoDocumento);
-    newErrors.numeroDocumento = validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento);
+    newErrors.numeroDocumento = validateNumeroDocumento(
+      formData.numeroDocumento,
+      formData.tipoDocumento
+    );
     newErrors.fecha = validateFecha(formData.fecha);
     newErrors.hora = validateHora(formData.hora);
 
-    return Object.keys(newErrors).every(key => !newErrors[key]);
+    return Object.keys(newErrors).every((key) => !newErrors[key]);
   };
 
   // Función para validar campo específico en tiempo real
   const validateField = (field, value) => {
     switch (field) {
-      case 'nombreCompleto':
-        return validateNombre(value);
-      case 'telefono':
+      case "nombres":
+        return validateNombres(value);
+      case "apellidos":
+        return validateApellidos(value);
+      case "telefono":
         return validateTelefono(value);
-      case 'email':
+      case "email":
         return validateEmail(value);
-      case 'tipoDocumento':
+      case "tipoDocumento":
         return validateTipoDocumento(value);
-      case 'numeroDocumento':
+      case "numeroDocumento":
         return validateNumeroDocumento(value, formData.tipoDocumento);
-      case 'fecha':
+      case "fecha":
         return validateFecha(value);
-      case 'hora':
+      case "hora":
         return validateHora(value);
       default:
-        return '';
+        return "";
     }
   };
 
   const updateFormData = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
 
     // Validación en tiempo real
     const error = validateField(field, value);
-    setErrors(prev => ({
+    setErrors((prev) => ({
       ...prev,
-      [field]: error
+      [field]: error,
     }));
   };
+
+// ⭐ CORRECCIÓN: Función para buscar persona automáticamente
+const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
+  // Validaciones previas
+  if (!tipoDocumento || !numeroDocumento || numeroDocumento.length < 5) {
+    return;
+  }
+
+  const errorDocumento = validateNumeroDocumento(numeroDocumento, tipoDocumento);
+  if (errorDocumento) {
+    return;
+  }
+
+  setIsSearchingPerson(true);
+
+  try {
+    console.log('🔍 Buscando persona:', {
+      tipo: tipoDocumentoMap[tipoDocumento] || tipoDocumento,
+      numero: numeroDocumento.replace(/[\s\-\.]/g, '')
+    });
+
+    const tipoDocMap = tipoDocumentoMap[tipoDocumento] || tipoDocumento;
+    const response = await apiClient.get('/citas/buscar-persona', {
+      params: {
+        tipo_documento: tipoDocMap,
+        numero_documento: numeroDocumento.replace(/[\s\-\.]/g, '')
+      }
+    });
+
+    console.log('✅ Respuesta del servidor:', response);
+
+    const persona = response.data || response;
+
+    if (persona && (persona.primer_nombre || persona.correo || persona.telefono)) {
+      // Construir nombres completos
+      const nombresCompletos = [persona.primer_nombre, persona.segundo_nombre]
+        .filter(Boolean)
+        .join(' ');
+
+      const apellidosCompletos = [persona.primer_apellido, persona.segundo_apellido]
+        .filter(Boolean)
+        .join(' ');
+
+      // ⭐ CORRECCIÓN: Formatear el teléfono usando tu función formatPhoneNumber
+      let telefonoFormateado = persona.telefono || '';
+      if (telefonoFormateado) {
+        telefonoFormateado = formatPhoneNumber(telefonoFormateado, '', false);
+      }
+
+      console.log('📝 Datos a rellenar:', {
+        nombres: nombresCompletos,
+        apellidos: apellidosCompletos,
+        telefono: telefonoFormateado,
+        correo: persona.correo
+      });
+
+      // Actualizar formulario
+      if (nombresCompletos.trim()) {
+        setFormData(prev => ({ ...prev, nombres: nombresCompletos }));
+      }
+
+      if (apellidosCompletos.trim()) {
+        setFormData(prev => ({ ...prev, apellidos: apellidosCompletos }));
+      }
+
+      if (telefonoFormateado) {
+        setFormData(prev => ({ ...prev, telefono: telefonoFormateado }));
+        // ⭐ También actualizar prevPhone para que funcione el formateo manual
+        setPrevPhone(telefonoFormateado);
+      }
+
+      if (persona.correo) {
+        setFormData(prev => ({ ...prev, email: persona.correo }));
+      }
+
+      toast({
+        title: "✅ Datos encontrados",
+        description: "Se han completado los campos con la información existente.",
+        variant: "default"
+      });
+    }
+  } catch (error) {
+    if (error.response?.status !== 404) {
+      console.error('❌ Error al buscar persona:', error);
+      toast({
+        title: "Error al buscar información",
+        description: "No se pudo verificar si el documento existe. Continúa ingresando los datos manualmente.",
+        variant: "destructive"
+      });
+    } else {
+      console.log('ℹ️ Persona no encontrada, continuar con registro nuevo');
+    }
+  } finally {
+    setIsSearchingPerson(false);
+  }
+};
 
   // Función para manejar el cambio del teléfono con formateo automático
   const handlePhoneChange = (e) => {
     const newValue = e.target.value;
     const formatted = formatPhoneNumber(newValue, prevPhone, false);
     setPrevPhone(formatted);
-    updateFormData('telefono', formatted);
+    updateFormData("telefono", formatted);
   };
 
   // Función para manejar el evento de teclado en el teléfono (backspace)
   const handlePhoneKeyDown = (e) => {
-    if (e.key === 'Backspace') {
+    if (e.key === "Backspace") {
       const formatted = formatPhoneNumber(
         formData.telefono.slice(0, -1),
         formData.telefono,
         true
       );
       setPrevPhone(formatted);
-      updateFormData('telefono', formatted);
+      updateFormData("telefono", formatted);
       e.preventDefault();
     }
   };
 
   const handleDateSelect = (day) => {
     if (day.isDisabled) return;
-    
+
     const dateString = formatDateForInput(day.date);
-    updateFormData('fecha', dateString);
+    updateFormData("fecha", dateString);
   };
 
   const navigateMonth = (direction) => {
-    setCurrentMonth(prev => {
+    setCurrentMonth((prev) => {
       const newDate = new Date(prev);
       newDate.setMonth(prev.getMonth() + direction);
       return newDate;
@@ -424,8 +644,12 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                 <Calendar className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-slate-800">Agendar Visita a la Propiedad</h2>
-                <p className="text-slate-600 mt-1">Programa tu visita personalizada</p>
+                <h2 className="text-2xl font-bold text-slate-800">
+                  Agendar Visita a la Propiedad
+                </h2>
+                <p className="text-slate-600 mt-1">
+                  Programa tu visita personalizada
+                </p>
               </div>
             </div>
             <motion.button
@@ -447,31 +671,41 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                   <Home className="w-5 h-5" />
                   <span>Propiedad seleccionada</span>
                 </div>
-                
+
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-                  <h3 className="font-bold text-lg text-slate-800 mb-2">{property.title}</h3>
-                  
+                  <h3 className="font-bold text-lg text-slate-800 mb-2">
+                    {property.title}
+                  </h3>
+
                   <div className="flex items-center gap-2 text-slate-600 mb-3">
                     <MapPin className="w-4 h-4" />
                     <span className="text-sm">{property.location}</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 mb-4">
                     <DollarSign className="w-5 h-5 text-green-600" />
-                    <span className="text-xl font-bold text-green-600">{property.price}</span>
+                    <span className="text-xl font-bold text-green-600">
+                      {property.price}
+                    </span>
                   </div>
-                  
+
                   <div className="grid grid-cols-3 gap-2 text-sm">
                     <div className="text-center bg-slate-50 rounded-lg p-2">
-                      <div className="font-semibold text-slate-800">{property.area}</div>
+                      <div className="font-semibold text-slate-800">
+                        {property.area}
+                      </div>
                       <div className="text-slate-500">Área</div>
                     </div>
                     <div className="text-center bg-slate-50 rounded-lg p-2">
-                      <div className="font-semibold text-slate-800">{property.bedrooms}</div>
+                      <div className="font-semibold text-slate-800">
+                        {property.bedrooms}
+                      </div>
                       <div className="text-slate-500">Hab.</div>
                     </div>
                     <div className="text-center bg-slate-50 rounded-lg p-2">
-                      <div className="font-semibold text-slate-800">{property.bathrooms}</div>
+                      <div className="font-semibold text-slate-800">
+                        {property.bathrooms}
+                      </div>
                       <div className="text-slate-500">Baños</div>
                     </div>
                   </div>
@@ -488,72 +722,151 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                     <User className="w-5 h-5 text-blue-600" />
                     Información Personal
                   </h3>
-                  
+
+{/* Tipo de Documento y Número */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {/* TIPO DE DOCUMENTO */}
+  <div>
+    <label className="block text-sm font-medium text-slate-700 mb-2">
+      Tipo de Documento <span className="text-red-500">*</span>
+    </label>
+    <Select 
+      value={formData.tipoDocumento} 
+      onValueChange={(value) => {
+        updateFormData('tipoDocumento', value);
+        
+        // Si ya hay un número de documento válido, buscar automáticamente
+        if (formData.numeroDocumento.trim().length >= 5) {
+          // Limpiar timeout anterior
+          if (window.searchTimeout) {
+            clearTimeout(window.searchTimeout);
+          }
+          
+          // Buscar después de 300ms
+          window.searchTimeout = setTimeout(() => {
+            buscarPersonaAutomaticamente(value, formData.numeroDocumento);
+          }, 300);
+        }
+      }}
+    >
+      <SelectTrigger className={`w-full ${errors.tipoDocumento ? 'border-red-500' : ''}`}>
+        <SelectValue placeholder="Seleccionar tipo de documento" />
+      </SelectTrigger>
+      <SelectContent>
+        {tiposDocumento.map(tipo => (
+          <SelectItem key={tipo.value} value={tipo.value}>
+            {tipo.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+    {errors.tipoDocumento && (
+      <p className="text-red-500 text-sm mt-1">{errors.tipoDocumento}</p>
+    )}
+  </div>
+
+  {/* NÚMERO DE DOCUMENTO */}
+  <div>
+    <label className="block text-sm font-medium text-slate-700 mb-2">
+      Número de Documento <span className="text-red-500">*</span>
+    </label>
+    <input
+      type="text"
+      value={formData.numeroDocumento}
+      onChange={(e) => {
+        // 1. Filtrar solo caracteres válidos
+        const value = e.target.value;
+        const filteredValue = value.replace(/[^0-9\s\.\-]/g, '');
+        
+        // 2. Actualizar el estado
+        updateFormData('numeroDocumento', filteredValue);
+
+        // 3. Limpiar búsqueda anterior
+        if (window.searchTimeout) {
+          clearTimeout(window.searchTimeout);
+        }
+
+        // 4. Buscar automáticamente con debounce
+        if (formData.tipoDocumento && filteredValue.trim().length >= 5) {
+          window.searchTimeout = setTimeout(() => {
+            buscarPersonaAutomaticamente(formData.tipoDocumento, filteredValue);
+          }, 500);
+        }
+      }}
+      onKeyDown={(e) => {
+        // Prevenir entrada de letras
+        if (/^[a-zA-Z]$/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+        }
+      }}
+      onBlur={() => {
+        // Buscar inmediatamente al salir del campo
+        if (formData.tipoDocumento && formData.numeroDocumento.trim().length >= 5) {
+          buscarPersonaAutomaticamente(formData.tipoDocumento, formData.numeroDocumento);
+        }
+      }}
+      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+        errors.numeroDocumento ? 'border-red-500' : 'border-slate-300'
+      } ${isSearchingPerson ? 'bg-blue-50' : ''}`}
+      placeholder="Número de documento"
+      disabled={!formData.tipoDocumento}
+    />
+    {errors.numeroDocumento && (
+      <p className="text-red-500 text-sm mt-1">{errors.numeroDocumento}</p>
+    )}
+    {isSearchingPerson && (
+      <div className="text-blue-500 text-sm mt-1 flex items-center gap-2">
+        <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        Buscando información...
+      </div>
+    )}
+  </div>
+</div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Tipo de Documento *
-                      </label>
-                      <Select value={formData.tipoDocumento} onValueChange={(value) => updateFormData('tipoDocumento', value)}>
-                        <SelectTrigger className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white">
-                          <SelectValue placeholder="Seleccionar tipo de documento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {tiposDocumento.map(tipo => (
-                            <SelectItem key={tipo.value} value={tipo.value}>
-                              {tipo.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Número de Documento *
+                        Nombres *
                       </label>
                       <input
                         type="text"
-                        value={formData.numeroDocumento}
-                        onChange={(e) => {
-                          // Solo permitir números, espacios, puntos y guiones
-                          const value = e.target.value;
-                          const filteredValue = value.replace(/[^0-9\s\.\-]/g, '');
-                          updateFormData('numeroDocumento', filteredValue);
-                        }}
-                        onKeyDown={(e) => {
-                          // Prevenir entrada de letras
-                          if (/^[a-zA-Z]$/.test(e.key) && !e.ctrlKey && !e.metaKey) {
-                            e.preventDefault();
-                          }
-                        }}
+                        value={formData.nombres}
+                        onChange={(e) =>
+                          updateFormData("nombres", e.target.value)
+                        }
                         className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                          errors.numeroDocumento ? 'border-red-500' : 'border-slate-300'
+                          errors.nombres ? "border-red-500" : "border-slate-300"
                         }`}
-                        placeholder="Número de documento"
+                        placeholder="Ej: Juan Carlos"
                       />
-                      {errors.numeroDocumento && (
-                        <p className="text-red-500 text-sm mt-1">{errors.numeroDocumento}</p>
+                      {errors.nombres && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.nombres}
+                        </p>
                       )}
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Nombre Completo *
+                        Apellidos *
                       </label>
                       <input
                         type="text"
-                        value={formData.nombreCompleto}
-                        onChange={(e) => updateFormData('nombreCompleto', e.target.value)}
+                        value={formData.apellidos}
+                        onChange={(e) =>
+                          updateFormData("apellidos", e.target.value)
+                        }
                         className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                          errors.nombreCompleto ? 'border-red-500' : 'border-slate-300'
+                          errors.apellidos
+                            ? "border-red-500"
+                            : "border-slate-300"
                         }`}
-                        placeholder="Ingresa tu nombre completo"
+                        placeholder="Ej: Pérez González"
                       />
-                      {errors.nombreCompleto && (
-                        <p className="text-red-500 text-sm mt-1">{errors.nombreCompleto}</p>
+                      {errors.apellidos && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.apellidos}
+                        </p>
                       )}
                     </div>
 
@@ -567,12 +880,16 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                         onChange={handlePhoneChange}
                         onKeyDown={handlePhoneKeyDown}
                         className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                          errors.telefono ? 'border-red-500' : 'border-slate-300'
+                          errors.telefono
+                            ? "border-red-500"
+                            : "border-slate-300"
                         }`}
                         placeholder="+57 300 123 4567"
                       />
                       {errors.telefono && (
-                        <p className="text-red-500 text-sm mt-1">{errors.telefono}</p>
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.telefono}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -584,14 +901,16 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e) => updateFormData('email', e.target.value)}
+                      onChange={(e) => updateFormData("email", e.target.value)}
                       className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                        errors.email ? 'border-red-500' : 'border-slate-300'
+                        errors.email ? "border-red-500" : "border-slate-300"
                       }`}
                       placeholder="tu@email.com"
                     />
                     {errors.email && (
-                      <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.email}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -616,11 +935,12 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                       >
                         <ChevronLeft className="w-5 h-5 text-slate-600" />
                       </motion.button>
-                      
+
                       <h4 className="text-lg font-semibold text-slate-800">
-                        {months[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                        {months[currentMonth.getMonth()]}{" "}
+                        {currentMonth.getFullYear()}
                       </h4>
-                      
+
                       <motion.button
                         type="button"
                         whileHover={{ scale: 1.1 }}
@@ -634,8 +954,11 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
 
                     {/* Days of Week */}
                     <div className="grid grid-cols-7 gap-1 mb-2">
-                      {daysOfWeek.map(day => (
-                        <div key={day} className="text-center text-sm font-medium text-slate-500 py-2">
+                      {daysOfWeek.map((day) => (
+                        <div
+                          key={day}
+                          className="text-center text-sm font-medium text-slate-500 py-2"
+                        >
                           {day}
                         </div>
                       ))}
@@ -644,8 +967,9 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                     {/* Calendar Days */}
                     <div className="grid grid-cols-7 gap-1">
                       {days.map((day, index) => {
-                        const isSelected = formData.fecha === formatDateForInput(day.date);
-                        
+                        const isSelected =
+                          formData.fecha === formatDateForInput(day.date);
+
                         return (
                           <motion.button
                             key={index}
@@ -656,14 +980,23 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                             disabled={day.isDisabled}
                             className={`
                               h-10 w-10 rounded-lg text-sm font-medium transition-all duration-200
-                              ${day.isDisabled 
-                                ? 'text-slate-300 cursor-not-allowed' 
-                                : 'text-slate-700 hover:bg-blue-50'
+                              ${
+                                day.isDisabled
+                                  ? "text-slate-300 cursor-not-allowed"
+                                  : "text-slate-700 hover:bg-blue-50"
                               }
-                              ${!day.isCurrentMonth ? 'text-slate-400' : ''}
-                              ${day.isToday ? 'bg-blue-100 text-blue-600 font-bold' : ''}
-                              ${isSelected ? 'bg-blue-600 text-white' : ''}
-                              ${day.isSunday && day.isCurrentMonth ? 'bg-red-50 text-red-400' : ''}
+                              ${!day.isCurrentMonth ? "text-slate-400" : ""}
+                              ${
+                                day.isToday
+                                  ? "bg-blue-100 text-blue-600 font-bold"
+                                  : ""
+                              }
+                              ${isSelected ? "bg-blue-600 text-white" : ""}
+                              ${
+                                day.isSunday && day.isCurrentMonth
+                                  ? "bg-red-50 text-red-400"
+                                  : ""
+                              }
                             `}
                           >
                             {day.date.getDate()}
@@ -688,7 +1021,9 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                     </div>
 
                     {errors.fecha && (
-                      <p className="text-red-500 text-sm mt-2">{errors.fecha}</p>
+                      <p className="text-red-500 text-sm mt-2">
+                        {errors.fecha}
+                      </p>
                     )}
                   </div>
 
@@ -706,18 +1041,19 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                       </div>
 
                       <div className="grid grid-cols-4 gap-3">
-                        {availableHours.map(hour => (
+                        {availableHours.map((hour) => (
                           <motion.button
                             key={hour}
                             type="button"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => updateFormData('hora', hour)}
+                            onClick={() => updateFormData("hora", hour)}
                             className={`
                               py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200
-                              ${formData.hora === hour
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-slate-700 hover:bg-blue-50 border border-slate-200'
+                              ${
+                                formData.hora === hour
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-white text-slate-700 hover:bg-blue-50 border border-slate-200"
                               }
                             `}
                           >
@@ -741,7 +1077,7 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                   </label>
                   <textarea
                     value={formData.mensaje}
-                    onChange={(e) => updateFormData('mensaje', e.target.value)}
+                    onChange={(e) => updateFormData("mensaje", e.target.value)}
                     rows={3}
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors resize-none"
                     placeholder="¿Hay algo específico que te gustaría saber sobre la propiedad?"
@@ -753,12 +1089,19 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                   <div className="flex items-start gap-3">
                     <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h4 className="font-semibold text-blue-800 mb-2">Información importante</h4>
+                      <h4 className="font-semibold text-blue-800 mb-2">
+                        Información importante
+                      </h4>
                       <ul className="text-blue-700 text-sm space-y-1">
-                        <li>• Te contactaremos en las próximas 2 horas para confirmar</li>
+                        <li>
+                          • Te contactaremos en las próximas 2 horas para
+                          confirmar
+                        </li>
                         <li>• Duración aproximada: 30-45 minutos</li>
                         <li>• Puedes reagendar con 24 horas de anticipación</li>
-                        <li>• Para visitas presenciales, lleva identificación</li>
+                        <li>
+                          • Para visitas presenciales, lleva identificación
+                        </li>
                       </ul>
                     </div>
                   </div>
@@ -771,7 +1114,8 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleClose}
-                    className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                    disabled={isSubmitting}
+                    className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancelar
                   </motion.button>
@@ -779,9 +1123,17 @@ const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
                     type="submit"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 font-medium"
+                    disabled={isSubmitting || !canSubmit()}
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-blue-700"
                   >
-                    Agendar Visita
+                    {isSubmitting ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Agendando...
+                      </div>
+                    ) : (
+                      "Agendar Visita"
+                    )}
                   </motion.button>
                 </div>
               </form>

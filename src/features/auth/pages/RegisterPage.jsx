@@ -13,22 +13,32 @@ import {
   Sparkles,
   Trophy,
   Shield,
+  AlertCircle,
 } from "lucide-react";
+import { useAuth } from "../../../shared/contexts/AuthContext";
+import { useToast } from "../../../shared/hooks/use-toast";
 
 // Nota: Necesitarás crear o adaptar estos componentes de UI para tu proyecto
 import { Button } from "../../../shared/components/ui/button";
 import { Input } from "../../../shared/components/ui/input";
 import { Label } from "../../../shared/components/ui/label";
 import { Checkbox } from "../../../shared/components/ui/checkbox";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../shared/components/ui/select";
 
 export default function RegistroPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { register } = useAuth();
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
-    nombre: "",
+    tipo_documento: "",
+    numero_documento: "",
+    nombre_completo: "",
+    apellido_completo: "",
     email: "",
     telefono: "",
     password: "",
@@ -65,11 +75,45 @@ export default function RegistroPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
-    setTimeout(() => {
+    try {
+      console.log('📝 Registrando nuevo usuario...');
+
+      // Preparar datos para el registro
+      const userData = {
+        tipo_documento: formData.tipo_documento,
+        numero_documento: formData.numero_documento,
+        nombre_completo: formData.nombre_completo,
+        apellido_completo: formData.apellido_completo,
+        email: formData.email,
+        telefono: formData.telefono,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword
+      };
+
+      await register(userData);
+
+      console.log('✅ Registro exitoso, redirigiendo a la página principal...');
+      toast({
+        title: "¡Registro exitoso!",
+        description: "Tu cuenta ha sido creada correctamente. Bienvenido a Matriz Inmobiliaria.",
+        variant: "success",
+      });
+      navigate("/");
+
+    } catch (error) {
+      console.error('❌ Error en registro:', error);
+      const errorMessage = error.message || 'Error al crear la cuenta. Inténtalo de nuevo.';
+      setError(errorMessage);
+      toast({
+        title: "Error en el registro",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      navigate("/dashboard");
-    }, 1500);
+    }
   };
 
   const getPasswordStrengthScore = () => {
@@ -166,22 +210,91 @@ export default function RegistroPage() {
           {/* Formulario principal */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="nombre" className="text-gray-700 font-medium flex items-center">
-                  <User className="h-4 w-4 mr-2 text-[#00457B]" />
-                  Nombre completo
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="nombre"
-                    name="nombre"
-                    placeholder="Tu nombre completo"
-                    className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
-                    value={formData.nombre}
-                    onChange={handleChange}
-                    required
-                  />
-                  <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+              {/* Campos de documento */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tipo_documento" className="text-gray-700 font-medium flex items-center">
+                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Tipo de documento
+                  </Label>
+                  <div className="relative">
+                    <Select
+                      value={formData.tipo_documento}
+                      onValueChange={(value) => setFormData({ ...formData, tipo_documento: value })}
+                    >
+                      <SelectTrigger className="h-12 pl-12 pr-4 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200 w-full">
+                        <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 z-10 pointer-events-none" />
+                        <SelectValue placeholder="Selecciona un tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
+                        <SelectItem value="CE">Cédula de Extranjería</SelectItem>
+                        <SelectItem value="NIT">NIT</SelectItem>
+                        <SelectItem value="PASAPORTE">Pasaporte</SelectItem>
+                        <SelectItem value="TI">Tarjeta de Identidad</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="numero_documento" className="text-gray-700 font-medium flex items-center">
+                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Número de documento
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="numero_documento"
+                      name="numero_documento"
+                      placeholder="Tu número de documento"
+                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      value={formData.numero_documento}
+                      onChange={handleChange}
+                      required
+                    />
+                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Campos de nombre y apellido */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nombre_completo" className="text-gray-700 font-medium flex items-center">
+                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Nombre completo
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="nombre_completo"
+                      name="nombre_completo"
+                      placeholder="Tu nombre completo"
+                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      value={formData.nombre_completo}
+                      onChange={handleChange}
+                      required
+                    />
+                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="apellido_completo" className="text-gray-700 font-medium flex items-center">
+                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Apellido completo
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="apellido_completo"
+                      name="apellido_completo"
+                      placeholder="Tu apellido completo"
+                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      value={formData.apellido_completo}
+                      onChange={handleChange}
+                      required
+                    />
+                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                  </div>
                 </div>
               </div>
 

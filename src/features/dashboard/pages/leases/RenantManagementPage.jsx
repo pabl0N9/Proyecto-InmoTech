@@ -1,10 +1,10 @@
 import React, { useState, useRef } from "react";
 import ReactDOM from 'react-dom';
 import { FaUserPlus, FaEye, FaEdit, FaTrash, FaSearch } from "react-icons/fa";
-import RenantForm from "../components/RenantForm";
-import EditRenantForm from "../components/EditRenantForm";
-import ViewRenant from "../components/ViewRenant"; 
-import "../../../../../shared/styles/globals.css";
+import RenantForm from "../../components/leases/RenantForm";
+import EditRenantForm from "../../components/leases/EditRenantForm";
+import ViewRenant from "../../components/leases/ViewRenant"; 
+import "../../../../shared/styles/globals.css";
 
 export function RenantManagementPage() {
   const [arriendos, setArriendos] = useState([

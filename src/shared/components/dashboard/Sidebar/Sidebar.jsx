@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MdMenu, MdClose } from 'react-icons/md';
 import SidebarItem from './SidebarItem';
 import { navigationItems, logoutItem, goToSiteItem } from '../../../utils/navigationData';
+import { useAuth } from '../../../contexts/AuthContext';
 import '../../../styles/globals.css';
 
 const Sidebar = React.forwardRef(({
@@ -16,6 +17,7 @@ const Sidebar = React.forwardRef(({
   onLogout,
   onGoToSite
 }, ref) => {
+  const { user, hasRole } = useAuth();
 
   const sidebarVariants = {
     expanded: {
@@ -41,6 +43,15 @@ const Sidebar = React.forwardRef(({
 
   const navRef = useRef(null);
   const prevExpandedItem = useRef(null);
+
+  // Filter navigation items based on user role
+  const filteredNavigationItems = navigationItems.filter(item => {
+    // Hide 'seguridad' module for 'Empleado' role
+    if (item.id === 'seguridad' && hasRole('Empleado')) {
+      return false;
+    }
+    return true;
+  });
 
   useEffect(() => {
     if (navRef.current) {
@@ -128,7 +139,7 @@ const Sidebar = React.forwardRef(({
       {/* Navegación */}
       <div ref={navRef} className={`flex-1 py-4 ${expandedItem === 'seguridad' ? 'overflow-y-auto' : 'overflow-y-hidden'} overflow-x-hidden custom-scrollbar`}>
         <nav className="space-y-1">
-          {navigationItems.map((item) => (
+          {filteredNavigationItems.map((item) => (
             <SidebarItem
               key={item.id}
               item={item}

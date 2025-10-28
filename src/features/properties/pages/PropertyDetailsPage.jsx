@@ -43,31 +43,15 @@ export default function PropertyDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false)
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false)
   const { toast } = useToast()
-  const { addAppointment } = useAppointments()
+  const { addExistingAppointment } = useAppointments()
 
   // Simulamos obtener los datos de la propiedad basados en el ID
   const propertyId = parseInt(id)
   const property = properties.find((p) => p.id === propertyId) || properties[0]
 
-  const handleScheduleVisit = (visitData) => {
-    const todayLocal = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD en hora local
-    const appointmentData = {
-      ...visitData,
-      servicio: 'Visita a Propiedad',
-      propiedad: property.title,
-      estado: 'programada',
-      fechaCreacion: todayLocal
-    };
-
-    addAppointment(appointmentData);
-
+  const handleScheduleVisit = (nuevaCita) => {
+    addExistingAppointment(nuevaCita);
     setIsVisitModalOpen(false);
-
-    toast({
-      title: "¡Visita agendada exitosamente!",
-      description: "Te contactaremos pronto para confirmar los detalles.",
-      variant: "default"
-    })
   }
 
   return (

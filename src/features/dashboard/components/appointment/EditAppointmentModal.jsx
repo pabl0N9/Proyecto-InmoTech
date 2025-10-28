@@ -9,8 +9,8 @@ import ConfirmationDialog from '../../../../shared/components/ui/ConfirmationDia
 
 const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
   const [formData, setFormData] = useState({
-    cliente: '',
-    telefono: '',
+    nombre: '',        // ✅ NUEVO: Campo separado para nombre
+    apellido: '',      // ✅ NUEVO: Campo separado para apellido    telefono: '',
     email: '',
     tipoDocumento: '',
     numeroDocumento: '',
@@ -18,8 +18,16 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
     hora: '',
     servicio: '',
     notas: '',
-    estado: 'programada'
+    estado: 'programada',
+    // ✅ AGREGADO: IDs necesarios para el backend
+    id: null,
+    id_cita: null,
+    id_servicio: null,
+    id_inmueble: null,
+    id_persona: null
   });
+
+
   const [errors, setErrors] = useState({});
   const [prevPhone, setPrevPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,11 +42,13 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
     }
   }, [isOpen]);
 
-  const servicios = [
-    'Avalúos',
-    'Gestión de Alquileres',
-    'Asesoría Legal'
-  ];
+// ✅ Servicios con sus IDs según tu base de datos
+const servicios = [
+  { id_servicio: 1, nombre_servicio: 'Visita a Propiedad' },
+  { id_servicio: 2, nombre_servicio: 'Avalúos' },
+  { id_servicio: 3, nombre_servicio: 'Gestión de Alquileres' },
+  { id_servicio: 4, nombre_servicio: 'Asesoría Legal' }
+];
 
   const availableHours = [
     '08:00 am', '08:30 am', '09:00 am', '09:30 am', '10:00 am', '10:30 am',
@@ -48,29 +58,66 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
 
   useEffect(() => {
     if (cita) {
+      // ✅ Extraer objetos anidados de forma segura
+      const cliente = cita.cliente || {};
+      const servicio = cita.servicio || {};
+      
+      // ✅ Formatear hora desde formato ISO
+      const formatHoraParaInput = (hora) => {
+        if (!hora) return '';
+        if (hora.includes('T')) {
+          const date = new Date(hora);
+          const hours = date.getUTCHours();
+          const minutes = date.getUTCMinutes();
+          const isPM = hours >= 12;
+          const hours12 = hours === 0 ? 12 : (hours > 12 ? hours - 12 : hours);
+          return `${hours12}:${String(minutes).padStart(2, '0')} ${isPM ? 'pm' : 'am'}`;
+        }
+        return hora;
+      };
+  
       setFormData({
-        cliente: cita.cliente || '',
-        telefono: cita.telefono || '',
-        email: cita.email || '',
-        tipoDocumento: cita.tipoDocumento || '',
-        numeroDocumento: cita.numeroDocumento || '',
-        fecha: cita.fecha || '',
-        hora: cita.hora || '',
-        servicio: cita.servicio || '',
-        notas: cita.notas || '',
-        estado: cita.estado || 'programada'
+        // ✅ Separar nombre y apellido
+        nombre: cliente.nombre_completo || '',
+        apellido: cliente.apellido_completo || '',        telefono: cliente.telefono || '',
+        email: cliente.correo || '', // ✅ correo, no email
+        tipoDocumento: cliente.tipo_documento || '',
+        numeroDocumento: cliente.numero_documento || '',
+        
+        // ✅ Datos de la cita
+        fecha: cita.fecha_cita || '', // ✅ fecha_cita según tu BD
+        hora: formatHoraParaInput(cita.hora_inicio) || '', // ✅ hora_inicio en formato ISO
+        servicio: servicio.nombre_servicio || '', // ✅ STRING del nombre, no objeto
+        notas: cita.observaciones || '', // ✅ observaciones según tu BD
+        estado: cita.estado?.toLowerCase() || cita.estado_detalle?.nombre_estado?.toLowerCase() || 'programada',
+        
+        // ✅ IMPORTANTE: Mantener IDs para el envío
+        id: cita.id_cita || cita.id,
+        id_cita: cita.id_cita || cita.id,
+        id_servicio: servicio.id_servicio || cita.id_servicio,
+        id_inmueble: cita.id_inmueble,
+        id_persona: cita.id_persona
       });
     }
   }, [cita]);
+  
+// ✅ Validación para nombre
+const validateNombre = (nombre) => {
+  if (!nombre.trim()) return 'El nombre es requerido';
+  if (nombre.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres';
+  if (nombre.trim().length > 50) return 'El nombre no puede tener más de 50 caracteres';
+  if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(nombre.trim())) return 'El nombre solo puede contener letras y espacios';
+  return '';
+};
 
-  // Función para validar nombre completo
-  const validateNombre = (nombre) => {
-    if (!nombre.trim()) return 'El nombre del cliente es requerido';
-    if (nombre.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres';
-    if (nombre.trim().length > 100) return 'El nombre no puede tener más de 100 caracteres';
-    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(nombre.trim())) return 'El nombre solo puede contener letras y espacios';
-    return '';
-  };
+// ✅ NUEVA: Validación para apellido
+const validateApellido = (apellido) => {
+  if (!apellido.trim()) return 'El apellido es requerido';
+  if (apellido.trim().length < 2) return 'El apellido debe tener al menos 2 caracteres';
+  if (apellido.trim().length > 50) return 'El apellido no puede tener más de 50 caracteres';
+  if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(apellido.trim())) return 'El apellido solo puede contener letras y espacios';
+  return '';
+};
 
   // Función para validar teléfono colombiano
   const validateTelefono = (telefono) => {
@@ -209,19 +256,23 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
     if (!servicio || servicio.trim() === '') {
       return 'El servicio es requerido';
     }
-
-    // Verificar que el servicio seleccionado existe en la lista
-    if (!servicios.includes(servicio)) {
+    
+    // ✅ Verificar que el servicio existe en la lista de objetos
+    const servicioExiste = servicios.some(s => s.nombre_servicio === servicio);
+    if (!servicioExiste) {
       return 'Selecciona un servicio válido de la lista';
     }
-
+    
     return '';
   };
-
+  
   const validateForm = () => {
     const newErrors = {};
-
-    newErrors.cliente = validateNombre(formData.cliente);
+    
+    // ✅ Validar nombre y apellido por separado
+    newErrors.nombre = validateNombre(formData.nombre);
+    newErrors.apellido = validateApellido(formData.apellido);
+    
     newErrors.telefono = validateTelefono(formData.telefono);
     newErrors.email = validateEmail(formData.email);
     newErrors.tipoDocumento = validateTipoDocumento(formData.tipoDocumento);
@@ -229,14 +280,13 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
     newErrors.fecha = validateFecha(formData.fecha);
     newErrors.hora = validateHora(formData.hora);
     newErrors.servicio = validateServicio(formData.servicio);
-
+    
     setErrors(newErrors);
-
+    
     const hasErrors = Object.values(newErrors).some(error => error !== '');
-
     return !hasErrors;
   };
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -259,16 +309,50 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
   const handleConfirmSubmit = async () => {
     setIsSubmitting(true);
     setShowConfirmDialog(false);
-
+    
     try {
-      // Asegurarse de que el ID esté incluido en los datos del formulario
-      const formDataWithId = {
-        ...formData,
-        id: cita?.id || formData.id
+      // ✅ Preparar datos en formato correcto para el backend
+      const dataParaEnviar = {
+        // IDs necesarios
+        id: formData.id_cita || formData.id || cita?.id_cita || cita?.id,
+        id_cita: formData.id_cita || formData.id || cita?.id_cita || cita?.id,
+        id_persona: formData.id_persona || cita?.id_persona,
+        id_inmueble: formData.id_inmueble || cita?.id_inmueble || 1,
+        id_servicio: formData.id_servicio,
+        
+        // ✅ Datos del cliente - campos separados
+        tipo_documento: formData.tipoDocumento,
+        numero_documento: formData.numeroDocumento,
+        nombre_completo: formData.nombre.trim(),      // ✅ Desde campo nombre
+        apellido_completo: formData.apellido.trim(),  // ✅ Desde campo apellido
+        telefono: formData.telefono,
+        email: formData.email,
+        
+        // Datos de la cita
+        fecha_cita: formData.fecha,
+        hora_inicio: formData.hora,
+        observaciones: formData.notas,
+        estado: formData.estado,
+        
+        // Mantener objetos anidados si existen
+        cliente: {
+          ...cita?.cliente,
+          nombre_completo: formData.nombre.trim(),
+          apellido_completo: formData.apellido.trim(),
+          telefono: formData.telefono,
+          correo: formData.email,
+          tipo_documento: formData.tipoDocumento,
+          numero_documento: formData.numeroDocumento
+        },
+        servicio: cita?.servicio,
+        inmueble: cita?.inmueble
       };
-
-      const result = await onSubmit(formDataWithId);
-
+      
+      console.log("📤 Datos a enviar al backend:", dataParaEnviar);
+      
+      const result = await onSubmit(dataParaEnviar);
+      
+        
       toast({
         title: "¡Cita actualizada exitosamente!",
         description: "Los cambios han sido guardados correctamente.",
@@ -318,13 +402,15 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
 
   const updateFormData = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-
+    
     // Validación en tiempo real
     const newErrors = { ...errors };
-
     switch (field) {
-      case 'cliente':
-        newErrors.cliente = validateNombre(value);
+      case 'nombre':  // ✅ CAMBIADO
+        newErrors.nombre = validateNombre(value);
+        break;
+      case 'apellido':  // ✅ NUEVO
+        newErrors.apellido = validateApellido(value);
         break;
       case 'telefono':
         newErrors.telefono = validateTelefono(value);
@@ -334,7 +420,6 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
         break;
       case 'tipoDocumento':
         newErrors.tipoDocumento = validateTipoDocumento(value);
-        // Revalidar número de documento cuando cambie el tipo
         if (formData.numeroDocumento) {
           newErrors.numeroDocumento = validateNumeroDocumento(formData.numeroDocumento, value);
         }
@@ -352,10 +437,10 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
         newErrors.servicio = validateServicio(value);
         break;
     }
-
+    
     setErrors(newErrors);
   };
-
+  
   if (!isOpen || !cita) return null;
 
   return ReactDOM.createPortal(
@@ -399,23 +484,48 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
             <div className="space-y-6">
               {/* Cliente Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    <User className="w-4 h-4 inline mr-2" />
-                    Nombre Completo *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.cliente}
-                    onChange={(e) => updateFormData('cliente', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors ${
-                      errors.cliente ? 'border-red-500' : 'border-slate-300'
-                    }`}
-                  />
-                  {errors.cliente && (
-                    <p className="text-red-500 text-sm mt-1">{errors.cliente}</p>
-                  )}
-                </div>
+{/* Nombre y Apellido */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {/* Nombre */}
+  <div>
+    <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+      <User className="w-4 h-4 text-slate-500" />
+      Nombre *
+    </label>
+    <input
+      type="text"
+      value={formData.nombre}
+      onChange={(e) => updateFormData('nombre', e.target.value)}
+      placeholder="Ej: Juan"
+      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors ${
+        errors.nombre ? 'border-red-500' : 'border-slate-300'
+      }`}
+    />
+    {errors.nombre && (
+      <span className="text-red-500 text-xs mt-1 block">{errors.nombre}</span>
+    )}
+  </div>
+
+  {/* Apellido */}
+  <div>
+    <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+      <User className="w-4 h-4 text-slate-500" />
+      Apellido *
+    </label>
+    <input
+      type="text"
+      value={formData.apellido}
+      onChange={(e) => updateFormData('apellido', e.target.value)}
+      placeholder="Ej: Pérez"
+      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors ${
+        errors.apellido ? 'border-red-500' : 'border-slate-300'
+      }`}
+    />
+    {errors.apellido && (
+      <span className="text-red-500 text-xs mt-1 block">{errors.apellido}</span>
+    )}
+  </div>
+</div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -569,21 +679,29 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
                   <Home className="w-4 h-4 inline mr-2" />
                   Servicio *
                 </label>
-                <Select
-                  value={formData.servicio}
-                  onValueChange={(value) => updateFormData('servicio', value)}
+                <Select 
+                  value={formData.servicio} 
+                  onValueChange={(value) => {
+                    // ✅ Encontrar el servicio seleccionado para obtener su ID
+                    const servicioSeleccionado = servicios.find(s => s.nombre_servicio === value);
+                    updateFormData('servicio', value);
+                    if (servicioSeleccionado) {
+                      setFormData(prev => ({ ...prev, id_servicio: servicioSeleccionado.id_servicio }));
+                    }
+                  }}
                 >
-                  <SelectTrigger
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors ${
-                      errors.servicio ? 'border-red-500' : 'border-slate-300'
-                    }`}
-                  >
+                  <SelectTrigger className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors ${
+                    errors.servicio ? 'border-red-500' : 'border-slate-300'
+                  }`}>
                     <SelectValue placeholder="Selecciona un servicio" />
                   </SelectTrigger>
-                  <SelectContent className="z-50 animate-in slide-in-from-top-2 duration-300">
-                    {servicios.map((servicio, index) => (
-                      <SelectItem key={index} value={servicio}>
-                        {servicio}
+                  <SelectContent>
+                    {servicios.map((servicio) => (
+                      <SelectItem 
+                        key={servicio.id_servicio} 
+                        value={servicio.nombre_servicio} // ✅ Valor es string
+                      >
+                        {servicio.nombre_servicio} {/* ✅ Solo texto */}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -610,6 +728,8 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
                     <SelectItem value="confirmada">Confirmada</SelectItem>
                     <SelectItem value="cancelada">Cancelada</SelectItem>
                     <SelectItem value="completada">Completada</SelectItem>
+                    <SelectItem value="solicitada">Solicitada</SelectItem>
+                    <SelectItem value="re agendada">Re Agendada</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -617,9 +737,7 @@ const EditAppointmentModal = ({ isOpen, onClose, cita, onSubmit }) => {
               {/* Notas */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  <FileText className="w-4 h-4 inline mr-2" />
-                  Notas Adicionales
-                </label>
+                  <FileText className="w-4 h-4 inline mr-2" /> Observaciones </label>
                 <textarea
                   value={formData.notas}
                   onChange={(e) => updateFormData('notas', e.target.value)}

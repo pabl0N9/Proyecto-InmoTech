@@ -1,11 +1,9 @@
 import React, { useState, useRef } from "react";
 import ReactDOM from 'react-dom';
 import { FaUserPlus, FaEye, FaEdit, FaSearch, FaTrash } from "react-icons/fa";
-import "../../../../../shared/styles/globals.css";
-
-// ASUMO que estos componentes ya contienen la estructura del modal (fondo gris y z-index alto)
-import LeasesPersonForm from "../components/TenantForm";
-import ViewTenantModal from "../components/ViewTenantForm";
+import "../../../../shared/styles/globals.css";
+import LeasesPersonForm from "../../components/leases/TenantForm";
+import ViewTenantModal from "../../components/leases/ViewTenantForm";
 
 export function LeasesManagementPage() {
   const [arrendatarios, setArrendatarios] = useState([
