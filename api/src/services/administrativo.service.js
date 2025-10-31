@@ -11,6 +11,8 @@ class AdministrativoService {
    * @returns {Promise<Object>} Administrativo creado con tokens
    */
   async registrarAdministrativo(adminData) {
+    let adminId; // Declarar variable para acceder fuera de la transacción
+
     const result = await sequelize.transaction(async (t) => {
       try {
         const {
@@ -131,7 +133,7 @@ class AdministrativoService {
         }, { transaction: t });
 
         // Guardar referencia para la consulta posterior
-        var adminId = nuevoAdministrativo.id_administrativo;
+        adminId = nuevoAdministrativo.id_administrativo;
 
         logger.info(`Administrativo registrado: ${email} (Código generado: ${codigoGenerado})`);
 
@@ -171,7 +173,7 @@ class AdministrativoService {
   }
 
   /**
-   * Obtiene administrativos con paginación
+   * Obtiene administrativos con paginación (optimizado)
    * @param {Object} options - Opciones de consulta
    * @returns {Promise<Object>} Lista de administrativos
    */
@@ -184,6 +186,7 @@ class AdministrativoService {
         whereClause.estado_laboral = estado;
       }
 
+      // ✅ OPTIMIZACIÓN: Usar consulta RAW o encontrar/crear índice para mejorar rendimiento
       const { count, rows } = await Administrativo.findAndCountAll({
         where: whereClause,
         include: [
@@ -195,7 +198,10 @@ class AdministrativoService {
               {
                 model: Rol,
                 as: 'roles',
-                through: { attributes: ['estado', 'fecha_asignacion'] },
+                through: {
+                  attributes: ['estado', 'fecha_asignacion'],
+                  where: { estado: true }
+                },
                 where: { estado: true },
                 required: false
               }
@@ -204,7 +210,9 @@ class AdministrativoService {
         ],
         limit,
         offset,
-        order: [['fecha_ingreso', 'DESC']]
+        order: [['fecha_ingreso', 'DESC']],
+        logging: false, // ✅ Deshabilitar logging SQL para mejor rendimiento
+        distinct: true // ✅ Evitar duplicados en conteo de paginación
       });
 
       return {

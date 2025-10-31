@@ -4,9 +4,10 @@ const Inmueble = require('./Inmueble');
 const ServicioCita = require('./ServicioCita');
 const EstadoCita = require('./EstadoCita');
 const Cita = require('./Cita');
+const HistorialAsignacionAgente = require('./HistorialAsignacionAgente');  // <-- NUEVO
 const Notificacion = require('./Notificacion');
 const Rol = require('./Rol');
-const Permiso = require('./Permiso');  // <-- AGREGADO
+const Permiso = require('./Permiso');
 const Acceso = require('./Acceso');
 const PersonasRol = require('./PersonasRol');
 const PropiedadInmueble = require('./PropiedadInmueble');
@@ -179,6 +180,32 @@ Persona.hasMany(Reporte, {
 });
 // FIN DE NUEVAS ASOCIACIONES
 
+// Asociaciones de HistorialAsignacionAgente
+HistorialAsignacionAgente.belongsTo(Cita, {
+  foreignKey: 'id_cita',
+  as: 'cita'
+});
+
+HistorialAsignacionAgente.belongsTo(Persona, {
+  foreignKey: 'id_agente_anterior',
+  as: 'agenteAnterior'
+});
+
+HistorialAsignacionAgente.belongsTo(Persona, {
+  foreignKey: 'id_agente_nuevo',
+  as: 'agenteNuevo'
+});
+
+HistorialAsignacionAgente.belongsTo(Persona, {
+  foreignKey: 'id_usuario_realizo',
+  as: 'usuarioRealizo'
+});
+
+Cita.hasMany(HistorialAsignacionAgente, {
+  foreignKey: 'id_cita',
+  as: 'historialAsignaciones'
+});
+
 // Asociaciones de Administrativo
 Administrativo.belongsTo(Persona, {
   foreignKey: 'id_persona',
@@ -197,9 +224,10 @@ module.exports = {
   ServicioCita,
   EstadoCita,
   Cita,
+  HistorialAsignacionAgente,  // <-- NUEVO
   Notificacion,
   Rol,
-  Permiso,  // <-- AGREGADO
+  Permiso,
   Acceso,
   PersonasRol,
   PropiedadInmueble,

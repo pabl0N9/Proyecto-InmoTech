@@ -114,7 +114,6 @@ if (rolInactivo) {
   async listarRoles() {
     try {
       const roles = await Rol.findAll({
-        where: { estado: true },
         include: [
           {
             model: Permiso,
@@ -123,7 +122,7 @@ if (rolInactivo) {
             required: false
           }
         ],
-        order: [['nombre_rol', 'ASC']]
+        order: [['id_rol', 'ASC']]
       });
 
       return roles;
@@ -382,6 +381,14 @@ if (rolInactivo) {
           throw new Error('No se puede cambiar el nombre de roles del sistema');
         }
 
+        // Si se está desactivando el rol, verificar que no tenga usuarios asignados
+        if (updateData.estado === false) {
+          const usuariosAsignados = await this.contarUsuariosAsignados(rolId);
+          if (usuariosAsignados > 0) {
+            throw new Error(`No se puede desactivar el rol porque tiene ${usuariosAsignados} usuario(s) asignado(s)`);
+          }
+        }
+
         // Actualizar el rol (sin permisos)
         const { permisos, ...updateFields } = updateData; // Separar permisos
         await rol.update(updateFields, { transaction: t });
@@ -433,6 +440,27 @@ if (rolInactivo) {
   }
 
   /**
+   * Contar usuarios asignados a un rol
+   * @param {number} rolId - ID del rol
+   * @returns {Promise} Número de usuarios asignados
+   */
+  async contarUsuariosAsignados(rolId) {
+    try {
+      const count = await PersonasRol.count({
+        where: {
+          id_rol: rolId,
+          estado: true
+        }
+      });
+
+      return count;
+    } catch (error) {
+      logger.error('Error contando usuarios asignados:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Eliminar rol (lógicamente)
    * @param {number} rolId - ID del rol
    * @param {number} userId - ID del usuario que elimina
@@ -449,10 +477,10 @@ if (rolInactivo) {
               model: Rol,
               as: 'roles',
               through: { attributes: [] },
-              where: { 
-                nombre_rol: { 
-                  [Op.in]: ['Super Administrador', 'Administrador'] 
-                } 
+              where: {
+                nombre_rol: {
+                  [Op.in]: ['Super Administrador', 'Administrador']
+                }
               },
               required: true
             }
@@ -465,7 +493,7 @@ if (rolInactivo) {
         }
 
         const rol = await Rol.findOne({
-          where: { id_rol: rolId, estado: true },
+          where: { id_rol: rolId },
           transaction: t
         });
 
@@ -477,6 +505,12 @@ if (rolInactivo) {
         const rolesSistema = ['Super Administrador', 'Administrador', 'Empleado', 'Usuario', 'Propietario'];
         if (rolesSistema.includes(rol.nombre_rol)) {
           throw new Error('No se pueden eliminar roles del sistema');
+        }
+
+        // Verificar que no tenga usuarios asignados
+        const usuariosAsignados = await this.contarUsuariosAsignados(rolId);
+        if (usuariosAsignados > 0) {
+          throw new Error(`No se puede eliminar el rol porque tiene ${usuariosAsignados} usuario(s) asignado(s)`);
         }
 
         await rol.update({ estado: false }, { transaction: t });

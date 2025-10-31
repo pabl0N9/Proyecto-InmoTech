@@ -30,7 +30,7 @@ router.patch('/me',
 );
 
 // Rutas administrativas (requieren permisos de admin)
-router.use(auth.authorizeRoles(['Super Admin', 'Admin']));
+router.use(auth.authorizeRoles(['Super Administrador', 'Administrador']));
 
 // Listar personas con filtros (solo administradores)
 router.get('/',

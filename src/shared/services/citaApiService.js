@@ -60,7 +60,7 @@ class CitaApiService {
     }
   }
 
-  async crearCita(citaData) {
+  async crearCita(citaData, userId) {
     try {
       this.validarDatosCita(citaData);
 
@@ -76,7 +76,8 @@ class CitaApiService {
         fecha_cita: citaData.fecha_cita,
         hora_inicio: this.formatHoraParaAPI(citaData.hora_inicio || '09:00'),
         hora_fin: this.formatHoraParaAPI(citaData.hora_fin || '10:00'),
-        observaciones: citaData.observaciones || null
+        observaciones: citaData.observaciones || null,
+        id_usuario_creador: userId // ✅ Agregado: ID del usuario que crea la cita
       };
 
       console.log("📤 Enviando nueva cita al backend:", payload);
@@ -148,6 +149,27 @@ class CitaApiService {
     } catch (error) {
       console.error("❌ Error al eliminar cita:", error);
       throw new Error(error.message || "Error al eliminar la cita");
+    }
+  }
+
+  async confirmarCita(id, id_agente_asignado) {
+    try {
+      if (!id) throw new Error("ID de cita es requerido");
+      if (!id_agente_asignado) throw new Error("ID de agente es requerido");
+
+      console.log("📤 Confirmando cita:", { id, id_agente_asignado });
+
+      const response = await apiClient.post(`/citas/${id}/confirmar`, {
+        id_agente_asignado: id_agente_asignado
+      });
+
+      console.log("📥 Respuesta del backend al confirmar:", response.data);
+
+      const citaConfirmada = response.data.data || response.data;
+      return this.transformarCitaDesdeAPI(citaConfirmada);
+    } catch (error) {
+      console.error("❌ Error al confirmar cita:", error);
+      throw new Error(error.message || "Error al confirmar la cita");
     }
   }
 
@@ -353,6 +375,111 @@ class CitaApiService {
       agente: citaAPI.agente,
       estado_detalle: citaAPI.estado
     };
+  }
+
+  /**
+   * Obtener lista de agentes disponibles para asignación
+   * @returns {Promise<Array>} Lista de agentes disponibles
+   */
+  async obtenerAgentesDisponibles() {
+    try {
+      console.log("🔍 Obteniendo agentes disponibles para asignación");
+
+      const response = await apiClient.get('/citas/agentes-disponibles');
+      const agentes = response.data.data || response.data;
+
+      if (!Array.isArray(agentes)) {
+        throw new Error("Formato de respuesta inválido para agentes disponibles");
+      }
+
+      console.log(`✅ ${agentes.length} agentes disponibles obtenidos`);
+      return agentes;
+    } catch (error) {
+      console.error("❌ Error al obtener agentes disponibles:", error);
+      throw new Error(error.message || "Error al cargar los agentes disponibles");
+    }
+  }
+
+  /**
+   * Asignar un agente a una cita
+   * @param {number} idCita - ID de la cita
+   * @param {number} idAgenteNuevo - ID del agente a asignar
+   * @param {string} comentario - Comentario obligatorio para reasignaciones
+   * @returns {Promise<Object>} Cita actualizada con historial
+   */
+  async asignarAgente(idCita, idAgenteNuevo, comentario = null) {
+    try {
+      if (!idCita) throw new Error("ID de cita es requerido");
+      if (!idAgenteNuevo) throw new Error("ID de agente es requerido");
+
+      console.log(`🔄 Asignando agente ${idAgenteNuevo} a cita ${idCita}`);
+
+      const payload = {
+        id_agente_nuevo: idAgenteNuevo,
+        comentario: comentario
+      };
+
+      const response = await apiClient.post(`/citas/${idCita}/asignar-agente`, payload);
+
+      console.log("📥 Respuesta del backend al asignar agente:", response.data);
+
+      const citaActualizada = response.data.data || response.data;
+      return this.transformarCitaDesdeAPI(citaActualizada);
+    } catch (error) {
+      console.error("❌ Error al asignar agente:", error);
+      throw new Error(error.message || "Error al asignar el agente a la cita");
+    }
+  }
+
+  /**
+   * Obtener historial de asignaciones de una cita
+   * @param {number} idCita - ID de la cita
+   * @returns {Promise<Array>} Historial de asignaciones
+   */
+  async obtenerHistorialAsignaciones(idCita) {
+    try {
+      if (!idCita) throw new Error("ID de cita es requerido");
+
+      console.log(`🔍 Obteniendo historial de asignaciones para cita ${idCita}`);
+
+      const response = await apiClient.get(`/citas/${idCita}/historial-asignaciones`);
+      const historial = response.data.data || response.data;
+
+      if (!Array.isArray(historial)) {
+        throw new Error("Formato de respuesta inválido para historial de asignaciones");
+      }
+
+      console.log(`✅ Historial de asignaciones obtenido: ${historial.length} registros`);
+      return historial;
+    } catch (error) {
+      console.error("❌ Error al obtener historial de asignaciones:", error);
+      throw new Error(error.message || "Error al cargar el historial de asignaciones");
+    }
+  }
+
+  /**
+   * Obtener cita con historial completo de asignaciones
+   * @param {number} idCita - ID de la cita
+   * @returns {Promise<Object>} Cita con historial incluido
+   */
+  async obtenerCitaConHistorial(idCita) {
+    try {
+      if (!idCita) throw new Error("ID de cita es requerido");
+
+      console.log(`🔍 Obteniendo cita ${idCita} con historial completo`);
+
+      const response = await apiClient.get(`/citas/${idCita}/con-historial`);
+      const citaCompleta = response.data.data || response.data;
+
+      const citaTransformada = this.transformarCitaDesdeAPI(citaCompleta);
+      citaTransformada.historial_asignaciones = citaCompleta.historial_asignaciones || [];
+
+      console.log(`✅ Cita con historial obtenida`);
+      return citaTransformada;
+    } catch (error) {
+      console.error("❌ Error al obtener cita con historial:", error);
+      throw new Error(error.message || "Error al cargar la cita con historial");
+    }
   }
 }
 
