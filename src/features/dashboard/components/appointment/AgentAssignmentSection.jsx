@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Users, Edit3, Check, X, MessageSquare, AlertCircle, Clock, RotateCcw, ArrowRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../shared/components/ui/select';
 import citaApiService from '../../../../shared/services/citaApiService';
+import { useAuth } from '../../../../shared/contexts/AuthContext';
 
 
 const AgentAssignmentSection = ({
@@ -14,6 +15,7 @@ const AgentAssignmentSection = ({
   showHistory = false,
   showEdit = false
 }) => {
+  const { hasPermission } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [comentario, setComentario] = useState('');
@@ -166,7 +168,7 @@ const AgentAssignmentSection = ({
                 </div>
               </div>
             </div>
-            {showEdit && (
+            {showEdit && hasPermission("gCitas", "editar") && (
               <button
                 onClick={() => setIsEditing(true)}
                 className="absolute -top-1 -right-1 p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md"
@@ -185,15 +187,15 @@ const AgentAssignmentSection = ({
                 <p className="text-xs text-amber-600 truncate">Asigna un agente para continuar</p>
               </div>
             </div>
-            {showEdit && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="absolute -top-1 -right-1 p-1.5 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition-colors shadow-md"
-                title="Asignar agente"
-              >
-                <Edit3 className="w-3 h-3" />
-              </button>
-            )}
+          {showEdit && hasPermission("gCitas", "editar") && cita.estado !== 'solicitada' && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="absolute -top-1 -right-1 p-1.5 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition-colors shadow-md"
+              title="Asignar agente"
+            >
+              <Edit3 className="w-3 h-3" />
+            </button>
+          )}
           </div>
         )}
 
@@ -247,9 +249,9 @@ const AgentAssignmentSection = ({
               </div>
             ) : (
               <Select
-                value={selectedAgent?.id_persona || ''}
+                value={selectedAgent?.nombre_completo || ''}
                 onValueChange={(value) => {
-                  const agent = agentesDisponibles.find(a => a.id_persona == value);
+                  const agent = agentesDisponibles.find(a => a.nombre_completo === value);
                   setSelectedAgent(agent);
                 }}
               >
@@ -258,7 +260,7 @@ const AgentAssignmentSection = ({
                 </SelectTrigger>
                 <SelectContent className="z-[10000] max-h-96 overflow-y-auto">
                   {agentesDisponibles.map((agente) => (
-                    <SelectItem key={agente.id_persona} value={agente.id_persona}>
+                    <SelectItem key={agente.id_persona} value={agente.nombre_completo}>
                       <div className="flex items-center gap-3 py-2">
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                           <User className="w-4 h-4 text-blue-600" />
@@ -460,13 +462,15 @@ const AgentAssignmentSection = ({
                 <RotateCcw className="w-4 h-4" />
               </button>
             )}
-            <button
-              onClick={() => setIsEditing(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-              <Edit3 className="w-4 h-4" />
-              {agenteActual ? 'Reasignar' : 'Asignar Agente'}
-            </button>
+          {hasPermission("gCitas", "editar") && (!agenteActual || cita.estado !== 'solicitada') && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+              <Edit3 className="w-4 h-4" />
+              {agenteActual ? 'Reasignar' : 'Asignar Agente'}
+            </button>
+          )}
           </div>
         )}
       </div>
@@ -516,9 +520,9 @@ const AgentAssignmentSection = ({
   </div>
 ) : (
   <Select
-    value={selectedAgent?.id_persona || ''}
+    value={selectedAgent?.nombre_completo || ''}
     onValueChange={(value) => {
-      const agent = agentesDisponibles.find(a => a.id_persona == value);
+      const agent = agentesDisponibles.find(a => a.nombre_completo === value);
       setSelectedAgent(agent);
     }}
   >
@@ -527,7 +531,7 @@ const AgentAssignmentSection = ({
     </SelectTrigger>
                 <SelectContent className="z-[10000] max-h-96 overflow-y-auto">
                   {agentesDisponibles.map((agente) => (
-                    <SelectItem key={agente.id_persona} value={agente.id_persona}>
+                    <SelectItem key={agente.id_persona} value={agente.nombre_completo}>
                       <div className="flex items-center gap-3 py-2">
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                           <User className="w-4 h-4 text-blue-600" />

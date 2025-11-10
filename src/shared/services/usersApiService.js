@@ -196,6 +196,37 @@ class UsersApiService {
   }
 
   /**
+   * Verifica si existe un correo electrónico
+   * @param {string} email - Correo electrónico a verificar
+   * @returns {Promise<Object>} Resultado de la verificación
+   */
+  async verificarCorreoExistente(email) {
+    try {
+      const response = await apiClient.get(`/personas/verificar-correo/${encodeURIComponent(email)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error verificando correo:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verifica si existe un número de documento
+   * @param {string} tipo - Tipo de documento
+   * @param {string} numero - Número de documento
+   * @returns {Promise<Object>} Resultado de la verificación
+   */
+  async verificarDocumentoExistente(tipo, numero) {
+    try {
+      const response = await apiClient.get(`/personas/verificar-documento/${encodeURIComponent(tipo)}/${encodeURIComponent(numero)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error verificando documento:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Formatear fecha para display
    * @param {string} fechaString - Fecha en formato string
    * @returns {string} Fecha formateada

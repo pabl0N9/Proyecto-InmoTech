@@ -413,8 +413,9 @@ const login = async (email, password, rememberMe = false) => {
       console.log('✅ Permiso gReporteInmuebles encontrado');
       availableModules.push('reportes');
     }
-    if (permisosObj.usuarios) {
-      console.log('✅ Permiso usuarios encontrado');
+    // Solo Super Administrador y Administrador pueden acceder a administrativos
+    if (user.roles && (user.roles.includes('Super Administrador') || user.roles.includes('Administrador'))) {
+      console.log('✅ Rol Super Administrador o Administrador encontrado - acceso a administrativos');
       availableModules.push('administrativos');
     }
     if (permisosObj.roles) {

@@ -1,9 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '../../../../../shared/components/ui/label';
 import { Input } from '../../../../../shared/components/ui/input';
-import { Briefcase, Building, DollarSign } from 'lucide-react';
+import { Briefcase, Building, DollarSign, Shield } from 'lucide-react';
+import rolesApiService from '../../../../../shared/services/rolesApiService';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../../shared/components/ui/select';
 
 const LaboralEditStep = ({ formData, errors, updateFormData, administrativo }) => {
+  const [roles, setRoles] = useState([]);
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const data = await rolesApiService.obtenerRoles();
+        setRoles(data.map(rol => ({ value: rol.id, label: rol.nombre })));
+      } catch (error) {
+        console.error("Error al cargar los roles:", error);
+      }
+    };
+    fetchRoles();
+  }, []);
+
+  const selectedRolLabel = roles.find(rol => rol.value === formData.rol)?.label;
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -63,6 +81,32 @@ const LaboralEditStep = ({ formData, errors, updateFormData, administrativo }) =
         </div>
         {errors.departamento && (
           <p className="text-sm text-red-600">{errors.departamento}</p>
+        )}
+      </div>
+
+      {/* Selector de Rol */}
+      <div className="space-y-2">
+        <Label htmlFor="rol" className="text-sm font-medium text-slate-700">
+          Rol
+        </Label>
+        <div className="relative">
+          <Select value={formData.rol} onValueChange={(value) => updateFormData('rol', value)}>
+            <SelectTrigger>
+              <span className="block truncate">
+                {selectedRolLabel || "Selecciona un rol"}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              {roles.map((rol) => (
+                <SelectItem key={rol.value} value={rol.value}>
+                  {rol.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {errors.rol && (
+          <p className="text-sm text-red-600">{errors.rol}</p>
         )}
       </div>
 

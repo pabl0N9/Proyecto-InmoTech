@@ -623,6 +623,7 @@ const AppointmentTable = ({
                           value={cita.id_estado_cita}
                           onChange={(newStatus) => onStatusChange(cita, newStatus)}
                           loading={loadingStatusChanges.has(cita.id)}
+                          disabled={!hasPermission("gCitas", "editar")}
                           className="w-44"
                         />
                       )}

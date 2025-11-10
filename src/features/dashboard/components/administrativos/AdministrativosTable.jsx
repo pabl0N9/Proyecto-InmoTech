@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Eye, Edit, ChevronLeft, ChevronRight, User, Mail, Phone, Calendar, Building, Check, X } from 'lucide-react';
+import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, User, Mail, Phone, Calendar, Building } from 'lucide-react';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import administrativosApiService from '../../../../shared/services/administrativosApiService';
 import AdministrativoStatusSelector from '../../../../shared/components/ui/AdministrativoStatusSelector';
+import EmptyState from '../../../../shared/components/ui/EmptyState';
 
 const AdministrativosTable = ({
   administrativos,
@@ -182,8 +183,12 @@ const AdministrativosTable = ({
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
-      {/* Desktop Table */}
-      <div className="hidden md:block">
+      {!administrativos || administrativos.length === 0 ? (
+        <EmptyState message="No hay personal administrativo para mostrar." />
+      ) : (
+        <>
+          {/* Desktop Table */}
+          <div className="hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -359,6 +364,8 @@ const AdministrativosTable = ({
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

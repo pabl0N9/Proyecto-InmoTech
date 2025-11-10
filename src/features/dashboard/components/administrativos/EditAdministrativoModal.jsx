@@ -20,6 +20,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     // Paso 2: Información Laboral
     cargo: '',
     departamento: '',
+    rol: null,
   });
   const [errors, setErrors] = useState({});
   const { toast } = useToast();
@@ -43,6 +44,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
         telefono: administrativo.persona?.telefono || '',
         cargo: administrativo.cargo || '',
         departamento: administrativo.departamento || '',
+        rol: administrativo.persona?.roles?.[0]?.id_rol || null,
       });
       setErrors({});
       setCurrentStep(1);
@@ -95,6 +97,12 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     return '';
   };
 
+  // Función para validar rol
+  const validateRol = (rol) => {
+    if (!rol) return 'El rol es requerido';
+    return '';
+  };
+
 
   const validateStep = (step) => {
     let newErrors = {};
@@ -109,6 +117,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
       case 2:
         newErrors.cargo = validateCargo(formData.cargo);
         newErrors.departamento = validateDepartamento(formData.departamento);
+        newErrors.rol = validateRol(formData.rol);
         break;
     }
 
@@ -134,6 +143,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
         const step2Errors = {
           cargo: validateCargo(formData.cargo),
           departamento: validateDepartamento(formData.departamento),
+          rol: validateRol(formData.rol),
         };
         return Object.keys(step2Errors).every(key => !step2Errors[key]);
       default:
@@ -171,6 +181,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     allErrors = { ...allErrors, ...{
       cargo: validateCargo(formData.cargo),
       departamento: validateDepartamento(formData.departamento),
+      rol: validateRol(formData.rol),
     } };
     setErrors(allErrors);
     return Object.values(allErrors).every(error => !error);
@@ -190,7 +201,8 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
           administrativoData: {
             cargo: formData.cargo || null,
             departamento: formData.departamento || null,
-          }
+          },
+          rolId: formData.rol
         };
 
         console.log("📤 Datos preparados para actualizar administrativo:", updateData);
@@ -231,6 +243,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
       telefono: '',
       cargo: '',
       departamento: '',
+      rol: null,
     });
     setErrors({});
     onClose();
@@ -258,6 +271,9 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
         break;
       case 'departamento':
         newErrors.departamento = validateDepartamento(value);
+        break;
+      case 'rol':
+        newErrors.rol = validateRol(value);
         break;
     }
 

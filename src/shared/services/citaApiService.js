@@ -76,8 +76,10 @@ class CitaApiService {
         fecha_cita: citaData.fecha_cita,
         hora_inicio: this.formatHoraParaAPI(citaData.hora_inicio || '09:00'),
         hora_fin: this.formatHoraParaAPI(citaData.hora_fin || '10:00'),
+        id_estado_cita: citaData.id_estado_cita || 1,
+        id_agente_asignado: citaData.id_agente_asignado || null,
         observaciones: citaData.observaciones || null,
-        id_usuario_creador: userId // ✅ Agregado: ID del usuario que crea la cita
+        id_usuario_creador: userId || citaData.id_usuario_creador // ✅ Usar userId del contexto o el que viene en citaData
       };
 
       console.log("📤 Enviando nueva cita al backend:", payload);
@@ -373,6 +375,7 @@ class CitaApiService {
       inmueble: citaAPI.inmueble,
       servicio: citaAPI.servicio,
       agente: citaAPI.agente,
+      creador: citaAPI.creador,
       estado_detalle: citaAPI.estado
     };
   }

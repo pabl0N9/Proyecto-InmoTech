@@ -202,6 +202,52 @@ class PersonaService {
   }
 
   /**
+   * Verifica si existe un correo electrónico
+   * @param {string} email - Correo electrónico a verificar
+   * @returns {Promise<boolean>} True si existe, false si no
+   */
+  async verificarCorreoExistente(email) {
+    try {
+      const persona = await Persona.findOne({
+        where: {
+          correo: email.trim().toLowerCase(),
+          estado: true
+        },
+        attributes: ['id_persona']
+      });
+
+      return !!persona;
+    } catch (error) {
+      logger.error('Error verificando correo existente:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verifica si existe un número de documento
+   * @param {string} tipo - Tipo de documento
+   * @param {string} numero - Número de documento
+   * @returns {Promise<boolean>} True si existe, false si no
+   */
+  async verificarDocumentoExistente(tipo, numero) {
+    try {
+      const persona = await Persona.findOne({
+        where: {
+          tipo_documento: tipo,
+          numero_documento: numero.trim(),
+          estado: true
+        },
+        attributes: ['id_persona']
+      });
+
+      return !!persona;
+    } catch (error) {
+      logger.error('Error verificando documento existente:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Lista personas con filtros
    * @param {Object} filtros - Filtros de búsqueda
    * @param {Object} opciones - Opciones de paginación

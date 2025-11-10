@@ -18,6 +18,16 @@ router.get('/buscar',
   personasController.buscarPorDocumento
 );
 
+// Verificar si existe un correo electrónico (para validaciones en tiempo real)
+router.get('/verificar-correo/:email',
+  personasController.verificarCorreo
+);
+
+// Verificar si existe un número de documento (para validaciones en tiempo real)
+router.get('/verificar-documento/:tipo/:numero',
+  personasController.verificarDocumento
+);
+
 // Obtener perfil de la persona autenticada (solo el propio usuario)
 router.get('/me',
   personasController.obtenerPerfil

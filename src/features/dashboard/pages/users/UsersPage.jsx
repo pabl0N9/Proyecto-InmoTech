@@ -43,6 +43,7 @@ const UsersPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
   const [loadingStatusChanges, setLoadingStatusChanges] = useState(new Set());
+  const [serverErrors, setServerErrors] = useState({});
   const { toast } = useToast();
 
   // Funciones auxiliares para filtrado por fecha
@@ -137,6 +138,7 @@ const UsersPage = () => {
 
   const handleCreateUser = async (newUser) => {
     try {
+      setServerErrors({}); // Limpiar errores previos
       await createUser(newUser);
       setIsCreateModalOpen(false);
       toast({
@@ -145,7 +147,18 @@ const UsersPage = () => {
         variant: "default"
       });
     } catch (error) {
-      // Error ya manejado en el contexto
+      // Capturar errores específicos del servidor
+      if (error.response?.data?.message) {
+        const message = error.response.data.message;
+        if (message.includes('correo') || message.includes('email')) {
+          setServerErrors({ correo: message });
+        } else if (message.includes('documento')) {
+          setServerErrors({ numero_documento: message });
+        } else {
+          setServerErrors({ general: message });
+        }
+      }
+      // Error ya manejado en el contexto con toast
     }
   };
 
@@ -284,7 +297,10 @@ const UsersPage = () => {
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={() => {
+            setServerErrors({}); // Limpiar errores al abrir el modal
+            setIsCreateModalOpen(true);
+          }}
           className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300"
         >
           <Plus className="w-5 h-5" />
@@ -439,6 +455,7 @@ const UsersPage = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateUser}
+        serverErrors={serverErrors}
       />
 
       <ViewUserModal

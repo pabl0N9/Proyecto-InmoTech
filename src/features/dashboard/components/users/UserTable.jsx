@@ -4,6 +4,7 @@ import { Eye, Edit, ChevronLeft, ChevronRight, User, Mail, Phone, Calendar, Chec
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import usersApiService from '../../../../shared/services/usersApiService';
 import UserStatusSelector from '../../../../shared/components/ui/UserStatusSelector';
+import EmptyState from '../../../../shared/components/ui/EmptyState';
 
 const UserTable = ({
   users,
@@ -147,8 +148,12 @@ const UserTable = ({
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
-      {/* Desktop Table */}
-      <div className="hidden md:block">
+      {!users || users.length === 0 ? (
+        <EmptyState message="No hay usuarios para mostrar." />
+      ) : (
+        <>
+          {/* Desktop Table */}
+          <div className="hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -313,6 +318,8 @@ const UserTable = ({
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

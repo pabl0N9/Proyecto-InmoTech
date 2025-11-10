@@ -91,11 +91,6 @@ export const navigationItems = [
     isExpandable: true,
     subItems: [
       {
-        id: 'gestion-clientes',
-        title: 'Gestión de Clientes',
-        path: dashboardRoutes.clients || '/citas/clientes',
-      },
-      {
         id: 'gestion-citas',
         title: 'Gestión de Citas',
         path: dashboardRoutes.appointments || '/citas/gestion',

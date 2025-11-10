@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, UserCheck, Loader2, Eye, EyeOff, CheckCircle2, XCircle, User, Mail, Phone, Lock } from 'lucide-react';
 import PasswordValidator from '../../../../shared/components/ui/PasswordValidator';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../shared/components/ui/select';
 import { Input } from '../../../../shared/components/ui/input';
+import usersApiService from '../../../../shared/services/usersApiService';
 
-const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
+const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
   if (!isOpen) return null;
 
   const [formData, setFormData] = useState({
@@ -23,6 +24,16 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
   const [validationErrors, setValidationErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Estados para validaciones en tiempo real
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [checkingDocument, setCheckingDocument] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState(null); // null = no verificado, true = disponible, false = ocupado
+  const [documentAvailable, setDocumentAvailable] = useState(null);
+
+  // Refs para debouncing
+  const emailTimeoutRef = useRef(null);
+  const documentTimeoutRef = useRef(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -180,14 +191,119 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
     });
   };
 
+  // Función para verificar email con debouncing
+  const checkEmailAvailability = useCallback(async (email) => {
+    if (!email || !validateEmail(email)) {
+      setEmailAvailable(null);
+      return;
+    }
+
+    try {
+      setCheckingEmail(true);
+      const response = await usersApiService.verificarCorreoExistente(email);
+      setEmailAvailable(!response.data.existe); // true si no existe (disponible)
+    } catch (error) {
+      console.error('Error verificando email:', error);
+      setEmailAvailable(null);
+    } finally {
+      setCheckingEmail(false);
+    }
+  }, []);
+
+  // Función para verificar documento con debouncing
+  const checkDocumentAvailability = useCallback(async (tipo, numero) => {
+    if (!tipo || !numero || !validateNumeroDocumento(numero, tipo)) {
+      setDocumentAvailable(null);
+      return;
+    }
+
+    try {
+      setCheckingDocument(true);
+      const response = await usersApiService.verificarDocumentoExistente(tipo, numero);
+      setDocumentAvailable(!response.data.existe); // true si no existe (disponible)
+    } catch (error) {
+      console.error('Error verificando documento:', error);
+      setDocumentAvailable(null);
+    } finally {
+      setCheckingDocument(false);
+    }
+  }, []);
+
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    validateField(field, value);
+
+    // Validaciones en tiempo real con debouncing para campos específicos
+    if (field === 'correo') {
+      // Limpiar timeout anterior
+      if (emailTimeoutRef.current) {
+        clearTimeout(emailTimeoutRef.current);
+      }
+
+      // Resetear estado
+      setEmailAvailable(null);
+
+      // Si el email tiene contenido, verificar formato y disponibilidad después de 500ms
+      if (value && value.trim()) {
+        emailTimeoutRef.current = setTimeout(() => {
+          const emailError = validateEmail(value);
+          if (!emailError) {
+            // Email válido, verificar disponibilidad
+            checkEmailAvailability(value);
+          } else {
+            // Email inválido, mostrar error de formato
+            setEmailAvailable(false); // Esto activará el mensaje de error
+          }
+        }, 500);
+      }
+    }
+
+    if (field === 'numero_documento' || field === 'tipo_documento') {
+      // Limpiar timeout anterior
+      if (documentTimeoutRef.current) {
+        clearTimeout(documentTimeoutRef.current);
+      }
+
+      // Resetear estado
+      setDocumentAvailable(null);
+
+      // Si hay contenido en número de documento, verificar después de 500ms
+      const numero = field === 'numero_documento' ? value : formData.numero_documento;
+      const tipo = field === 'tipo_documento' ? value : formData.tipo_documento;
+
+      if (numero && numero.trim() && tipo) {
+        documentTimeoutRef.current = setTimeout(() => {
+          const docError = validateNumeroDocumento(numero, tipo);
+          if (!docError) {
+            // Documento válido, verificar disponibilidad
+            checkDocumentAvailability(tipo, numero);
+          } else {
+            // Documento inválido, mostrar error de formato
+            setDocumentAvailable(false); // Esto activará el mensaje de error
+          }
+        }, 500);
+      }
+    }
+  };
+
+  // Validación inmediata cuando el usuario sale del campo (onBlur)
+  const handleBlur = (field) => {
+    validateField(field, formData[field]);
   };
 
   const handleSelectChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     validateField(field, value);
+
+    // Para tipo de documento, verificar documento si ya hay número
+    if (field === 'tipo_documento' && formData.numero_documento && !validateNumeroDocumento(formData.numero_documento, value)) {
+      if (documentTimeoutRef.current) {
+        clearTimeout(documentTimeoutRef.current);
+      }
+      setDocumentAvailable(null);
+      documentTimeoutRef.current = setTimeout(() => {
+        checkDocumentAvailability(value, formData.numero_documento);
+      }, 500);
+    }
   };
 
   return ReactDOM.createPortal(
@@ -229,6 +345,16 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
+            {/* Mostrar error general si existe */}
+            {serverErrors.general && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center text-red-600">
+                  <XCircle className="h-5 w-5 mr-2" />
+                  <span className="text-sm font-medium">{serverErrors.general}</span>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-6">
               {/* Campos de documento */}
               <div className="grid grid-cols-2 gap-4">
@@ -241,6 +367,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
                     <Select
                       value={formData.tipo_documento}
                       onValueChange={(value) => handleSelectChange('tipo_documento', value)}
+                      onBlur={() => handleBlur('tipo_documento')}
                     >
                       <SelectTrigger className="h-12 pl-12 pr-4 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200 w-full">
                         <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 z-10 pointer-events-none" />
@@ -273,23 +400,47 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
                       type="tel"
                       value={formData.numero_documento}
                       onChange={(e) => handleChange('numero_documento', e.target.value.replace(/\D/g, ''))}
+                      onBlur={() => handleBlur('numero_documento')}
                       onKeyDown={(e) => {
                         if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
                           e.preventDefault();
                         }
                       }}
-                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                       required
                       placeholder="Tu número de documento"
                       inputMode="numeric"
                       pattern="[0-9]*"
                     />
                     <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                    {/* Indicador de verificación */}
+                    {checkingDocument && (
+                      <Loader2 className="absolute right-4 top-3.5 h-5 w-5 text-blue-500 animate-spin" />
+                    )}
+                    {!checkingDocument && documentAvailable !== null && (
+                      documentAvailable ? (
+                        <CheckCircle2 className="absolute right-4 top-3.5 h-5 w-5 text-green-500" />
+                      ) : (
+                        <XCircle className="absolute right-4 top-3.5 h-5 w-5 text-red-500" />
+                      )
+                    )}
                   </div>
                   {validationErrors.numero_documento && (
                     <div className="flex items-center mt-1 text-red-600">
                       <XCircle className="h-4 w-4 mr-1" />
                       <span className="text-sm">{validationErrors.numero_documento}</span>
+                    </div>
+                  )}
+                  {!checkingDocument && documentAvailable === false && !validationErrors.numero_documento && (
+                    <div className="flex items-center mt-1 text-red-600">
+                      <XCircle className="h-4 w-4 mr-1" />
+                      <span className="text-sm">Este número de documento ya está registrado</span>
+                    </div>
+                  )}
+                  {!checkingDocument && documentAvailable === true && !validationErrors.numero_documento && (
+                    <div className="flex items-center mt-1 text-green-600">
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                      <span className="text-sm">Número de documento disponible</span>
                     </div>
                   )}
                 </div>
@@ -307,6 +458,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
                       type="text"
                       value={formData.nombre_completo}
                       onChange={(e) => handleChange('nombre_completo', e.target.value)}
+                      onBlur={() => handleBlur('nombre_completo')}
                       className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                       required
                       placeholder="Tu nombre completo"
@@ -331,6 +483,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
                       type="text"
                       value={formData.apellido_completo}
                       onChange={(e) => handleChange('apellido_completo', e.target.value)}
+                      onBlur={() => handleBlur('apellido_completo')}
                       className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                       required
                       placeholder="Tu apellido completo"
@@ -358,16 +511,40 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
                       type="email"
                       value={formData.correo}
                       onChange={(e) => handleChange('correo', e.target.value)}
-                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      onBlur={() => handleBlur('correo')}
+                      className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                       required
                       placeholder="tu@email.com"
                     />
                     <Mail className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                    {/* Indicador de verificación */}
+                    {checkingEmail && (
+                      <Loader2 className="absolute right-4 top-3.5 h-5 w-5 text-blue-500 animate-spin" />
+                    )}
+                    {!checkingEmail && emailAvailable !== null && (
+                      emailAvailable ? (
+                        <CheckCircle2 className="absolute right-4 top-3.5 h-5 w-5 text-green-500" />
+                      ) : (
+                        <XCircle className="absolute right-4 top-3.5 h-5 w-5 text-red-500" />
+                      )
+                    )}
                   </div>
-                  {validationErrors.correo && (
+                  {(validationErrors.correo || serverErrors.correo) && (
                     <div className="flex items-center mt-1 text-red-600">
                       <XCircle className="h-4 w-4 mr-1" />
-                      <span className="text-sm">{validationErrors.correo}</span>
+                      <span className="text-sm">{validationErrors.correo || serverErrors.correo}</span>
+                    </div>
+                  )}
+                  {!checkingEmail && emailAvailable === false && !validationErrors.correo && !serverErrors.correo && (
+                    <div className="flex items-center mt-1 text-red-600">
+                      <XCircle className="h-4 w-4 mr-1" />
+                      <span className="text-sm">Este correo electrónico ya está registrado</span>
+                    </div>
+                  )}
+                  {!checkingEmail && emailAvailable === true && !validationErrors.correo && !serverErrors.correo && (
+                    <div className="flex items-center mt-1 text-green-600">
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                      <span className="text-sm">Correo electrónico disponible</span>
                     </div>
                   )}
                 </div>
@@ -381,6 +558,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
                       type="tel"
                       value={formData.telefono}
                       onChange={(e) => handleChange('telefono', e.target.value.replace(/\D/g, ''))}
+                      onBlur={() => handleBlur('telefono')}
                       onKeyDown={(e) => {
                         if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
                           e.preventDefault();

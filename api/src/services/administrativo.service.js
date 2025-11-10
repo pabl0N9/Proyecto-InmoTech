@@ -312,7 +312,7 @@ class AdministrativoService {
           throw new Error('No se puede editar a un Super Administrador o Administrador');
         }
 
-        const { personaData, administrativoData } = updateData;
+        const { personaData, administrativoData, rolId } = updateData;
 
         // Actualizar datos de persona si se proporcionan
         if (personaData) {
@@ -322,6 +322,26 @@ class AdministrativoService {
         // Actualizar datos administrativos
         if (administrativoData) {
           await administrativo.update(administrativoData, { transaction: t });
+        }
+
+        // Actualizar rol si se proporciona
+        if (rolId) {
+          const personaId = administrativo.persona.id_persona;
+          const rolActual = await PersonasRol.findOne({
+            where: { id_persona: personaId },
+            transaction: t
+          });
+
+          if (rolActual) {
+            if (rolActual.id_rol !== rolId) {
+              await rolActual.update({ id_rol: rolId }, { transaction: t });
+            }
+          } else {
+            await PersonasRol.create({
+              id_persona: personaId,
+              id_rol: rolId
+            }, { transaction: t });
+          }
         }
 
         logger.info(`Administrativo actualizado: ID ${id}`);

@@ -18,7 +18,7 @@ export const UsersProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { toast } = useToast();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, hasPermission } = useAuth();
 
   // Cargar usuarios
   const loadUsers = useCallback(async (params = {}) => {
@@ -139,9 +139,22 @@ export const UsersProvider = ({ children }) => {
       return userWithEstado;
     } catch (error) {
       console.error('Error creando usuario:', error);
+
+      // Extraer mensaje específico del error
+      let errorMessage = "Error al crear usuario";
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        // Si hay errores de validación específicos
+        errorMessage = error.response.data.errors.map(err => err.message).join(', ');
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Error al crear usuario",
+        description: errorMessage,
         variant: "destructive"
       });
       throw error;
@@ -212,24 +225,23 @@ export const UsersProvider = ({ children }) => {
     }
   }, []);
 
-  // Cargar datos iniciales solo si hay autenticación Y el usuario es administrador
+  // Cargar datos iniciales solo si hay autenticación Y el usuario tiene permisos
   useEffect(() => {
-    // Solo cargar si hay un token de autenticación, isAuthenticated Y tiene permisos administrativos
     const token = localStorage.getItem('inmotech_access_token') || sessionStorage.getItem('inmotech_access_token');
-    const isAdmin = user?.roles?.some(rol => rol === 'Super Administrador' || rol === 'Administrador') ||
-                    user?.es_administrativo === true;
 
-    if (token && isAuthenticated && isAdmin) {
+    // Usar hasPermission para verificar si puede leer usuarios (funciona para super admin)
+    const canReadUsers = user && hasPermission('usuarios', 'read');
+
+    if (token && isAuthenticated && canReadUsers) {
       loadUsers();
     } else {
       setLoading(false);
-      // Limpiar usuarios si el usuario actual no tiene permisos
-      if (!isAdmin) {
+      if (!canReadUsers) {
         setUsers([]);
         setError(null);
       }
     }
-  }, [loadUsers, isAuthenticated, user]);
+  }, [loadUsers, isAuthenticated, user, hasPermission]);
 
   const value = {
     users,

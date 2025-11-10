@@ -10,6 +10,7 @@ import SummaryStepStep from './steps/SummaryStep';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import { useAppointments } from '../../../../shared/contexts/AppointmentContext';
+import { useAuth } from '../../../../shared/contexts/AuthContext';
 import { apiClient } from '../../../../shared/services/api.config';
 
 const SERVICIO_MAP = {
@@ -17,6 +18,12 @@ const SERVICIO_MAP = {
   "Avalúos": 2,
   "Gestión de Alquileres": 3,
   "Asesoría Legal": 4,
+};
+
+const ESTADO_MAP = {
+  "solicitada": 1,
+  "programada": 2,
+  "confirmada": 3,
 };
 
 
@@ -33,13 +40,14 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     hora: '',
     servicio: '',
     notas: '',
-    estado: 'programada'
+    estado: 'solicitada'
   });
   const [errors, setErrors] = useState({});
   // ⭐ AGREGADO: Estado para búsqueda automática
   const [isSearchingPerson, setIsSearchingPerson] = useState(false);
   const { toast } = useToast();
   const { createAppointment } = useAppointments();
+  const { user } = useAuth();
   const contentRef = useRef(null);
 
   // Scroll to top when step changes
@@ -240,23 +248,19 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
       params: {
         tipo_documento: tipoDocumento,
         numero_documento: numeroDocumento.replace(/[\s\-\.]/g, '')
+      },
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       }
     });
 
     console.log('✅ Respuesta del servidor:', response);
 
-    const persona = response.data || response;
+    // La respuesta viene envuelta en { success: true, data: {...} }
+    const persona = response.data?.data || response.data || response;
 
-    if (persona && (persona.primer_nombre || persona.correo || persona.telefono)) {
-      // Construir nombres completos
-      const nombresCompletos = [persona.primer_nombre, persona.segundo_nombre]
-        .filter(Boolean)
-        .join(' ');
-
-      const apellidosCompletos = [persona.primer_apellido, persona.segundo_apellido]
-        .filter(Boolean)
-        .join(' ');
-
+    if (persona && (persona.nombre_completo || persona.correo || persona.telefono)) {
       // Formatear el teléfono usando formatPhoneNumber
       let telefonoFormateado = persona.telefono || '';
       if (telefonoFormateado) {
@@ -264,8 +268,8 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
       }
 
       console.log('📝 Datos encontrados:', {
-        nombres: nombresCompletos,
-        apellidos: apellidosCompletos,
+        nombre: persona.nombre_completo,
+        apellido: persona.apellido_completo,
         telefono: telefonoFormateado,
         email: persona.correo
       });
@@ -273,8 +277,8 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
       // Actualizar formulario automáticamente
       setFormData(prev => ({
         ...prev,
-        nombre: nombresCompletos,
-        apellido: apellidosCompletos,
+        nombre: persona.nombre_completo || prev.nombre,
+        apellido: persona.apellido_completo || prev.apellido,
         telefono: telefonoFormateado,
         email: persona.correo || prev.email
       }));
@@ -414,19 +418,35 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
     return `${String(horas).padStart(2, "0")}:${String(minutos || 0).padStart(2, "0")}`;
   };
 
-  // Función para calcular hora_fin (1 hora después)
+  // Función para calcular hora_fin (30 minutos después)
   const calcularHoraFin = (horaInicio) => {
     const [horas, minutos] = horaInicio.split(":").map(Number);
-    const horaFin = horas + 1;
-    return `${String(horaFin).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`;
+    let horaFin = horas;
+    let minutosFin = minutos + 30;
+
+    if (minutosFin >= 60) {
+      horaFin += 1;
+      minutosFin = 0;
+    }
+
+    return `${String(horaFin).padStart(2, "0")}:${String(minutosFin).padStart(2, "0")}`;
   };
 
   const handleSubmit = async () => {
     if (validateAllSteps()) {
       try {
-        // Convertir hora_inicio a 24h
+        // Convertir hora_inicio a 24h y calcular hora_fin (30 minutos después)
         const horaInicio24h = formatHoraParaAPI(formData.hora);
         const horaFin24h = calcularHoraFin(horaInicio24h);
+
+        // Convertir estado string a ID numérico
+        const idEstadoCita = ESTADO_MAP[formData.estado] || 1;
+
+        // Determinar si asignar agente automáticamente
+        let idAgenteAsignado = null;
+        if ((formData.estado === 'programada' || formData.estado === 'confirmada') && user?.id) {
+          idAgenteAsignado = user.id;
+        }
 
         // Preparar los datos para el backend según la estructura esperada por citaApiService
         const citaData = {
@@ -440,6 +460,9 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
           hora_inicio: horaInicio24h,
           hora_fin: horaFin24h,
           id_servicio: SERVICIO_MAP[formData.servicio] || 1,
+          id_estado_cita: idEstadoCita,
+          id_agente_asignado: idAgenteAsignado,
+          id_usuario_creador: user?.id || null,
           observaciones: formData.notas || null
         };
 
@@ -485,7 +508,7 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
       hora: '',
       servicio: '',
       notas: '',
-      estado: 'programada'
+      estado: 'solicitada'
     });
     setErrors({});
     onClose();
