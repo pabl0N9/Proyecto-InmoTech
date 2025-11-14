@@ -201,7 +201,7 @@ const UsersPage = () => {
 
   const handleStatusChangeRequest = (user, newStatus) => {
     setSelectedUser(user);
-    setPendingStatusChange({ userId: user.id_persona, newStatus: newStatus === 'Habilitado' });
+    setPendingStatusChange({ userId: user.id_persona, newStatus: newStatus }); // newStatus ya viene como boolean del UserStatusSelector
     setLoadingStatusChanges(prev => new Set(prev).add(user.id_persona));
     setIsStatusChangeModalOpen(true);
   };

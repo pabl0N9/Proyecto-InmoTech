@@ -142,8 +142,11 @@ class AuthService {
         throw new Error('Credenciales inválidas');
       }
 
-      // ✅ VALIDACIÓN ADICIONAL: Si es administrativo y no está activo, denegar acceso
-      if (persona.roles && persona.roles.some(rol => rol.es_rol_administrativo) && !persona.administrativo) {
+      // ✅ VALIDACIÓN ADICIONAL: Si es administrativo (no super admin) y no está activo, denegar acceso
+      const es_super_admin_login = persona.roles ?
+        persona.roles.some(rol => rol.nombre_rol === 'Super Administrador') : false;
+
+      if (!es_super_admin_login && persona.roles && persona.roles.some(rol => rol.es_rol_administrativo) && !persona.administrativo) {
         throw new Error('Acceso denegado, comunícate con el administrador para resolver este problema');
       }
 
@@ -155,9 +158,13 @@ class AuthService {
 
       // Preparar roles y determinar si es administrativo
       const roles = persona.roles ? persona.roles.map(rol => rol.nombre_rol) : [];
-      const es_administrativo = persona.roles ?
-        persona.roles.some(rol => rol.es_rol_administrativo) && persona.administrativo !== null :
-        false;
+      const tiene_rol_administrativo = persona.roles ?
+        persona.roles.some(rol => rol.es_rol_administrativo) : false;
+
+      const es_super_admin = persona.roles ?
+        persona.roles.some(rol => rol.nombre_rol === 'Super Administrador') : false;
+
+      const es_administrativo = es_super_admin || (tiene_rol_administrativo && persona.administrativo !== null);
 
       // Consolidar permisos de todos los roles del usuario
       const permisos = {};
@@ -194,7 +201,8 @@ class AuthService {
           apellido_completo: persona.apellido_completo,
           roles: roles,
           es_administrativo: es_administrativo,
-          permisos: permisos
+          permisos: permisos,
+          ultimo_cambio_password: persona.acceso.ultimo_cambio_password
         },
         ...tokens
       };
@@ -242,9 +250,13 @@ class AuthService {
       }
 
       const roles = persona.roles ? persona.roles.map(rol => rol.nombre_rol) : [];
-      const es_administrativo = persona.roles ?
-        persona.roles.some(rol => rol.es_rol_administrativo) && persona.administrativo !== null :
-        false;
+      const tiene_rol_administrativo = persona.roles ?
+        persona.roles.some(rol => rol.es_rol_administrativo) : false;
+
+      const es_super_admin = persona.roles ?
+        persona.roles.some(rol => rol.nombre_rol === 'Super Administrador') : false;
+
+      const es_administrativo = es_super_admin || (tiene_rol_administrativo && persona.administrativo !== null);
 
       // Generar nuevos tokens
       const payload = {
@@ -267,50 +279,9 @@ class AuthService {
   }
 
   /**
-   * Cambia la contraseña de un usuario
+   * Obtiene el perfil del usuario actual
    * @param {number} userId - ID del usuario
-   * @param {string} currentPassword - Contraseña actual
-   * @param {string} newPassword - Nueva contraseña
-   * @returns {Promise<boolean>} True si se cambió exitosamente
-   */
-  async cambiarContrasena(userId, currentPassword, newPassword) {
-    try {
-      // Buscar acceso del usuario
-      const acceso = await Acceso.findOne({
-        where: { id_persona: userId }
-      });
-
-      if (!acceso) {
-        throw new Error('Usuario no encontrado');
-      }
-
-      // Verificar contraseña actual
-      const isValidPassword = await bcryptUtils.verifyPassword(currentPassword, acceso.contrasena);
-
-      if (!isValidPassword) {
-        throw new Error('Contraseña actual incorrecta');
-      }
-
-      // Hashear nueva contraseña
-      const hashedNewPassword = await bcryptUtils.hashPassword(newPassword);
-
-      // Actualizar contraseña
-      await acceso.update({ contrasena: hashedNewPassword });
-
-      logger.info(`Contraseña cambiada para usuario ID: ${userId}`);
-
-      return true;
-
-    } catch (error) {
-      logger.error('Error cambiando contraseña:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Obtiene el perfil del usuario
-   * @param {number} userId - ID del usuario
-   * @returns {Promise<Object>} Datos del perfil
+   * @returns {Promise<Object>} Perfil del usuario
    */
   async obtenerPerfil(userId) {
     try {
@@ -318,10 +289,22 @@ class AuthService {
         where: { id_persona: userId },
         include: [
           {
+            model: Acceso,
+            as: 'acceso',
+            required: true
+          },
+          {
             model: Rol,
             as: 'roles',
             through: { attributes: [] },
-            attributes: ['id_rol', 'nombre_rol', 'descripcion']
+            attributes: ['id_rol', 'nombre_rol', 'descripcion', 'es_rol_administrativo']
+          },
+          {
+            model: Administrativo,
+            as: 'administrativo',
+            required: false,
+            where: { estado_laboral: 'Activo' },
+            attributes: ['id_administrativo', 'estado_laboral']
           }
         ]
       });
@@ -330,18 +313,60 @@ class AuthService {
         throw new Error('Usuario no encontrado');
       }
 
+      // ✅ VERIFICACIÓN DE SEGURIDAD: Usuario debe estar activo
+      if (!persona.estado) {
+        throw new Error('Usuario inactivo - sesión terminada por seguridad');
+      }
+
+      // Verificar si es administrativo y está activo
+      const tiene_rol_administrativo = persona.roles ?
+        persona.roles.some(rol => rol.es_rol_administrativo) : false;
+
+      const es_super_admin = persona.roles ?
+        persona.roles.some(rol => rol.nombre_rol === 'Super Administrador') : false;
+
+      const es_administrativo = es_super_admin || (tiene_rol_administrativo && persona.administrativo !== null);
+
+      // ✅ VERIFICACIÓN DE SEGURIDAD: Si es administrativo y no está activo laboralmente
+      if (tiene_rol_administrativo && !es_super_admin && !persona.administrativo) {
+        throw new Error('Acceso administrativo revocado - sesión terminada por seguridad');
+      }
+
       return {
-        id: persona.id_persona,
+        id_persona: persona.id_persona,
         nombre_completo: persona.nombre_completo,
         apellido_completo: persona.apellido_completo,
         correo: persona.correo,
         telefono: persona.telefono,
         fecha_registro: persona.fecha_registro,
-        roles: persona.roles || []
+        estado: persona.estado,
+        roles: persona.roles || [],
+        es_administrativo: es_administrativo,
+        ultimo_cambio_password: persona.acceso.ultimo_cambio_password
       };
 
     } catch (error) {
       logger.error('Error obteniendo perfil:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene el timestamp del último cambio de contraseña
+   * @param {number} userId - ID del usuario
+   * @returns {Promise<Date|null>} Timestamp del último cambio
+   */
+  async obtenerUltimoCambioPassword(userId) {
+    try {
+      const acceso = await Acceso.findOne({
+        where: { id_persona: userId },
+        attributes: ['ultimo_cambio_password']
+      });
+
+      return acceso ? acceso.ultimo_cambio_password : null;
+
+    } catch (error) {
+      logger.error('Error obteniendo último cambio de contraseña:', error);
       throw error;
     }
   }

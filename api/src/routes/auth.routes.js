@@ -23,6 +23,7 @@ router.use(authenticateToken); // Todas las rutas siguientes requieren autentica
 router.get('/me', authController.obtenerPerfil);
 router.patch('/me', validate(actualizarPerfilSchema), authController.actualizarPerfil);
 router.patch('/change-password', validate(cambiarContrasenaSchema), authController.cambiarContrasena);
+router.get('/password-last-changed', authController.obtenerUltimoCambioPassword);
 router.post('/logout', authController.cerrarSesion);
 
 module.exports = router;

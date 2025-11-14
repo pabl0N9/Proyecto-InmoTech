@@ -13,6 +13,9 @@ class UsersApiService {
   normalizePersonas(personas) {
     if (!Array.isArray(personas)) return [];
 
+    // Filtrar elementos undefined/null
+    personas = personas.filter(p => p && typeof p === 'object');
+
     return personas.map(persona => {
       // Helper para filtrar valores "undefined" y undefined
       const safeString = (value) => {
@@ -166,11 +169,11 @@ class UsersApiService {
    */
   async changeUserStatus(id, estadoData) {
     try {
-      // Para usuarios, cambiar el campo 'estado'
-      const updateData = {
-        estado: estadoData.estado
+      // Usar endpoint específico para cambiar estado
+      const requestData = {
+        estado: estadoData.estado  // Solo enviar el campo estado
       };
-      return await apiClient.patch(`/personas/${id}`, updateData);
+      return await apiClient.patch(`/personas/${id}/estado`, requestData);
     } catch (error) {
       console.error('Error cambiando estado del usuario:', error);
       throw error;
@@ -184,11 +187,11 @@ class UsersApiService {
    */
   async deleteUser(id) {
     try {
-      // Para usuarios, cambiar el campo 'estado'
+      // Usar endpoint específico para cambiar estado
       const updateData = {
         estado: false
       };
-      return await apiClient.patch(`/personas/${id}`, updateData);
+      return await apiClient.patch(`/personas/${id}/estado`, updateData);
     } catch (error) {
       console.error('Error eliminando usuario:', error);
       throw error;

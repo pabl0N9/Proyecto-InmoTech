@@ -2,6 +2,7 @@ const { Persona, Acceso, PersonasRol, Rol } = require('../models');
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const logger = require('../utils/logger');
+const sseService = require('./sse.service');
 
 class PersonaService {
   /**
@@ -186,8 +187,49 @@ class PersonaService {
           delete mappedData.segundo_apellido;
         }
 
-        // Actualizar datos
-        await persona.update(mappedData, { transaction: t });
+        // Separar datos de Persona y Acceso
+        const { password, confirmPassword, ...personaData } = mappedData;
+
+        // Actualizar datos de Persona
+        if (Object.keys(personaData).length > 0) {
+          await persona.update(personaData, { transaction: t });
+        }
+
+        // Actualizar contraseña si se proporciona
+        if (password) {
+          const { Acceso } = require('../models');
+          const bcryptUtils = require('../utils/bcrypt');
+
+          // Verificar que confirmPassword coincida
+          if (password !== confirmPassword) {
+            throw new Error('Las contraseñas no coinciden');
+          }
+
+          // Buscar acceso existente
+          const acceso = await Acceso.findOne({
+            where: { id_persona: personaId },
+            transaction: t
+          });
+
+          if (acceso) {
+            // Actualizar contraseña
+            const hashedPassword = await bcryptUtils.hashPassword(password);
+            await acceso.update({
+              contrasena: hashedPassword,
+              ultimo_cambio_password: new Date()
+            }, { transaction: t });
+            logger.info(`Contraseña actualizada para persona ID: ${personaId}`);
+          } else {
+            logger.warn(`No se encontró acceso para persona ID: ${personaId}, creando uno nuevo`);
+            // Crear acceso si no existe
+            const hashedPassword = await bcryptUtils.hashPassword(password);
+            await Acceso.create({
+              id_persona: personaId,
+              contrasena: hashedPassword,
+              ultimo_cambio_password: new Date()
+            }, { transaction: t });
+          }
+        }
 
         logger.info(`Perfil actualizado para persona ID: ${personaId}`);
 
@@ -307,8 +349,11 @@ class PersonaService {
         logging: false
       });
 
+      // Filtrar elementos undefined/null
+      const validPersons = allPersonsResult.filter(p => p != null);
+
       // Filtrar personas con rol 'Usuario' en memoria
-      const personasFiltradas = allPersonsResult.filter(persona =>
+      const personasFiltradas = validPersons.filter(persona =>
         persona.roles && persona.roles.some(rol => rol.nombre_rol === 'Usuario')
       );
 
@@ -438,6 +483,115 @@ class PersonaService {
       return persona;
     } catch (error) {
       logger.error('Error al obtener persona por ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cambia el estado de una persona (activar/desactivar cuenta)
+   * @param {number} personaId - ID de la persona
+   * @param {boolean} estado - Nuevo estado
+   * @returns {Promise<Object>} Persona actualizada
+   */
+  async cambiarEstadoPersona(personaId, estado) {
+    try {
+      const persona = await Persona.findOne({
+        where: { id_persona: personaId },
+        include: [
+          {
+            model: Rol,
+            as: 'roles',
+            through: { attributes: [] },
+            attributes: ['id_rol', 'nombre_rol'],
+            required: false
+          }
+        ]
+      });
+
+      if (!persona) {
+        throw new Error('Persona no encontrada');
+      }
+
+      // Verificar que no sea Super Administrador o Administrador
+      const isSuperAdminOrAdmin = persona.roles?.some(rol =>
+        rol.nombre_rol === 'Super Administrador' || rol.nombre_rol === 'Administrador'
+      );
+
+      if (isSuperAdminOrAdmin) {
+        throw new Error('No se puede cambiar el estado de un Super Administrador o Administrador');
+      }
+
+      await persona.update({ estado });
+
+      // ✅ SSE: Notificar al usuario que su cuenta ha sido deshabilitada
+      if (!estado) {
+        sseService.notifyUserDisabled(personaId);
+        logger.info(`📡 SSE: Notificación enviada - Usuario deshabilitado ${personaId}`);
+      }
+
+      logger.info(`Estado de persona actualizado: ID ${personaId}, estado: ${estado}`);
+
+      return persona;
+
+    } catch (error) {
+      logger.error('Error cambiando estado de persona:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cambia la contraseña de una persona (solo para administradores)
+   * @param {number} personaId - ID de la persona
+   * @param {string} nuevaPassword - Nueva contraseña
+   * @returns {Promise<boolean>} True si se cambió exitosamente
+   */
+  async cambiarContrasenaPersona(personaId, nuevaPassword) {
+    try {
+      const persona = await Persona.findOne({
+        where: { id_persona: personaId },
+        include: [
+          {
+            model: Rol,
+            as: 'roles',
+            through: { attributes: [] },
+            attributes: ['id_rol', 'nombre_rol'],
+            required: false
+          }
+        ]
+      });
+
+      if (!persona) {
+        throw new Error('Persona no encontrada');
+      }
+
+      // Verificar que no sea Super Administrador o Administrador
+      const isSuperAdminOrAdmin = persona.roles?.some(rol =>
+        rol.nombre_rol === 'Super Administrador' || rol.nombre_rol === 'Administrador'
+      );
+
+      if (isSuperAdminOrAdmin) {
+        throw new Error('No se puede cambiar la contraseña de un Super Administrador o Administrador');
+      }
+
+      // Hashear nueva contraseña y actualizar
+      const hashedPassword = await bcryptUtils.hashPassword(nuevaPassword);
+      await Acceso.update({
+        contrasena: hashedPassword,
+        ultimo_cambio_password: new Date()
+      }, {
+        where: { id_persona: personaId }
+      });
+
+      // ✅ SSE: Notificar al usuario que su contraseña ha sido cambiada
+      sseService.notifyPasswordChanged(personaId);
+      logger.info(`📡 SSE: Notificación enviada - Contraseña cambiada para usuario ${personaId}`);
+
+      logger.info(`Contraseña cambiada para persona ID: ${personaId}`);
+
+      return true;
+
+    } catch (error) {
+      logger.error('Error cambiando contraseña de persona:', error);
       throw error;
     }
   }

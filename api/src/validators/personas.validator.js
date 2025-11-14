@@ -79,27 +79,39 @@ const actualizarPersonaSchema = Joi.object({
   primer_nombre: Joi.string()
     .min(2)
     .max(50)
-    .pattern(/^[a-zA-ZÀ-ÿ\s]+$/)
+    .pattern(/^[a-zA-ZÀ-ÿ\s]+/)
     .optional(),
 
   segundo_nombre: Joi.string()
     .min(2)
     .max(50)
-    .pattern(/^[a-zA-ZÀ-ÿ\s]+$/)
+    .pattern(/^[a-zA-ZÀ-ÿ\s]+/)
     .allow('', null)
     .optional(),
 
   primer_apellido: Joi.string()
     .min(2)
     .max(50)
-    .pattern(/^[a-zA-ZÀ-ÿ\s]+$/)
+    .pattern(/^[a-zA-ZÀ-ÿ\s]+/)
     .optional(),
 
   segundo_apellido: Joi.string()
     .min(2)
     .max(50)
-    .pattern(/^[a-zA-ZÀ-ÿ\s]+$/)
+    .pattern(/^[a-zA-ZÀ-ÿ\s]+/)
     .allow('', null)
+    .optional(),
+
+  nombre_completo: Joi.string()
+    .min(2)
+    .max(100)
+    .pattern(/^[a-zA-ZÀ-ÿ\s]+$/u)
+    .optional(),
+
+  apellido_completo: Joi.string()
+    .min(2)
+    .max(100)
+    .pattern(/^[a-zA-ZÀ-ÿ\s]+$/u)
     .optional(),
 
   correo: Joi.string()
@@ -119,6 +131,37 @@ const actualizarPersonaSchema = Joi.object({
     .optional()
     .messages({
       'string.pattern.base': 'El teléfono debe tener formato colombiano (+57 XXX XXX XXXX o 3XX XXX XXXX)'
+    }),
+
+  tipo_documento: Joi.string()
+    .valid('CC', 'CE', 'TI', 'NIT', 'PAS')
+    .optional(),
+
+  numero_documento: Joi.string()
+    .min(5)
+    .max(20)
+    .pattern(/^[0-9A-Z]+$/)
+    .optional(),
+
+  password: Joi.string()
+    .min(8)
+    .max(100)
+    .optional()
+    .messages({
+      'string.min': 'La contraseña debe tener al menos 8 caracteres',
+      'string.max': 'La contraseña no puede exceder 100 caracteres'
+    }),
+
+  confirmPassword: Joi.string()
+    .valid(Joi.ref('password'))
+    .when('password', {
+      is: Joi.exist(),
+      then: Joi.required(),
+      otherwise: Joi.optional()
+    })
+    .messages({
+      'any.only': 'Las contraseñas no coinciden',
+      'any.required': 'La confirmación de contraseña es requerida cuando se proporciona una contraseña'
     }),
 
   estado: Joi.boolean()

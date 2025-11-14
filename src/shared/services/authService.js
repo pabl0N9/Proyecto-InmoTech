@@ -265,6 +265,23 @@ class AuthService {
       return false;
     }
   }
+
+  /**
+   * Obtiene el timestamp del último cambio de contraseña
+   * @returns {Promise<Date|null>} Timestamp del último cambio
+   */
+  async getPasswordLastChanged() {
+    try {
+      console.log('🔑 Obteniendo último cambio de contraseña...');
+
+      const response = await apiClient.get('/auth/password-last-changed');
+
+      return response.data?.data?.ultimo_cambio_password || null;
+    } catch (error) {
+      console.error('❌ Error obteniendo último cambio de contraseña:', error.message);
+      throw error;
+    }
+  }
 }
 
 export default new AuthService();

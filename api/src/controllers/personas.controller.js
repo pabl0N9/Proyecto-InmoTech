@@ -190,6 +190,34 @@ class PersonasController {
   }
 
   /**
+   * Cambiar estado de una persona (solo para administradores)
+   */
+  async cambiarEstado(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { estado } = req.body;  // El frontend debería enviar { estado: true/false }
+
+      if (typeof estado !== 'boolean') {
+        return res.status(400).json({
+          success: false,
+          message: 'El campo estado debe ser un valor booleano'
+        });
+      }
+
+      const personaActualizada = await personasService.cambiarEstadoPersona(parseInt(id), estado);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Estado de persona actualizado exitosamente',
+        data: personaActualizada
+      });
+    } catch (error) {
+      logger.error('Error cambiando estado de persona:', error);
+      next(error);
+    }
+  }
+
+  /**
    * Obtener persona por ID (solo para administradores)
    */
   async obtenerPorId(req, res, next) {

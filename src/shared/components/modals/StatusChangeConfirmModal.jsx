@@ -111,9 +111,15 @@ const StatusChangeConfirmModal = ({
             {administrativoInfo && (
               <div className="bg-slate-50 rounded-lg p-4 mb-4">
                 <div className="text-sm text-slate-800 font-medium">{administrativoInfo.nombre}</div>
-                <div className="text-sm text-slate-600">Código: {administrativoInfo.codigo}</div>
-                <div className="text-sm text-slate-600">Cargo: {administrativoInfo.cargo}</div>
-                <div className="text-sm text-slate-600">Departamento: {administrativoInfo.departamento}</div>
+                {administrativoInfo.codigo && (
+                  <div className="text-sm text-slate-600">Código: {administrativoInfo.codigo}</div>
+                )}
+                {administrativoInfo.cargo && (
+                  <div className="text-sm text-slate-600">Cargo: {administrativoInfo.cargo}</div>
+                )}
+                {administrativoInfo.departamento && (
+                  <div className="text-sm text-slate-600">Departamento: {administrativoInfo.departamento}</div>
+                )}
               </div>
             )}
 

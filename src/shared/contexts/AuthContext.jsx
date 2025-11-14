@@ -4,8 +4,11 @@
  */
 
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
 import { apiClient } from '../services/api.config';
+import sseService from '../services/sseService';
+import { useToast } from '../hooks/use-toast';
 
 const AuthContext = createContext(undefined);
 
@@ -14,8 +17,10 @@ const USER_KEY = 'inmotech_user';
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start with loading: true
   const [error, setError] = useState(null);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   /**
    * Carga la información de autenticación desde storage
@@ -132,6 +137,9 @@ const login = async (email, password, rememberMe = false) => {
         console.log('💾 Sesión temporal guardada');
       }
       
+      // Resetear la bandera de desconexión forzada porque es un login normal
+      sseService.resetForcedDisconnect();
+
       setUser(userData);
       setIsAuthenticated(true);
 
@@ -151,7 +159,7 @@ const login = async (email, password, rememberMe = false) => {
     } else {
       throw new Error(response.message || 'Error en la autenticación');
     }
-  } catch (error) {
+  } catch (error) {30000
     console.error('❌ Error en login:', error);
     setError(error.message || 'Error al iniciar sesión');
     throw error;
@@ -449,10 +457,123 @@ const login = async (email, password, rememberMe = false) => {
     return availableModules;
   }, [user]);
 
+  /**
+   * Conecta al servicio SSE para notificaciones en tiempo real
+   */
+  const connectSSE = useCallback(async () => {
+    try {
+      const token = apiClient.getAccessToken();
+      if (token && isAuthenticated) {
+        console.log('� Conectando SSE...');
+        await sseService.connect(token);
+      }
+    } catch (error) {
+      console.error('❌ Error conectando SSE:', error);
+    }
+  }, [isAuthenticated]);
+
+  /**
+   * Desconecta del servicio SSE
+   */
+  const disconnectSSE = useCallback(() => {
+    console.log('📡 Desconectando SSE...');
+    sseService.disconnect();
+  }, []);
+
+  /**
+   * Manejador de eventos SSE para cierre de sesión forzado
+   */
+  const handleForcedLogout = useCallback(async (eventData) => {
+    console.log('🚨 Evento SSE recibido - Cierre de sesión forzado:', eventData);
+
+    let message = 'Tu sesión ha sido terminada por seguridad.';
+
+    switch (eventData.action) {
+      case 'logout':
+        if (eventData.message) {
+          message = eventData.message;
+        }
+        break;
+      default:
+        message = eventData.message || message;
+    }
+
+    console.log('🚨 Ejecutando handleForcedLogout con mensaje:', message);
+    await performForcedLogout(message);
+  }, []);
+
+  /**
+   * Realiza el logout forzado con todas las acciones necesarias
+   */
+  const performForcedLogout = useCallback(async (message = 'Tu sesión ha sido terminada por seguridad.') => {
+    console.log('🚨 Ejecutando logout forzado:', message);
+
+    // 📝 IMPORTANTE: Marcar primero como NO autenticado para evitar reconexiones
+    setIsAuthenticated(false);
+    setUser(null);
+
+    // Marcar desconexión forzada para evitar reconexiones SSE automáticas
+    sseService.setForcedDisconnect();
+
+    // Desconectar SSE
+    sseService.disconnect();
+
+    // Limpiar tokens (no usar logout() para evitar llamadas backend)
+    clearAuthData();
+
+    // Mostrar mensaje al usuario usando toast con estilo de alerta
+    toast({
+      title: "Cuenta deshabilitada",
+      description: message,
+      variant: "destructive"
+    });
+
+    // Redirigir al login usando React Router (más suave que recarga completa)
+    // Solo ejecutar si todavía no está en login para evitar loops
+    setTimeout(() => {
+      if (window.location.pathname !== '/login') {
+        navigate('/login', { replace: true });
+      }
+    }, 1500); // Más tiempo para que el toast sea visible
+  }, [toast, navigate]);
+
   // Cargar autenticación al montar el componente
   useEffect(() => {
     loadAuthFromStorage();
   }, [loadAuthFromStorage]);
+
+  // Conectar SSE cuando el usuario se autentica
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      connectSSE();
+    } else {
+      disconnectSSE();
+    }
+
+    return () => {
+      // Cleanup al desmontar
+      disconnectSSE();
+    };
+  }, [isAuthenticated, user, connectSSE, disconnectSSE]);
+
+  // Configurar listeners SSE para eventos de seguridad
+  useEffect(() => {
+    const handleUserDisabled = (data) => handleForcedLogout(data);
+    const handlePasswordChanged = (data) => handleForcedLogout(data);
+    const handleAdminAccessRevoked = (data) => handleForcedLogout(data);
+
+    // Registrar listeners
+    sseService.on('user_disabled', handleUserDisabled);
+    sseService.on('password_changed', handlePasswordChanged);
+    sseService.on('admin_access_revoked', handleAdminAccessRevoked);
+
+    // Cleanup: remover listeners
+    return () => {
+      sseService.off('user_disabled', handleUserDisabled);
+      sseService.off('password_changed', handlePasswordChanged);
+      sseService.off('admin_access_revoked', handleAdminAccessRevoked);
+    };
+  }, [handleForcedLogout]);
 
   const value = {
     // Estado

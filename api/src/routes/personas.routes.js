@@ -53,12 +53,17 @@ router.post('/',
   personasController.crearPersona
 );
 
+// Cambiar estado de persona (solo administradores) - RUTA ESPECÍFICA PRIMERO
+router.patch('/:id/estado',
+  personasController.cambiarEstado
+);
+
 // Obtener persona por ID (solo administradores)
 router.get('/:id',
   personasController.obtenerPorId
 );
 
-// Actualizar persona (solo administradores)
+// Actualizar persona (solo administradores) - RUTA GENÉRICA AL FINAL
 router.patch('/:id',
   validate(actualizarPersonaSchema),
   personasController.actualizarPersona

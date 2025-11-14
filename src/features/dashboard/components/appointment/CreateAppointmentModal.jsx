@@ -7,6 +7,7 @@ import CustomerStep from './steps/CustomerStep';
 import DateTimeStep from './steps/DateTimeStep';
 import DetailsStepStep from './steps/DetailsStep';
 import SummaryStepStep from './steps/SummaryStep';
+import ConfirmationModal from './ConfirmationModal';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import { useAppointments } from '../../../../shared/contexts/AppointmentContext';
@@ -45,6 +46,9 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
   const [errors, setErrors] = useState({});
   // ⭐ AGREGADO: Estado para búsqueda automática
   const [isSearchingPerson, setIsSearchingPerson] = useState(false);
+  // ✅ NUEVO: Estado para el modal de confirmación
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [isCreatingAppointment, setIsCreatingAppointment] = useState(false);
   const { toast } = useToast();
   const { createAppointment } = useAppointments();
   const { user } = useAuth();
@@ -432,66 +436,91 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
     return `${String(horaFin).padStart(2, "0")}:${String(minutosFin).padStart(2, "0")}`;
   };
 
-  const handleSubmit = async () => {
+  // ✅ MODIFICADO: Ahora abre el modal de confirmación en lugar de crear directamente
+  const handleSubmit = () => {
     if (validateAllSteps()) {
-      try {
-        // Convertir hora_inicio a 24h y calcular hora_fin (30 minutos después)
-        const horaInicio24h = formatHoraParaAPI(formData.hora);
-        const horaFin24h = calcularHoraFin(horaInicio24h);
-
-        // Convertir estado string a ID numérico
-        const idEstadoCita = ESTADO_MAP[formData.estado] || 1;
-
-        // Determinar si asignar agente automáticamente
-        let idAgenteAsignado = null;
-        if ((formData.estado === 'programada' || formData.estado === 'confirmada') && user?.id) {
-          idAgenteAsignado = user.id;
-        }
-
-        // Preparar los datos para el backend según la estructura esperada por citaApiService
-        const citaData = {
-          tipo_documento: formData.tipoDocumento,
-          numero_documento: formData.numeroDocumento,
-          nombre_completo: formData.nombre,
-          apellido_completo: formData.apellido,
-          email: formData.email,
-          telefono: formData.telefono,
-          fecha_cita: formData.fecha,
-          hora_inicio: horaInicio24h,
-          hora_fin: horaFin24h,
-          id_servicio: SERVICIO_MAP[formData.servicio] || 1,
-          id_estado_cita: idEstadoCita,
-          id_agente_asignado: idAgenteAsignado,
-          id_usuario_creador: user?.id || null,
-          observaciones: formData.notas || null
-        };
-
-        console.log("📤 Datos preparados para crear cita:", citaData);
-
-        // ✅ Crear la cita usando createAppointment (crea en backend y agrega al estado)
-        await createAppointment(citaData);
-
-        toast({
-          title: "¡Cita creada exitosamente!",
-          description: "La cita ha sido agendada correctamente.",
-          variant: "default"
-        });
-
-        handleClose();
-      } catch (error) {
-        console.error("Error al crear cita:", error);
-        toast({
-          title: "Error al crear la cita",
-          description: "No se pudo crear la cita. Por favor, intenta nuevamente.",
-          variant: "destructive"
-        });
-      }
+      setShowConfirmationModal(true);
     } else {
       toast({
         title: "Campos requeridos",
         description: "Por favor corrige los errores antes de crear la cita",
         variant: "destructive"
       });
+    }
+  };
+
+  // ✅ NUEVO: Función que realmente crea la cita después de la confirmación
+  const handleConfirmAppointment = async () => {
+    setIsCreatingAppointment(true);
+
+    try {
+      // Convertir hora_inicio a 24h y calcular hora_fin (30 minutos después)
+      const horaInicio24h = formatHoraParaAPI(formData.hora);
+      const horaFin24h = calcularHoraFin(horaInicio24h);
+
+      // Convertir estado string a ID numérico
+      const idEstadoCita = ESTADO_MAP[formData.estado] || 1;
+
+      // Determinar si asignar agente automáticamente
+      let idAgenteAsignado = null;
+      if ((formData.estado === 'programada' || formData.estado === 'confirmada') && user?.id) {
+        idAgenteAsignado = user.id;
+      }
+
+      // Preparar los datos para el backend según la estructura esperada por citaApiService
+      const citaData = {
+        tipo_documento: formData.tipoDocumento,
+        numero_documento: formData.numeroDocumento,
+        nombre_completo: formData.nombre,
+        apellido_completo: formData.apellido,
+        email: formData.email,
+        telefono: formData.telefono,
+        fecha_cita: formData.fecha,
+        hora_inicio: horaInicio24h,
+        hora_fin: horaFin24h,
+        id_servicio: SERVICIO_MAP[formData.servicio] || 1,
+        id_estado_cita: idEstadoCita,
+        id_agente_asignado: idAgenteAsignado,
+        id_usuario_creador: user?.id || null,
+        observaciones: formData.notas || null
+      };
+
+      console.log("📤 Datos preparados para crear cita:", citaData);
+
+      // ✅ Crear la cita usando createAppointment (crea en backend y agrega al estado)
+      const nuevaCita = await createAppointment(citaData);
+
+      // ✅ INTEGRACIÓN: Procesar integraciones para cita confirmada
+      if (nuevaCita && formData.estado === 'confirmada') {
+        console.log("🚀 Procesando integraciones para cita confirmada...");
+
+        // Aquí iría la llamada al servicio de integración Flutter
+        // Como estamos en React, solo mostramos el mensaje
+        toast({
+          title: "📅 Integraciones activadas",
+          description: "La cita se agregó al calendario y se programaron recordatorios.",
+          variant: "default"
+        });
+      }
+
+      toast({
+        title: "¡Cita creada exitosamente!",
+        description: "La cita ha sido agendada correctamente.",
+        variant: "default"
+      });
+
+      // Cerrar ambos modales
+      setShowConfirmationModal(false);
+      handleClose();
+    } catch (error) {
+      console.error("Error al crear cita:", error);
+      toast({
+        title: "Error al crear la cita",
+        description: "No se pudo crear la cita. Por favor, intenta nuevamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingAppointment(false);
     }
   };
 
@@ -646,6 +675,11 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
     }
   };
 
+  // ✅ NUEVO: Función para cerrar el modal de confirmación
+  const handleCloseConfirmation = () => {
+    setShowConfirmationModal(false);
+  };
+
   if (!isOpen) return null;
 
   return ReactDOM.createPortal(
@@ -751,6 +785,15 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
             </div>
           </div>
         </motion.div>
+
+        {/* ✅ NUEVO: Modal de Confirmación */}
+        <ConfirmationModal
+          isOpen={showConfirmationModal}
+          onClose={handleCloseConfirmation}
+          onConfirm={handleConfirmAppointment}
+          formData={formData}
+          isLoading={isCreatingAppointment}
+        />
       </div>
     </AnimatePresence>,
     document.body

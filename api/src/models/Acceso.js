@@ -28,6 +28,11 @@ const Acceso = sequelize.define('Acceso', {
   ultimo_acceso: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  ultimo_cambio_password: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: sequelize.literal('GETDATE()')
   }
 }, {
   tableName: 'Acceso',

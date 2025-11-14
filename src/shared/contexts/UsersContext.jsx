@@ -26,7 +26,7 @@ export const UsersProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       const response = await usersApiService.getUsers(params);
-      setUsers(response.data.personas || []);
+      setUsers((response.data.personas || []).filter(Boolean));
     } catch (err) {
       setError(err.message || 'Error al cargar usuarios');
       toast({
@@ -46,6 +46,10 @@ export const UsersProvider = ({ children }) => {
 
   // Actualizar usuario
   const updateUser = useCallback((userActualizado) => {
+    if (!userActualizado || !userActualizado.id_persona) {
+      console.error('updateUser: userActualizado inválido', userActualizado);
+      return;
+    }
     setUsers(prev =>
       prev.map(userItem =>
         // ✅ Protección: verificar que userItem exista y tenga id_persona
@@ -165,10 +169,19 @@ export const UsersProvider = ({ children }) => {
   const updateUserComplete = useCallback(async (id, userData) => {
     try {
       const response = await usersApiService.updateUser(id, userData);
-      const userActualizado = response.data.data;
+      const userActualizado = response.data.data || response.data;
+
+      console.log('updateUserComplete: response.data', response.data);
+      console.log('updateUserComplete: userActualizado', userActualizado);
 
       // Actualizar en la lista local
-      updateUser(userActualizado);
+      if (userActualizado && userActualizado.id_persona) {
+        updateUser(userActualizado);
+      } else {
+        // Si no se pudo obtener el usuario actualizado, recargar la lista
+        console.warn('Usuario actualizado no válido, recargando lista...');
+        loadUsers();
+      }
 
       toast({
         title: "¡Éxito!",
@@ -186,7 +199,7 @@ export const UsersProvider = ({ children }) => {
       });
       throw error;
     }
-  }, [updateUser, toast]);
+  }, [updateUser, loadUsers, toast]);
 
   // Eliminar usuario
   const removeUser = useCallback(async (id) => {
