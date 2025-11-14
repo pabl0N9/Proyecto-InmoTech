@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, Edit, Trash2, Plus, Check, X } from 'lucide-react';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
+import { useAuth } from '../../../../shared/contexts/AuthContext';
 
 const ActionsPopover = ({
   isOpen,
@@ -17,6 +18,7 @@ const ActionsPopover = ({
   date = null
 }) => {
   const popoverRef = useRef(null);
+  const { hasPermission } = useAuth();
 
   const { x, y, reference, floating, strategy, refs } = useFloating({
     placement: 'right-start',
@@ -64,54 +66,71 @@ const ActionsPopover = ({
     onClose();
   };
 
-  const actions = appointment ? (
-    appointment.estado === 'solicitada' ? [
-      {
+  const actions = [];
+
+  if (appointment) {
+    if (appointment.estado === 'solicitada') {
+      // Para citas solicitadas - TODOS LOS BOTONES APARECEN
+      actions.push({
         label: 'Ver',
         icon: Eye,
-        action: () => onView(appointment),
-        color: 'text-blue-600 hover:bg-blue-50'
-      },
-      {
+        action: () => hasPermission("gCitas", "ver") ? onView(appointment) : null,
+        disabled: !hasPermission("gCitas", "ver"),
+        color: hasPermission("gCitas", "ver") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed'
+      });
+
+      // Aceptar y Cancelar - asumimos que administrativos pueden aprobar/rechazar
+      actions.push({
         label: 'Aceptar',
         icon: Check,
-        action: () => onAccept && onAccept(appointment),
-        color: 'text-green-600 hover:bg-green-50'
-      },
-      {
+        action: () => hasPermission("gCitas", "editar") ? (onAccept && onAccept(appointment)) : null,
+        disabled: !hasPermission("gCitas", "editar"),
+        color: hasPermission("gCitas", "editar") ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 cursor-not-allowed'
+      });
+
+      actions.push({
         label: 'Cancelar',
         icon: X,
-        action: () => onReject && onReject(appointment),
-        color: 'text-red-600 hover:bg-red-50'
-      }
-    ] : [
-      {
+        action: () => hasPermission("gCitas", "eliminar") ? (onReject && onReject(appointment)) : null,
+        disabled: !hasPermission("gCitas", "eliminar"),
+        color: hasPermission("gCitas", "eliminar") ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed'
+      });
+    } else {
+      // Para citas confirmadas - TODOS LOS BOTONES APARECEN
+      actions.push({
         label: 'Ver',
         icon: Eye,
-        action: () => onView(appointment),
-        color: 'text-blue-600 hover:bg-blue-50'
-      },
-      {
+        action: () => hasPermission("gCitas", "ver") ? onView(appointment) : null,
+        disabled: !hasPermission("gCitas", "ver"),
+        color: hasPermission("gCitas", "ver") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed'
+      });
+
+      actions.push({
         label: 'Editar',
         icon: Edit,
-        action: () => onEdit(appointment),
-        color: 'text-green-600 hover:bg-green-50'
-      },
-      {
+        action: () => hasPermission("gCitas", "editar") ? onEdit(appointment) : null,
+        disabled: !hasPermission("gCitas", "editar"),
+        color: hasPermission("gCitas", "editar") ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 cursor-not-allowed'
+      });
+
+      actions.push({
         label: 'Eliminar',
         icon: Trash2,
-        action: () => onDelete(appointment),
-        color: 'text-red-600 hover:bg-red-50'
-      }
-    ]
-  ) : [
-    {
+        action: () => hasPermission("gCitas", "eliminar") ? onDelete(appointment) : null,
+        disabled: !hasPermission("gCitas", "eliminar"),
+        color: hasPermission("gCitas", "eliminar") ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed'
+      });
+    }
+  } else {
+    // Acción para crear cita - TODOS LOS BOTONES APARECEN
+    actions.push({
       label: 'Crear cita',
       icon: Plus,
-      action: () => onCreate(date),
-      color: 'text-blue-600 hover:bg-blue-50'
-    }
-  ];
+      action: () => hasPermission("gCitas", "crear") ? onCreate(date) : null,
+      disabled: !hasPermission("gCitas", "crear"),
+      color: hasPermission("gCitas", "crear") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed'
+    });
+  }
 
   return (
     <AnimatePresence>
@@ -137,8 +156,9 @@ const ActionsPopover = ({
           {actions.map((item, index) => (
             <button
               key={index}
-              onClick={() => handleAction(item.action)}
-              className={`w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors ${item.color}`}
+              onClick={() => item.disabled ? null : handleAction(item.action)}
+              disabled={item.disabled}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors ${item.color} ${item.disabled ? 'opacity-50' : ''}`}
               role="menuitem"
             >
               <item.icon className="w-4 h-4" />

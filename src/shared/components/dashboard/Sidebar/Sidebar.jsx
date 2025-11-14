@@ -17,7 +17,7 @@ const Sidebar = React.forwardRef(({
   onLogout,
   onGoToSite
 }, ref) => {
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, getAvailableModules } = useAuth();
 
   const sidebarVariants = {
     expanded: {
@@ -44,14 +44,66 @@ const Sidebar = React.forwardRef(({
   const navRef = useRef(null);
   const prevExpandedItem = useRef(null);
 
-  // Filter navigation items based on user role
-  const filteredNavigationItems = navigationItems.filter(item => {
-    // Hide 'seguridad' module for 'Empleado' role
-    if (item.id === 'seguridad' && hasRole('Empleado')) {
-      return false;
+  // Filter navigation items based on user permissions
+  const filteredNavigationItems = React.useMemo(() => {
+    const availableModules = getAvailableModules();
+
+    // Super Admin ve todos los módulos
+    if (hasRole('Super Administrador')) {
+      return navigationItems;
     }
-    return true;
-  });
+
+    // Filter navigation items based on available modules
+    return navigationItems.filter(item => {
+      // Dashboard siempre visible
+      if (item.id === 'dashboard') return true;
+
+      // Módulo citas
+      if (item.id === 'citas' && availableModules.includes('citas')) return true;
+
+      // Módulo inmuebles
+      if (item.id === 'inmuebles' && availableModules.includes('propiedades')) return true;
+
+      // Módulo reportes
+      if (item.id === 'reportes' && availableModules.includes('reportes')) return true;
+
+      // Módulo seguridad - filtrar subitems según permisos
+      if (item.id === 'seguridad') {
+        const filteredSubItems = item.subItems?.filter(subItem => {
+          if (subItem.id === 'administrativos' && availableModules.includes('administrativos')) return true;
+          if (subItem.id === 'roles' && availableModules.includes('roles')) return true;
+          // También incluir usuarios siempre que tenga algún acceso administrativo
+          if (subItem.id === 'usuarios' && (availableModules.includes('administrativos') || availableModules.includes('roles'))) return true;
+          return false;
+        });
+
+        // Solo mostrar módulo seguridad si tiene al menos un subitem accesible
+        return filteredSubItems && filteredSubItems.length > 0;
+      }
+
+      // Venta y Arriendos quedan ocultos por ahora (modulos implementados)
+      if (item.id === 'ventas' || item.id === 'arriendos') return false;
+
+      return false;
+    }).map(item => {
+      // Si es el módulo seguridad, filtrar también sus subitems
+      if (item.id === 'seguridad') {
+        const availableModules = getAvailableModules();
+        const filteredSubItems = item.subItems?.filter(subItem => {
+          if (subItem.id === 'administrativos' && availableModules.includes('administrativos')) return true;
+          if (subItem.id === 'roles' && availableModules.includes('roles')) return true;
+          if (subItem.id === 'usuarios' && (availableModules.includes('administrativos') || availableModules.includes('roles'))) return true;
+          return false;
+        });
+
+        return filteredSubItems ?
+          { ...item, subItems: filteredSubItems } :
+          null;
+      }
+
+      return item;
+    }).filter(Boolean);
+  }, [getAvailableModules, hasRole]);
 
   useEffect(() => {
     if (navRef.current) {

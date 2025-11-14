@@ -1,54 +1,56 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import ReactDOM from 'react-dom';
 import { FaUserPlus, FaEye, FaEdit, FaSearch, FaTrash, FaTimes } from "react-icons/fa";
 import "../../../../shared/styles/globals.css"
 import BuyerForm from "../../components/sales/BuyerForm";
 import BuyerViewModal from "../../components/sales/BuyerView";
+import { buyersApiService } from "../../../../shared/services/buyersApiService";
 
 export function BuyersManagementPage() {
-    const [compradores, setCompradores] = useState([
-        {
-            id: 1, tipoDocumento: "CC", documento: "11.111.111", primerNombre: "Juan", segundoNombre: "Carlos",
-            primerApellido: "Jaramillo", segundoApellido: "Sossa", correo: "FerCarSossa@gmail.com", telefono: "3123278776",
-        },
-        {
-            id: 2, tipoDocumento: "CC", documento: "10.101.010", primerNombre: "Pablo", segundoNombre: "",
-            primerApellido: "Camargo", segundoApellido: "Buitrago", correo: "BuitragoPablo@gmail.com", telefono: "3123225634",
-        },
-        {
-            id: 3, tipoDocumento: "CC", documento: "12.121.212", primerNombre: "Fernando", segundoNombre: "Andres",
-            primerApellido: "Patiño", segundoApellido: "Sepulveda", correo: "AndresSepulveda@gmail.com", telefono: "3004587808",
-        },
-    ]);
-
-    // Contador seguro para IDs
-    const idCounter = useRef(compradores.length + 1);
-
-    // --- ESTADOS DE ACCIÓN ---
-    const [searchTerm, setSearchTerm] = useState("");
-    const [showForm, setShowForm] = useState(false);
-    const [buyerToEdit, setBuyerToEdit] = useState(null);
-    const [buyerToView, setBuyerToView] = useState(null);
+    const [compradores, setCompradores] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [formSubmitting, setFormSubmitting] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [statusMessage, setStatusMessage] = useState(null);
+
+    // --- ESTADOS DE ACCION ---
+    const [searchTerm, setSearchTerm] = useState("");
+    const [showForm, setShowForm] = useState(false);
+    const [buyerToEdit, setBuyerToEdit] = useState(null);
+    const [buyerToView, setBuyerToView] = useState(null);
     const [buyerToDelete, setBuyerToDelete] = useState(null);
 
-    // --- FILTRO DE BÚSQUEDA ---
-    const filteredBuyers =
-        searchTerm.trim() === ""
-            ? compradores
-            : compradores.filter((buyer) => {
-                  const lowerCaseSearchTerm = searchTerm.toLowerCase();
-                  return (
-                      buyer.primerNombre.toLowerCase().includes(lowerCaseSearchTerm) ||
-                      (buyer.segundoNombre &&
-                          buyer.segundoNombre.toLowerCase().includes(lowerCaseSearchTerm)) ||
-                      buyer.primerApellido.toLowerCase().includes(lowerCaseSearchTerm) ||
-                      (buyer.segundoApellido &&
-                          buyer.segundoApellido.toLowerCase().includes(lowerCaseSearchTerm)) ||
-                      buyer.documento.includes(searchTerm) ||
-                      buyer.correo.toLowerCase().includes(lowerCaseSearchTerm) ||
-                      buyer.telefono.includes(searchTerm)
-                  );
-              });
+    const showStatus = (type, message) => {
+        setStatusMessage({ type, message });
+    };
+
+    const fetchBuyers = useCallback(async (query = "") => {
+        try {
+            setIsLoading(true);
+            const params = query ? { search: query } : {};
+            const buyers = await buyersApiService.getAll(params);
+            setCompradores(buyers);
+        } catch (error) {
+            showStatus("error", error.message || "No fue posible cargar los compradores");
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchBuyers();
+    }, [fetchBuyers]);
+
+    useEffect(() => {
+        const trimmed = searchTerm.trim();
+        const timeoutId = setTimeout(() => {
+            fetchBuyers(trimmed);
+        }, 400);
+        return () => clearTimeout(timeoutId);
+    }, [searchTerm, fetchBuyers]);
+
+// --- FILTRO DE BÚSQUEDA ---
+    const filteredBuyers = compradores;
 
     // --- HANDLERS GENERALES ---
     const handleCloseForm = () => {
@@ -75,22 +77,53 @@ export function BuyersManagementPage() {
         setBuyerToView(buyer);
     };
 
-    const handleCreateBuyer = (data) => {
-        const newBuyer = { ...data, id: idCounter.current++ };
-        setCompradores((prev) => [...prev, newBuyer]);
-        handleCloseForm();
+    const handleCreateBuyer = async (formData) => {
+        try {
+            setFormSubmitting(true);
+            const newBuyer = await buyersApiService.create(formData);
+            setCompradores((prev) => [newBuyer, ...prev.filter((buyer) => buyer.id !== newBuyer.id)]);
+            showStatus("success", "Comprador registrado correctamente");
+            handleCloseForm();
+        } catch (error) {
+            showStatus("error", error.message || "No fue posible crear el comprador");
+            throw error;
+        } finally {
+            setFormSubmitting(false);
+        }
     };
 
-    const handleUpdateBuyer = (updatedBuyer) => {
-        setCompradores((prev) =>
-            prev.map((buyer) => (buyer.id === updatedBuyer.id ? updatedBuyer : buyer))
-        );
-        handleCloseForm();
+    const handleUpdateBuyer = async (formData) => {
+        if (!buyerToEdit) return;
+        const targetId = buyerToEdit.id || buyerToEdit.personaId;
+        if (!targetId) {
+            showStatus("error", "No se pudo determinar el identificador del comprador a actualizar.");
+            return;
+        }
+
+        try {
+            setFormSubmitting(true);
+            const updatedBuyer = await buyersApiService.update(targetId, formData);
+            setCompradores((prev) =>
+                prev.map((buyer) => (buyer.id === updatedBuyer.id ? updatedBuyer : buyer))
+            );
+            showStatus("success", "Comprador actualizado correctamente");
+            handleCloseForm();
+        } catch (error) {
+            showStatus("error", error.message || "No fue posible actualizar el comprador");
+            throw error;
+        } finally {
+            setFormSubmitting(false);
+        }
     };
 
-    const handleSubmit = buyerToEdit ? handleUpdateBuyer : handleCreateBuyer;
+    const handleSubmit = (formData) => {
+        if (buyerToEdit) {
+            return handleUpdateBuyer(formData);
+        }
+        return handleCreateBuyer(formData);
+    };
 
-    // 🔑 --- HANDLERS ELIMINAR ---
+    // --- HANDLERS ELIMINAR ---
     const handleDeleteRequest = (buyer) => {
         setBuyerToDelete(buyer);
     };
@@ -99,14 +132,28 @@ export function BuyersManagementPage() {
         setBuyerToDelete(null);
     };
 
-    const handleConfirmDelete = () => {
-        if (buyerToDelete) {
-            setCompradores((prev) => prev.filter((b) => b.id !== buyerToDelete.id));
+    const handleConfirmDelete = async () => {
+        if (!buyerToDelete) return;
+        const targetId = buyerToDelete.id || buyerToDelete.personaId;
+        if (!targetId) {
+            showStatus("error", "No se pudo determinar el identificador del comprador a eliminar.");
+            return;
         }
-        setBuyerToDelete(null);
+
+        try {
+            setIsDeleting(true);
+            const removedBuyer = await buyersApiService.deactivate(targetId);
+            setCompradores((prev) => prev.filter((b) => b.id !== removedBuyer.id));
+            showStatus("success", "Comprador eliminado correctamente");
+        } catch (error) {
+            showStatus("error", error.message || "No fue posible eliminar al comprador");
+        } finally {
+            setIsDeleting(false);
+            setBuyerToDelete(null);
+        }
     };
 
-    // 🔑 --- FUNCIÓN PARA RENDERIZAR EL FORMULARIO COMO MODAL CON PORTAL ---
+    // --- FUNCIÓN PARA RENDERIZAR EL FORMULARIO COMO MODAL CON PORTAL ---
     const renderFormModal = () => {
         if (!showForm) return null;
 
@@ -114,8 +161,9 @@ export function BuyersManagementPage() {
             <BuyerForm
                 onSubmit={handleSubmit}
                 onClose={handleCloseForm}
-                nextId={buyerToEdit ? buyerToEdit.id : idCounter.current}
+                nextId={buyerToEdit ? buyerToEdit.id : compradores.length + 1}
                 initialData={buyerToEdit}
+                isSubmitting={formSubmitting}
             />
         );
 
@@ -125,7 +173,7 @@ export function BuyersManagementPage() {
         );
     };
 
-    // 🔑 --- FUNCIÓN PARA RENDERIZAR EL MODAL DE VISUALIZACIÓN CON PORTAL ---
+    // --- FUNCIÓN PARA RENDERIZAR EL MODAL DE VISUALIZACIÓN CON PORTAL ---
     const renderViewModal = () => {
         if (!buyerToView) return null;
 
@@ -139,7 +187,7 @@ export function BuyersManagementPage() {
         );
     };
 
-    // 🔑 --- FUNCIÓN INTERNA PARA RENDERIZAR EL MODAL DE ELIMINACIÓN ---
+    // --- FUNCIÓN INTERNA PARA RENDERIZAR EL MODAL DE ELIMINACIÓN ---
     const renderDeleteModal = () => {
         if (!buyerToDelete) return null;
 
@@ -170,9 +218,13 @@ export function BuyersManagementPage() {
                         </button>
                         <button
                             onClick={handleConfirmDelete}
-                            className="bg-red-600 text-white px-5 py-2 rounded-xl font-semibold hover:bg-red-700 transition duration-150 shadow-md flex items-center gap-2"
+                            disabled={isDeleting}
+                            className={`bg-red-600 text-white px-5 py-2 rounded-xl font-semibold transition duration-150 shadow-md flex items-center gap-2 ${
+                                isDeleting ? "opacity-70 cursor-not-allowed" : "hover:bg-red-700"
+                            }`}
                         >
-                            <FaTimes /> Eliminar
+                            {!isDeleting && <FaTimes />}
+                            {isDeleting ? "Eliminando..." : "Eliminar"}
                         </button>
                     </div>
                 </div>
@@ -189,6 +241,18 @@ export function BuyersManagementPage() {
     return (
         <>
             <div className="p-6">
+                {statusMessage && (
+                    <div
+                        className={`mb-6 rounded-lg border px-4 py-3 text-sm font-semibold ${
+                            statusMessage.type === "error"
+                                ? "border-red-200 bg-red-50 text-red-700"
+                                : "border-green-200 bg-green-50 text-green-800"
+                        }`}
+                    >
+                        {statusMessage.message}
+                    </div>
+                )}
+
                 {/* HEADER CON ESTILO DEL BANNER */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -249,7 +313,16 @@ export function BuyersManagementPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredBuyers.length > 0 ? (
+                                {isLoading ? (
+                                    <tr>
+                                        <td
+                                            colSpan="10"
+                                            className="px-4 py-6 text-center text-gray-500 border-0"
+                                        >
+                                            Cargando compradores...
+                                        </td>
+                                    </tr>
+                                ) : filteredBuyers.length > 0 ? (
                                     filteredBuyers.map((c) => (
                                         <tr
                                             key={c.id}

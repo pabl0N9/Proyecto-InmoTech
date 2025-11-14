@@ -1,120 +1,113 @@
-import React, { useState, useRef } from "react";
-import ReactDOM from 'react-dom';
+import React, { useEffect, useMemo, useState } from "react";
+import ReactDOM from "react-dom";
 import { FaUserPlus, FaEye, FaEdit, FaSearch, FaTrash } from "react-icons/fa";
 import "../../../../shared/styles/globals.css";
 import LeasesPersonForm from "../../components/leases/TenantForm";
 import ViewTenantModal from "../../components/leases/ViewTenantForm";
+import { renantsApiService } from "../../../../shared/services/arrendatarioApiService";
 
 export function LeasesManagementPage() {
-  const [arrendatarios, setArrendatarios] = useState([
-    {
-      id: 1,
-      tipoDocumento: "CC",
-      documento: "11.111.111",
-      primerNombre: "Juan",
-      segundoNombre: "Carlos",
-      primerApellido: "Jaramillo",
-      segundoApellido: "Sossa",
-      correo: "FerCarSossa@gmail.com",
-      telefono: "3123278776",
-      inmueblesArrendados: [
-        {
-          nombre: "Apartamento Laureles",
-          m2: 80,
-          hab: 3,
-          baños: 2,
-          registro: "REG-001",
-          direccion: "Calle 45 #67-89",
-          tipo: "Apartamento",
-          estado: "Activo",
-        },
-      ],
-    },
-    {
-      id: 2,
-      tipoDocumento: "CC",
-      documento: "10.101.010",
-      primerNombre: "Pablo",
-      segundoNombre: "",
-      primerApellido: "Camargo",
-      segundoApellido: "Buitrago",
-      correo: "BuitragoPablo@gmail.com",
-      telefono: "3123225634",
-      inmueblesArrendados: [],
-    },
-    {
-      id: 3,
-      tipoDocumento: "CC",
-      documento: "12.121.212",
-      primerNombre: "Fernando",
-      segundoNombre: "Andres",
-      primerApellido: "Patiño",
-      segundoApellido: "Sepulveda",
-      correo: "AndresSepulveda@gmail.com",
-      telefono: "3004587808",
-      inmueblesArrendados: [],
-    },
-  ]);
-
-  const idCounter = useRef(arrendatarios.length + 1);
-
+  const [arrendatarios, setArrendatarios] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [formSubmitting, setFormSubmitting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [tenantToEdit, setTenantToEdit] = useState(null);
   const [tenantToView, setTenantToView] = useState(null);
+  const [tenantToDeactivate, setTenantToDeactivate] = useState(null);
 
-  const filteredTenants =
-    searchTerm.trim() === ""
-      ? arrendatarios
-      : arrendatarios.filter((t) => {
-          const lower = searchTerm.toLowerCase();
-          return (
-            t.primerNombre.toLowerCase().includes(lower) ||
-            (t.segundoNombre && t.segundoNombre.toLowerCase().includes(lower)) ||
-            t.primerApellido.toLowerCase().includes(lower) ||
-            (t.segundoApellido && t.segundoApellido.toLowerCase().includes(lower)) ||
-            t.documento.includes(searchTerm) ||
-            t.correo.toLowerCase().includes(lower) ||
-            t.telefono.includes(searchTerm)
-          );
-        });
+  const fetchTenants = async () => {
+    try {
+      setIsLoading(true);
+      const tenants = await renantsApiService.getAll();
+      setArrendatarios(tenants);
+    } catch (error) {
+      setStatusMessage({
+        type: "error",
+        message: error.message || "No fue posible obtener los arrendatarios"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTenants();
+  }, []);
+
+  const filteredTenants = useMemo(() => {
+    if (!searchTerm.trim()) return arrendatarios;
+    const lower = searchTerm.toLowerCase();
+    return arrendatarios.filter((tenant) => {
+      return (
+        tenant.primerNombre.toLowerCase().includes(lower) ||
+        (tenant.segundoNombre && tenant.segundoNombre.toLowerCase().includes(lower)) ||
+        tenant.primerApellido.toLowerCase().includes(lower) ||
+        (tenant.segundoApellido && tenant.segundoApellido.toLowerCase().includes(lower)) ||
+        tenant.documento.includes(searchTerm) ||
+        tenant.correo.toLowerCase().includes(lower) ||
+        tenant.telefono.includes(searchTerm)
+      );
+    });
+  }, [arrendatarios, searchTerm]);
 
   const handleCloseForm = () => {
     setShowForm(false);
     setTenantToEdit(null);
   };
 
-  const handleEditClick = (tenant) => {
-    setTenantToEdit(tenant);
-    setShowForm(true);
-  };
-
-  const handleViewClick = (tenant) => {
-    setTenantToView(tenant);
-  };
-
-  const handleDeleteTenant = (id) => {
-    if (window.confirm("¿Seguro que deseas eliminar este arrendatario?")) {
-      setArrendatarios((prev) => prev.filter((t) => t.id !== id));
+  const handleCreateTenant = async (formData) => {
+    setFormSubmitting(true);
+    try {
+      const newTenant = await renantsApiService.create(formData);
+      setArrendatarios((prev) => [newTenant, ...prev]);
+      setStatusMessage({ type: "success", message: "Arrendatario creado correctamente" });
+      handleCloseForm();
+    } catch (error) {
+      setStatusMessage({ type: "error", message: error.message || "No fue posible crear el arrendatario" });
+      throw error;
+    } finally {
+      setFormSubmitting(false);
     }
   };
 
-  const handleCreateTenant = (data) => {
-    const newTenant = { ...data, id: idCounter.current++, inmueblesArrendados: [] };
-    setArrendatarios((prev) => [...prev, newTenant]);
-    handleCloseForm();
+  const handleUpdateTenant = async (formData) => {
+    if (!tenantToEdit) return;
+    setFormSubmitting(true);
+    try {
+      const updated = await renantsApiService.update(tenantToEdit.id, formData);
+      setArrendatarios((prev) => prev.map((tenant) => (tenant.id === updated.id ? updated : tenant)));
+      setStatusMessage({ type: "success", message: "Arrendatario actualizado correctamente" });
+      handleCloseForm();
+    } catch (error) {
+      setStatusMessage({ type: "error", message: error.message || "No fue posible actualizar el arrendatario" });
+      throw error;
+    } finally {
+      setFormSubmitting(false);
+    }
   };
 
-  const handleUpdateTenant = (updatedTenant) => {
-    setArrendatarios((prev) =>
-      prev.map((t) => (t.id === updatedTenant.id ? updatedTenant : t))
-    );
-    handleCloseForm();
+  const handleSubmit = (formData) => {
+    if (tenantToEdit) {
+      return handleUpdateTenant(formData);
+    }
+    return handleCreateTenant(formData);
   };
 
-  const handleSubmit = tenantToEdit ? handleUpdateTenant : handleCreateTenant;
+  const handleDeactivateTenant = async () => {
+    if (!tenantToDeactivate) return;
+    try {
+      await renantsApiService.deactivate(tenantToDeactivate.id);
+      setArrendatarios((prev) => prev.filter((tenant) => tenant.id !== tenantToDeactivate.id));
+      setStatusMessage({ type: "success", message: "Arrendatario desactivado correctamente" });
+    } catch (error) {
+      setStatusMessage({ type: "error", message: error.message || "No fue posible desactivar al arrendatario" });
+    } finally {
+      setTenantToDeactivate(null);
+    }
+  };
 
-  // 🔑 --- FUNCIONES PARA RENDERIZAR MODALES CON PORTAL ---
   const renderFormModal = () => {
     if (!showForm) return null;
 
@@ -122,60 +115,54 @@ export function LeasesManagementPage() {
       <LeasesPersonForm
         onSubmit={handleSubmit}
         onClose={handleCloseForm}
-        nextId={idCounter.current}
+        nextId={arrendatarios.length + 1}
         initialData={tenantToEdit}
+        isSubmitting={formSubmitting}
       />
     );
 
     return ReactDOM.createPortal(
       modalContent,
-      document.getElementById('modal-root') || document.body
+      document.getElementById("modal-root") || document.body
     );
   };
 
   const renderViewModal = () => {
     if (!tenantToView) return null;
-
     const modalContent = (
       <ViewTenantModal tenant={tenantToView} onClose={() => setTenantToView(null)} />
     );
 
     return ReactDOM.createPortal(
       modalContent,
-      document.getElementById('modal-root') || document.body
+      document.getElementById("modal-root") || document.body
     );
   };
 
   return (
     <>
       <div className="p-6">
-        {/* HEADER CON ESTILO DEL BANNER */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Gestión de arrendatarios
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Gestión de arrendatarios</h1>
           <p className="text-gray-600 text-lg">
-            Administra toda la información de tus arrendatarios y sus propiedades
+            Administra la información de tus arrendatarios, contratos y propiedades vinculadas.
           </p>
         </div>
 
-        {/* CONTENEDOR SUPERIOR CON BOTÓN Y BÚSQUEDA */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex-1 max-w-md">
-            {/* BARRA DE BÚSQUEDA */}
             <div className="relative w-full">
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar arrendatario por nombre, apellido, doc, correo..."
+                placeholder="Buscar arrendatario por nombre, documento, correo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition duration-150 shadow-sm"
               />
             </div>
           </div>
-          
-          {/* BOTÓN CON COLOR AZUL COMO EL BANNER */}
+
           <button
             onClick={() => {
               setTenantToEdit(null);
@@ -187,88 +174,111 @@ export function LeasesManagementPage() {
           </button>
         </div>
 
-        {/* TABLA CON ESTILO ACTUALIZADO */}
+        {statusMessage && (
+          <div
+            className={`mb-4 rounded-lg px-4 py-3 text-sm font-medium ${
+              statusMessage.type === "success"
+                ? "bg-green-50 text-green-800 border border-green-200"
+                : "bg-red-50 text-red-800 border border-red-200"
+            }`}
+          >
+            {statusMessage.message}
+          </div>
+        )}
+
         <div className="rent-table-wrapper rounded-xl shadow-lg">
-          {/* CABECERA DE TABLA CON COLOR AZUL */}
           <div className="rent-table-header rounded-t-xl bg-blue-700">
-            🏠 Lista de arrendatarios ({filteredTenants.length}{" "}
+            ¿ Lista de arrendatarios ({filteredTenants.length}{" "}
             {filteredTenants.length === 1 ? "resultado" : "resultados"})
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="rent-table w-full border-collapse bg-white rounded-b-lg overflow-hidden">
               <thead className="bg-green-50">
                 <tr>
-                  <th className="px-3 py-3 text-center border-0">ID</th>
-                  <th className="px-3 py-3 text-center border-0">Tipo doc</th>
-                  <th className="px-3 py-3 text-center border-0">#Documento</th>
-                  <th className="px-3 py-3 text-center border-0">Primer nombre</th>
-                  <th className="px-3 py-3 text-center border-0">Segundo nombre</th>
-                  <th className="px-3 py-3 text-center border-0">Primer apellido</th>
-                  <th className="px-3 py-3 text-center border-0">Segundo apellido</th>
-                  <th className="px-3 py-3 text-center border-0">Correo</th>
-                  <th className="px-3 py-3 text-center border-0">Teléfono</th>
-                  <th className="px-3 py-3 text-center border-0">Acciones</th>
+                  <th>Arrendatario</th>
+                  <th>Documento</th>
+                  <th>Inmueble</th>
+                  <th>Contacto</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredTenants.length > 0 ? (
-                  filteredTenants.map((t) => (
-                    <tr
-                      key={t.id}
-                      className="hover:bg-gray-50 border-t border-gray-200"
-                    >
-                      <td className="px-3 py-3 text-center border-0">{t.id}</td>
-                      <td className="px-3 py-3 text-center border-0">{t.tipoDocumento}</td>
-                      <td className="px-3 py-3 text-center border-0">{t.documento}</td>
-                      <td className="px-3 py-3 text-center border-0">{t.primerNombre}</td>
-                      <td className="px-3 py-3 text-center border-0">
-                        {t.segundoNombre || "-"}
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-6 text-gray-500">
+                      Cargando arrendatarios...
+                    </td>
+                  </tr>
+                ) : filteredTenants.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-6 text-gray-500">
+                      No se encontraron arrendatarios con el criterio seleccionado.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTenants.map((tenant) => (
+                    <tr key={tenant.id} className="border-b border-gray-100 hover:bg-blue-50 transition duration-150">
+                      <td className="px-4 py-4">
+                        <strong>{tenant.primerNombre} {tenant.primerApellido}</strong>
+                        <p className="text-sm text-gray-500">{tenant.correo}</p>
                       </td>
-                      <td className="px-3 py-3 text-center border-0">{t.primerApellido}</td>
-                      <td className="px-3 py-3 text-center border-0">
-                        {t.segundoApellido || "-"}
+                      <td className="px-4 py-4">
+                        <span className="text-gray-600">{tenant.tipoDocumento}</span>
+                        <p className="text-sm text-gray-500">{tenant.documento}</p>
                       </td>
-                      <td className="px-3 py-3 text-center border-0 truncate">
-                        <a
-                          href={`mailto:${t.correo}`}
-                          className="text-blue-600 underline hover:text-blue-800"
+                      <td className="px-4 py-4">
+                        {tenant.inmueblesArrendados && tenant.inmueblesArrendados.length > 0 ? (
+                          <div>
+                            <p className="font-semibold text-gray-800">{tenant.inmueblesArrendados[0].nombre}</p>
+                            <p className="text-sm text-gray-500">{tenant.inmueblesArrendados[0].direccion}</p>
+                          </div>
+                        ) : (
+                          <span className="text-gray-500 italic">Sin inmuebles</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-gray-600">{tenant.telefono}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span
+                          className={`inline-block px-3 py-1 text-sm font-semibold rounded-full border ${
+                            tenant.estado === "Activo"
+                              ? "bg-green-100 text-green-700 border-green-200"
+                              : tenant.estado === "Moroso"
+                              ? "bg-red-100 text-red-700 border-red-200"
+                              : "bg-yellow-100 text-yellow-700 border-yellow-200"
+                          }`}
                         >
-                          {t.correo}
-                        </a>
+                          {tenant.estado}
+                        </span>
                       </td>
-                      <td className="px-3 py-3 text-center border-0">{t.telefono}</td>
-                      <td className="px-3 py-3 text-center flex gap-2 justify-center border-0">
+                      <td className="px-4 py-4 flex flex-col gap-2">
                         <button
-                          aria-label="Editar arrendatario"
-                          className="text-green-600 hover:text-green-800 transition-colors"
-                          onClick={() => handleEditClick(t)}
+                          onClick={() => setTenantToView(tenant)}
+                          className="text-blue-600 hover:text-blue-800 flex items-center gap-2 font-semibold"
                         >
-                          <FaEdit />
+                          <FaEye /> Ver
                         </button>
                         <button
-                          aria-label="Ver arrendatario"
-                          className="text-sky-600 hover:text-sky-800 transition-colors"
-                          onClick={() => handleViewClick(t)}
+                          onClick={() => {
+                            setTenantToEdit(tenant);
+                            setShowForm(true);
+                          }}
+                          className="text-green-600 hover:text-green-800 flex items-center gap-2 font-semibold"
                         >
-                          <FaEye />
+                          <FaEdit /> Editar
                         </button>
                         <button
-                          aria-label="Eliminar arrendatario"
-                          className="text-red-600 hover:text-red-800 transition-colors"
-                          onClick={() => handleDeleteTenant(t.id)}
+                          onClick={() => setTenantToDeactivate(tenant)}
+                          className="text-red-600 hover:text-red-800 flex items-center gap-2 font-semibold"
                         >
-                          <FaTrash />
+                          <FaTrash /> Desactivar
                         </button>
                       </td>
                     </tr>
                   ))
-                ) : (
-                  <tr>
-                    <td colSpan="10" className="px-4 py-6 text-center text-gray-500 border-0">
-                      No se encontraron arrendatarios.
-                    </td>
-                  </tr>
                 )}
               </tbody>
             </table>
@@ -276,9 +286,34 @@ export function LeasesManagementPage() {
         </div>
       </div>
 
-      {/* MODALES CON PORTAL */}
       {renderFormModal()}
       {renderViewModal()}
+
+      {tenantToDeactivate && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 shadow-xl w-full max-w-md">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Desactivar arrendatario</h3>
+            <p className="text-gray-600 mb-4">
+              ¿Confirma que desea desactivar a{" "}
+              <strong>{tenantToDeactivate.primerNombre} {tenantToDeactivate.primerApellido}</strong>?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setTenantToDeactivate(null)}
+                className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeactivateTenant}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700"
+              >
+                Desactivar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

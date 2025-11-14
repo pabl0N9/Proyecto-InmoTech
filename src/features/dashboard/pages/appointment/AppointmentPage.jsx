@@ -15,9 +15,11 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { useAppointments } from '../../../../shared/contexts/AppointmentContext';
 import citaApiService from '../../../../shared/services/citaApiService';
+import { useAuth } from '../../../../shared/contexts/AuthContext';
 
 const CitasPage = () => {
   const { appointments, addAppointment, updateAppointment, deleteAppointment, updateAppointmentStatus } = useAppointments();
+  const { user, hasPermission, hasRole } = useAuth(); // Obtener usuario logueado y funciones de permisos
   const [filteredCitas, setFilteredCitas] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos los estados');
@@ -110,21 +112,38 @@ const CitasPage = () => {
   const currentItems = filteredCitas.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredCitas.length / itemsPerPage);
 
-  const handleCreateCita = (newCita) => {
-    const todayLocal = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD en hora local
-    const citaWithId = {
-      ...newCita,
-      id: Date.now(),
-      fechaCreacion: todayLocal
-    };
-    addAppointment(citaWithId);
-    setIsCreateModalOpen(false);
-    setPreselectedDate(null);
-    toast({
-      title: "¡Cita creada exitosamente!",
-      description: "La cita ha sido agendada correctamente.",
-      variant: "default"
-    });
+  const handleCreateCita = async (newCita) => {
+    try {
+      if (!user?.id) {
+        toast({
+          title: "Error de autenticación",
+          description: "No se pudo identificar al usuario.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Usar la API real enviando el id_usuario_creador
+      const citaCreada = await citaApiService.crearCita(newCita, user.id);
+
+      // Agregar la cita creada al contexto
+      addAppointment(citaCreada);
+
+      setIsCreateModalOpen(false);
+      setPreselectedDate(null);
+      toast({
+        title: "¡Cita creada exitosamente!",
+        description: "La cita ha sido agendada correctamente.",
+        variant: "default"
+      });
+    } catch (error) {
+      console.error("Error creando cita:", error);
+      toast({
+        title: "Error al crear cita",
+        description: error.message || "No se pudo crear la cita.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleEditCita = (updatedCita) => {
@@ -224,33 +243,49 @@ const CitasPage = () => {
     setIsRejectDialogOpen(true);
   };
 
-  const handleAcceptAppointment = () => {
-    if (selectedCita) {
-      const updatedCita = {
-        ...selectedCita,
-        estado: 'confirmada'
-      };
-      updateAppointment(updatedCita);
-      setIsAcceptDialogOpen(false);
-      setSelectedCita(null);
-      const clientName = typeof selectedCita.cliente === 'object'
-        ? `${selectedCita.cliente.nombre_completo} ${selectedCita.cliente.apellido_completo}`.trim()
-        : selectedCita.cliente;
+  const handleAcceptAppointment = async () => {
+    if (selectedCita && user?.id) {
+      try {
+        // Llamar al backend para confirmar la cita asignando el agente
+        const respuesta = await citaApiService.confirmarCita(selectedCita.id, user.id);
+
+        // Actualizar en el contexto local con la respuesta del backend
+        // La cita ya está confirmada en el backend
+        updateAppointment(respuesta);
+
+        setIsAcceptDialogOpen(false);
+        setSelectedCita(null);
+
+        const clientName = typeof selectedCita.cliente === 'object'
+          ? `${selectedCita.cliente.nombre_completo} ${selectedCita.cliente.apellido_completo}`.trim()
+          : selectedCita.cliente;
+
+        toast({
+          title: "¡Cita aceptada exitosamente!",
+          description: `La cita con ${clientName} ha sido confirmada asignada a ti.`,
+          variant: "default"
+        });
+      } catch (error) {
+        console.error("Error aceptando cita:", error);
+        toast({
+          title: "Error al aceptar cita",
+          description: error.message || "No se pudo aceptar la cita.",
+          variant: "destructive"
+        });
+      }
+    } else {
       toast({
-        title: "¡Cita aceptada exitosamente!",
-        description: `La cita con ${clientName} ha sido confirmada.`,
-        variant: "default"
+        title: "Error de autenticación",
+        description: "No se pudo identificar al usuario.",
+        variant: "destructive"
       });
     }
   };
 
   const handleRejectAppointment = () => {
     if (selectedCita) {
-      const updatedCita = {
-        ...selectedCita,
-        estado: 'cancelada'
-      };
-      updateAppointment(updatedCita);
+      // Usar el endpoint específico para cambiar solo el estado
+      updateAppointmentStatus(selectedCita.id, 6); // 6 = cancelada
       setIsRejectDialogOpen(false);
       setSelectedCita(null);
       const clientName = typeof selectedCita.cliente === 'object'
@@ -307,11 +342,14 @@ const CitasPage = () => {
             <h1 className="text-3xl font-bold text-slate-800">Gestión de Citas</h1>
             <p className="text-slate-600 mt-1">Administra todas las citas de tus clientes</p>
           </div>
+          {/* Botón aparece siempre pero deshabilitado si no tiene permisos */}
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+            disabled={!hasPermission("gCitas", "crear")}
+            whileHover={hasPermission("gCitas", "crear") ? { scale: 1.02 } : {}}
+            whileTap={hasPermission("gCitas", "crear") ? { scale: 0.98 } : {}}
+            onClick={() => hasPermission("gCitas", "crear") ? setIsCreateModalOpen(true) : null}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${hasPermission("gCitas", "crear") ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
+            title={hasPermission("gCitas", "crear") ? "Crear nueva cita" : "No tienes permiso para crear citas"}
           >
             <Plus className="w-5 h-5" />
             Nueva Cita
@@ -393,7 +431,7 @@ const CitasPage = () => {
           >
             <div className="flex items-center gap-3">
               <AlertTriangle className="w-5 h-5 text-yellow-600" />
-              <div>
+              <div className="flex-1">
                 <h3 className="text-sm font-medium text-yellow-800">
                   Citas Solicitadas Pendientes
                 </h3>

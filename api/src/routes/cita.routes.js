@@ -28,6 +28,14 @@ router.get('/', citaController.obtenerCitas);
 // GET /api/v1/citas/buscar-persona - Buscar persona por documento
 router.get('/buscar-persona', validateQuery(buscarPersonaSchema), citaController.buscarPersonaPorDocumento);
 
+// GET /api/v1/citas/agentes-disponibles - Obtener agentes disponibles
+// Nota: Se desactiva sanitizeInput para evitar problemas con parseInt válidos
+router.get('/agentes-disponibles', function(req, res, next) {
+  // Saltar sanitizeInput si está aplicándose globalmente
+  req.skipSanitize = true;
+  next();
+}, citaController.obtenerAgentesDisponibles);
+
 // GET /api/v1/citas/:id - Obtener cita por ID
 router.get('/:id', citaController.obtenerCitaPorId);
 
@@ -86,5 +94,22 @@ router.patch(
   })),
   citaController.actualizarEstadoCita
 );
+
+// POST /api/v1/citas/:id/asignar-agente - Asignar agente a cita
+router.post(
+  '/:id/asignar-agente',
+  strictLimiter,
+  validate(Joi.object({
+    id_agente_nuevo: Joi.number().integer().required(),
+    comentario: Joi.string().max(500).optional() // Obligatorio si es reasignación según lógica
+  })),
+  citaController.asignarAgente
+);
+
+// GET /api/v1/citas/:id/historial-asignaciones - Obtener historial de asignaciones
+router.get('/:id/historial-asignaciones', citaController.obtenerHistorialAsignaciones);
+
+// GET /api/v1/citas/:id/con-historial - Obtener cita con historial completo
+router.get('/:id/con-historial', citaController.obtenerCitaConHistorial);
 
 module.exports = router;

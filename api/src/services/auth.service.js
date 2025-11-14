@@ -96,9 +96,12 @@ class AuthService {
    */
   async iniciarSesion(email, password) {
     try {
-      // Buscar persona por email
+      // Buscar persona por email y verificar que esté activa
       const persona = await Persona.findOne({
-        where: { correo: email },
+        where: {
+          correo: email,
+          estado: true // ✅ VALIDACIÓN: Solo usuarios activos pueden iniciar sesión
+        },
         include: [
           {
             model: Acceso,
@@ -115,7 +118,7 @@ class AuthService {
             model: Administrativo,
             as: 'administrativo',
             required: false,
-            where: { estado_laboral: 'Activo' }
+            where: { estado_laboral: 'Activo' } // ✅ VALIDACIÓN: Solo administrativos activos
           }
         ]
       });
@@ -131,6 +134,11 @@ class AuthService {
         throw new Error('Credenciales inválidas');
       }
 
+      // ✅ VALIDACIÓN ADICIONAL: Si es administrativo y no está activo, denegar acceso
+      if (persona.roles && persona.roles.some(rol => rol.es_rol_administrativo) && !persona.administrativo) {
+        throw new Error('Acceso denegado, comunícate con el administrador para resolver este problema');
+      }
+
       // Actualizar último acceso
       await Acceso.update(
         { ultimo_acceso: new Date() },
@@ -142,6 +150,21 @@ class AuthService {
       const es_administrativo = persona.roles ?
         persona.roles.some(rol => rol.es_rol_administrativo) && persona.administrativo !== null :
         false;
+
+      // Consolidar permisos de todos los roles del usuario
+      const permisos = {};
+      if (persona.roles) {
+        persona.roles.forEach(rol => {
+          if (rol.permisos) {
+            rol.permisos.forEach(permiso => {
+              if (!permisos[permiso.modulo]) {
+                permisos[permiso.modulo] = {};
+              }
+              permisos[permiso.modulo][permiso.permiso] = true;
+            });
+          }
+        });
+      }
 
       // Generar tokens
       const payload = {
@@ -162,7 +185,8 @@ class AuthService {
           nombre_completo: persona.nombre_completo,
           apellido_completo: persona.apellido_completo,
           roles: roles,
-          es_administrativo: es_administrativo
+          es_administrativo: es_administrativo,
+          permisos: permisos
         },
         ...tokens
       };
@@ -183,9 +207,12 @@ class AuthService {
       // Verificar token de refresco
       const decoded = jwtUtils.verifyRefreshToken(refreshToken);
 
-      // Buscar usuario y roles
+      // Buscar usuario y roles - ✅ VERIFICAR ESTADO: Solo usuarios activos pueden refrescar tokens
       const persona = await Persona.findOne({
-        where: { id_persona: decoded.id },
+        where: {
+          id_persona: decoded.id,
+          estado: true // ✅ Usuarios deshabilitados pierden sesión inmediatamente
+        },
         include: [
           {
             model: Rol,
@@ -203,7 +230,7 @@ class AuthService {
       });
 
       if (!persona) {
-        throw new Error('Usuario no encontrado');
+        throw new Error('Usuario no encontrado o inactivo');
       }
 
       const roles = persona.roles ? persona.roles.map(rol => rol.nombre_rol) : [];
@@ -297,10 +324,8 @@ class AuthService {
 
       return {
         id: persona.id_persona,
-        primer_nombre: persona.primer_nombre,
-        segundo_nombre: persona.segundo_nombre,
-        primer_apellido: persona.primer_apellido,
-        segundo_apellido: persona.segundo_apellido,
+        nombre_completo: persona.nombre_completo,
+        apellido_completo: persona.apellido_completo,
         correo: persona.correo,
         telefono: persona.telefono,
         fecha_registro: persona.fecha_registro,

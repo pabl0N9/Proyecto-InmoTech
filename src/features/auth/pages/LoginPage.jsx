@@ -28,28 +28,17 @@ export default function LoginPage() {
 
       const userData = await login(email, password, rememberMe)
 
-      // Determinar la ruta de redirección basada en los roles del usuario
+      // Determinar la ruta de redirección basada en si es administrativo
       let redirectPath = "/"
 
-      // Roles administrativos que deben ir al dashboard
-      const rolesAdministrativos = ['Super Administrador', 'Administrador', 'Empleado']
-
-      // Si el usuario tiene algún rol administrativo, redirigir al dashboard
-      if (userData && userData.roles && userData.roles.some(rol => rolesAdministrativos.includes(rol))) {
+      // ✅ CORREGIDO: Verificar si es administrativo (tienen acceso al dashboard)
+      if (userData && userData.es_administrativo) {
         redirectPath = "/dashboard"
       }
 
-      // Si viene de una ruta protegida y tiene permisos, redirigir ahí
-      // De lo contrario, usar la redirección basada en roles
+      // Si viene de una ruta protegida del dashboard, redirigir ahí (si tiene acceso administrativo)
       if (from !== "/" && from.startsWith("/dashboard")) {
-        // Verificar si el usuario tiene acceso a la ruta protegida
-        const hasDashboardAccess = userData && userData.roles &&
-          userData.roles.some(rol => rolesAdministrativos.includes(rol))
-
-        if (hasDashboardAccess) {
-          redirectPath = from
-        }
-        // Si no tiene acceso, mantendrá la redirección al dashboard o landing
+        redirectPath = from
       }
 
       console.log('✅ Login exitoso, redirigiendo a:', redirectPath, 'Roles del usuario:', userData?.roles)

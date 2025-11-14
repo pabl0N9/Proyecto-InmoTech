@@ -10,6 +10,7 @@ import SummaryStepStep from './steps/SummaryStep';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import { useAppointments } from '../../../../shared/contexts/AppointmentContext';
+import { apiClient } from '../../../../shared/services/api.config';
 
 const SERVICIO_MAP = {
   "Visita a Propiedad": 1,
@@ -35,6 +36,8 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     estado: 'programada'
   });
   const [errors, setErrors] = useState({});
+  // ⭐ AGREGADO: Estado para búsqueda automática
+  const [isSearchingPerson, setIsSearchingPerson] = useState(false);
   const { toast } = useToast();
   const { createAppointment } = useAppointments();
   const contentRef = useRef(null);
@@ -212,6 +215,91 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
 
     return '';
   };
+
+// ⭐ Función para buscar persona automáticamente basada en documento
+const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
+  // Validaciones previas
+  if (!tipoDocumento || !numeroDocumento || numeroDocumento.length < 5) {
+    return;
+  }
+
+  const errorDocumento = validateNumeroDocumento(numeroDocumento, tipoDocumento);
+  if (errorDocumento) {
+    return;
+  }
+
+  setIsSearchingPerson(true);
+
+  try {
+    console.log('🔍 Buscando persona en dashboard:', {
+      tipo: tipoDocumento,
+      numero: numeroDocumento.replace(/[\s\-\.]/g, '')
+    });
+
+    const response = await apiClient.get('/citas/buscar-persona', {
+      params: {
+        tipo_documento: tipoDocumento,
+        numero_documento: numeroDocumento.replace(/[\s\-\.]/g, '')
+      }
+    });
+
+    console.log('✅ Respuesta del servidor:', response);
+
+    const persona = response.data || response;
+
+    if (persona && (persona.primer_nombre || persona.correo || persona.telefono)) {
+      // Construir nombres completos
+      const nombresCompletos = [persona.primer_nombre, persona.segundo_nombre]
+        .filter(Boolean)
+        .join(' ');
+
+      const apellidosCompletos = [persona.primer_apellido, persona.segundo_apellido]
+        .filter(Boolean)
+        .join(' ');
+
+      // Formatear el teléfono usando formatPhoneNumber
+      let telefonoFormateado = persona.telefono || '';
+      if (telefonoFormateado) {
+        telefonoFormateado = formatPhoneNumber(telefonoFormateado, '', false);
+      }
+
+      console.log('📝 Datos encontrados:', {
+        nombres: nombresCompletos,
+        apellidos: apellidosCompletos,
+        telefono: telefonoFormateado,
+        email: persona.correo
+      });
+
+      // Actualizar formulario automáticamente
+      setFormData(prev => ({
+        ...prev,
+        nombre: nombresCompletos,
+        apellido: apellidosCompletos,
+        telefono: telefonoFormateado,
+        email: persona.correo || prev.email
+      }));
+
+      toast({
+        title: "✅ Datos encontrados",
+        description: "Se han completado los campos con la información existente.",
+        variant: "default"
+      });
+    }
+  } catch (error) {
+    if (error.response?.status !== 404) {
+      console.error('❌ Error al buscar persona:', error);
+      toast({
+        title: "Error al buscar información",
+        description: "No se pudo verificar si el documento existe. Continúa ingresando los datos manualmente.",
+        variant: "destructive"
+      });
+    } else {
+      console.log('ℹ️ Persona no encontrada, continuar con registro nuevo');
+    }
+  } finally {
+    setIsSearchingPerson(false);
+  }
+};
 
   const validateStep = (step) => {
     let newErrors = {};
@@ -457,9 +545,33 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
         if (formData.numeroDocumento) {
           newErrors.numeroDocumento = validateNumeroDocumento(formData.numeroDocumento, cleanedValue);
         }
+        // ⭐ Búsqueda automática cuando cambie el tipo de documento
+        if (formData.numeroDocumento.trim().length >= 5) {
+          // Limpiar timeout anterior
+          if (window.customerSearchTimeout) {
+            clearTimeout(window.customerSearchTimeout);
+          }
+
+          // Buscar después de 300ms
+          window.customerSearchTimeout = setTimeout(() => {
+            buscarPersonaAutomaticamente(cleanedValue, formData.numeroDocumento);
+          }, 300);
+        }
         break;
       case 'numeroDocumento':
         newErrors.numeroDocumento = validateNumeroDocumento(cleanedValue, formData.tipoDocumento);
+        // ⭐ Búsqueda automática con debounce cuando cambie el número de documento
+        if (formData.tipoDocumento && cleanedValue.trim().length >= 5) {
+          // Limpiar búsqueda anterior
+          if (window.customerSearchTimeout) {
+            clearTimeout(window.customerSearchTimeout);
+          }
+
+          // Buscar automáticamente con debounce
+          window.customerSearchTimeout = setTimeout(() => {
+            buscarPersonaAutomaticamente(formData.tipoDocumento, cleanedValue);
+          }, 500);
+        }
         break;
       case 'fecha':
         newErrors.fecha = validateFecha(cleanedValue);
@@ -483,6 +595,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
             formData={formData}
             errors={errors}
             updateFormData={updateFormData}
+            isSearchingPerson={isSearchingPerson}
           />
         );
       case 2:
