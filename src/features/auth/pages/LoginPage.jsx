@@ -1,5 +1,7 @@
 import { useState } from "react"
-import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Users, Building2 } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Users, Building2, AlertCircle } from "lucide-react"
+import { useAuth } from "../../../shared/contexts/AuthContext"
+import { useNavigate, useLocation } from "react-router-dom"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -7,16 +9,58 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const { login } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // Obtener la ruta de redirección después del login
+  const from = location.state?.from?.pathname || "/"
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
+    setError("")
 
-    // Simulación de inicio de sesión
-    setTimeout(() => {
+    try {
+      console.log('🔐 Intentando iniciar sesión con:', email)
+
+      const userData = await login(email, password, rememberMe)
+
+      // Determinar la ruta de redirección basada en los roles del usuario
+      let redirectPath = "/"
+
+      // Roles administrativos que deben ir al dashboard
+      const rolesAdministrativos = ['Super Administrador', 'Administrador', 'Empleado']
+
+      // Si el usuario tiene algún rol administrativo, redirigir al dashboard
+      if (userData && userData.roles && userData.roles.some(rol => rolesAdministrativos.includes(rol))) {
+        redirectPath = "/dashboard"
+      }
+
+      // Si viene de una ruta protegida y tiene permisos, redirigir ahí
+      // De lo contrario, usar la redirección basada en roles
+      if (from !== "/" && from.startsWith("/dashboard")) {
+        // Verificar si el usuario tiene acceso a la ruta protegida
+        const hasDashboardAccess = userData && userData.roles &&
+          userData.roles.some(rol => rolesAdministrativos.includes(rol))
+
+        if (hasDashboardAccess) {
+          redirectPath = from
+        }
+        // Si no tiene acceso, mantendrá la redirección al dashboard o landing
+      }
+
+      console.log('✅ Login exitoso, redirigiendo a:', redirectPath, 'Roles del usuario:', userData?.roles)
+      navigate(redirectPath, { replace: true })
+
+    } catch (error) {
+      console.error('❌ Error en login:', error)
+      setError(error.message || 'Error al iniciar sesión. Verifica tus credenciales.')
+    } finally {
       setIsLoading(false)
-      window.location.href = "/dashboard" // usamos window.location en lugar de router.push
-    }, 1500)
+    }
   }
 
   return (
@@ -91,6 +135,14 @@ export default function LoginPage() {
             <p className="text-gray-600">Ingresa tus credenciales para continuar</p>
           </div>
 
+          {/* Mensaje de error */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center space-x-3">
+              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+              <p className="text-red-700 text-sm">{error}</p>
+            </div>
+          )}
+
           {/* Formulario */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
@@ -109,6 +161,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                   <Mail className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                 </div>
@@ -137,12 +190,14 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                   <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                   <button
                     type="button"
                     className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -158,6 +213,7 @@ export default function LoginPage() {
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-5 w-5 border-2 border-gray-300 text-[#00457B] rounded-md"
+                disabled={isLoading}
               />
               <label htmlFor="remember" className="text-gray-600 font-medium">
                 Recordar sesión
@@ -167,7 +223,7 @@ export default function LoginPage() {
             {/* Botón */}
             <button
               type="submit"
-              className="w-full h-12 bg-gradient-to-r from-[#00457B] to-[#0056A3] hover:from-[#003b69] hover:to-[#004a8f] rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 group text-white"
+              className="w-full h-12 bg-gradient-to-r from-[#00457B] to-[#0056A3] hover:from-[#003b69] hover:to-[#004a8f] rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 group text-white disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
               {isLoading ? (

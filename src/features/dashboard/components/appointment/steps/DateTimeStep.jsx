@@ -5,6 +5,7 @@ import { Calendar, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(formData.fecha);
+  const [isPreselected, setIsPreselected] = useState(!!formData.fecha);
   const [availableHours] = useState([
     '08:00 am', '08:30 am', '09:00 am', '09:30 am', '10:00 am', '10:30 am',
     '11:00 am', '11:30 am', '2:00 pm', '2:30 pm', '3:00 pm', '3:30 pm',
@@ -71,7 +72,11 @@ const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => 
   };
 
   const formatDateForInput = (date) => {
-    return date.toISOString().split('T')[0];
+    // Usar formato local YYYY-MM-DD sin conversión UTC para evitar cambios de día por zona horaria
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const formatDateForDisplay = (dateString) => {
@@ -155,6 +160,19 @@ const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => 
 
       {/* Calendar */}
       <div className="bg-white border border-slate-200 rounded-lg p-4">
+        {/* Preselected Date Info */}
+        {isPreselected && selectedDate && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 text-blue-800">
+              <Calendar className="w-4 h-4" />
+              <span className="text-sm font-medium">Fecha pre-seleccionada:</span>
+            </div>
+            <p className="text-blue-700 text-sm mt-1">
+              {formatDateForDisplay(selectedDate)}
+            </p>
+          </div>
+        )}
+
         {/* Calendar Header */}
         <div className="flex items-center justify-between mb-4">
           <motion.button

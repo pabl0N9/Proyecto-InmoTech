@@ -13,7 +13,8 @@ const CustomerStep = ({
   const [prevPhone, setPrevPhone] = useState("");
 
   // Refs para los campos
-  const clienteRef = useRef(null);
+  const nombreRef = useRef(null);
+  const apellidoRef = useRef(null);
   const telefonoRef = useRef(null);
   const emailRef = useRef(null);
   const tipoDocumentoRef = useRef(null);
@@ -22,7 +23,8 @@ const CustomerStep = ({
   // Scroll automático al siguiente campo
   const scrollToNextField = (currentField) => {
     const fieldOrder = [
-      "cliente",
+      "nombre",
+      "apellido",
       "telefono",
       "email",
       "tipoDocumento",
@@ -33,7 +35,8 @@ const CustomerStep = ({
     if (currentIndex < fieldOrder.length - 1) {
       const nextField = fieldOrder[currentIndex + 1];
       const nextRef = {
-        cliente: clienteRef,
+        nombre: nombreRef,
+        apellido: apellidoRef,
         telefono: telefonoRef,
         email: emailRef,
         tipoDocumento: tipoDocumentoRef,
@@ -114,88 +117,6 @@ const CustomerStep = ({
       </div>
 
       <div className="space-y-4">
-        {/* Nombre del Cliente */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            <User className="w-4 h-4 inline mr-2" />
-            Nombre Completo *
-          </label>
-          <input
-            ref={clienteRef}
-            type="text"
-            value={formData.cliente}
-            onChange={(e) => updateFormData("cliente", e.target.value)}
-            placeholder="Ej: Juan Pérez"
-            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-              errors.cliente ? "border-red-500" : "border-slate-300"
-            }`}
-          />
-          {errors.cliente && (
-            <motion.p
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-red-500 text-sm mt-1"
-            >
-              {errors.cliente}
-            </motion.p>
-          )}
-        </div>
-
-        {/* Teléfono */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            <Phone className="w-4 h-4 inline mr-2" />
-            Teléfono *
-          </label>
-          <input
-            ref={telefonoRef}
-            type="tel"
-            value={formData.telefono}
-            onChange={handlePhoneChange}
-            onKeyDown={handlePhoneKeyDown}
-            placeholder="+57 300 123 4567"
-            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-              errors.telefono ? "border-red-500" : "border-slate-300"
-            }`}
-          />
-          {errors.telefono && (
-            <motion.p
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-red-500 text-sm mt-1"
-            >
-              {errors.telefono}
-            </motion.p>
-          )}
-        </div>
-
-        {/* Email */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            <Mail className="w-4 h-4 inline mr-2" />
-            Correo Electrónico *
-          </label>
-          <input
-            ref={emailRef}
-            type="email"
-            value={formData.email}
-            onChange={(e) => updateFormData("email", e.target.value)}
-            placeholder="Ej: juan.perez@email.com"
-            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-              errors.email ? "border-red-500" : "border-slate-300"
-            }`}
-          />
-          {errors.email && (
-            <motion.p
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-red-500 text-sm mt-1"
-            >
-              {errors.email}
-            </motion.p>
-          )}
-        </div>
-
         {/* Document Information Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Tipo de Documento */}
@@ -291,6 +212,118 @@ const CustomerStep = ({
               </motion.p>
             )}
           </div>
+        </div>
+
+        {/* Nombre y Apellido */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Nombre */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              <User className="w-4 h-4 inline mr-2" />
+              Nombre *
+            </label>
+            <input
+              ref={nombreRef}
+              type="text"
+              value={formData.nombre || ''}
+              onChange={(e) => updateFormData("nombre", e.target.value)}
+              placeholder="Ej: Juan"
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                errors.nombre ? "border-red-500" : "border-slate-300"
+              }`}
+            />
+            {errors.nombre && (
+              <motion.p
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-500 text-sm mt-1"
+              >
+                {errors.nombre}
+              </motion.p>
+            )}
+          </div>
+
+          {/* Apellido */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              <User className="w-4 h-4 inline mr-2" />
+              Apellido *
+            </label>
+            <input
+              ref={apellidoRef}
+              type="text"
+              value={formData.apellido || ''}
+              onChange={(e) => updateFormData("apellido", e.target.value)}
+              placeholder="Ej: Pérez"
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                errors.apellido ? "border-red-500" : "border-slate-300"
+              }`}
+            />
+            {errors.apellido && (
+              <motion.p
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-500 text-sm mt-1"
+              >
+                {errors.apellido}
+              </motion.p>
+            )}
+          </div>
+        </div>
+
+        {/* Teléfono */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            <Phone className="w-4 h-4 inline mr-2" />
+            Teléfono *
+          </label>
+          <input
+            ref={telefonoRef}
+            type="tel"
+            value={formData.telefono}
+            onChange={handlePhoneChange}
+            onKeyDown={handlePhoneKeyDown}
+            placeholder="+57 300 123 4567"
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+              errors.telefono ? "border-red-500" : "border-slate-300"
+            }`}
+          />
+          {errors.telefono && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-red-500 text-sm mt-1"
+            >
+              {errors.telefono}
+            </motion.p>
+          )}
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            <Mail className="w-4 h-4 inline mr-2" />
+            Correo Electrónico *
+          </label>
+          <input
+            ref={emailRef}
+            type="email"
+            value={formData.email}
+            onChange={(e) => updateFormData("email", e.target.value)}
+            placeholder="Ej: juan.perez@email.com"
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+              errors.email ? "border-red-500" : "border-slate-300"
+            }`}
+          />
+          {errors.email && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-red-500 text-sm mt-1"
+            >
+              {errors.email}
+            </motion.p>
+          )}
         </div>
       </div>
 

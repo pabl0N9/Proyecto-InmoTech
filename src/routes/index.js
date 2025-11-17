@@ -8,7 +8,8 @@ export const publicRoutes = {
   services: '/servicios',
   properties: '/inmuebles',
   propertyDetails: '/inmuebles/:id',
-  contact: '/contactanos'
+  contact: '/contactanos',
+  ownerReportsPreview: '/vista/mis-reportes'
 };
 
 export const publicNavigationLinks = [
@@ -33,7 +34,8 @@ export const dashboardRoutes = {
   reports: '/reportes/gestion',
   security: '/seguridad',
   users: '/seguridad/usuarios',
-  roles: '/seguridad/roles'
+  roles: '/seguridad/roles',
+  administrativos: '/seguridad/administrativos'
 };
 
 // Combinación de todas las rutas para acceso fácil

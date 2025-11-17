@@ -9,6 +9,8 @@ import { Badge } from '../../../../shared/components/ui/badge';
 import PropertyAutocomplete from '../../../../shared/components/ui/PropertyAutocomplete';
 import { usePropertyAutocomplete } from '../../../../shared/hooks/usePropertyAutocomplete';
 import { useToast } from '../../../../shared/hooks/use-toast';
+import GeneralFollowUpSection from './GeneralFollowUpSection';
+import { useGeneralFollowUp } from '../../hooks/useGeneralFollowUp';
 import { 
   PlusIcon, 
   EditIcon, 
@@ -39,14 +41,35 @@ const CreateReportModal = ({
 }) => {
   // Hook de autocompletado de propiedades
   const {
+    selectedProperty,
     searchTerm,
     setSearchTerm,
     filteredProperties,
-    selectedProperty,
     selectProperty,
     clearSelection,
-    searchByReference
+    isSearching,
   } = usePropertyAutocomplete();
+
+  // Usuario actual simulado (en producción vendría del contexto de autenticación)
+  const currentUser = {
+    id_persona: 1,
+    primer_nombre: 'Juan',
+    primer_apellido: 'Pérez'
+  };
+
+  // Hook de seguimiento general
+  const {
+    followUps,
+    loading: followUpsLoading,
+    submitting: followUpsSubmitting,
+    newFollowUpNote,
+    addFollowUp,
+    updateFollowUpStatus,
+    handleNewFollowUpChange,
+    refreshFollowUps,
+    getTemporaryFollowUps,
+    clearTemporaryFollowUps
+  } = useGeneralFollowUp(initialData?.id, currentUser);
 
   // Función para obtener la fecha actual en formato ISO
   const getCurrentDate = () => {
@@ -95,6 +118,9 @@ const CreateReportModal = ({
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // Hook para notificaciones
+  const { toast } = useToast();
+
   // Resetear formulario cuando se abre/cierra el modal
   useEffect(() => {
     if (isOpen) {
@@ -123,23 +149,23 @@ const CreateReportModal = ({
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.ubicacion.trim()) {
+    if (!(formData.ubicacion || '').toString().trim()) {
       newErrors.ubicacion = 'La ubicación es requerida';
     }
 
-    if (!formData.tipoInmueble.trim()) {
+    if (!(formData.tipoInmueble || '').toString().trim()) {
       newErrors.tipoInmueble = 'El tipo de inmueble es requerido';
     }
 
-    if (!formData.referencia.trim()) {
+    if (!(formData.referencia || '').toString().trim()) {
       newErrors.referencia = 'La referencia es requerida';
     }
 
-    if (!formData.propietario.trim()) {
+    if (!(formData.propietario || '').toString().trim()) {
       newErrors.propietario = 'El propietario es requerido';
     }
 
-    if (!formData.tipoReporte.trim()) {
+    if (!(formData.tipoReporte || '').toString().trim()) {
       newErrors.tipoReporte = 'El tipo de reporte es requerido';
     }
 
@@ -170,7 +196,8 @@ const CreateReportModal = ({
     // Actualizar los campos del formulario con los datos de la propiedad
     setFormData(prev => ({
       ...prev,
-      ...propertyData
+      ...propertyData,
+      id_inmueble: property?.id || propertyData?.id || null
     }));
 
     // Mostrar información de la propiedad seleccionada
@@ -184,6 +211,13 @@ const CreateReportModal = ({
       delete newErrors.referencia;
       delete newErrors.propietario;
       return newErrors;
+    });
+
+    // Toast estilo Citas
+    toast({
+      title: 'Propiedad seleccionada',
+      description: `Se seleccionó ${property?.referencia || propertyData?.referencia || 'la propiedad'} correctamente.`,
+      variant: 'success',
     });
   };
 
@@ -211,6 +245,13 @@ const CreateReportModal = ({
       file: file
     }));
     setImagenes(prev => [...prev, ...newImages]);
+
+    // Toast estilo Citas
+    toast({
+      title: 'Imágenes agregadas',
+      description: `${newImages.length} ${newImages.length === 1 ? 'imagen' : 'imágenes'} agregadas correctamente.`,
+      variant: 'success',
+    });
   };
 
   // Manejar archivos
@@ -224,6 +265,13 @@ const CreateReportModal = ({
       file: file
     }));
     setArchivos(prev => [...prev, ...newFiles]);
+
+    // Toast estilo Citas
+    toast({
+      title: 'Archivos agregados',
+      description: `${newFiles.length} ${newFiles.length === 1 ? 'archivo' : 'archivos'} agregados correctamente.`,
+      variant: 'success',
+    });
   };
 
   // Eliminar imagen
@@ -248,6 +296,13 @@ const CreateReportModal = ({
       fechaAnulacion: null // Fecha cuando se anuló
     };
     setRubros(prev => [...prev, nuevoRubro]);
+
+    // Toast estilo Citas
+    toast({
+      title: 'Rubro agregado',
+      description: 'Se creó un nuevo rubro correctamente.',
+      variant: 'success',
+    });
   };
 
   // Editar rubro
@@ -270,18 +325,17 @@ const CreateReportModal = ({
     ));
   };
 
-  // Eliminar rubro permanentemente (solo para rubros nuevos sin guardar)
-  const eliminarRubroPermanente = (id) => {
-    const rubro = rubros.find(r => r.id === id);
-    if (rubro && !rubro.nombre.trim()) {
-      // Solo eliminar si es un rubro vacío recién creado
-      setRubros(prev => prev.filter(rubro => rubro.id !== id));
-    }
-  };
-
-  // Eliminar rubro
-  const eliminarRubro = (id) => {
-    setRubros(prev => prev.filter(rubro => rubro.id !== id));
+  // Anular rubro (soft delete)
+  const anularRubro = (id) => {
+    setRubros(prev => prev.map(rubro =>
+      rubro.id === id
+        ? {
+            ...rubro,
+            activo: false,
+            fechaAnulacion: new Date().toISOString()
+          }
+        : rubro
+    ));
   };
 
   // Toggle expandir rubro
@@ -307,6 +361,13 @@ const CreateReportModal = ({
         ? { ...rubro, seguimientos: [...rubro.seguimientos, nuevoSeguimiento] }
         : rubro
     ));
+
+    // Toast estilo Citas
+    toast({
+      title: 'Seguimiento agregado',
+      description: 'Se añadió un seguimiento al rubro correctamente.',
+      variant: 'success',
+    });
   };
 
   // Editar seguimiento de rubro
@@ -343,32 +404,10 @@ const CreateReportModal = ({
     ));
   };
 
-  // Eliminar seguimiento permanentemente (solo para seguimientos nuevos sin guardar)
-  const eliminarSeguimientoPermanente = (rubroId, seguimientoId) => {
-    setRubros(prev => prev.map(rubro => 
-      rubro.id === rubroId 
-        ? {
-            ...rubro,
-            seguimientos: rubro.seguimientos.filter(seg => seg.id !== seguimientoId)
-          }
-        : rubro
-    ));
-  };
 
-  // Eliminar seguimiento de rubro
-  const eliminarSeguimientoRubro = (rubroId, seguimientoId) => {
-    setRubros(prev => prev.map(rubro => 
-      rubro.id === rubroId 
-        ? {
-            ...rubro,
-            seguimientos: rubro.seguimientos.filter(seg => seg.id !== seguimientoId)
-          }
-        : rubro
-    ));
-  };
 
-  // Hook global de toasts
-  const { toast } = useToast();
+  // Hook global de toasts ya está definido arriba
+  // const { toast } = useToast();
 
   // Manejar envío del formulario
   const handleSubmit = async (e) => {
@@ -381,14 +420,23 @@ const CreateReportModal = ({
     setIsSubmitting(true);
 
     try {
+      // Obtener seguimientos temporales del hook
+      const temporaryFollowUps = getTemporaryFollowUps();
+      
       const reportData = {
         ...formData,
         rubros,
         imagenes,
-        archivos
+        archivos,
+        // Incluir seguimientos temporales para ser procesados por el servicio
+        seguimientosTemporales: temporaryFollowUps
       };
 
       await onSubmit(reportData);
+      
+      // Limpiar seguimientos temporales después del envío exitoso
+      clearTemporaryFollowUps();
+      
       toast({
         title: initialData ? 'Reporte actualizado' : 'Reporte creado',
         description: initialData
@@ -499,6 +547,7 @@ const CreateReportModal = ({
                         onPropertySelect={handlePropertySelect}
                         onSearchChange={setSearchTerm}
                         filteredProperties={filteredProperties}
+                        isSearching={isSearching}
                         placeholder="Buscar por referencia (ej: J001) o nombre..."
                         className="w-full"
                         error={!!errors.referencia}
@@ -542,6 +591,10 @@ const CreateReportModal = ({
                                 tipoInmueble: '',
                                 referencia: '',
                                 propietario: ''
+                              }));
+                              setFormData(prev => ({
+                                ...prev,
+                                referencia: ''
                               }));
                               setSearchTerm('');
                             }}
@@ -658,26 +711,6 @@ const CreateReportModal = ({
                     </div>
                   </div>
 
-                  {/* Sección 2: Descripción (arriba) */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm mt-4">
-                    <div className="flex items-center mb-4">
-                      <div className="p-2 bg-orange-100 rounded-lg mr-3">
-                        <FileText className="w-5 h-5 text-orange-600" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        Descripción del Reporte
-                      </h3>
-                    </div>
-                    
-                    <Textarea
-                      value={formData.descripcion}
-                      onChange={(e) => handleChange('descripcion', e.target.value)}
-                      placeholder="Descripción detallada del reporte..."
-                      className="w-full min-h-[160px] resize-y"
-                      rows={6}
-                    />
-                  </div>
-
                   {/* Responsable del Reporte (debajo y más pequeño) */}
                   <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm mt-4">
                     <div className="flex items-center mb-2">
@@ -792,6 +825,28 @@ const CreateReportModal = ({
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Descripción del Reporte - ancho completo */}
+                <div className="lg:col-span-3">
+                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm mt-4">
+                    <div className="flex items-center mb-4">
+                      <div className="p-2 bg-orange-100 rounded-lg mr-3">
+                        <FileText className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Descripción del Reporte
+                      </h3>
+                    </div>
+                    
+                    <Textarea
+                      value={formData.descripcion}
+                      onChange={(e) => handleChange('descripcion', e.target.value)}
+                      placeholder="Descripción detallada del reporte..."
+                      className="w-full min-h-[160px] resize-y"
+                      rows={6}
+                    />
                   </div>
                 </div>
               </div>
@@ -917,17 +972,21 @@ const CreateReportModal = ({
               </div>
 
               {/* Seguimiento General */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <CalendarIcon className="w-5 h-5 mr-2 text-blue-600" />
-                  Seguimiento General
-                </h3>
-                
-                <Textarea
-                  value={formData.seguimientoGeneral}
-                  onChange={(e) => handleChange('seguimientoGeneral', e.target.value)}
-                  placeholder="Notas generales del seguimiento..."
-                  rows={3}
+              {/* Separador visual entre Archivos/Imágenes y Seguimiento */}
+              <div className="mt-8 border-t border-gray-200" />
+
+              {/* Bloque de Seguimiento General con separación */}
+              <div className="mt-6">
+                <GeneralFollowUpSection
+                  reportId={initialData?.id}
+                  followUps={followUps}
+                  onAddFollowUp={addFollowUp}
+                  onUpdateFollowUpStatus={updateFollowUpStatus}
+                  currentUser={currentUser}
+                  isEditing={true}
+                  newFollowUpNote={newFollowUpNote}
+                  onNewFollowUpChange={handleNewFollowUpChange}
+                  isSubmitting={followUpsSubmitting}
                 />
               </div>
 
@@ -970,26 +1029,17 @@ const CreateReportModal = ({
                         </button>
                         
                         <div className="flex items-center space-x-2">
-                          {initialData && (
-                            <Button
-                              type="button"
-                              onClick={() => toggleRubroActivo(rubro.id)}
-                              size="sm"
-                              variant="outline"
-                              className="text-orange-600 border-orange-600 hover:bg-orange-50"
-                            >
-                              Anular
-                            </Button>
-                          )}
-                          {!initialData && !rubro.nombre.trim() && (
-                            <button
-                              type="button"
-                              onClick={() => eliminarRubroPermanente(rubro.id)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          )}
+                          <Button
+                            type="button"
+                            onClick={() => toggleRubroActivo(rubro.id)}
+                            size="sm"
+                            variant="outline"
+                            className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                          >
+                            Anular
+                          </Button>
+                          {/* Eliminado: botón de eliminar permanente */}
+                          {/* Antes: mostrar Trash cuando !initialData && !rubro.nombre.trim() */}
                         </div>
                       </div>
 
@@ -1054,29 +1104,16 @@ const CreateReportModal = ({
                                       <span className="text-sm font-medium text-gray-700">Seguimiento {index + 1}</span>
                                     </div>
                                     <div className="flex items-center space-x-2">
-                                      {initialData && (
-                                        <Button
-                                          type="button"
-                                          onClick={() => toggleSeguimientoActivo(rubro.id, seguimiento.id)}
-                                          size="sm"
-                                          variant="outline"
-                                          className="text-orange-600 border-orange-600 hover:bg-orange-50 text-xs px-2 py-1"
-                                        >
-                                          <XCircleIcon className="w-3 h-3 mr-1" />
-                                          Anular
-                                        </Button>
-                                      )}
-                                      {!initialData && !seguimiento.descripcion.trim() && (
-                                        <Button
-                                          type="button"
-                                          onClick={() => eliminarSeguimientoPermanente(rubro.id, seguimiento.id)}
-                                          size="sm"
-                                          variant="ghost"
-                                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <TrashIcon className="w-3 h-3" />
-                                        </Button>
-                                      )}
+                                      <Button
+                                        type="button"
+                                        onClick={() => toggleSeguimientoActivo(rubro.id, seguimiento.id)}
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-orange-600 border-orange-600 hover:bg-orange-50 text-xs px-2 py-1"
+                                      >
+                                        <XCircleIcon className="w-3 h-3 mr-1" />
+                                        Anular
+                                      </Button>
                                     </div>
                                   </div>
 
@@ -1195,7 +1232,7 @@ const CreateReportModal = ({
                               </div>
 
                               {/* Seguimientos Anulados */}
-                              {initialData && rubro.seguimientos.filter(seg => seg.activo === false).length > 0 && (
+                              {rubro.seguimientos.filter(seg => seg.activo === false).length > 0 && (
                                 <div className="mt-3">
                                   <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                                     <XCircleIcon className="w-3 h-3 mr-1" />

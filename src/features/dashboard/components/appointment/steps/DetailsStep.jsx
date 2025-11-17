@@ -7,7 +7,8 @@ const DetailsStep = ({ formData, errors, updateFormData, onFieldComplete }) => {
   const servicios = [
     'Avalúos',
     'Gestión de Alquileres',
-    'Asesoría Legal'
+    'Asesoría Legal',
+    'Visita a Propiedad'
   ];
 
   // Refs para los campos
@@ -105,6 +106,7 @@ const DetailsStep = ({ formData, errors, updateFormData, onFieldComplete }) => {
             <SelectContent>
               <SelectItem value="programada">Programada</SelectItem>
               <SelectItem value="confirmada">Confirmada</SelectItem>
+              <SelectItem value="solicitada">Solicitada</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-slate-500 text-sm mt-1">

@@ -4,9 +4,13 @@ import Sidebar from '../Sidebar/Sidebar';
 import Header from '../Header/Header';
 import { useSidebar } from '../../../hooks/useSidebar';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useToast } from '../../../hooks/use-toast';
 
 const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+  const { toast } = useToast();
   const {
     isCollapsed,
     expandedItem,
@@ -18,9 +22,40 @@ const DashboardLayout = ({ children }) => {
     sidebarRef
   } = useSidebar();
 
-  const handleLogout = () => {
-    // Aquí puedes implementar tu lógica de logout
-    console.log('Cerrando sesión...');
+  const handleLogout = async () => {
+    try {
+      console.log('🔐 Cerrando sesión...');
+      await logout();
+
+      // Mostrar notificación de éxito
+      toast({
+        title: "👋 ¡Hasta luego!",
+        description: "Tu sesión ha sido cerrada exitosamente.",
+        variant: "success",
+      });
+
+      console.log('✅ Sesión cerrada exitosamente');
+
+      // Pequeño delay para que se vea la notificación antes de redirigir
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+
+    } catch (error) {
+      console.error('❌ Error al cerrar sesión:', error);
+
+      // Mostrar notificación de error pero aún así redirigir
+      toast({
+        title: "⚠️ Error al cerrar sesión",
+        description: "Hubo un problema, pero serás redirigido a la página principal.",
+        variant: "destructive",
+      });
+
+      // Redirigir después de un delay más corto en caso de error
+      setTimeout(() => {
+        navigate('/');
+      }, 1000);
+    }
   };
 
   const handleGoToSite = () => {

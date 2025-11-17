@@ -9,51 +9,8 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
 
-  // Datos de ejemplo basados en la imagen
-  const defaultReports = [
-    {
-      id: 'J004',
-      ubicacion: 'Los Ríos',
-      tipoInmueble: 'Apartamento',
-      referencia: 'J004',
-      propietario: 'Dario Jaramillo',
-      tipoReporte: 'Baño reparar',
-      fecha: '19/03/2025',
-      estado: 'En proceso'
-    },
-    {
-      id: 'J002',
-      ubicacion: 'San Jorge',
-      tipoInmueble: 'Apartamento',
-      referencia: 'J002',
-      propietario: 'Esteban Jáuregui',
-      tipoReporte: 'Techos',
-      fecha: '19/03/2025',
-      estado: 'Cotizando'
-    },
-    {
-      id: 'J003',
-      ubicacion: 'Azuay',
-      tipoInmueble: 'Local',
-      referencia: 'J003',
-      propietario: 'Daniela Orellana',
-      tipoReporte: 'Baños',
-      fecha: '19/03/2025',
-      estado: 'Sin novedades'
-    },
-    {
-      id: 'J001',
-      ubicacion: 'Los Ríos',
-      tipoInmueble: 'PENT',
-      referencia: 'J001',
-      propietario: 'Paola Dávila',
-      tipoReporte: 'Cocina',
-      fecha: '19/03/2025',
-      estado: 'Sin novedades'
-    }
-  ]
-
-  const reportsData = reports.length > 0 ? reports : defaultReports
+  // Usar exclusivamente los datos recibidos (sin mocks)
+  const reportsData = Array.isArray(reports) ? reports : []
 
   // Función para obtener el color del estado
   const getStatusColor = (estado) => {

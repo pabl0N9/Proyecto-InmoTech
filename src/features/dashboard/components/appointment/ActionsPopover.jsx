@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, Edit, Trash2, Plus } from 'lucide-react';
+import { Eye, Edit, Trash2, Plus, Check, X } from 'lucide-react';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 
 const ActionsPopover = ({
@@ -12,6 +12,8 @@ const ActionsPopover = ({
   onEdit,
   onDelete,
   onCreate,
+  onAccept,
+  onReject,
   date = null
 }) => {
   const popoverRef = useRef(null);
@@ -62,26 +64,47 @@ const ActionsPopover = ({
     onClose();
   };
 
-  const actions = appointment ? [
-    {
-      label: 'Ver',
-      icon: Eye,
-      action: () => onView(appointment),
-      color: 'text-blue-600 hover:bg-blue-50'
-    },
-    {
-      label: 'Editar',
-      icon: Edit,
-      action: () => onEdit(appointment),
-      color: 'text-green-600 hover:bg-green-50'
-    },
-    {
-      label: 'Eliminar',
-      icon: Trash2,
-      action: () => onDelete(appointment),
-      color: 'text-red-600 hover:bg-red-50'
-    }
-  ] : [
+  const actions = appointment ? (
+    appointment.estado === 'solicitada' ? [
+      {
+        label: 'Ver',
+        icon: Eye,
+        action: () => onView(appointment),
+        color: 'text-blue-600 hover:bg-blue-50'
+      },
+      {
+        label: 'Aceptar',
+        icon: Check,
+        action: () => onAccept && onAccept(appointment),
+        color: 'text-green-600 hover:bg-green-50'
+      },
+      {
+        label: 'Cancelar',
+        icon: X,
+        action: () => onReject && onReject(appointment),
+        color: 'text-red-600 hover:bg-red-50'
+      }
+    ] : [
+      {
+        label: 'Ver',
+        icon: Eye,
+        action: () => onView(appointment),
+        color: 'text-blue-600 hover:bg-blue-50'
+      },
+      {
+        label: 'Editar',
+        icon: Edit,
+        action: () => onEdit(appointment),
+        color: 'text-green-600 hover:bg-green-50'
+      },
+      {
+        label: 'Eliminar',
+        icon: Trash2,
+        action: () => onDelete(appointment),
+        color: 'text-red-600 hover:bg-red-50'
+      }
+    ]
+  ) : [
     {
       label: 'Crear cita',
       icon: Plus,

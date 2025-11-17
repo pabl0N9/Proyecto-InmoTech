@@ -229,10 +229,11 @@ export default function EditarRolModal({ isOpen, onClose, rol, onSave }) {
       // Crear el rol editado
       const rolEditado = {
         ...rol,
-        nombre: nombre.trim(),
+        nombre: nombre.trim(),       // Para el frontend
+        nombre_rol: nombre.trim(),   // ✅ Ahora se envía para el API
         permisos
       };
-
+      
       await onSave(rolEditado);
       onClose();
     } catch (error) {

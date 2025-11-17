@@ -17,62 +17,97 @@ const ViewAppointmentModal = ({ isOpen, onClose, cita }) => {
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    const [year, month, day] = dateString.split('-');
-    // Crear la fecha usando la zona horaria local del dispositivo
-    const localDate = new Date(Number(year), Number(month) - 1, Number(day));
-    return localDate.toLocaleDateString('es-ES', {
+
+    let date;
+
+    // Si es un string en formato YYYY-MM-DD
+    if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = dateString.split('-');
+      date = new Date(Number(year), Number(month) - 1, Number(day));
+    }
+    // Si es un string ISO o Date object
+    else if (typeof dateString === 'string' || dateString instanceof Date) {
+      date = new Date(dateString);
+    }
+    // Si no es válido
+    else {
+      return 'Fecha inválida';
+    }
+
+    // Verificar si la fecha es válida
+    if (isNaN(date.getTime())) {
+      return 'Fecha inválida';
+    }
+
+    return date.toLocaleDateString('es-ES', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric'
     });
-  };  
+  };
 
 
   const formatTime = (timeString) => {
     if (!timeString) return '';
     
-    // Si ya tiene AM/PM, devolver como está
-    if (timeString.includes('AM') || timeString.includes('PM')) {
-      return timeString;
+    const timeStr = timeString.trim();
+    
+    // ✅ AGREGADO: Manejar formato ISO (1970-01-01T06:00:00.000Z)
+    if (timeStr.includes('T') && timeStr.includes('Z')) {
+      const date = new Date(timeStr);
+      if (!isNaN(date.getTime())) {
+        const hours = date.getUTCHours();
+        const minutes = date.getUTCMinutes();
+        const isPM = hours >= 12;
+        const hours12 = hours === 0 ? 12 : (hours > 12 ? hours - 12 : hours);
+        return `${hours12}:${String(minutes).padStart(2, '0')} ${isPM ? 'pm' : 'am'}`;
+      }
     }
     
-    // Convertir de formato 24 horas a 12 horas
-    const [hours, minutes] = timeString.split(':');
-    const hour24 = parseInt(hours, 10);
-    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
-    const ampm = hour24 >= 12 ? 'PM' : 'AM';
+    // Tu código original para otros formatos
+    let cleanedTime = timeStr;
+    const ampmMatches = cleanedTime.match(/\b(am|pm)\b/gi) || [];
+    const totalSuffixes = ampmMatches.length;
     
-    return `${hour12}:${minutes} ${ampm}`;
+    if (totalSuffixes > 1) {
+      cleanedTime = cleanedTime.replace(/\s*\b(am|pm)\b/gi, '').trim();
+      const lastSuffix = ampmMatches[totalSuffixes - 1].toLowerCase();
+      cleanedTime += ' ' + lastSuffix;
+    }
+    
+    if (/\b(am|pm)\b/i.test(cleanedTime)) {
+      return cleanedTime;
+    }
+    
+    const timeParts = cleanedTime.split(':');
+    if (timeParts.length !== 2) return cleanedTime;
+    
+    const hours24 = parseInt(timeParts[0], 10);
+    const minutes = timeParts[1];
+    
+    if (isNaN(hours24)) return cleanedTime;
+    
+    const hours12 = hours24 === 0 ? 12 : hours24 > 12 ? hours24 - 12 : hours24;
+    const ampm = hours24 >= 12 ? 'pm' : 'am';
+    
+    return `${hours12}:${minutes} ${ampm}`;
   };
-
+  
   
   const getStatusBadge = (estado) => {
     const statusConfig = {
-      programada: {
-        bg: 'bg-yellow-100',
-        text: 'text-yellow-800',
-        label: 'Programada'
-      },
-      confirmada: {
-        bg: 'bg-green-100',
-        text: 'text-green-800',
-        label: 'Confirmada'
-      },
-      cancelada: {
-        bg: 'bg-red-100',
-        text: 'text-red-800',
-        label: 'Cancelada'
-      },
-      completada: {
-        bg: 'bg-purple-100',
-        text: 'text-purple-800',
-        label: 'Completada'
-      }
+      'solicitada': { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'Solicitada' }, // ✅ AGREGADO
+      'programada': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Programada' },
+      'confirmada': { bg: 'bg-green-100', text: 'text-green-800', label: 'Confirmada' },
+      'cancelada': { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelada' },
+      'completada': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Completada' },
+      're agendada': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Re Agendada' } // ✅ AGREGADO
     };
-
-    const config = statusConfig[estado] || statusConfig.programada;
     
+    const estadoLower = (estado || 'solicitada').toLowerCase(); // ✅ AGREGADO toLowerCase
+    const config = statusConfig[estadoLower] || statusConfig['solicitada']; // ✅ CAMBIADO default
+      
     return (
       <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.bg} ${config.text}`}>
         {config.label}
@@ -96,57 +131,70 @@ const ViewAppointmentModal = ({ isOpen, onClose, cita }) => {
     return `${getDocumentTypeLabel(tipoDocumento)} - ${numeroDocumento}`;
   };
 
-  const infoItems = [
-    {
-      icon: User,
-      label: 'Cliente',
-      value: cita.cliente,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
-    },
-    {
-      icon: Hash,
-      label: 'Documento',
-      value: formatDocumentInfo(cita.tipoDocumento, cita.numeroDocumento),
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-50'
-    },
-    {
-      icon: Phone,
-      label: 'Teléfono',
-      value: cita.telefono,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
-    },
-    {
-      icon: Mail,
-      label: 'Email',
-      value: cita.email,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
-    },
-    {
-      icon: Calendar,
-      label: 'Fecha',
-      value: formatDate(cita.fecha),
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50'
-      },
-      {
-      icon: Clock,
-      label: 'Hora',
-      value: formatTime(cita.hora),
-      color: 'text-red-600',
-      bgColor: 'bg-red-50'
-      },
-      {
-      icon: Home,
-      label: 'Servicio',
-      value: cita.servicio,
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-50'
-    }
-  ];
+// ✅ AGREGADO: Extraer objetos de forma segura ANTES del array
+const cliente = cita.cliente || {};
+const inmueble = cita.inmueble || {};
+const servicio = cita.servicio || {};
+
+// ✅ CORREGIDO: Ahora todos los valores son strings, no objetos
+const infoItems = [
+  {
+    icon: User,
+    label: 'Cliente',
+    value: `${cliente.nombre_completo || ''} ${cliente.apellido_completo || ''}`.trim() || 'No especificado', // ✅ STRING
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-50'
+  },
+  {
+    icon: Hash,
+    label: 'Documento',
+    value: formatDocumentInfo(cliente.tipo_documento, cliente.numero_documento), // ✅ Datos del objeto cliente
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-50'
+  },
+  {
+    icon: Phone,
+    label: 'Teléfono',
+    value: cliente.telefono || 'No especificado', // ✅ Dato del objeto cliente
+    color: 'text-green-600',
+    bgColor: 'bg-green-50'
+  },
+  {
+    icon: Mail,
+    label: 'Email',
+    value: cliente.correo || 'No especificado', // ✅ correo, no email
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-50'
+  },
+  {
+    icon: Calendar,
+    label: 'Fecha',
+    value: formatDate(cita.fecha_cita), // ✅ fecha_cita según tu BD
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-50'
+  },
+  {
+    icon: Clock,
+    label: 'Hora',
+    value: `${formatTime(cita.hora_inicio)} - ${formatTime(cita.hora_fin)}`, // ✅ hora_inicio y hora_fin
+    color: 'text-red-600',
+    bgColor: 'bg-red-50'
+  },
+  {
+    icon: Home,
+    label: 'Servicio',
+    value: servicio.nombre_servicio || 'No especificado', // ✅ STRING del objeto servicio
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-50'
+  },
+  {
+    icon: MapPin, // ✅ AGREGADO: Info del inmueble
+    label: 'Dirección',
+    value: inmueble.direccion ? `${inmueble.direccion}, ${inmueble.ciudad || ''}` : 'No especificado',
+    color: 'text-teal-600',
+    bgColor: 'bg-teal-50'
+  }
+];
 
   if (!isOpen) return null;
 
@@ -177,8 +225,8 @@ const ViewAppointmentModal = ({ isOpen, onClose, cita }) => {
               <p className="text-slate-600 mt-1">Información completa de la cita</p>
             </div>
             <div className="flex items-center gap-3">
-              {getStatusBadge(cita.estado)}
-              <motion.button
+            {getStatusBadge(cita.estado_detalle?.nombre_estado || cita.estado)} {/* ✅ Manejar objeto estado */}
+            <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
@@ -215,8 +263,8 @@ const ViewAppointmentModal = ({ isOpen, onClose, cita }) => {
                 ))}
               </div>
 
-              {/* Notas */}
-              {cita.notas && (
+                {/* Observaciones */}
+                {cita.observaciones && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -228,8 +276,8 @@ const ViewAppointmentModal = ({ isOpen, onClose, cita }) => {
                       <FileText className="w-5 h-5 text-slate-600" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-600 mb-2">Notas Adicionales</p>
-                      <p className="text-slate-800 leading-relaxed">{cita.notas}</p>
+                      <p className="text-sm font-medium text-slate-600 mb-2">Observaciones</p>
+                      <p className="text-slate-800 leading-relaxed">{cita.observaciones}</p> {/* ✅ CAMBIO: notas → observaciones */}
                     </div>
                   </div>
                 </motion.div>
@@ -246,11 +294,12 @@ const ViewAppointmentModal = ({ isOpen, onClose, cita }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-blue-600 font-medium">ID de Cita:</span>
-                    <span className="text-blue-800 ml-2">#{cita.id}</span>
+                    <span className="text-blue-800 ml-2">#{cita.id_cita || cita.id} {/* ✅ Usar id_cita de tu BD */}
+                    </span>
                   </div>
                   <div>
                     <span className="text-blue-600 font-medium">Fecha de Creación:</span>
-                    <span className="text-blue-800 ml-2">{formatDate(cita.fechaCreacion)}</span>
+                    <span className="text-blue-800 ml-2">{formatDate(cita.fecha_creacion)} {/* ✅ fecha_creacion según tu BD */}</span>
                   </div>
                 </div>
               </motion.div>

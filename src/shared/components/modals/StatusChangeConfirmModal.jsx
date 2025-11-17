@@ -8,10 +8,11 @@ const StatusChangeConfirmModal = ({
   onClose,
   onConfirm,
   title = "Confirmar Cambio de Estado",
-  message = "¿Estás seguro de que deseas cambiar el estado de esta cita?",
+  message = "¿Estás seguro de que deseas cambiar el estado?",
   currentStatus,
   newStatus,
-  citaInfo
+  citaInfo,
+  administrativoInfo
 }) => {
   if (!isOpen) return null;
 
@@ -20,7 +21,13 @@ const StatusChangeConfirmModal = ({
       programada: 'Programada',
       confirmada: 'Confirmada',
       completada: 'Completada',
-      cancelada: 'Cancelada'
+      cancelada: 'Cancelada',
+      're agendada': 'Re Agendada',
+      solicitada: 'Solicitada',
+      'Activo': 'Activo',
+      'Inactivo': 'Inactivo',
+      'Suspendido': 'Suspendido',
+      'Retirado': 'Retirado'
     };
     return statusLabels[status] || status;
   };
@@ -30,7 +37,13 @@ const StatusChangeConfirmModal = ({
       programada: 'text-yellow-600 bg-yellow-100',
       confirmada: 'text-green-600 bg-green-100',
       completada: 'text-purple-600 bg-purple-100',
-      cancelada: 'text-red-600 bg-red-100'
+      cancelada: 'text-red-600 bg-red-100',
+      're agendada': 'text-orange-600 bg-orange-100',
+      solicitada: 'text-indigo-600 bg-indigo-100',
+      'Activo': 'text-green-600 bg-green-100',
+      'Inactivo': 'text-red-600 bg-red-100',
+      'Suspendido': 'text-orange-600 bg-orange-100',
+      'Retirado': 'text-red-600 bg-red-100'
     };
     return statusColors[status] || 'text-gray-600 bg-gray-100';
   };
@@ -82,6 +95,15 @@ const StatusChangeConfirmModal = ({
                 <div className="text-sm text-slate-800 font-medium">{citaInfo.cliente}</div>
                 <div className="text-sm text-slate-600">{citaInfo.propiedad}</div>
                 <div className="text-sm text-slate-600">{citaInfo.fecha} - {citaInfo.hora}</div>
+              </div>
+            )}
+
+            {administrativoInfo && (
+              <div className="bg-slate-50 rounded-lg p-4 mb-4">
+                <div className="text-sm text-slate-800 font-medium">{administrativoInfo.nombre}</div>
+                <div className="text-sm text-slate-600">Código: {administrativoInfo.codigo}</div>
+                <div className="text-sm text-slate-600">Cargo: {administrativoInfo.cargo}</div>
+                <div className="text-sm text-slate-600">Departamento: {administrativoInfo.departamento}</div>
               </div>
             )}
 

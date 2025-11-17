@@ -9,11 +9,21 @@ import DetailsStepStep from './steps/DetailsStep';
 import SummaryStepStep from './steps/SummaryStep';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
+import { useAppointments } from '../../../../shared/contexts/AppointmentContext';
 
-const CreateAppointmentModal = ({ isOpen, onClose, onSubmit }) => {
+const SERVICIO_MAP = {
+  "Visita a Propiedad": 1,
+  "Avalúos": 2,
+  "Gestión de Alquileres": 3,
+  "Asesoría Legal": 4,
+};
+
+
+const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    cliente: '',
+    nombre: '',
+    apellido: '',
     telefono: '',
     email: '',
     tipoDocumento: '',
@@ -26,6 +36,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit }) => {
   });
   const [errors, setErrors] = useState({});
   const { toast } = useToast();
+  const { createAppointment } = useAppointments();
   const contentRef = useRef(null);
 
   // Scroll to top when step changes
@@ -34,6 +45,13 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit }) => {
       contentRef.current.scrollTop = 0;
     }
   }, [currentStep]);
+
+  // Set preselected date when modal opens
+  useEffect(() => {
+    if (isOpen && preselectedDate) {
+      setFormData(prev => ({ ...prev, fecha: preselectedDate }));
+    }
+  }, [isOpen, preselectedDate]);
 
   const steps = [
     { number: 1, title: 'Cliente', icon: User },
@@ -133,6 +151,15 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit }) => {
   const validateHora = (hora) => {
     if (!hora) return 'La hora es requerida';
 
+    // Check for multiple AM/PM suffixes
+    const amMatches = hora.match(/\b(am|AM)\b/g);
+    const pmMatches = hora.match(/\b(pm|PM)\b/g);
+    const totalSuffixes = (amMatches ? amMatches.length : 0) + (pmMatches ? pmMatches.length : 0);
+
+    if (totalSuffixes > 1) {
+      return 'La hora no puede tener múltiples sufijos AM/PM';
+    }
+
     // Detectar si es AM o PM
     const isPM = /\s*pm$/i.test(hora);
     const isAM = /\s*am$/i.test(hora);
@@ -171,11 +198,12 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit }) => {
       return 'El servicio es requerido';
     }
 
-    const servicios = [
-      'Avalúos',
-      'Gestión de Alquileres',
-      'Asesoría Legal'
-    ];
+  const servicios = [
+    'Avalúos',
+    'Gestión de Alquileres',
+    'Asesoría Legal',
+    'Visita a Propiedad'
+  ];
 
     // Verificar que el servicio seleccionado existe en la lista
     if (!servicios.includes(servicio)) {
@@ -190,7 +218,8 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit }) => {
 
     switch (step) {
       case 1:
-        newErrors.cliente = validateNombre(formData.cliente);
+        newErrors.nombre = validateNombre(formData.nombre);
+        newErrors.apellido = validateNombre(formData.apellido);
         newErrors.telefono = validateTelefono(formData.telefono);
         newErrors.email = validateEmail(formData.email);
         newErrors.tipoDocumento = validateTipoDocumento(formData.tipoDocumento);
@@ -214,13 +243,15 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit }) => {
       case 1:
         // Para el paso 1, verificar que los campos estén llenos (sin errores críticos)
         const step1Errors = {
-          cliente: validateNombre(formData.cliente),
+          nombre: validateNombre(formData.nombre),
+          apellido: validateNombre(formData.apellido),
           telefono: validateTelefono(formData.telefono),
           email: validateEmail(formData.email),
           tipoDocumento: validateTipoDocumento(formData.tipoDocumento),
           numeroDocumento: validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento)
         };
-        return formData.cliente.trim() &&
+        return formData.nombre.trim() &&
+               formData.apellido.trim() &&
                formData.telefono.trim() &&
                formData.email.trim() &&
                formData.tipoDocumento &&
@@ -267,7 +298,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit }) => {
   const validateAllSteps = () => {
     let allErrors = {};
     // Validate step 1
-    allErrors = { ...allErrors, ...{ cliente: validateNombre(formData.cliente), telefono: validateTelefono(formData.telefono), email: validateEmail(formData.email), tipoDocumento: validateTipoDocumento(formData.tipoDocumento), numeroDocumento: validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento) } };
+    allErrors = { ...allErrors, ...{ nombre: validateNombre(formData.nombre), apellido: validateNombre(formData.apellido), telefono: validateTelefono(formData.telefono), email: validateEmail(formData.email), tipoDocumento: validateTipoDocumento(formData.tipoDocumento), numeroDocumento: validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento) } };
     // Validate step 2
     allErrors = { ...allErrors, ...{ fecha: validateFecha(formData.fecha), hora: validateHora(formData.hora) } };
     // Validate step 3
@@ -276,23 +307,74 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit }) => {
     return Object.values(allErrors).every(error => !error);
   };
 
-  const handleSubmit = () => {
+  // Función para convertir hora de 12h a 24h
+  const formatHoraParaAPI = (hora) => {
+    if (!hora) return "09:00";
+
+    const horaLimpia = hora.toLowerCase().replace(/\s+/g, "");
+    const isPM = horaLimpia.includes("pm");
+    const isAM = horaLimpia.includes("am");
+
+    let [horas, minutos] = horaLimpia
+      .replace(/am|pm/g, "")
+      .split(":")
+      .map(Number);
+
+    if (isPM && horas !== 12) horas += 12;
+    if (isAM && horas === 12) horas = 0;
+
+    return `${String(horas).padStart(2, "0")}:${String(minutos || 0).padStart(2, "0")}`;
+  };
+
+  // Función para calcular hora_fin (1 hora después)
+  const calcularHoraFin = (horaInicio) => {
+    const [horas, minutos] = horaInicio.split(":").map(Number);
+    const horaFin = horas + 1;
+    return `${String(horaFin).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`;
+  };
+
+  const handleSubmit = async () => {
     if (validateAllSteps()) {
       try {
-        onSubmit(formData);
+        // Convertir hora_inicio a 24h
+        const horaInicio24h = formatHoraParaAPI(formData.hora);
+        const horaFin24h = calcularHoraFin(horaInicio24h);
+
+        // Preparar los datos para el backend según la estructura esperada por citaApiService
+        const citaData = {
+          tipo_documento: formData.tipoDocumento,
+          numero_documento: formData.numeroDocumento,
+          nombre_completo: formData.nombre,
+          apellido_completo: formData.apellido,
+          email: formData.email,
+          telefono: formData.telefono,
+          fecha_cita: formData.fecha,
+          hora_inicio: horaInicio24h,
+          hora_fin: horaFin24h,
+          id_servicio: SERVICIO_MAP[formData.servicio] || 1,
+          observaciones: formData.notas || null
+        };
+
+        console.log("📤 Datos preparados para crear cita:", citaData);
+
+        // ✅ Crear la cita usando createAppointment (crea en backend y agrega al estado)
+        await createAppointment(citaData);
+
         toast({
           title: "¡Cita creada exitosamente!",
           description: "La cita ha sido agendada correctamente.",
           variant: "default"
         });
+
+        handleClose();
       } catch (error) {
+        console.error("Error al crear cita:", error);
         toast({
           title: "Error al crear la cita",
           description: "No se pudo crear la cita. Por favor, intenta nuevamente.",
           variant: "destructive"
         });
       }
-      handleClose();
     } else {
       toast({
         title: "Campos requeridos",
@@ -305,7 +387,8 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit }) => {
   const handleClose = () => {
     setCurrentStep(1);
     setFormData({
-      cliente: '',
+      nombre: '',
+      apellido: '',
       telefono: '',
       email: '',
       tipoDocumento: '',
@@ -321,44 +404,71 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit }) => {
   };
 
   const updateFormData = (field, value) => {
+    let cleanedValue = value;
+
+    // Clean 'hora' field to keep only the last valid AM/PM suffix
+    if (field === 'hora' && value) {
+      const amMatches = value.match(/\b(am|AM)\b/g);
+      const pmMatches = value.match(/\b(pm|PM)\b/g);
+      const totalSuffixes = (amMatches ? amMatches.length : 0) + (pmMatches ? pmMatches.length : 0);
+
+      if (totalSuffixes > 1) {
+        // Keep only the last suffix
+        const lastAM = amMatches && amMatches.length > 0 ? amMatches[amMatches.length - 1] : null;
+        const lastPM = pmMatches && pmMatches.length > 0 ? pmMatches[pmMatches.length - 1] : null;
+
+        // Remove all suffixes first
+        let cleaned = value.replace(/\s*\b(am|pm)\b/gi, '');
+
+        // Add back the last suffix
+        if (lastPM) {
+          cleaned += ' ' + lastPM.toLowerCase();
+        } else if (lastAM) {
+          cleaned += ' ' + lastAM.toLowerCase();
+        }
+
+        cleanedValue = cleaned.trim();
+      }
+    }
+
     // Formatear automáticamente el teléfono si es el campo de teléfono
     if (field === 'telefono') {
       // El formateo ya se aplica directamente en CustomerStep con Smart
       // Aquí dejamos el valor tal cual
-    }    
-    setFormData(prev => ({ ...prev, [field]: value }));
+    }
+    setFormData(prev => ({ ...prev, [field]: cleanedValue }));
 
     // Validación en tiempo real
     const newErrors = { ...errors };
 
     switch (field) {
       case 'cliente':
-        newErrors.cliente = validateNombre(value);
+        newErrors.cliente = validateNombre(cleanedValue);
         break;
       case 'telefono':
-        newErrors.telefono = validateTelefono(value);
+        newErrors.telefono = validateTelefono(cleanedValue);
         break;
       case 'email':
-        newErrors.email = validateEmail(value);
+        newErrors.email = validateEmail(cleanedValue);
         break;
       case 'tipoDocumento':
-        newErrors.tipoDocumento = validateTipoDocumento(value);
+        newErrors.tipoDocumento = validateTipoDocumento(cleanedValue);
         // Revalidar número de documento cuando cambie el tipo
         if (formData.numeroDocumento) {
-          newErrors.numeroDocumento = validateNumeroDocumento(formData.numeroDocumento, value);
+          newErrors.numeroDocumento = validateNumeroDocumento(formData.numeroDocumento, cleanedValue);
         }
         break;
       case 'numeroDocumento':
-        newErrors.numeroDocumento = validateNumeroDocumento(value, formData.tipoDocumento);
+        newErrors.numeroDocumento = validateNumeroDocumento(cleanedValue, formData.tipoDocumento);
         break;
       case 'fecha':
-        newErrors.fecha = validateFecha(value);
+        newErrors.fecha = validateFecha(cleanedValue);
         break;
       case 'hora':
-        newErrors.hora = validateHora(value);
+        newErrors.hora = validateHora(cleanedValue);
         break;
       case 'servicio':
-        newErrors.servicio = validateServicio(value);
+        newErrors.servicio = validateServicio(cleanedValue);
         break;
     }
 
