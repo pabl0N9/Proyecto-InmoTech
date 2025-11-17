@@ -1,11 +1,11 @@
 import React, { useRef, useState, useCallback } from "react";
 import { FaTimes } from "react-icons/fa";
 
-// Lista de campos que deben ser obligatorios según la solicitud del usuario (INCLUYE INQUILINO, CODEUDOR, INMUEBLE Y CONTRATO)
+// Lista de campos que deben ser obligatorios según la solicitud del usuario (INCLUYE ARRENDATARIO, CODEUDOR, INMUEBLE Y CONTRATO)
 const requiredFields = [
-    // Inquilino
-    "tipoDocInquilino", "numeroDocInquilino", "primerNombreInquilino",
-    "primerApellidoInquilino", "telefonoInquilino", "correoInquilino",
+    // Arrendatario
+    "tipoDocArrendatario", "numeroDocArrendatario", "primerNombreArrendatario",
+    "primerApellidoArrendatario", "telefonoArrendatario", "correoArrendatario",
     // Codeudor
     "tipoDocCodeudor", "numeroDocCodeudor", "primerNombreCodeudor",
     "primerApellidoCodeudor", "telefonoCodeudor", "correoCodeudor",
@@ -18,15 +18,15 @@ const requiredFields = [
     "fechaInicio", "fechaFinal", "fechaCobro", "precio", "estado",
 ];
 
-export default function RenantForm({ onClose, onSubmit }) {
+export default function RentForm({ onClose, onSubmit }) {
     const [step, setStep] = useState(1);
     // Estado para manejar los errores en línea. Usa { fieldName: errorMessage }
     const [errors, setErrors] = useState({});
     const totalSteps = 4;
 
     const initial = {
-        tipoDocInquilino: "", numeroDocInquilino: "", primerNombreInquilino: "", segundoNombreInquilino: "",
-        primerApellidoInquilino: "", segundoApellidoInquilino: "", correoInquilino: "", telefonoInquilino: "",
+        tipoDocArrendatario: "", numeroDocArrendatario: "", primerNombreArrendatario: "", segundoNombreArrendatario: "",
+        primerApellidoArrendatario: "", segundoApellidoArrendatario: "", correoArrendatario: "", telefonoArrendatario: "",
 
         tipoDocCodeudor: "", numeroDocCodeudor: "", primerNombreCodeudor: "", segundoNombreCodeudor: "",
         primerApellidoCodeudor: "", segundoApellidoCodeudor: "", correoCodeudor: "", telefonoCodeudor: "",
@@ -46,7 +46,7 @@ export default function RenantForm({ onClose, onSubmit }) {
     const errorFocusTimeout = useRef(null); // Usado para enfocar el primer campo con error
 
     // Constantes para los nombres de los campos de documento
-    const NUMERO_DOC_INQ = "numeroDocInquilino";
+    const NUMERO_DOC_ARR = "numeroDocArrendatario";
     const NUMERO_DOC_COD = "numeroDocCodeudor";
 
     // Lista de campos que deben ser estrictamente numéricos (solo dígitos)
@@ -60,8 +60,8 @@ export default function RenantForm({ onClose, onSubmit }) {
     // Campos agrupados por paso para la validación de 'Siguiente'
     const stepFields = {
         1: [
-            "tipoDocInquilino", NUMERO_DOC_INQ, "primerNombreInquilino", "segundoNombreInquilino",
-            "primerApellidoInquilino", "segundoApellidoInquilino", "correoInquilino", "telefonoInquilino",
+            "tipoDocArrendatario", NUMERO_DOC_ARR, "primerNombreArrendatario", "segundoNombreArrendatario",
+            "primerApellidoArrendatario", "segundoApellidoArrendatario", "correoArrendatario", "telefonoArrendatario",
         ],
         2: [
             "tipoDocCodeudor", NUMERO_DOC_COD, "primerNombreCodeudor", "segundoNombreCodeudor",
@@ -77,9 +77,9 @@ export default function RenantForm({ onClose, onSubmit }) {
 
     const getLabel = (name) => {
         const labels = {
-            tipoDocInquilino: "Tipo de Documento", numeroDocInquilino: "Número de Documento", primerNombreInquilino: "Primer Nombre",
-            segundoNombreInquilino: "Segundo Nombre", primerApellidoInquilino: "Primer Apellido", segundoApellidoInquilino: "Segundo Apellido",
-            correoInquilino: "Correo Electrónico", telefonoInquilino: "Teléfono", tipoDocCodeudor: "Tipo de Documento Codeudor",
+            tipoDocArrendatario: "Tipo de Documento", numeroDocArrendatario: "Número de Documento", primerNombreArrendatario: "Primer Nombre",
+            segundoNombreArrendatario: "Segundo Nombre", primerApellidoArrendatario: "Primer Apellido", segundoApellidoArrendatario: "Segundo Apellido",
+            correoArrendatario: "Correo Electrónico", telefonoArrendatario: "Teléfono", tipoDocCodeudor: "Tipo de Documento Codeudor",
             numeroDocCodeudor: "Número de Documento Codeudor", primerNombreCodeudor: "Primer Nombre Codeudor",
             segundoNombreCodeudor: "Segundo Nombre Codeudor", primerApellidoCodeudor: "Primer Apellido Codeudor",
             segundoApellidoCodeudor: "Segundo Apellido Codeudor", correoCodeudor: "Correo Electrónico Codeudor",
@@ -101,23 +101,23 @@ export default function RenantForm({ onClose, onSubmit }) {
 
     // Lista de campos que deben contener solo letras (y acentos/espacios)
     const nameFields = [
-        "primerNombreInquilino", "segundoNombreInquilino", "primerApellidoInquilino", "segundoApellidoInquilino",
+        "primerNombreArrendatario", "segundoNombreArrendatario", "primerApellidoArrendatario", "segundoApellidoArrendatario",
         "primerNombreCodeudor", "segundoNombreCodeudor", "primerApellidoCodeudor", "segundoApellidoCodeudor",
     ];
 
     // Lista de campos que deben contener solo números (documentos, min 8)
     const docFields = [
-        NUMERO_DOC_INQ, NUMERO_DOC_COD,
+        NUMERO_DOC_ARR, NUMERO_DOC_COD,
     ];
 
     // Lista de campos que deben contener solo números (teléfonos)
     const phoneFields = [
-        "telefonoInquilino", "telefonoCodeudor",
+        "telefonoArrendatario", "telefonoCodeudor",
     ];
 
     // Lista de campos que deben contener un @
     const emailFields = [
-        "correoInquilino", "correoCodeudor",
+        "correoArrendatario", "correoCodeudor",
     ];
     
     // --- UTILITY: Formatea un número con separadores de miles ---
@@ -207,7 +207,7 @@ export default function RenantForm({ onClose, onSubmit }) {
         let errorMessage = null;
         const minLengthDoc = 8;
         const isRequired = requiredFields.includes(name);
-        const conflictErrorMsg = "El número de documento del Inquilino no puede ser igual al del Codeudor.";
+        const conflictErrorMsg = "El número de documento del Arrendatario no puede ser igual al del Codeudor.";
 
         setErrors(prev => {
             const newErrors = { ...prev };
@@ -238,7 +238,7 @@ export default function RenantForm({ onClose, onSubmit }) {
 
             // 3. Validar CONFLICTO DE DOCUMENTO (solo si es un campo de documento y no tiene otro error más grave)
             if (!errorMessage && docFields.includes(name)) {
-                const otherDocName = name === NUMERO_DOC_INQ ? NUMERO_DOC_COD : NUMERO_DOC_INQ;
+                const otherDocName = name === NUMERO_DOC_ARR ? NUMERO_DOC_COD : NUMERO_DOC_ARR;
                 const otherDocValue = valuesRef.current[otherDocName] || "";
                 
                 if (value.trim() && otherDocValue.trim() && value === otherDocValue) {
@@ -319,7 +319,7 @@ export default function RenantForm({ onClose, onSubmit }) {
                 }
             } else {
                  // Limpiar el error si el campo es válido (pero no tocar el error de CONFLICTO si ya existe)
-                 const isConflictError = currentErrors[fieldName] === "El número de documento del Inquilino no puede ser igual al del Codeudor.";
+                 const isConflictError = currentErrors[fieldName] === "El número de documento del Arrendatario no puede ser igual al del Codeudor.";
                  if (!isConflictError) {
                     delete currentErrors[fieldName];
                  }
@@ -327,13 +327,13 @@ export default function RenantForm({ onClose, onSubmit }) {
         }
         
         // 2. Validación de CONFLICTO DE DOCUMENTO (Cross-field validation)
-        const docInqValue = valuesRef.current[NUMERO_DOC_INQ] || "";
+        const docArrValue = valuesRef.current[NUMERO_DOC_ARR] || "";
         const docCodValue = valuesRef.current[NUMERO_DOC_COD] || "";
-        const conflictErrorMsg = "El número de documento del Inquilino no puede ser igual al del Codeudor.";
+        const conflictErrorMsg = "El número de documento del Arrendatario no puede ser igual al del Codeudor.";
 
-        if (docInqValue.trim() && docCodValue.trim() && docInqValue === docCodValue) {
+        if (docArrValue.trim() && docCodValue.trim() && docArrValue === docCodValue) {
             
-            const fieldNames = [NUMERO_DOC_INQ, NUMERO_DOC_COD];
+            const fieldNames = [NUMERO_DOC_ARR, NUMERO_DOC_COD];
 
             for (const name of fieldNames) {
                 if (fieldsToCheck.includes(name)) {
@@ -347,8 +347,8 @@ export default function RenantForm({ onClose, onSubmit }) {
             
         } else {
             // Si son diferentes, limpiamos el error de conflicto de ambos campos, sin tocar otros errores (obligatorio/formato)
-            if (currentErrors[NUMERO_DOC_INQ] === conflictErrorMsg) {
-                 delete currentErrors[NUMERO_DOC_INQ];
+            if (currentErrors[NUMERO_DOC_ARR] === conflictErrorMsg) {
+                 delete currentErrors[NUMERO_DOC_ARR];
             }
             if (currentErrors[NUMERO_DOC_COD] === conflictErrorMsg) {
                  delete currentErrors[NUMERO_DOC_COD];
@@ -376,8 +376,8 @@ export default function RenantForm({ onClose, onSubmit }) {
         if (step === 1 && valuesRef.current[NUMERO_DOC_COD].trim()) {
             if (!fieldsToValidate.includes(NUMERO_DOC_COD)) fieldsToValidate.push(NUMERO_DOC_COD);
         }
-        if (step === 2 && valuesRef.current[NUMERO_DOC_INQ].trim()) {
-            if (!fieldsToValidate.includes(NUMERO_DOC_INQ)) fieldsToValidate.push(NUMERO_DOC_INQ);
+        if (step === 2 && valuesRef.current[NUMERO_DOC_ARR].trim()) {
+            if (!fieldsToValidate.includes(NUMERO_DOC_ARR)) fieldsToValidate.push(NUMERO_DOC_ARR);
         }
         
         const { currentErrors, hasError, firstErrorField } = runValidation(fieldsToValidate);
@@ -574,7 +574,7 @@ export default function RenantForm({ onClose, onSubmit }) {
                     </div>
                     <p className="text-sm text-gray-600 mt-2">
                         Paso {step} de {totalSteps}:{" "}
-                        {step === 1 ? "Datos del Inquilino" : step === 2 ? "Datos del Codeudor" : step === 3 ? "Datos del Inmueble" : "Datos del Contrato y Pago"}
+                        {step === 1 ? "Datos del Arrendatario" : step === 2 ? "Datos del Codeudor" : step === 3 ? "Datos del Inmueble" : "Datos del Contrato y Pago"}
                         {" "} (Campos obligatorios marcados con *)
                     </p>
                 </div>
@@ -586,11 +586,11 @@ export default function RenantForm({ onClose, onSubmit }) {
                         {step === 1 && (
                             <div>
                                 <h3 className="text-lg font-bold text-blue-800 mb-4 pb-2 border-b border-blue-200">
-                                    Datos del Inquilino
+                                    Datos del Arrendatario
                                 </h3>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                                     <Field
-                                        name="tipoDocInquilino"
+                                        name="tipoDocArrendatario"
                                         as="select"
                                         options={[
                                             { value: "CC", label: "Cédula de Ciudadanía (CC)" },
@@ -598,13 +598,13 @@ export default function RenantForm({ onClose, onSubmit }) {
                                             { value: "NIT", label: "NIT" },
                                         ]}
                                     />
-                                    <Field name={NUMERO_DOC_INQ} placeholder="Mínimo 8 dígitos. Solo números." />
-                                    <Field name="primerNombreInquilino" placeholder="Solo letras y espacios." />
-                                    <Field name="segundoNombreInquilino" placeholder="Solo letras y espacios. (Opcional)" />
-                                    <Field name="primerApellidoInquilino" placeholder="Solo letras y espacios." />
-                                    <Field name="segundoApellidoInquilino" placeholder="Solo letras y espacios. (Opcional)" />
-                                    <Field name="correoInquilino" placeholder="Debe contener un @" type="email" />
-                                    <Field name="telefonoInquilino" placeholder="Solo números. Ej: 3001234567" />
+                                    <Field name={NUMERO_DOC_ARR} placeholder="Mínimo 8 dígitos. Solo números." />
+                                    <Field name="primerNombreArrendatario" placeholder="Solo letras y espacios." />
+                                    <Field name="segundoNombreArrendatario" placeholder="Solo letras y espacios. (Opcional)" />
+                                    <Field name="primerApellidoArrendatario" placeholder="Solo letras y espacios." />
+                                    <Field name="segundoApellidoArrendatario" placeholder="Solo letras y espacios. (Opcional)" />
+                                    <Field name="correoArrendatario" placeholder="Debe contener un @" type="email" />
+                                    <Field name="telefonoArrendatario" placeholder="Solo números. Ej: 3001234567" />
                                 </div>
                             </div>
                         )}

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useEffect } from "react";
+﻿import React, { useRef, useState, useCallback, useEffect } from "react";
 import { buyersApiService } from "../../../../shared/services/buyersApiService";
 
 // Lista de campos que deben ser obligatorios para el registro
@@ -33,40 +33,52 @@ const PAYMENT_OPTIONS = [
     { value: "mixto", label: "Mixto" },
 ];
 
+const BUYER_AUTOFILL_FIELDS = [
+    "compradorNombreCompleto",
+    "compradorCorreo",
+    "compradorTelefono",
+];
+
+// Datos iniciales fuera del componente para evitar recreación
+const defaultFormValues = {
+    vendedorTipoDocumento: "CC",
+    vendedorDocumento: "",
+    vendedorNombreCompleto: "",
+    vendedorCorreo: "",
+    vendedorTelefono: "",
+    compradorTipoDocumento: "CC",
+    compradorDocumento: "",
+    compradorPersonaId: "",
+    compradorNombreCompleto: "",
+    compradorCorreo: "",
+    compradorTelefono: "",
+    inmuebleTipo: "",
+    inmuebleRegistro: "",
+    inmuebleNombre: "",
+    inmuebleArea: "",
+    inmuebleHabitaciones: "",
+    inmuebleBanos: "",
+    inmueblePais: "Colombia",
+    inmuebleDepartamento: "",
+    inmuebleCiudad: "",
+    inmuebleBarrio: "",
+    inmuebleEstrato: "",
+    inmuebleDireccion: "",
+    inmueblePrecio: "",
+    inmuebleGaraje: false,
+    inmuebleEstado: "Disponible",
+    fechaVenta: new Date().toISOString().slice(0, 10),
+    medioPago: "efectivo",
+};
+
 export default function SalesForm({ onClose, onSubmit }) {
     const [step, setStep] = useState(1);
     const [errors, setErrors] = useState({});
     const [dirtyFields, setDirtyFields] = useState({});
-    const [formValues, setFormValues] = useState(() => ({
-        vendedorTipoDocumento: "CC",
-        vendedorDocumento: "",
-        vendedorNombreCompleto: "",
-        vendedorCorreo: "",
-        vendedorTelefono: "",
-        compradorTipoDocumento: "CC",
-        compradorDocumento: "",
-        compradorPersonaId: "",
-        compradorNombreCompleto: "",
-        compradorCorreo: "",
-        compradorTelefono: "",
-        inmuebleTipo: "",
-        inmuebleRegistro: "",
-        inmuebleNombre: "",
-        inmuebleArea: "",
-        inmuebleHabitaciones: "",
-        inmuebleBanos: "",
-        inmueblePais: "Colombia",
-        inmuebleDepartamento: "",
-        inmuebleCiudad: "",
-        inmuebleBarrio: "",
-        inmuebleEstrato: "",
-        inmuebleDireccion: "",
-        inmueblePrecio: "",
-        inmuebleGaraje: false,
-        inmuebleEstado: "Disponible",
-        fechaVenta: new Date().toISOString().slice(0, 10),
-        medioPago: "efectivo",
-    }));
+    
+    // SOLUCIÓN: Estado inicializado correctamente sin dependencias problemáticas
+    const [formValues, setFormValues] = useState(defaultFormValues);
+    
     const totalSteps = 4;
 
     const elRefs = useRef({});
@@ -74,6 +86,11 @@ export default function SalesForm({ onClose, onSubmit }) {
     const buyerLookupTimeoutRef = useRef(null);
     const buyerLookupRequestId = useRef(0);
     const selectedBuyerRef = useRef(null);
+    const manuallyEditedBuyerFieldsRef = useRef(new Set());
+    const buyerDocumentSnapshotRef = useRef({
+        tipo: "CC",
+        numero: "",
+    });
     const [buyerLookupState, setBuyerLookupState] = useState({
         loading: false,
         message: "",
@@ -197,20 +214,31 @@ export default function SalesForm({ onClose, onSubmit }) {
         return value.toString().trim();
     };
 
-    const resetBuyerSelection = useCallback((resetState = false) => {
-        selectedBuyerRef.current = null;
-        setFormValues((prev) => ({
-            ...prev,
-            compradorPersonaId: "",
-        }));
-        if (resetState) {
-            setBuyerLookupState({
-                loading: false,
-                message: "",
-                error: null,
-            });
-        }
-    }, []);
+    const resetBuyerSelection = useCallback(
+        ({ resetState = false, resetFields = false } = {}) => {
+            selectedBuyerRef.current = null;
+            manuallyEditedBuyerFieldsRef.current.clear();
+            setFormValues((prev) => ({
+                ...prev,
+                compradorPersonaId: "",
+                ...(resetFields
+                    ? {
+                          compradorNombreCompleto: "",
+                          compradorCorreo: "",
+                          compradorTelefono: "",
+                      }
+                    : {}),
+            }));
+            if (resetState) {
+                setBuyerLookupState({
+                    loading: false,
+                    message: "",
+                    error: null,
+                });
+            }
+        },
+        []
+    );
 
     const applyBuyerData = useCallback((buyer) => {
         if (!buyer) return;
@@ -240,21 +268,45 @@ export default function SalesForm({ onClose, onSubmit }) {
             return "";
         };
 
-        setFormValues((prev) => ({
-            ...prev,
-            compradorPersonaId: buyer.personaId || "",
-            compradorNombreCompleto: buildFullName(),
-            compradorCorreo: buyer.correo || buyer.raw?.persona?.correo || "",
-            compradorTelefono: buyer.telefono || buyer.raw?.persona?.telefono || "",
-        }));
+        setFormValues((prev) => {
+            const nextValues = {
+                ...prev,
+                compradorPersonaId: buyer.personaId || "",
+            };
+
+            if (!manuallyEditedBuyerFieldsRef.current.has("compradorNombreCompleto")) {
+                nextValues.compradorNombreCompleto = buildFullName();
+            }
+            if (!manuallyEditedBuyerFieldsRef.current.has("compradorCorreo")) {
+                nextValues.compradorCorreo = buyer.correo || buyer.raw?.persona?.correo || "";
+            }
+            if (!manuallyEditedBuyerFieldsRef.current.has("compradorTelefono")) {
+                nextValues.compradorTelefono = buyer.telefono || buyer.raw?.persona?.telefono || "";
+            }
+
+            return nextValues;
+        });
+
+        setErrors((prev) => {
+            const nextErrors = { ...prev };
+            BUYER_AUTOFILL_FIELDS.forEach((field) => {
+                if (!manuallyEditedBuyerFieldsRef.current.has(field)) {
+                    delete nextErrors[field];
+                }
+            });
+            return nextErrors;
+        });
     }, []);
 
     const fetchBuyerByDocument = useCallback(async () => {
         const tipoDocumento = (formValues.compradorTipoDocumento || "").trim();
-        const numeroDocumento = (formValues.compradorDocumento || "").trim();
+        const numeroDocumento = normalizeValueForStorage(
+            COMPRADOR_DOC,
+            formValues.compradorDocumento || ""
+        );
 
         if (!tipoDocumento || !numeroDocumento) {
-            resetBuyerSelection(true);
+            resetBuyerSelection({ resetState: true, resetFields: true });
             return;
         }
 
@@ -285,7 +337,7 @@ export default function SalesForm({ onClose, onSubmit }) {
                     error: null,
                 });
             } else {
-                resetBuyerSelection(false);
+                resetBuyerSelection();
                 setBuyerLookupState({
                     loading: false,
                     message: "",
@@ -296,7 +348,7 @@ export default function SalesForm({ onClose, onSubmit }) {
             if (buyerLookupRequestId.current !== requestId) {
                 return;
             }
-            resetBuyerSelection(false);
+            resetBuyerSelection();
             setBuyerLookupState({
                 loading: false,
                 message: "",
@@ -339,29 +391,29 @@ export default function SalesForm({ onClose, onSubmit }) {
 
     // === SISTEMA DE VALIDACIÓN MEJORADO ===
     const validateField = (fieldName, value = null, isFinalValidation = false) => {
-        const currentValue =
+        const displayValue = formValues[fieldName] ?? "";
+        const normalizedValue =
             value !== null && value !== undefined
                 ? value
-                : formValues[fieldName] ?? "";
-        const displayValue = formValues[fieldName] ?? "";
+                : normalizeValueForStorage(fieldName, displayValue);
         const label = getLabel(fieldName);
         const isRequired = requiredFields.includes(fieldName);
         const isTouched = dirtyFields[fieldName];
         const enforceFullRules = isFinalValidation || isTouched;
+        const stringValue = normalizedValue.toString().trim();
+        const displayStringValue = displayValue.toString().trim();
 
         // Validación de campo requerido (solo si es dirty o validación final)
-        if (isRequired && !currentValue.toString().trim() && enforceFullRules) {
+        if (isRequired && !stringValue && enforceFullRules) {
             return `${label} es requerido`;
         }
 
         // Si el campo está vacío y no es requerido, no hay error
-        if (!currentValue.toString().trim()) {
+        if (!stringValue) {
             return '';
         }
 
         // Validaciones específicas por tipo de campo
-        const stringValue = currentValue.toString().trim();
-        const displayStringValue = displayValue.toString().trim();
 
         // Campos de nombre completo
         if (nameFields.includes(fieldName)) {
@@ -472,7 +524,8 @@ export default function SalesForm({ onClose, onSubmit }) {
         let hasError = false;
 
         fieldsToValidate.forEach(field => {
-            const error = validateField(field, null, true);
+            const currentValue = normalizeValueForStorage(field, formValues[field] ?? "");
+            const error = validateField(field, currentValue, true);
             if (error) {
                 newErrors[field] = error;
                 hasError = true;
@@ -497,63 +550,83 @@ export default function SalesForm({ onClose, onSubmit }) {
         elRefs.current[name] = el;
     };
 
-    // === MANEJO DE CAMBIOS CORREGIDO ===
-    const handleInputChange = (e) => {
-        let { name, type, value, checked } = e.target;
-
-        if (name === COMPRADOR_DOC || name === "compradorTipoDocumento") {
-            resetBuyerSelection(true);
+    const markBuyerFieldAsEdited = useCallback((name) => {
+        if (BUYER_AUTOFILL_FIELDS.includes(name)) {
+            manuallyEditedBuyerFieldsRef.current.add(name);
         }
+    }, []);
 
-        if (type === "checkbox") {
-            setFormValues((prev) => ({
+    // === SOLUCIÓN PRINCIPAL: Manejo de cambios optimizado ===
+    const handleInputChange = useCallback((e) => {
+        const { name, type, value, checked } = e.target;
+
+        // SOLUCIÓN: Usar función de actualización para evitar problemas de estado
+        setFormValues(prev => {
+            const newValue = type === "checkbox" ? checked : value;
+            
+            // Reset de selección de comprador si cambian documentos
+            if (name === COMPRADOR_DOC || name === "compradorTipoDocumento") {
+                selectedBuyerRef.current = null;
+                manuallyEditedBuyerFieldsRef.current.clear();
+            }
+
+            markBuyerFieldAsEdited(name);
+
+            return {
                 ...prev,
-                [name]: checked,
-            }));
+                [name]: newValue
+            };
+        });
 
-            const error = validateField(name, checked, true);
-            setErrors((prev) => ({
-                ...prev,
-                [name]: error,
-            }));
-            return;
-        }
-
-        let nextValue = value;
-
-        setFormValues((prev) => ({
-            ...prev,
-            [name]: nextValue,
-        }));
-
+        // Limpiar error inmediatamente al escribir
         if (errors[name]) {
-            setErrors((prev) => {
+            setErrors(prev => {
                 const newErrors = { ...prev };
                 delete newErrors[name];
                 return newErrors;
             });
         }
-    };
+    }, [errors, markBuyerFieldAsEdited]);
 
-    const handleInputBlur = (e) => {
-        const { name } = e.target;
+    const handleInputBlur = useCallback((e) => {
+        const { name, value } = e.target;
+        
+        // Marcar como touched
         if (!dirtyFields[name]) {
             setDirtyFields((prev) => ({ ...prev, [name]: true }));
         }
 
-        const currentValue = formValues[name] ?? "";
-        const normalizedValue = normalizeValueForStorage(name, currentValue);
-
+        // Validación en blur
+        const normalizedValue = normalizeValueForStorage(name, value);
         const error = validateField(name, normalizedValue, true);
+        
         setErrors((prev) => ({
             ...prev,
             [name]: error,
         }));
 
+        // Lógica de búsqueda de comprador
         if (name === COMPRADOR_DOC || name === "compradorTipoDocumento") {
+            const currentTipo = formValues.compradorTipoDocumento || "";
+            const normalizedDocumento = normalizeValueForStorage(
+                COMPRADOR_DOC,
+                formValues.compradorDocumento || ""
+            );
+            const docChanged =
+                buyerDocumentSnapshotRef.current.tipo !== currentTipo ||
+                buyerDocumentSnapshotRef.current.numero !== normalizedDocumento;
+
+            if (docChanged) {
+                resetBuyerSelection({ resetState: true, resetFields: true });
+                buyerDocumentSnapshotRef.current = {
+                    tipo: currentTipo,
+                    numero: normalizedDocumento,
+                };
+            }
+
             triggerBuyerLookup(name === COMPRADOR_DOC ? 0 : 200);
         }
-    };
+    }, [dirtyFields, formValues.compradorTipoDocumento, formValues.compradorDocumento, resetBuyerSelection, triggerBuyerLookup]);
 
     const handleNextStep = () => {
         const { isValid, errors: stepErrors } = validateStep(step);
@@ -591,7 +664,7 @@ export default function SalesForm({ onClose, onSubmit }) {
         let firstErrorField = null;
 
         requiredFields.forEach(field => {
-            const error = validateField(field, null, true);
+            const error = validateField(field, normalizedValues[field] ?? "", true);
             if (error) {
                 allErrors[field] = error;
                 hasError = true;
@@ -627,7 +700,7 @@ export default function SalesForm({ onClose, onSubmit }) {
     };
 
     // Field: componente auxiliar reutilizando el estilo
-    const Field = ({ name, as = "input", options = [], placeholder, type = "text" }) => {
+    const Field = React.memo(({ name, as = "input", options = [], placeholder, type = "text" }) => {
         const label = getLabel(name);
         const errorMessage = errors[name];
         const isRequired = requiredFields.includes(name);
@@ -750,7 +823,7 @@ export default function SalesForm({ onClose, onSubmit }) {
                 )}
             </div>
         );
-    };
+    });
 
     const formattedPrice = formatNumberWithThousandsSeparator(formValues.inmueblePrecio || 0);
 

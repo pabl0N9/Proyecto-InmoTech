@@ -99,6 +99,21 @@ class RenantsController {
     }
   }
 
+  async deleteRenant(req, res, next) {
+    try {
+      const { id } = req.params;
+      const renant = await renantService.deleteRenant(parseInt(id));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Arrendatario eliminado definitivamente',
+        data: renant
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async searchRenants(req, res, next) {
     try {
       const { criterio } = req.params;

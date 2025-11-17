@@ -40,6 +40,9 @@ router.patch(
   buyersController.updateBuyer
 );
 
+// DELETE /api/v1/sales/buyers/:id - Eliminar comprador definitivamente
+router.delete('/:id', strictLimiter, buyersController.deleteBuyer);
+
 // PATCH /api/v1/sales/buyers/:id/deactivate - Desactivar comprador
 router.patch('/:id/deactivate', strictLimiter, buyersController.deactivateBuyer);
 

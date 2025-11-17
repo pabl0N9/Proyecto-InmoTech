@@ -200,6 +200,12 @@ class BuyersApiService {
     return this.normalize(this.extractSingle(response));
   }
 
+  async delete(id) {
+    const response = await apiClient.delete(`/sales/buyers/${id}`);
+    this.handleResponseMessage(response, 'No fue posible eliminar el comprador');
+    return this.normalize(this.extractSingle(response));
+  }
+
   async getById(id) {
     const response = await apiClient.get(`/sales/buyers/${id}`);
     this.handleResponseMessage(response, 'No fue posible obtener el comprador');

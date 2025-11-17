@@ -1,5 +1,6 @@
 const app = require('./app');
 const { testConnection } = require('./config/database');
+const { ensureRenantNullableFields } = require('./utils/ensureRenantSchema');
 
 const PORT = process.env.PORT || 5000;
 
@@ -13,6 +14,8 @@ const startServer = async () => {
       console.error('No se pudo conectar a la base de datos. Abortando inicio del servidor.');
       process.exit(1);
     } // <-- AGREGADA ESTA LLAVE QUE FALTABA
+
+    await ensureRenantNullableFields();
 
     const server = app.listen(PORT, () => {
       console.log(`=================================================`);

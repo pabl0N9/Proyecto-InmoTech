@@ -110,6 +110,24 @@ class RenantService {
     return inmueble;
   }
 
+  async ensurePlaceholderInmueble(transaction) {
+    const [inmueble] = await Inmueble.findOrCreate({
+      where: { registro_inmobiliario: 'SIN-ASIGNAR' },
+      defaults: {
+        registro_inmobiliario: 'SIN-ASIGNAR',
+        pais: 'Colombia',
+        departamento: 'Pendiente',
+        ciudad: 'Pendiente',
+        barrio: 'Pendiente',
+        direccion: 'Pendiente por definir',
+        categoria: 'Temporal',
+        estado: true
+      },
+      transaction
+    });
+    return inmueble;
+  }
+
   async upsertPersona(personaData, transaction) {
     const [persona, created] = await Persona.findOrCreate({
       where: {
@@ -155,7 +173,14 @@ class RenantService {
     const transaction = await sequelize.transaction();
     try {
       const persona = await this.upsertPersona(renantData, transaction);
-      await this.ensureInmuebleExists(renantData.id_inmueble, transaction);
+      let inmuebleId = null;
+      if (renantData.id_inmueble) {
+        const inmueble = await this.ensureInmuebleExists(renantData.id_inmueble, transaction);
+        inmuebleId = inmueble.id_inmueble;
+      } else {
+        const placeholder = await this.ensurePlaceholderInmueble(transaction);
+        inmuebleId = placeholder.id_inmueble;
+      }
 
       const existingRenant = await Renant.findOne({
         where: { id_persona: persona.id_persona },
@@ -169,15 +194,25 @@ class RenantService {
       const registro =
         renantData.registro_arrendatario || (await this.generateRenantCode(transaction));
 
+      const fallbackFechaInicio = renantData.fecha_inicio_arrendamiento
+        ? renantData.fecha_inicio_arrendamiento
+        : new Date().toISOString().slice(0, 10);
+
+      const parsedValorMensual = Number(renantData.valor_arriendo_mensual);
+      const fallbackValorMensual =
+        Number.isFinite(parsedValorMensual) && parsedValorMensual > 0
+          ? parsedValorMensual
+          : 1;
+
       const newRenant = await Renant.create(
         {
           id_persona: persona.id_persona,
-          id_inmueble: renantData.id_inmueble,
+          id_inmueble: inmuebleId,
           id_arrendamiento: renantData.id_arrendamiento ?? null,
           registro_arrendatario: registro,
-          fecha_inicio_arrendamiento: renantData.fecha_inicio_arrendamiento,
+          fecha_inicio_arrendamiento: fallbackFechaInicio,
           fecha_fin_arrendamiento: renantData.fecha_fin_arrendamiento ?? null,
-          valor_arriendo_mensual: renantData.valor_arriendo_mensual,
+          valor_arriendo_mensual: fallbackValorMensual,
           tipo_garantia: renantData.tipo_garantia ?? null,
           valor_garantia: renantData.valor_garantia ?? null,
           descripcion_garantia: renantData.descripcion_garantia ?? null,
@@ -307,6 +342,40 @@ class RenantService {
 
   async deactivateRenant(id) {
     return this.updateRenant(id, { estado: 'Inactivo' });
+  }
+
+  async deleteRenant(id) {
+    const transaction = await sequelize.transaction();
+    try {
+      const renant = await this.getRenantInstanceById(id, transaction);
+
+      if (!renant) {
+        throw new Error('Arrendatario no encontrado');
+      }
+
+      const snapshot = this.normalizeRenant(renant);
+      const personaId = renant.id_persona;
+
+      await renant.destroy({ transaction });
+
+      if (personaId) {
+        await Persona.destroy({
+          where: { id_persona: personaId },
+          transaction
+        });
+      }
+
+      await transaction.commit();
+      return snapshot;
+    } catch (error) {
+      await transaction.rollback();
+      if (error?.name === 'SequelizeForeignKeyConstraintError') {
+        throw new Error(
+          'No es posible eliminar este arrendatario porque tiene información relacionada (arrendamientos, pagos, etc.). Intente desactivarlo.'
+        );
+      }
+      throw error;
+    }
   }
 
   async searchRenants(criteria = {}) {

@@ -142,8 +142,11 @@ export function BuyersManagementPage() {
 
         try {
             setIsDeleting(true);
-            const removedBuyer = await buyersApiService.deactivate(targetId);
-            setCompradores((prev) => prev.filter((b) => b.id !== removedBuyer.id));
+            const removedBuyer = await buyersApiService.delete(targetId);
+            const removedId = removedBuyer?.id ?? targetId;
+            setCompradores((prev) =>
+                prev.filter((b) => (b.id ?? b.personaId) !== removedId)
+            );
             showStatus("success", "Comprador eliminado correctamente");
         } catch (error) {
             showStatus("error", error.message || "No fue posible eliminar al comprador");

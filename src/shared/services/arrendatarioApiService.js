@@ -19,6 +19,12 @@ const splitInTwo = (fullName = '') => {
 };
 
 const onlyDigits = (value = '') => value.replace(/[^\d]/g, '');
+const toNumberOrUndefined = (value) => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'string' && value.trim() === '') return undefined;
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+};
 
 const toDateInput = (value) => {
   if (!value) return '';
@@ -113,12 +119,12 @@ class RenantsApiService {
       apellido_completo: joinNames(formData.primerApellido, formData.segundoApellido),
       correo: formData.correo,
       telefono: onlyDigits(formData.telefono),
-      id_inmueble: Number(formData.idInmueble),
+      id_inmueble: toNumberOrUndefined(formData.idInmueble),
       fecha_inicio_arrendamiento: formData.fechaInicio,
       fecha_fin_arrendamiento: formData.fechaFin || null,
-      valor_arriendo_mensual: formData.valorMensual ? Number(formData.valorMensual) : null,
+      valor_arriendo_mensual: toNumberOrUndefined(formData.valorMensual),
       tipo_garantia: formData.tipoGarantia || null,
-      valor_garantia: formData.valorGarantia ? Number(formData.valorGarantia) : null,
+      valor_garantia: toNumberOrUndefined(formData.valorGarantia),
       descripcion_garantia: formData.descripcionGarantia || null,
       contacto_emergencia_nombre: formData.contactoEmergenciaNombre || null,
       contacto_emergencia_telefono: formData.contactoEmergenciaTelefono
@@ -166,6 +172,12 @@ class RenantsApiService {
   async deactivate(id) {
     const response = await apiClient.patch(`/leases/renants/${id}/deactivate`);
     this.handleResponseMessage(response, 'No fue posible desactivar el arrendatario');
+    return this.normalize(response.data);
+  }
+
+  async delete(id) {
+    const response = await apiClient.delete(`/leases/renants/${id}`);
+    this.handleResponseMessage(response, 'No fue posible eliminar el arrendatario');
     return this.normalize(response.data);
   }
 

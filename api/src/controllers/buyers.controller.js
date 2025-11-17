@@ -104,6 +104,21 @@ class BuyersController {
     }
   }
 
+  async deleteBuyer(req, res, next) {
+    try {
+      const { id } = req.params;
+      const buyer = await buyerService.deleteBuyer(parseInt(id));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Comprador eliminado definitivamente',
+        data: buyer
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async searchBuyers(req, res, next) {
     try {
       const { criterio } = req.params;

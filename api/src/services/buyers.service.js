@@ -414,6 +414,46 @@ class BuyerService {
     }
   }
 
+  async deleteBuyer(id) {
+    const transaction = await sequelize.transaction();
+    try {
+      const persona = await Persona.findByPk(id, {
+        transaction,
+        include: this.personaQuery().include
+      });
+
+      if (!persona) {
+        throw new Error('Comprador no encontrado');
+      }
+
+      const removedSnapshot = this.normalizePersonaRecord(persona);
+      const existingBuyer = await Buyer.findOne({
+        where: { id_persona: persona.id_persona },
+        transaction
+      });
+
+      if (existingBuyer) {
+        await existingBuyer.destroy({ transaction });
+      }
+
+      await Persona.destroy({
+        where: { id_persona: persona.id_persona },
+        transaction
+      });
+
+      await transaction.commit();
+      return removedSnapshot;
+    } catch (error) {
+      await transaction.rollback();
+      if (error?.name === 'SequelizeForeignKeyConstraintError') {
+        throw new Error(
+          'No es posible eliminar este comprador porque tiene información relacionada (ventas, arrendamientos, etc.). Intente desactivarlo.'
+        );
+      }
+      throw error;
+    }
+  }
+
   async searchBuyers(criteria = {}) {
     try {
       const personaWhere = {};

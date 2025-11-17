@@ -40,6 +40,9 @@ router.patch(
   renantsController.updateRenant
 );
 
+// DELETE /api/v1/leases/renants/:id - Eliminar arrendatario
+router.delete('/:id', strictLimiter, renantsController.deleteRenant);
+
 // PATCH /api/v1/leases/renants/:id/deactivate - Desactivar arrendatario
 router.patch('/:id/deactivate', strictLimiter, renantsController.deactivateRenant);
 

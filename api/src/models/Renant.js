@@ -21,7 +21,7 @@ const Renant = sequelize.define('Renant', {
   },
   id_inmueble: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     field: 'id_inmueble',
     references: {
       model: 'Inmuebles',
@@ -47,7 +47,7 @@ const Renant = sequelize.define('Renant', {
   },
   fecha_inicio_arrendamiento: {
     type: DataTypes.DATEONLY,
-    allowNull: false,
+    allowNull: true,
     field: 'fecha_inicio_arrendamiento'
   },
   fecha_fin_arrendamiento: {
@@ -57,7 +57,7 @@ const Renant = sequelize.define('Renant', {
   },
   valor_arriendo_mensual: {
     type: DataTypes.DECIMAL(15, 2),
-    allowNull: false,
+    allowNull: true,
     field: 'valor_arriendo_mensual'
   },
   tipo_garantia: {
