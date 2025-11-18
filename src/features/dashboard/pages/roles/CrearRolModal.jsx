@@ -94,24 +94,7 @@ const modulesData = [
     iconColor: "text-slate-600",
     description: "Generación de informes y análisis de mercado"
   },
-  {
-    name: "Administración de Usuarios",
-    key: "usuarios",
-    permisos: ["Crear", "Editar", "Eliminar", "Ver"],
-    icon: User,
-    color: "bg-slate-50 border-slate-200",
-    iconColor: "text-slate-600",
-    description: "Control de acceso y gestión de personal"
-  },
-  {
-    name: "Administración de Roles",
-    key: "roles",
-    permisos: ["Crear", "Editar", "Eliminar", "Ver"],
-    icon: Shield,
-    color: "bg-slate-50 border-slate-200",
-    iconColor: "text-slate-600",
-    description: "Configuración de permisos y niveles de acceso"
-  },
+
 ];
 
 const permissionConfig = {
@@ -123,6 +106,7 @@ const permissionConfig = {
 
   export default function CrearRolModal({ isOpen, onClose, onSubmit }) {
   const [nombre, setNombre] = useState("");
+  const [esAdministrativo, setEsAdministrativo] = useState(true);
   const [modules, setModules] = useState(
     modulesData.map((mod) => ({
       ...mod,
@@ -145,6 +129,8 @@ const permissionConfig = {
       formRef.current.scrollTop = 0;
     }
   }, [isOpen]);
+
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -243,6 +229,7 @@ const permissionConfig = {
       // ✅ CORREGIDO: El formato debe ser nombre_rol, no nombre
       const nuevoRol = {
         nombre_rol: nombre.trim(), // ✅ Cambiar "nombre" por "nombre_rol"
+        es_rol_administrativo: esAdministrativo, // Usar el valor del toggle
         permisos
       };
 
@@ -281,6 +268,7 @@ const permissionConfig = {
   const handleClose = () => {
     setErrors({});
     setNombre("");
+    setEsAdministrativo(true);
     setModules(
       modulesData.map((mod) => ({
         ...mod,
@@ -372,6 +360,24 @@ const permissionConfig = {
                 {errors.nombre && (
                   <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>
                 )}
+              </div>
+
+              {/* Rol Administrativo */}
+              <div>
+                <label className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={esAdministrativo}
+                    onChange={(e) => setEsAdministrativo(e.target.checked)}
+                    className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-blue-900">Rol Administrativo</span>
+                    <p className="text-xs text-blue-700 mt-1">
+                      Este rol tendrá acceso al panel administrativo completo del sistema
+                    </p>
+                  </div>
+                </label>
               </div>
 
               {/* Error de permisos */}

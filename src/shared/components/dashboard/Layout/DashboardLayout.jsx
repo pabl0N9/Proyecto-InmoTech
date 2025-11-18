@@ -25,6 +25,11 @@ const DashboardLayout = ({ children }) => {
   const handleLogout = async () => {
     try {
       console.log('🔐 Cerrando sesión...');
+
+      // Redirigir inmediatamente a la landing page para evitar que React Router detecte la falta de autenticación
+      navigate('/', { replace: true });
+
+      // Luego hacer logout
       await logout();
 
       // Mostrar notificación de éxito
@@ -36,25 +41,15 @@ const DashboardLayout = ({ children }) => {
 
       console.log('✅ Sesión cerrada exitosamente');
 
-      // Pequeño delay para que se vea la notificación antes de redirigir
-      setTimeout(() => {
-        navigate('/');
-      }, 1500);
-
     } catch (error) {
       console.error('❌ Error al cerrar sesión:', error);
 
-      // Mostrar notificación de error pero aún así redirigir
+      // Mostrar notificación de error pero no redirigir ya que ya estamos en la home
       toast({
         title: "⚠️ Error al cerrar sesión",
-        description: "Hubo un problema, pero serás redirigido a la página principal.",
+        description: "Tu sesión se cerró pero hubo un problema técnico.",
         variant: "destructive",
       });
-
-      // Redirigir después de un delay más corto en caso de error
-      setTimeout(() => {
-        navigate('/');
-      }, 1000);
     }
   };
 

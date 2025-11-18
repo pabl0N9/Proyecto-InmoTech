@@ -4,7 +4,7 @@ import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
 import { Toaster } from './shared/components/ui/toaster'
 import DashboardLayout from './shared/components/dashboard/Layout/DashboardLayout'
-import ProtectedRoute, { EmployeeRoute } from './shared/components/ProtectedRoute'
+import ProtectedRoute, { EmployeeRoute, DashboardRoute } from './shared/components/ProtectedRoute'
 
 // Pages
 import HomePage from './features/properties/pages/HomePage'
@@ -26,6 +26,7 @@ import AppointmentPage from './features/dashboard/pages/appointment/AppointmentP
 import Reports from './features/dashboard/pages/reports/Reports'
 import Roles from './features/dashboard/pages/roles/Roles'
 import AdministrativosPage from './features/dashboard/pages/administrativos/AdministrativosPage'
+import UsersPage from './features/dashboard/pages/users/UsersPage'
 
 function App() {
   return (
@@ -121,91 +122,101 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <DashboardPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/dashboard/salesManagement"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <SalesManagementPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/dashboard/buyersManagement"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <BuyersManagementPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/dashboard/leasesManagement"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <LeasesManagementPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/dashboard/renantManagement"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <RenantManagementPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/dashboard/citas"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <AppointmentPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/reportes/gestion"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <Reports />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/seguridad/roles"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <Roles />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/seguridad/administrativos"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <AdministrativosPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/seguridad/usuarios"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <UsersPage />
+              </DashboardLayout>
+            </DashboardRoute>
           }
         />
         <Route

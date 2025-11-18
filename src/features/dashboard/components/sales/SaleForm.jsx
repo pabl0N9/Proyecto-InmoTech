@@ -1,4 +1,5 @@
-import React, { useRef, useState, useCallback } from "react";
+﻿import React, { useRef, useState, useCallback, useEffect } from "react";
+import { buyersApiService } from "../../../../shared/services/buyersApiService";
 
 // Lista de campos que deben ser obligatorios para el registro
 const requiredFields = [
@@ -8,67 +9,107 @@ const requiredFields = [
     "compradorTipoDocumento", "compradorDocumento", "compradorNombreCompleto", "compradorCorreo", "compradorTelefono",
     // Inmueble
     "inmuebleTipo", "inmuebleRegistro", "inmuebleNombre", "inmuebleArea", "inmuebleHabitaciones", "inmuebleBanos",
-    "inmueblePais", "inmuebleDepartamento", "inmuebleCiudad", "inmuebleDireccion", "inmueblePrecio", "inmuebleEstado",
+    "inmueblePais", "inmuebleDepartamento", "inmuebleCiudad", "inmuebleDireccion", "inmuebleEstado",
+    // Venta
+    "fechaVenta", "medioPago", "inmueblePrecio",
 ];
 
 // Nombres de los campos que requieren formato especial (Documento)
 const VENDEDOR_DOC = "vendedorDocumento";
 const COMPRADOR_DOC = "compradorDocumento";
 
+const DOCUMENT_OPTIONS = [
+    { value: "CC", label: "Cédula de Ciudadanía (CC)" },
+    { value: "CE", label: "Cédula de Extranjería (CE)" },
+    { value: "NIT", label: "NIT" },
+    { value: "PASAPORTE", label: "Pasaporte" },
+    { value: "TI", label: "Tarjeta de Identidad (TI)" },
+];
+
+const PAYMENT_OPTIONS = [
+    { value: "efectivo", label: "Efectivo" },
+    { value: "transferencia", label: "Transferencia" },
+    { value: "credito", label: "Crédito" },
+    { value: "mixto", label: "Mixto" },
+];
+
+const BUYER_AUTOFILL_FIELDS = [
+    "compradorNombreCompleto",
+    "compradorCorreo",
+    "compradorTelefono",
+];
+
+// Estado inicial
+const initial = {
+    vendedorTipoDocumento: "CC",
+    vendedorDocumento: "",
+    vendedorNombreCompleto: "",
+    vendedorCorreo: "",
+    vendedorTelefono: "",
+    compradorTipoDocumento: "CC",
+    compradorDocumento: "",
+    compradorPersonaId: "",
+    compradorNombreCompleto: "",
+    compradorCorreo: "",
+    compradorTelefono: "",
+    inmuebleTipo: "",
+    inmuebleRegistro: "",
+    inmuebleNombre: "",
+    inmuebleArea: "",
+    inmuebleHabitaciones: "",
+    inmuebleBanos: "",
+    inmueblePais: "Colombia",
+    inmuebleDepartamento: "",
+    inmuebleCiudad: "",
+    inmuebleBarrio: "",
+    inmuebleEstrato: "",
+    inmuebleDireccion: "",
+    inmueblePrecio: "",
+    inmuebleGaraje: false,
+    inmuebleEstado: "Disponible",
+    fechaVenta: new Date().toISOString().slice(0, 10),
+    medioPago: "efectivo",
+};
+
 export default function SalesForm({ onClose, onSubmit }) {
     const [step, setStep] = useState(1);
-    // Estado para manejar los errores en línea.
     const [errors, setErrors] = useState({});
-    const totalSteps = 4; // Cambiado a 4 pasos para el registro de inmueble
+    const totalSteps = 4;
 
-    // Variables iniciales con el modelo de datos proporcionado
-    const initial = {
-        // Datos del Vendedor
-        vendedorTipoDocumento: "CC",
-        vendedorDocumento: "",
-        vendedorNombreCompleto: "",
-        vendedorCorreo: "",
-        vendedorTelefono: "",
-
-        // Datos del Comprador
-        compradorTipoDocumento: "CC",
-        compradorDocumento: "",
-        compradorNombreCompleto: "",
-        compradorCorreo: "",
-        compradorTelefono: "",
-
-        // Detalles del Inmueble
-        inmuebleTipo: "",
-        inmuebleRegistro: "",
-        inmuebleNombre: "",
-        inmuebleArea: "",
-        inmuebleHabitaciones: "",
-        inmuebleBanos: "",
-        inmueblePais: "Colombia",
-        inmuebleDepartamento: "",
-        inmuebleCiudad: "",
-        inmuebleBarrio: "",
-        inmuebleEstrato: "",
-        inmuebleDireccion: "",
-        inmueblePrecio: "", // guardamos sólo dígitos (raw)
-        inmuebleGaraje: false,
-        inmuebleEstado: "Disponible",
-    };
-
-    // refs para mantener TODOS los valores sin causar re-renders en cada letra
+    // Refs para manejo eficiente de estado (igual que en el formulario de arriendos)
     const valuesRef = useRef({ ...initial });
-    // Ref para mantener los valores formateados visibles en los inputs
     const displayValuesRef = useRef({ ...initial });
     const elRefs = useRef({});
-    const errorFocusTimeout = useRef(null); 
+    const errorFocusTimeout = useRef(null);
+    const buyerLookupTimeoutRef = useRef(null);
+    const buyerLookupRequestId = useRef(0);
+    const selectedBuyerRef = useRef(null);
+    const manuallyEditedBuyerFieldsRef = useRef(new Set());
+    const buyerDocumentSnapshotRef = useRef({
+        tipo: "CC",
+        numero: "",
+    });
+    const [buyerLookupState, setBuyerLookupState] = useState({
+        loading: false,
+        message: "",
+        error: null,
+    });
 
-    // Lista de campos que deben ser estrictamente numéricos (solo dígitos)
+    // Campos estrictamente numéricos (solo dígitos)
     const strictNumericFields = [
         "inmuebleArea", "inmuebleHabitaciones", "inmuebleBanos", "inmuebleEstrato"
     ];
-    
+
     // Campos que requieren formato de miles (moneda)
     const currencyFields = ["inmueblePrecio"];
+
+    // Campos para validaciones de formato
+    const nameFields = [
+        "vendedorNombreCompleto", "compradorNombreCompleto",
+    ];
+    const docFields = [VENDEDOR_DOC, COMPRADOR_DOC];
+    const phoneFields = ["vendedorTelefono", "compradorTelefono"];
+    const emailFields = ["vendedorCorreo", "compradorCorreo"];
 
     // Campos agrupados por paso para la validación
     const stepFields = {
@@ -87,64 +128,122 @@ export default function SalesForm({ onClose, onSubmit }) {
             "inmuebleEstrato", "inmuebleDireccion", "inmuebleGaraje", "inmuebleEstado"
         ],
         4: [
-            "inmueblePrecio"
+            "fechaVenta", "medioPago", "inmueblePrecio"
         ]
     };
+
+    useEffect(() => {
+        return () => {
+            if (buyerLookupTimeoutRef.current) {
+                clearTimeout(buyerLookupTimeoutRef.current);
+            }
+            if (errorFocusTimeout.current) {
+                clearTimeout(errorFocusTimeout.current);
+            }
+        };
+    }, []);
 
     const getLabel = (name) => {
         const labels = {
             // Vendedor
-            vendedorTipoDocumento: "Tipo Doc. Vendedor", vendedorDocumento: "Número Doc. Vendedor",
-            vendedorNombreCompleto: "Nombre Completo Vendedor", vendedorCorreo: "Correo Vendedor",
+            vendedorTipoDocumento: "Tipo Doc. Vendedor", 
+            vendedorDocumento: "Número Doc. Vendedor",
+            vendedorNombreCompleto: "Nombre Completo Vendedor", 
+            vendedorCorreo: "Correo Vendedor",
             vendedorTelefono: "Teléfono Vendedor",
 
             // Comprador
-            compradorTipoDocumento: "Tipo Doc. Comprador", compradorDocumento: "Número Doc. Comprador",
-            compradorNombreCompleto: "Nombre Completo Comprador", compradorCorreo: "Correo Comprador",
+            compradorTipoDocumento: "Tipo Doc. Comprador", 
+            compradorDocumento: "Número Doc. Comprador",
+            compradorNombreCompleto: "Nombre Completo Comprador", 
+            compradorCorreo: "Correo Comprador",
             compradorTelefono: "Teléfono Comprador",
 
             // Inmueble
-            inmuebleTipo: "Tipo de Inmueble", inmuebleRegistro: "No. Registro Catastral",
-            inmuebleNombre: "Nombre/Título Comercial", inmuebleArea: "Área Total",
-            inmuebleHabitaciones: "No. Habitaciones", inmuebleBanos: "No. Baños",
-            inmueblePais: "País", inmuebleDepartamento: "Departamento/Estado",
-            inmuebleCiudad: "Ciudad", inmuebleBarrio: "Barrio/Zona",
-            inmuebleEstrato: "Estrato Socioeconómico", inmuebleDireccion: "Dirección Completa",
-            inmueblePrecio: "Precio de Venta (COP)", inmuebleGaraje: "¿Tiene Garaje?",
+            inmuebleTipo: "Tipo de Inmueble", 
+            inmuebleRegistro: "No. Registro Catastral",
+            inmuebleNombre: "Nombre/Título Comercial", 
+            inmuebleArea: "Área Total",
+            inmuebleHabitaciones: "No. Habitaciones", 
+            inmuebleBanos: "No. Baños",
+            inmueblePais: "País", 
+            inmuebleDepartamento: "Departamento/Estado",
+            inmuebleCiudad: "Ciudad", 
+            inmuebleBarrio: "Barrio/Zona",
+            inmuebleEstrato: "Estrato Socioeconómico", 
+            inmuebleDireccion: "Dirección Completa",
+            inmueblePrecio: "Precio de Venta (COP)", 
+            inmuebleGaraje: "¿Tiene Garaje?",
             inmuebleEstado: "Estado del Inmueble",
+
+            // Venta
+            fechaVenta: "Fecha de Venta",
+            medioPago: "Medio de Pago",
         };
         return labels[name] ?? name;
     };
 
+    // === VALIDACIONES MEJORADAS PARA DOCUMENTOS ===
+
+    // Función para validar documentos según el tipo
+    const validateDocument = (tipoDocumento, numeroDocumento) => {
+        const numeroLimpio = numeroDocumento.replace(/[^0-9]/g, '');
+        
+        switch (tipoDocumento) {
+            case 'CC': // Cédula de Ciudadanía
+                if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
+                    return 'La cédula de ciudadanía debe tener entre 8 y 10 dígitos';
+                }
+                break;
+                
+            case 'CE': // Cédula de Extranjería
+                if (!/^[0-9]{6,10}$/.test(numeroLimpio)) {
+                    return 'La cédula de extranjería debe tener entre 6 y 10 dígitos';
+                }
+                break;
+                
+            case 'NIT': // NIT
+                if (!/^[0-9]{9,10}$/.test(numeroLimpio)) {
+                    return 'El NIT debe tener 9 o 10 dígitos';
+                }
+                break;
+                
+            case 'PASAPORTE': // Pasaporte
+                if (numeroLimpio.length < 6 || numeroLimpio.length > 20) {
+                    return 'El pasaporte debe tener entre 6 y 20 caracteres';
+                }
+                if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) {
+                    return 'El pasaporte solo puede contener letras y números';
+                }
+                break;
+                
+            case 'TI': // Tarjeta de Identidad
+                if (!/^[0-9]{10,11}$/.test(numeroLimpio)) {
+                    return 'La tarjeta de identidad debe tener 10 u 11 dígitos';
+                }
+                break;
+                
+            default:
+                return 'Tipo de documento no válido';
+        }
+        
+        return '';
+    };
+
     // Función para obtener la clase de estilo (incluyendo el resaltado de error)
     const getFieldClass = useCallback((fieldName) => {
-        // Clase base para campos con estilo moderno y responsivo
-        const baseClass = "w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-150 shadow-sm text-sm text-gray-700 bg-white";
-        
-        // Aplica el foco azul y el error rojo
         const errorClass = errors[fieldName] 
-            ? 'border-red-500 ring-1 ring-red-500 focus:ring-red-500 focus:border-red-500' 
-            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500';
-            
-        return `${baseClass} ${errorClass}`;
+            ? 'border-red-500 ring-2 ring-red-500' 
+            : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+        return `w-full p-3 border rounded-lg focus:outline-none transition duration-150 ${errorClass}`;
     }, [errors]);
 
-    // Campos para validaciones de formato
-    const nameFields = [
-        "vendedorNombreCompleto", "compradorNombreCompleto",
-    ];
-    const docFields = [ VENDEDOR_DOC, COMPRADOR_DOC ];
-    const phoneFields = [ "vendedorTelefono", "compradorTelefono" ];
-    const emailFields = [ "vendedorCorreo", "compradorCorreo" ];
-
-    // --- UTILITY: Formatea un número con separadores de miles ---
+    // Formateador de números con separadores de miles
     const formatNumberWithThousandsSeparator = (value) => {
         if (!value) return "";
-        // 1. Limpiar el valor de cualquier separador no numérico
-        const cleanValue = value.toString().replace(/[^0-9]/g, '');
+        const cleanValue = value.replace(/[^0-9]/g, '');
         if (cleanValue === "") return "";
         
-        // 2. Formatear con separador de miles (usando punto para Colombia - es-CO)
         const formatter = new Intl.NumberFormat('es-CO', { 
             style: 'decimal',
             minimumFractionDigits: 0,
@@ -153,21 +252,22 @@ export default function SalesForm({ onClose, onSubmit }) {
         return formatter.format(cleanValue);
     };
 
+    // Configuración de referencias de elementos
     const setElRef = (name) => (el) => {
         if (!el) return;
         elRefs.current[name] = el;
+        
         if (valuesRef.current[name] === undefined || valuesRef.current[name] === null) {
             valuesRef.current[name] = initial[name] ?? "";
         }
         
-        // Inicializar el valor de visualización si es un campo de moneda
+        // Inicializar valor de visualización para campos de moneda
         if (currencyFields.includes(name) && valuesRef.current[name]) {
             displayValuesRef.current[name] = formatNumberWithThousandsSeparator(valuesRef.current[name].toString());
         } else {
             displayValuesRef.current[name] = valuesRef.current[name];
         }
 
-        // Sincronizar el valor inicial en el elemento del DOM
         if (el.type === "checkbox") {
             el.checked = !!valuesRef.current[name];
         } else {
@@ -177,6 +277,7 @@ export default function SalesForm({ onClose, onSubmit }) {
         }
     };
 
+    // Manejador de cambios en inputs (sistema optimizado)
     const handleInputChange = (e) => {
         let { name, type, value, checked } = e.target;
         let cleanValue = value;
@@ -184,23 +285,33 @@ export default function SalesForm({ onClose, onSubmit }) {
         if (type === "checkbox") {
             valuesRef.current[name] = checked;
         } else {
-            // Manejo de campos de moneda (ej: inmueblePrecio)
+            // Formatear campos de moneda
             if (currencyFields.includes(name)) {
-                cleanValue = value.replace(/[^0-9]/g, ''); // Solo dígitos
+                cleanValue = value.replace(/[^0-9]/g, '');
                 const formattedValue = formatNumberWithThousandsSeparator(cleanValue);
                 
                 displayValuesRef.current[name] = formattedValue;
-                e.target.value = formattedValue; // Forzar la actualización visual
+                e.target.value = formattedValue;
             } else {
                 displayValuesRef.current[name] = value;
             }
             
-            // Guardar siempre el valor LIMPIO (solo dígitos si es numérico con formato) o el valor original
             valuesRef.current[name] = cleanValue;
+
+            // Reset de selección de comprador si cambian documentos
+            if (name === COMPRADOR_DOC || name === "compradorTipoDocumento") {
+                selectedBuyerRef.current = null;
+                manuallyEditedBuyerFieldsRef.current.clear();
+            }
+
+            // Marcar campos editados manualmente
+            if (BUYER_AUTOFILL_FIELDS.includes(name)) {
+                manuallyEditedBuyerFieldsRef.current.add(name);
+            }
         }
 
-        // Limpieza de error en vivo
-        if (errors[name] && cleanValue.length > 0) {
+        // Limpiar errores al escribir
+        if (errors[name]) {
             setErrors(prev => {
                 const newErrors = { ...prev };
                 delete newErrors[name];
@@ -209,49 +320,92 @@ export default function SalesForm({ onClose, onSubmit }) {
         }
     };
 
-    // --- FUNCIONES DE VALIDACIÓN DE FORMATO ---
-    const isValidName = (value) => /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/.test(value);
-    const isValidNumeric = (value) => /^\d*$/.test(value); // Solo dígitos (0-9)
-    const isValidEmail = (value) => value.includes('@') && /\S+@\S+\.\S+/.test(value);
+    // Funciones de validación de formato
+    const isValidName = (value) => /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]*$/.test(value);
+    const isValidNumeric = (value) => /^\d*$/.test(value);
+    const isValidEmail = (value) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value);
 
-    // Handler para verificar obligatoriedad, longitud y formato al salir del campo
+    // Manejador de blur para validación MEJORADO
     const handleInputBlur = (e) => {
         const { name } = e.target;
-        // Tomamos el valor limpio de la ref
         const value = valuesRef.current[name] || ""; 
         
         let errorMessage = null;
-        const minLengthDoc = 8;
         const isRequired = requiredFields.includes(name);
 
         setErrors(prev => {
             const newErrors = { ...prev };
 
-            // 1. Validar OBLIGATORIO
-            if (isRequired && !value.toString().trim()) { 
-                errorMessage = "Este campo es obligatorio.";
+            // Validar campo obligatorio
+            if (isRequired && !value.trim() && name !== 'inmuebleGaraje') { 
+                 errorMessage = "Este campo es obligatorio.";
             }
 
-            // 2. Validar formato y longitud (solo si no hay un error de obligatoriedad y el campo tiene valor)
-            if (!errorMessage && value.toString().trim()) {
+            // Validar formato y longitud (solo si no hay error de obligatoriedad y el campo tiene valor)
+            if (!errorMessage && value.trim()) {
                 if (nameFields.includes(name) && !isValidName(value)) {
-                    errorMessage = `Solo se permiten letras, espacios y acentos.`;
-                } else if (docFields.includes(name)) {
-                    if (!isValidNumeric(value)) {
-                        errorMessage = `Solo se permiten dígitos.`;
-                    } else if (value.length < minLengthDoc) {
-                        errorMessage = `Debe tener un mínimo de ${minLengthDoc} dígitos.`;
+                    errorMessage = `Solo se permiten letras.`;
+                } 
+                // VALIDACIÓN MEJORADA PARA DOCUMENTOS
+                else if (docFields.includes(name)) {
+                    let tipoDocumento = "";
+                    
+                    if (name === VENDEDOR_DOC) {
+                        tipoDocumento = valuesRef.current.vendedorTipoDocumento || "CC";
+                    } else if (name === COMPRADOR_DOC) {
+                        tipoDocumento = valuesRef.current.compradorTipoDocumento || "CC";
                     }
-                } else if (phoneFields.includes(name) && !isValidNumeric(value)) {
-                    errorMessage = `Solo se permiten dígitos.`;
-                } else if (emailFields.includes(name) && !isValidEmail(value)) {
-                    errorMessage = `El correo electrónico debe contener un '@' y ser válido.`;
-                } else if (strictNumericFields.includes(name) && !isValidNumeric(value)) { 
-                    errorMessage = `Solo se permiten números enteros.`;
+                    
+                    // Validar formato básico primero
+                    if (!/^[A-Za-z0-9\s\-\.]*$/.test(displayValuesRef.current[name])) {
+                        errorMessage = `Solo se permiten letras, números, espacios, puntos y guiones`;
+                    } else {
+                        // Validación específica por tipo de documento
+                        errorMessage = validateDocument(tipoDocumento, value);
+                    }
+                } 
+                else if (phoneFields.includes(name)) {
+                    if (!isValidNumeric(value)) {
+                        errorMessage = `Solo se permiten números.`;
+                    } else if (value.length < 10) {
+                        errorMessage = `El teléfono debe tener al menos 10 dígitos`;
+                    }
+                } 
+                else if (emailFields.includes(name) && !isValidEmail(value)) {
+                    errorMessage = `El correo electrónico debe ser válido.`;
+                } 
+                else if (strictNumericFields.includes(name)) {
+                    if (!isValidNumeric(value)) {
+                        errorMessage = `Solo se permiten números enteros.`;
+                    } else if (parseFloat(value) <= 0) {
+                        errorMessage = `Debe ser un número mayor a 0`;
+                    }
+                    
+                    // Validaciones específicas por campo numérico
+                    if (name === "inmuebleEstrato" && value) {
+                        const estrato = parseInt(value);
+                        if (estrato < 1 || estrato > 6) {
+                            errorMessage = `El estrato debe estar entre 1 y 6`;
+                        }
+                    }
+                    
+                    if (name === "inmuebleHabitaciones" && value) {
+                        const habitaciones = parseInt(value);
+                        if (habitaciones < 0 || habitaciones > 20) {
+                            errorMessage = `El número de habitaciones debe ser razonable (0-20)`;
+                        }
+                    }
+                    
+                    if (name === "inmuebleBanos" && value) {
+                        const banos = parseInt(value);
+                        if (banos < 0 || banos > 10) {
+                            errorMessage = `El número de baños debe ser razonable (0-10)`;
+                        }
+                    }
                 }
             }
-            
-            // Aplicar el error (si lo hay) o limpiar el error existente
+
+            // Aplicar o limpiar error
             if (errorMessage) {
                 newErrors[name] = errorMessage;
             } else {
@@ -260,14 +414,238 @@ export default function SalesForm({ onClose, onSubmit }) {
 
             return newErrors;
         });
+
+        // Lógica de búsqueda de comprador
+        if (name === COMPRADOR_DOC || name === "compradorTipoDocumento") {
+            const currentTipo = valuesRef.current.compradorTipoDocumento || "";
+            const normalizedDocumento = valuesRef.current.compradorDocumento || "";
+            const docChanged =
+                buyerDocumentSnapshotRef.current.tipo !== currentTipo ||
+                buyerDocumentSnapshotRef.current.numero !== normalizedDocumento;
+
+            if (docChanged) {
+                resetBuyerSelection({ resetState: true, resetFields: true });
+                buyerDocumentSnapshotRef.current = {
+                    tipo: currentTipo,
+                    numero: normalizedDocumento,
+                };
+            }
+
+            triggerBuyerLookup(name === COMPRADOR_DOC ? 0 : 200);
+        }
     };
-    
-    // --- LÓGICA DE VALIDACIÓN CENTRAL ---
+
+    // === FUNCIONES DE NORMALIZACIÓN ===
+    const normalizeValueForStorage = (fieldName, value) => {
+        if (typeof value === "boolean") return value;
+        if (value === null || value === undefined) return "";
+        if (value === 0) return "0";
+        if (value === "") return "";
+
+        // Para campos numéricos estrictos, solo mantener dígitos
+        if (strictNumericFields.includes(fieldName)) {
+            return value.toString().replace(/[^0-9]/g, '');
+        }
+
+        // Para campos de moneda, solo mantener dígitos (sin formato)
+        if (currencyFields.includes(fieldName)) {
+            return value.toString().replace(/[^0-9]/g, '');
+        }
+
+        if (docFields.includes(fieldName)) {
+            return value.toString().replace(/[\s\-\.]/g, '');
+        }
+
+        if (phoneFields.includes(fieldName)) {
+            return value.toString().replace(/[\s\-\(\)\+]/g, '');
+        }
+
+        // Para otros campos, solo trim
+        return value.toString().trim();
+    };
+
+    const resetBuyerSelection = useCallback(
+        ({ resetState = false, resetFields = false } = {}) => {
+            selectedBuyerRef.current = null;
+            manuallyEditedBuyerFieldsRef.current.clear();
+            
+            if (resetFields) {
+                valuesRef.current.compradorPersonaId = "";
+                valuesRef.current.compradorNombreCompleto = "";
+                valuesRef.current.compradorCorreo = "";
+                valuesRef.current.compradorTelefono = "";
+                displayValuesRef.current.compradorNombreCompleto = "";
+                displayValuesRef.current.compradorCorreo = "";
+                displayValuesRef.current.compradorTelefono = "";
+            }
+            
+            if (resetState) {
+                setBuyerLookupState({
+                    loading: false,
+                    message: "",
+                    error: null,
+                });
+            }
+        },
+        []
+    );
+
+    const applyBuyerData = useCallback((buyer) => {
+        if (!buyer) return;
+
+        selectedBuyerRef.current = buyer;
+
+        const buildFullName = () => {
+            const parts = [
+                buyer.primerNombre,
+                buyer.segundoNombre,
+                buyer.primerApellido,
+                buyer.segundoApellido,
+            ].filter(Boolean);
+
+            if (parts.length) return parts.join(" ").trim();
+            const rawPersona = buyer.raw?.persona;
+            if (rawPersona) {
+                const composed = [
+                    rawPersona.nombre_completo,
+                    rawPersona.apellido_completo,
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .trim();
+                if (composed) return composed;
+            }
+            return "";
+        };
+
+        // Actualizar directamente las refs en lugar del estado
+        valuesRef.current.compradorPersonaId = buyer.personaId || "";
+
+        if (!manuallyEditedBuyerFieldsRef.current.has("compradorNombreCompleto")) {
+            valuesRef.current.compradorNombreCompleto = buildFullName();
+            displayValuesRef.current.compradorNombreCompleto = buildFullName();
+        }
+        if (!manuallyEditedBuyerFieldsRef.current.has("compradorCorreo")) {
+            valuesRef.current.compradorCorreo = buyer.correo || buyer.raw?.persona?.correo || "";
+            displayValuesRef.current.compradorCorreo = buyer.correo || buyer.raw?.persona?.correo || "";
+        }
+        if (!manuallyEditedBuyerFieldsRef.current.has("compradorTelefono")) {
+            valuesRef.current.compradorTelefono = buyer.telefono || buyer.raw?.persona?.telefono || "";
+            displayValuesRef.current.compradorTelefono = buyer.telefono || buyer.raw?.persona?.telefono || "";
+        }
+
+        // Forzar actualización de los inputs
+        const nombreEl = elRefs.current.compradorNombreCompleto;
+        const correoEl = elRefs.current.compradorCorreo;
+        const telefonoEl = elRefs.current.compradorTelefono;
+
+        if (nombreEl && !manuallyEditedBuyerFieldsRef.current.has("compradorNombreCompleto")) {
+            nombreEl.value = valuesRef.current.compradorNombreCompleto;
+        }
+        if (correoEl && !manuallyEditedBuyerFieldsRef.current.has("compradorCorreo")) {
+            correoEl.value = valuesRef.current.compradorCorreo;
+        }
+        if (telefonoEl && !manuallyEditedBuyerFieldsRef.current.has("compradorTelefono")) {
+            telefonoEl.value = valuesRef.current.compradorTelefono;
+        }
+
+        // Limpiar errores
+        setErrors((prev) => {
+            const nextErrors = { ...prev };
+            BUYER_AUTOFILL_FIELDS.forEach((field) => {
+                if (!manuallyEditedBuyerFieldsRef.current.has(field)) {
+                    delete nextErrors[field];
+                }
+            });
+            return nextErrors;
+        });
+    }, []);
+
+    const fetchBuyerByDocument = useCallback(async () => {
+        const tipoDocumento = (valuesRef.current.compradorTipoDocumento || "").trim();
+        const numeroDocumento = valuesRef.current.compradorDocumento || "";
+
+        if (!tipoDocumento || !numeroDocumento) {
+            resetBuyerSelection({ resetState: true, resetFields: true });
+            return;
+        }
+
+        // Validar el documento antes de hacer la búsqueda
+        const documentError = validateDocument(tipoDocumento, numeroDocumento);
+        if (documentError) {
+            setBuyerLookupState({
+                loading: false,
+                message: "",
+                error: "Documento inválido. Corrija el formato antes de buscar.",
+            });
+            return;
+        }
+
+        buyerLookupRequestId.current += 1;
+        const requestId = buyerLookupRequestId.current;
+
+        setBuyerLookupState({
+            loading: true,
+            message: "",
+            error: null,
+        });
+
+        try {
+            const buyer = await buyersApiService.findByDocument(
+                tipoDocumento,
+                numeroDocumento
+            );
+
+            if (buyerLookupRequestId.current !== requestId) {
+                return;
+            }
+
+            if (buyer) {
+                applyBuyerData(buyer);
+                setBuyerLookupState({
+                    loading: false,
+                    message: "Datos del comprador completados automáticamente.",
+                    error: null,
+                });
+            } else {
+                resetBuyerSelection();
+                setBuyerLookupState({
+                    loading: false,
+                    message: "",
+                    error: "No encontramos un comprador registrado con ese documento.",
+                });
+            }
+        } catch (error) {
+            if (buyerLookupRequestId.current !== requestId) {
+                return;
+            }
+            resetBuyerSelection();
+            setBuyerLookupState({
+                loading: false,
+                message: "",
+                error: error?.message || "No fue posible buscar el comprador.",
+            });
+        }
+    }, [applyBuyerData, resetBuyerSelection]);
+
+    const triggerBuyerLookup = useCallback(
+        (delay = 250) => {
+            if (buyerLookupTimeoutRef.current) {
+                clearTimeout(buyerLookupTimeoutRef.current);
+            }
+
+            buyerLookupTimeoutRef.current = setTimeout(() => {
+                fetchBuyerByDocument();
+            }, delay);
+        },
+        [fetchBuyerByDocument]
+    );
+
+    // Validación centralizada MEJORADA
     const runValidation = (fieldsToCheck) => {
         let currentErrors = { ...errors };
         let hasError = false;
         let firstErrorField = null;
-        const minLengthDoc = 8;
         
         for (const fieldName of fieldsToCheck) {
             const value = valuesRef.current[fieldName] || "";
@@ -275,38 +653,68 @@ export default function SalesForm({ onClose, onSubmit }) {
 
             const isRequired = requiredFields.includes(fieldName);
             
-            // A. Validación de Obligatoriedad
-            if (isRequired && !value.toString().trim()) { 
+            // Validación de obligatoriedad
+            if (isRequired && !value.toString().trim() && fieldName !== 'inmuebleGaraje') { 
                 error = "Este campo es obligatorio.";
             } 
             
-            // B. Validación de Obligatoriedad y > 0 para números estrictos/moneda
-            if (isRequired && (strictNumericFields.includes(fieldName) || currencyFields.includes(fieldName))) {
+            // Validación de números estrictos
+            if (isRequired && strictNumericFields.includes(fieldName)) {
                  if (!value.toString().trim() || parseFloat(value) <= 0 || isNaN(parseFloat(value))) {
-                     error = "Este campo es obligatorio y debe ser un número mayor a 0.";
+                     error = "Este campo es obligatorio y debe ser mayor a 0";
                  }
             }
 
-            // C. Validación de Formato (usa el valor limpio)
+            // Validación de formato MEJORADA
             if (!error && value.toString().trim()) {
                 if (nameFields.includes(fieldName) && !isValidName(value)) {
                     error = `Solo se permiten letras, espacios y acentos.`;
-                } else if (docFields.includes(fieldName)) {
+                } 
+                // VALIDACIÓN MEJORADA PARA DOCUMENTOS
+                else if (docFields.includes(fieldName)) {
+                    let tipoDocumento = "";
+                    
+                    if (fieldName === VENDEDOR_DOC) {
+                        tipoDocumento = valuesRef.current.vendedorTipoDocumento || "CC";
+                    } else if (fieldName === COMPRADOR_DOC) {
+                        tipoDocumento = valuesRef.current.compradorTipoDocumento || "CC";
+                    }
+                    
+                    error = validateDocument(tipoDocumento, value);
+                } 
+                else if (phoneFields.includes(fieldName)) {
                     if (!isValidNumeric(value)) {
                         error = `Solo se permiten dígitos.`;
-                    } else if (value.length < minLengthDoc) {
-                        error = `Debe tener un mínimo de ${minLengthDoc} dígitos.`;
+                    } else if (value.length < 10) {
+                        error = `El teléfono debe tener al menos 10 dígitos`;
                     }
-                } else if (phoneFields.includes(fieldName) && !isValidNumeric(value)) {
-                    error = `Solo se permiten dígitos.`;
-                } else if (emailFields.includes(fieldName) && !isValidEmail(value)) {
-                    error = `Debe contener un '@' y ser válido.`;
-                } else if (strictNumericFields.includes(fieldName) && !isValidNumeric(value)) { 
+                } 
+                else if (emailFields.includes(fieldName) && !isValidEmail(value)) {
+                    error = `Debe ser un correo electrónico válido.`;
+                } 
+                else if (strictNumericFields.includes(fieldName) && !isValidNumeric(value)) { 
                     error = `Solo se permiten números enteros.`;
+                }
+                
+                // Validaciones específicas para campos numéricos
+                if (!error && strictNumericFields.includes(fieldName)) {
+                    const numericValue = parseInt(value);
+                    
+                    if (fieldName === "inmuebleEstrato" && (numericValue < 1 || numericValue > 6)) {
+                        error = `El estrato debe estar entre 1 y 6`;
+                    }
+                    
+                    if (fieldName === "inmuebleHabitaciones" && (numericValue < 0 || numericValue > 20)) {
+                        error = `El número de habitaciones debe ser razonable (0-20)`;
+                    }
+                    
+                    if (fieldName === "inmuebleBanos" && (numericValue < 0 || numericValue > 10)) {
+                        error = `El número de baños debe ser razonable (0-10)`;
+                    }
                 }
             }
             
-            // D. Actualizar el estado de errores
+            // Actualizar errores
             if (error) {
                 currentErrors[fieldName] = error;
                 hasError = true;
@@ -318,53 +726,41 @@ export default function SalesForm({ onClose, onSubmit }) {
             }
         }
         
-        // Re-evaluar firstErrorField
-        if (!firstErrorField) {
-            for (const fieldName of fieldsToCheck) {
-                if (currentErrors[fieldName]) {
-                    firstErrorField = fieldName;
-                    break;
-                }
-            }
-        }
-        
         return { currentErrors, hasError, firstErrorField };
     };
 
+    // Navegación entre pasos
     const handleNextStep = () => {
-        const fieldsToValidate = stepFields[step];
+        let fieldsToValidate = stepFields[step].filter(f => f !== 'inmuebleGaraje' || requiredFields.includes('inmuebleGaraje'));
         
         const { currentErrors, hasError, firstErrorField } = runValidation(fieldsToValidate);
 
         setErrors(currentErrors);
 
         if (hasError) {
-            // Enfocar el primer campo con error
             if (errorFocusTimeout.current) clearTimeout(errorFocusTimeout.current);
             errorFocusTimeout.current = setTimeout(() => {
                 const el = elRefs.current[firstErrorField];
                 if (el) el.focus();
             }, 50);
-            return; // Bloquea el avance
+            return;
         }
 
-        // Si no hay errores, avanza al siguiente paso
         setStep((s) => Math.min(s + 1, totalSteps));
     };
 
     const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
+    // Envío del formulario
     const handleSubmit = (e) => {
         e.preventDefault();
         
-        // En el envío final, validamos TODOS los campos
-        const allFieldsToValidate = requiredFields; // Solo validamos los obligatorios al final
+        const allFieldsToValidate = Object.values(stepFields).flat().filter(f => f !== 'inmuebleGaraje' || requiredFields.includes('inmuebleGaraje'));
         const { currentErrors, hasError, firstErrorField } = runValidation(allFieldsToValidate);
 
         setErrors(currentErrors);
 
         if (hasError) {
-            // Determinar a qué paso debe volver para mostrar el error
             let targetStep = 1;
             if (stepFields[2].includes(firstErrorField)) targetStep = 2;
             else if (stepFields[3].includes(firstErrorField)) targetStep = 3;
@@ -372,24 +768,31 @@ export default function SalesForm({ onClose, onSubmit }) {
             
             setStep(targetStep);
             
-            // Enfocar el primer campo con error
             if (errorFocusTimeout.current) clearTimeout(errorFocusTimeout.current);
             errorFocusTimeout.current = setTimeout(() => {
                 const el = elRefs.current[firstErrorField];
                 if (el) el.focus();
             }, 50);
             
-            return; // Bloquea el envío
+            return;
         }
 
-        // Si no hay errores, se procede con el envío
-        const payload = { ...valuesRef.current };
+        const normalizedValues = Object.keys(valuesRef.current).reduce((acc, fieldName) => {
+            const currentValue = valuesRef.current[fieldName] ?? "";
+            acc[fieldName] = normalizeValueForStorage(fieldName, currentValue);
+            return acc;
+        }, {});
+
+        const payload = {
+            ...normalizedValues,
+            selectedBuyer: selectedBuyerRef.current,
+        };
+        
         if (onSubmit) onSubmit(payload);
         onClose?.();
-        console.log("Formulario de Inmueble Enviado:", payload);
     };
 
-    // Field: componente auxiliar reutilizando el estilo
+    // Componente Field reutilizable (con validaciones mejoradas)
     const Field = ({ name, as = "input", options = [], placeholder, type = "text" }) => {
         const label = getLabel(name);
         const errorMessage = errors[name];
@@ -398,46 +801,48 @@ export default function SalesForm({ onClose, onSubmit }) {
         const isDocField = docFields.includes(name);
         const isPhoneField = phoneFields.includes(name);
         const isEmailField = emailFields.includes(name);
-        const isStrictNumeric = strictNumericFields.includes(name) || currencyFields.includes(name);
+        const isStrictNumeric = strictNumericFields.includes(name);
         const isNameField = nameFields.includes(name);
 
         const needsBlurValidation = isDocField || isNameField || isPhoneField || isEmailField || isRequired || isStrictNumeric;
         const onBlurHandler = needsBlurValidation ? handleInputBlur : undefined;
         
-        // Establecer el tipo de input para sugerir teclado numérico
         let inputType = type;
-        if ((isDocField || isPhoneField || isStrictNumeric) && type !== 'date' && type !== 'email' && type !== 'checkbox') {
-            inputType = "tel";
-        } else if (isEmailField) {
+        if (isDocField || isPhoneField || isStrictNumeric) {
+            if (type !== 'date' && type !== 'email') {
+                inputType = "tel";
+            }
+        }
+        else if (isEmailField) {
             inputType = "email";
         }
 
-        // Caso especial para checkbox (ej: Garaje)
+        // Placeholders mejorados para documentos
+        let fieldPlaceholder = placeholder;
+        if (isDocField) {
+            fieldPlaceholder = "Ej: 1234567890 (8-10 dígitos según el tipo)";
+        }
+
         if (type === "checkbox") {
             return (
-                <div className="flex items-center space-x-3 h-10">
+                <label htmlFor={name} className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                     <input
                         id={name}
                         name={name}
                         ref={setElRef(name)}
                         type="checkbox"
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 shadow-sm transition duration-150"
+                        defaultChecked={!!initial[name]}
                         onChange={handleInputChange}
                         onBlur={onBlurHandler}
+                        className="rounded text-blue-600 focus:ring-blue-500"
                     />
-                    <label htmlFor={name} className="text-sm font-semibold text-gray-700 cursor-pointer">
-                        {label}
-                        {isRequired && <span className="text-red-500 ml-1">*</span>}
-                    </label>
-                    {errorMessage && (
-                        <p className="text-red-500 text-xs mt-1 font-medium absolute top-full left-0 right-0">{errorMessage}</p>
-                    )}
-                </div>
+                    <span>{label} {isRequired && <span className="text-red-500 ml-1">*</span>}</span>
+                </label>
             );
         }
 
         const LabelContent = (
-            <label htmlFor={name} className="block text-xs font-semibold text-gray-700 mb-1">
+            <label htmlFor={name} className="block text-sm font-semibold text-gray-700 mb-2">
                 {label}
                 {isRequired && <span className="text-red-500 ml-1">*</span>}
             </label>
@@ -445,13 +850,13 @@ export default function SalesForm({ onClose, onSubmit }) {
 
         if (as === "select") {
             return (
-                <div className="flex flex-col">
+                <div>
                     {LabelContent}
                     <select
                         id={name}
                         name={name}
                         ref={setElRef(name)}
-                        className={getFieldClass(name)} 
+                        className={getFieldClass(name)}
                         defaultValue={initial[name] ?? ""}
                         onChange={handleInputChange}
                         onBlur={onBlurHandler}
@@ -464,83 +869,77 @@ export default function SalesForm({ onClose, onSubmit }) {
                         ))}
                     </select>
                     {errorMessage && (
-                        <p className="text-red-500 text-xs mt-1 font-medium">{errorMessage}</p>
+                        <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
                     )}
                 </div>
             );
         }
-        
+
         if (as === "textarea") {
             return (
-                <div className="col-span-1 sm:col-span-2 flex flex-col">
+                <div className="col-span-1 sm:col-span-2">
                     {LabelContent}
                     <textarea
                         id={name}
                         name={name}
                         ref={setElRef(name)}
                         className={`${getFieldClass(name)} h-20 resize-none`}
-                        placeholder={placeholder}
-                        defaultValue={(displayValuesRef.current[name] || initial[name]) ?? ""} 
+                        placeholder={fieldPlaceholder}
+                        defaultValue={initial[name] ?? ""}
                         onChange={handleInputChange}
                         onBlur={onBlurHandler}
                     />
                     {errorMessage && (
-                        <p className="text-red-500 text-xs mt-1 font-medium">{errorMessage}</p>
+                        <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
                     )}
                 </div>
             );
         }
 
         return (
-            <div className="flex flex-col">
+            <div>
                 {LabelContent}
                 <input
                     id={name}
                     name={name}
                     ref={setElRef(name)}
-                    className={getFieldClass(name)} 
+                    className={getFieldClass(name)}
                     type={inputType}
-                    placeholder={placeholder}
-                    defaultValue={(displayValuesRef.current[name] || initial[name]) ?? ""} 
+                    placeholder={fieldPlaceholder}
+                    defaultValue={initial[name] ?? ""}
                     onChange={handleInputChange}
-                    onBlur={onBlurHandler} 
+                    onBlur={onBlurHandler}
                 />
                 {errorMessage && (
-                    <p className="text-red-500 text-xs mt-1 font-medium">{errorMessage}</p>
+                    <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
                 )}
             </div>
         );
     };
 
-    // Formato simple para el precio final (sin cálculos complejos)
     const formattedPrice = formatNumberWithThousandsSeparator(valuesRef.current.inmueblePrecio || 0);
 
     return (
-        // 🔑 Fondo del modal con desenfoque - CAMBIO PRINCIPAL
         <div 
             className="fixed inset-0 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm z-50 p-4 overflow-y-auto"
             onClick={onClose}
         >
-            {/* Contenedor del formulario: Diseño de tarjeta moderna */}
             <div 
                 className="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-6 relative my-8 transform transition-all duration-300 max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
-                
-                {/* Botón de cierre */}
-                <button onClick={onClose} className="absolute top-6 right-6 text-gray-500 hover:text-blue-600 p-1 rounded-full transition duration-150">
+
+                <button onClick={onClose} className="absolute top-6 right-6 text-gray-500 hover:text-blue-600 p-1 rounded-full transition duration-150" aria-label="Cerrar">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                 </button>
 
-                {/* Título principal con estilo del banner */}
                 <div className="mb-6">
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">Nueva venta</h2>
                     <p className="text-gray-600 text-sm">Complete la información requerida para registrar una nueva venta</p>
                 </div>
 
-                {/* Barra de progreso */}
                 <div className="mb-6">
                     <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
                         <div
@@ -548,7 +947,6 @@ export default function SalesForm({ onClose, onSubmit }) {
                             style={{ width: `${(step / totalSteps) * 100}%` }}
                         />
                     </div>
-                    {/* Texto de paso más pequeño y compacto */}
                     <p className="text-xs text-blue-700 font-bold mt-2 text-center">
                         Paso {step} de {totalSteps}:{" "}
                         <span className="font-semibold text-gray-600">
@@ -563,22 +961,17 @@ export default function SalesForm({ onClose, onSubmit }) {
                     {/* PASO 1: Datos del Vendedor */}
                     {step === 1 && (
                         <div>
-                            {/* Subtítulo con estilo consistente */}
                             <h3 className="text-lg font-bold text-blue-800 mb-4 pb-2 border-b border-blue-200">1. Información del Vendedor</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
                                 <Field
                                     name="vendedorTipoDocumento"
                                     as="select"
-                                    options={[
-                                        { value: "CC", label: "Cédula de Ciudadanía (CC)" },
-                                        { value: "CE", label: "Cédula de Extranjería (CE)" },
-                                        { value: "NIT", label: "NIT" },
-                                    ]}
+                                    options={DOCUMENT_OPTIONS}
                                 />
-                                <Field name={VENDEDOR_DOC} placeholder="Mínimo 8 dígitos (Solo números)" />
-                                <Field name="vendedorNombreCompleto" placeholder="Nombre completo" />
+                                <Field name={VENDEDOR_DOC} placeholder="Ej: 1234567890 (8-10 dígitos según el tipo)" />
+                                <Field name="vendedorNombreCompleto" placeholder="Solo letras y espacios." />
                                 <Field name="vendedorCorreo" placeholder="correo@dominio.com" type="email" />
-                                <Field name="vendedorTelefono" placeholder="Ej: 3001234567" />
+                                <Field name="vendedorTelefono" placeholder="Solo números. Mínimo 10 dígitos." />
                             </div>
                         </div>
                     )}
@@ -586,22 +979,34 @@ export default function SalesForm({ onClose, onSubmit }) {
                     {/* PASO 2: Datos del Comprador */}
                     {step === 2 && (
                         <div>
-                            {/* Subtítulo con estilo consistente */}
                             <h3 className="text-lg font-bold text-green-800 mb-4 pb-2 border-b border-green-200">2. Información del Comprador</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
                                 <Field
                                     name="compradorTipoDocumento"
                                     as="select"
-                                    options={[
-                                        { value: "CC", label: "Cédula de Ciudadanía (CC)" },
-                                        { value: "CE", label: "Cédula de Extranjería (CE)" },
-                                        { value: "NIT", label: "NIT" },
-                                    ]}
+                                    options={DOCUMENT_OPTIONS}
                                 />
-                                <Field name={COMPRADOR_DOC} placeholder="Mínimo 8 dígitos (Solo números)" />
-                                <Field name="compradorNombreCompleto" placeholder="Nombre completo" />
+                                <Field name={COMPRADOR_DOC} placeholder="Ej: 1234567890 (8-10 dígitos según el tipo)" />
+                                <Field name="compradorNombreCompleto" placeholder="Solo letras y espacios." />
                                 <Field name="compradorCorreo" placeholder="correo@dominio.com" type="email" />
-                                <Field name="compradorTelefono" placeholder="Ej: 3001234567" />
+                                <Field name="compradorTelefono" placeholder="Solo números. Mínimo 10 dígitos." />
+                                {(buyerLookupState.loading || buyerLookupState.error || buyerLookupState.message) && (
+                                    <div className="md:col-span-2">
+                                        <p
+                                            className={`text-sm ${
+                                                buyerLookupState.loading
+                                                    ? "text-blue-600"
+                                                    : buyerLookupState.error
+                                                        ? "text-red-600"
+                                                        : "text-green-700"
+                                            }`}
+                                        >
+                                            {buyerLookupState.loading && "Buscando comprador…"}
+                                            {!buyerLookupState.loading && buyerLookupState.error && buyerLookupState.error}
+                                            {!buyerLookupState.loading && !buyerLookupState.error && buyerLookupState.message}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -609,10 +1014,8 @@ export default function SalesForm({ onClose, onSubmit }) {
                     {/* PASO 3: Detalles de la Propiedad */}
                     {step === 3 && (
                         <div>
-                            {/* Subtítulo con estilo consistente */}
                             <h3 className="text-lg font-bold text-yellow-800 mb-4 pb-2 border-b border-yellow-200">3. Detalles y Ubicación del Inmueble</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
-                                {/* Propiedad */}
                                 <Field
                                     name="inmuebleTipo"
                                     as="select"
@@ -627,12 +1030,11 @@ export default function SalesForm({ onClose, onSubmit }) {
                                 <div className="md:col-span-2">
                                     <Field name="inmuebleNombre" placeholder="Ej: Apartamento 501, Edificio La Torre" />
                                 </div>
-                                <Field name="inmuebleArea" placeholder="Área en metros cuadrados (Solo números)" />
-                                <Field name="inmuebleHabitaciones" placeholder="Cantidad de habitaciones" />
-                                <Field name="inmuebleBanos" placeholder="Cantidad de baños" />
-                                <Field name="inmuebleEstrato" placeholder="Estrato (1 a 6)" />
-                                
-                                {/* Ubicación */}
+                                <Field name="inmuebleArea" placeholder="Área en metros cuadrados. Solo números enteros mayores a 0." />
+                                <Field name="inmuebleHabitaciones" placeholder="Cantidad de habitaciones. Solo números enteros (0-20)." />
+                                <Field name="inmuebleBanos" placeholder="Cantidad de baños. Solo números enteros (0-10)." />
+                                <Field name="inmuebleEstrato" placeholder="Estrato (1-6). Solo números enteros." />
+
                                 <Field name="inmueblePais" placeholder="País" />
                                 <Field name="inmuebleDepartamento" placeholder="Departamento o Estado" />
                                 <Field name="inmuebleCiudad" placeholder="Ciudad" />
@@ -641,7 +1043,6 @@ export default function SalesForm({ onClose, onSubmit }) {
                                     <Field name="inmuebleDireccion" as="textarea" placeholder="Dirección completa, ej: Carrera 10 # 25-50" />
                                 </div>
 
-                                {/* Adicionales y Estado */}
                                 <Field name="inmuebleGaraje" type="checkbox" />
                                 <Field
                                     name="inmuebleEstado"
@@ -659,13 +1060,17 @@ export default function SalesForm({ onClose, onSubmit }) {
                     {/* PASO 4: Precio de Venta */}
                     {step === 4 && (
                         <div>
-                            {/* Subtítulo con estilo consistente */}
                             <h3 className="text-lg font-bold text-purple-800 mb-4 pb-2 border-b border-purple-200">4. Precio de Venta</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4 mb-6 max-w-xl mx-auto">
-                                <Field name="inmueblePrecio" placeholder="Precio total (Ej: 150.000.000)" />
+                                <Field name="fechaVenta" type="date" />
+                                <Field
+                                    name="medioPago"
+                                    as="select"
+                                    options={PAYMENT_OPTIONS}
+                                />
+                                <Field name="inmueblePrecio" placeholder="Ej: 150000000 (Solo números enteros mayores a 0)." />
                             </div>
 
-                            {/* Resumen del Precio */}
                             <div className="p-4 bg-blue-50 border border-blue-300 rounded-xl shadow-inner text-gray-800 max-w-xl mx-auto">
                                 <h4 className="text-base font-extrabold mb-2 text-blue-800 border-b border-blue-200 pb-1">Resumen de la Propiedad</h4>
                                 <div className="space-y-1 text-sm">
@@ -690,9 +1095,7 @@ export default function SalesForm({ onClose, onSubmit }) {
                         </div>
                     )}
 
-                    {/* Botones de Navegación (Pie del formulario) */}
                     <div className="pt-4 border-t mt-6 flex justify-between">
-                        {/* Botón Atrás: Siempre a la izquierda y solo si no es el primer paso */}
                         {step > 1 && (
                             <button
                                 type="button"
@@ -702,10 +1105,8 @@ export default function SalesForm({ onClose, onSubmit }) {
                                 Atrás
                             </button>
                         )}
-                        {/* Espaciador (solo aparece si el botón Atrás no está) */}
                         {step === 1 && <div />}
-                        
-                        {/* Botón Siguiente: Primario, color azul, solo si no es el último paso */}
+
                         {step < totalSteps && (
                             <button
                                 type="button"
@@ -715,8 +1116,7 @@ export default function SalesForm({ onClose, onSubmit }) {
                                 Siguiente
                             </button>
                         )}
-                        
-                        {/* Botón Final: Principal, color azul, solo en el último paso */}
+
                         {step === totalSteps && (
                             <button
                                 type="submit"
