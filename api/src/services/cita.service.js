@@ -91,7 +91,8 @@ class CitaService {
         { association: 'inmueble' },
         { association: 'servicio' },
         { association: 'estado' },
-        { association: 'agente', required: false }
+        { association: 'agente', required: false },
+        { association: 'creador', required: false, attributes: ['id_persona', 'nombre_completo', 'apellido_completo'] }
       ],
       transaction
     });
@@ -125,6 +126,11 @@ class CitaService {
         },
         {
           association: 'agente',
+          required: false,
+          attributes: ['id_persona', 'nombre_completo', 'apellido_completo']
+        },
+        {
+          association: 'creador',
           required: false,
           attributes: ['id_persona', 'nombre_completo', 'apellido_completo']
         }
@@ -200,6 +206,12 @@ class CitaService {
           id_persona: cita.agente.id_persona,
           nombre_completo: cita.agente.nombre_completo,
           apellido_completo: cita.agente.apellido_completo
+        } : null,
+
+        creador: cita.creador ? {
+          id_persona: cita.creador.id_persona,
+          nombre_completo: cita.creador.nombre_completo,
+          apellido_completo: cita.creador.apellido_completo
         } : null
       }));
 
@@ -661,6 +673,11 @@ class CitaService {
             association: 'agente',
             required: false,
             attributes: ['id_persona', 'nombre_completo', 'apellido_completo']
+          },
+          {
+            association: 'creador',
+            required: false,
+            attributes: ['id_persona', 'nombre_completo', 'apellido_completo']
           }
         ],
         order: [
@@ -714,6 +731,12 @@ class CitaService {
           id_persona: cita.agente.id_persona,
           nombre_completo: cita.agente.nombre_completo,
           apellido_completo: cita.agente.apellido_completo
+        } : null,
+
+        creador: cita.creador ? {
+          id_persona: cita.creador.id_persona,
+          nombre_completo: cita.creador.nombre_completo,
+          apellido_completo: cita.creador.apellido_completo
         } : null
       }));
 

@@ -70,6 +70,60 @@ class PersonasController {
   }
 
   /**
+   * Verificar si existe un correo electrónico
+   */
+  async verificarCorreo(req, res, next) {
+    try {
+      const { email } = req.params;
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Correo electrónico es requerido'
+        });
+      }
+
+      const existe = await personasService.verificarCorreoExistente(email);
+
+      return res.status(200).json({
+        success: true,
+        message: existe ? 'Correo electrónico ya existe' : 'Correo electrónico disponible',
+        data: { existe }
+      });
+    } catch (error) {
+      logger.error('Error verificando correo:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Verificar si existe un número de documento
+   */
+  async verificarDocumento(req, res, next) {
+    try {
+      const { tipo, numero } = req.params;
+
+      if (!tipo || !numero) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tipo y número de documento son requeridos'
+        });
+      }
+
+      const existe = await personasService.verificarDocumentoExistente(tipo, numero);
+
+      return res.status(200).json({
+        success: true,
+        message: existe ? 'Documento ya existe' : 'Documento disponible',
+        data: { existe }
+      });
+    } catch (error) {
+      logger.error('Error verificando documento:', error);
+      next(error);
+    }
+  }
+
+  /**
    * Listar personas con filtros (solo para administradores)
    */
   async listarPersonas(req, res, next) {
@@ -131,6 +185,34 @@ class PersonasController {
       });
     } catch (error) {
       logger.error('Error actualizando persona:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Cambiar estado de una persona (solo para administradores)
+   */
+  async cambiarEstado(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { estado } = req.body;  // El frontend debería enviar { estado: true/false }
+
+      if (typeof estado !== 'boolean') {
+        return res.status(400).json({
+          success: false,
+          message: 'El campo estado debe ser un valor booleano'
+        });
+      }
+
+      const personaActualizada = await personasService.cambiarEstadoPersona(parseInt(id), estado);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Estado de persona actualizado exitosamente',
+        data: personaActualizada
+      });
+    } catch (error) {
+      logger.error('Error cambiando estado de persona:', error);
       next(error);
     }
   }

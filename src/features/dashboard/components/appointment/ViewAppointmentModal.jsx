@@ -2,9 +2,11 @@ import React, { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Phone, Mail, Calendar, Clock, Home, FileText, MapPin, Hash } from 'lucide-react';
+import { useAuth } from '../../../../shared/contexts/AuthContext';
 
 const ViewAppointmentModal = ({ isOpen, onClose, cita }) => {
   const contentRef = useRef(null);
+  const { user } = useAuth();
 
   // Scroll to top when modal opens
   useEffect(() => {
@@ -282,6 +284,45 @@ const infoItems = [
                   </div>
                 </motion.div>
               )}
+
+              {/* Agentes */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.6 }}
+                className="bg-green-50 border border-green-200 rounded-xl p-4"
+              >
+                <h4 className="font-semibold text-green-800 mb-3">Información de Agentes</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-white shadow-sm">
+                      <User className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-green-600">Agente Asignado</p>
+                      <p className="text-green-800 font-semibold">
+                        {cita.agente ? `${cita.agente.nombre_completo} ${cita.agente.apellido_completo}` : 'No asignado'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-white shadow-sm">
+                      <User className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-green-600">Creador de la Cita</p>
+                      <p className="text-green-800 font-semibold">
+                        {cita.creador
+                          ? `${cita.creador.nombre_completo} ${cita.creador.apellido_completo}`
+                          : user
+                            ? `${user.nombre_completo} ${user.apellido_completo}`
+                            : 'Creador no registrado'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
 
               {/* Información Adicional */}
               <motion.div

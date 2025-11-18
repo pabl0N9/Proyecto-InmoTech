@@ -75,6 +75,29 @@ class AuthController {
       });
     } catch (error) {
       logger.error('Error obteniendo perfil:', error);
+
+      // ⚠️ MANEJAR ERROR PERSONALIZADO: Usuario deshabilitado
+      if (error.message.includes('Usuario inactivo') || error.message.includes('deshabilitado')) {
+        logger.warn(`🚫 Logout forzado para usuario ${req.user.id}: ${error.message}`);
+        return res.status(423).json({
+          success: false,
+          message: 'Tu cuenta ha sido deshabilitada por un administrador. Sesión terminada.',
+          forceLogout: true,
+          reason: 'user_disabled'
+        });
+      }
+
+      // ⚠️ MANEJAR ERROR PERSONALIZADO: Acceso administrativo revocado
+      if (error.message.includes('Acceso administrativo revocado')) {
+        logger.warn(`🚫 Logout forzado para usuario administrativo ${req.user.id}: ${error.message}`);
+        return res.status(403).json({
+          success: false,
+          message: 'Tu acceso administrativo ha sido revocado. Sesión terminada.',
+          forceLogout: true,
+          reason: 'admin_access_revoked'
+        });
+      }
+
       next(error);
     }
   }
@@ -133,6 +156,25 @@ class AuthController {
       });
     } catch (error) {
       logger.error('Error cerrando sesión:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Obtiene el timestamp del último cambio de contraseña
+   */
+  async obtenerUltimoCambioPassword(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const ultimoCambio = await authService.obtenerUltimoCambioPassword(userId);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Último cambio de contraseña obtenido exitosamente',
+        data: { ultimo_cambio_password: ultimoCambio }
+      });
+    } catch (error) {
+      logger.error('Error obteniendo último cambio de contraseña:', error);
       next(error);
     }
   }

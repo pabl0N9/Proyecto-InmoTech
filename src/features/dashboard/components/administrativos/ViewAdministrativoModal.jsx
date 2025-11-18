@@ -6,10 +6,12 @@ import { X, User, Briefcase, Mail, Phone, Calendar, Building, DollarSign, Shield
 const ViewAdministrativoModal = ({ isOpen, onClose, administrativo }) => {
   if (!isOpen || !administrativo) return null;
 
-  const getRolNombre = (roles) => {
-    if (!roles || roles.length === 0) return 'Sin rol asignado';
-    // Como los roles vienen como string separado por comas, tomamos el primero
-    return roles.split(',')[0]?.trim() || 'Sin rol asignado';
+  const getRolNombre = (administrativo) => {
+    const roles = administrativo?.persona?.roles;
+    if (!roles || roles.length === 0) {
+      return 'Sin rol asignado';
+    }
+    return roles[0].nombre_rol;
   };
 
   const formatCurrency = (amount) => {
@@ -190,7 +192,7 @@ const ViewAdministrativoModal = ({ isOpen, onClose, administrativo }) => {
                     <span className="text-sm font-medium text-slate-700">Rol Administrativo</span>
                   </div>
                   <p className="text-lg font-semibold text-slate-800">
-                    {administrativo.roles || getRolNombre(administrativo.roles)}
+                    {getRolNombre(administrativo)}
                   </p>
                 </div>
               </div>

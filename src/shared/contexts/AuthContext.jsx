@@ -4,8 +4,11 @@
  */
 
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
 import { apiClient } from '../services/api.config';
+import sseService from '../services/sseService';
+import { useToast } from '../hooks/use-toast';
 
 const AuthContext = createContext(undefined);
 
@@ -14,8 +17,10 @@ const USER_KEY = 'inmotech_user';
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start with loading: true
   const [error, setError] = useState(null);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   /**
    * Carga la información de autenticación desde storage
@@ -132,11 +137,19 @@ const login = async (email, password, rememberMe = false) => {
         console.log('💾 Sesión temporal guardada');
       }
       
+      // Resetear la bandera de desconexión forzada porque es un login normal
+      sseService.resetForcedDisconnect();
+
       setUser(userData);
       setIsAuthenticated(true);
 
       console.log('✅ Usuario autenticado:', userData.email);
-      
+      console.log('👤 Datos del usuario:', {
+        roles: userData.roles,
+        es_administrativo: userData.es_administrativo,
+        permisos: userData.permisos ? Object.keys(userData.permisos) : 'SIN PERMISOS'
+      });
+
       // Verificación final
       console.log('🎯 Verificación FINAL:');
       console.log('   - localStorage Access Token:', !!localStorage.getItem('inmotech_access_token'));
@@ -146,7 +159,7 @@ const login = async (email, password, rememberMe = false) => {
     } else {
       throw new Error(response.message || 'Error en la autenticación');
     }
-  } catch (error) {
+  } catch (error) {30000
     console.error('❌ Error en login:', error);
     setError(error.message || 'Error al iniciar sesión');
     throw error;
@@ -320,16 +333,247 @@ const login = async (email, password, rememberMe = false) => {
   }, [user]);
 
   /**
+   * Verifica si el usuario tiene un permiso específico
+   */
+  const hasPermission = useCallback((modulo, permiso) => {
+    // ✅ SUPER ADMINISTRADOR TIENE TODOS LOS PERMISOS
+    if (user && user.roles && user.roles.includes('Super Administrador')) {
+      console.log(`🔍 hasPermission - Super Admin: modulo:${modulo}, permiso:${permiso} -> ✅ (acceso total)`);
+      return true;
+    }
+
+    if (!user || !user.permisos) {
+      console.log(`❌ hasPermission - Sin usuario o permisos: modulo=${modulo}, permiso=${permiso}`);
+      return false;
+    }
+
+    // 🔥 MANEJAR AMBOS FORMATOS: Array y Object
+    let hasPerm = false;
+
+    if (Array.isArray(user.permisos)) {
+      // Formato Array: buscar por objeto
+      hasPerm = user.permisos.some(p => p.modulo === modulo && p.permiso === permiso);
+    } else {
+      // Formato Object: acceder directamente
+      hasPerm = user.permisos[modulo] && user.permisos[modulo][permiso] === true;
+    }
+
+    console.log(`🔍 hasPermission - modulo:${modulo}, permiso:${permiso} -> ${hasPerm ? '✅' : '❌'}`);
+    return hasPerm;
+  }, [user]);
+
+  /**
    * Verifica si el usuario está autenticado y tiene roles específicos
    */
   const hasAccess = useCallback((allowedRoles) => {
     return isAuthenticated && hasRole(allowedRoles);
   }, [isAuthenticated, hasRole]);
 
+  /**
+   * Obtiene los módulos disponibles para el usuario basado en sus permisos
+   */
+  const getAvailableModules = useCallback(() => {
+    if (!user) {
+      console.log('❌ getAvailableModules - Sin usuario');
+      return [];
+    }
+
+    // ✅ SUPER ADMINISTRADOR TIENE ACCESO A TODOS LOS MÓDULOS
+    if (user.roles && user.roles.includes('Super Administrador')) {
+      console.log('✅ getAvailableModules - Super Admin, todos los módulos');
+      return ['propiedades', 'citas', 'reportes', 'administrativos', 'roles'];
+    }
+
+    if (!user.permisos) {
+      console.log('❌ getAvailableModules - Sin permisos');
+      return [];
+    }
+
+    console.log('🔍 getAvailableModules - Tipos de datos:', {
+      permisosType: typeof user.permisos,
+      permisosIsArray: Array.isArray(user.permisos),
+      permisosKeys: user.permisos ? (Array.isArray(user.permisos) ? user.permisos.length : Object.keys(user.permisos)) : 'null'
+    });
+
+    // 🔥 PERMISOS COMO ARRAY - Transformar a objeto si es necesario
+    let permisosObj = user.permisos;
+    if (Array.isArray(user.permisos)) {
+      permisosObj = {};
+      user.permisos.forEach(permiso => {
+        if (!permisosObj[permiso.modulo]) {
+          permisosObj[permiso.modulo] = {};
+        }
+        permisosObj[permiso.modulo][permiso.permiso] = true;
+      });
+    }
+
+    const availableModules = [];
+
+    if (permisosObj.gInmuebles) {
+      console.log('✅ Permiso gInmuebles encontrado');
+      availableModules.push('propiedades');
+    }
+    if (permisosObj.gCitas) {
+      console.log('✅ Permiso gCitas encontrado');
+      availableModules.push('citas');
+    }
+    if (permisosObj.gReporteInmuebles) {
+      console.log('✅ Permiso gReporteInmuebles encontrado');
+      availableModules.push('reportes');
+    }
+    // Solo Super Administrador y Administrador pueden acceder a administrativos
+    if (user.roles && (user.roles.includes('Super Administrador') || user.roles.includes('Administrador'))) {
+      console.log('✅ Rol Super Administrador o Administrador encontrado - acceso a administrativos');
+      availableModules.push('administrativos');
+    }
+    if (permisosObj.roles) {
+      console.log('✅ Permiso roles encontrado');
+      availableModules.push('roles');
+    }
+
+    // Buscar otros permisos que podrían haber
+    if (permisosObj.gArriendos) {
+      console.log('✅ Permiso gArriendos encontrado');
+      // No hay módulo para arriendos aún
+    }
+    if (permisosObj.gClientes) {
+      console.log('✅ Permiso gClientes encontrado');
+      // No hay módulo para clientes aún
+    }
+    if (permisosObj.gComprador) {
+      console.log('✅ Permiso gComprador encontrado');
+      // No hay módulo para comprador aún
+    }
+    if (permisosObj.gVentas) {
+      console.log('✅ Permiso gVentas encontrado');
+      // No hay módulo para ventas aún
+    }
+    if (permisosObj.gArrendatario) {
+      console.log('✅ Permiso gArrendatario encontrado');
+      // No hay módulo para arrendatario aún
+    }
+
+    console.log('📦 getAvailableModules - Módulos disponibles:', availableModules);
+    return availableModules;
+  }, [user]);
+
+  /**
+   * Conecta al servicio SSE para notificaciones en tiempo real
+   */
+  const connectSSE = useCallback(async () => {
+    try {
+      const token = apiClient.getAccessToken();
+      if (token && isAuthenticated) {
+        console.log('� Conectando SSE...');
+        await sseService.connect(token);
+      }
+    } catch (error) {
+      console.error('❌ Error conectando SSE:', error);
+    }
+  }, [isAuthenticated]);
+
+  /**
+   * Desconecta del servicio SSE
+   */
+  const disconnectSSE = useCallback(() => {
+    console.log('📡 Desconectando SSE...');
+    sseService.disconnect();
+  }, []);
+
+  /**
+   * Manejador de eventos SSE para cierre de sesión forzado
+   */
+  const handleForcedLogout = useCallback(async (eventData) => {
+    console.log('🚨 Evento SSE recibido - Cierre de sesión forzado:', eventData);
+
+    let message = 'Tu sesión ha sido terminada por seguridad.';
+
+    switch (eventData.action) {
+      case 'logout':
+        if (eventData.message) {
+          message = eventData.message;
+        }
+        break;
+      default:
+        message = eventData.message || message;
+    }
+
+    console.log('🚨 Ejecutando handleForcedLogout con mensaje:', message);
+    await performForcedLogout(message);
+  }, []);
+
+  /**
+   * Realiza el logout forzado con todas las acciones necesarias
+   */
+  const performForcedLogout = useCallback(async (message = 'Tu sesión ha sido terminada por seguridad.') => {
+    console.log('🚨 Ejecutando logout forzado:', message);
+
+    // 📝 IMPORTANTE: Marcar primero como NO autenticado para evitar reconexiones
+    setIsAuthenticated(false);
+    setUser(null);
+
+    // Marcar desconexión forzada para evitar reconexiones SSE automáticas
+    sseService.setForcedDisconnect();
+
+    // Desconectar SSE
+    sseService.disconnect();
+
+    // Limpiar tokens (no usar logout() para evitar llamadas backend)
+    clearAuthData();
+
+    // Mostrar mensaje al usuario usando toast con estilo de alerta
+    toast({
+      title: "Cuenta deshabilitada",
+      description: message,
+      variant: "destructive"
+    });
+
+    // Redirigir al login usando React Router (más suave que recarga completa)
+    // Solo ejecutar si todavía no está en login para evitar loops
+    setTimeout(() => {
+      if (window.location.pathname !== '/login') {
+        navigate('/login', { replace: true });
+      }
+    }, 1500); // Más tiempo para que el toast sea visible
+  }, [toast, navigate]);
+
   // Cargar autenticación al montar el componente
   useEffect(() => {
     loadAuthFromStorage();
   }, [loadAuthFromStorage]);
+
+  // Conectar SSE cuando el usuario se autentica
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      connectSSE();
+    } else {
+      disconnectSSE();
+    }
+
+    return () => {
+      // Cleanup al desmontar
+      disconnectSSE();
+    };
+  }, [isAuthenticated, user, connectSSE, disconnectSSE]);
+
+  // Configurar listeners SSE para eventos de seguridad
+  useEffect(() => {
+    const handleUserDisabled = (data) => handleForcedLogout(data);
+    const handlePasswordChanged = (data) => handleForcedLogout(data);
+    const handleAdminAccessRevoked = (data) => handleForcedLogout(data);
+
+    // Registrar listeners
+    sseService.on('user_disabled', handleUserDisabled);
+    sseService.on('password_changed', handlePasswordChanged);
+    sseService.on('admin_access_revoked', handleAdminAccessRevoked);
+
+    // Cleanup: remover listeners
+    return () => {
+      sseService.off('user_disabled', handleUserDisabled);
+      sseService.off('password_changed', handlePasswordChanged);
+      sseService.off('admin_access_revoked', handleAdminAccessRevoked);
+    };
+  }, [handleForcedLogout]);
 
   const value = {
     // Estado
@@ -347,6 +591,8 @@ const login = async (email, password, rememberMe = false) => {
     // Utilidades
     hasRole,
     hasAccess,
+    hasPermission,
+    getAvailableModules,
     clearError: () => setError(null),
   };
 

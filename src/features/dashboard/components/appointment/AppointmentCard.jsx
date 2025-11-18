@@ -2,6 +2,7 @@ import React, { useRef, useLayoutEffect, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { motion } from 'framer-motion';
 import { Clock, User, MapPin } from 'lucide-react';
+import { useAuth } from '../../../../shared/contexts/AuthContext';
 
 const AppointmentCard = ({
   appointment,
@@ -12,6 +13,7 @@ const AppointmentCard = ({
 }) => {
   const cardRef = useRef(null);
   const [cardSize, setCardSize] = useState({ width: 0, height: 0 });
+  const { hasPermission } = useAuth();
 
   // Measure card size for overlay centering
   useLayoutEffect(() => {
@@ -20,6 +22,8 @@ const AppointmentCard = ({
       setCardSize({ width: rect.width, height: rect.height });
     }
   }, []);
+
+  const canEdit = hasPermission("gCitas", "editar");
 
   const {
     attributes,
@@ -34,7 +38,7 @@ const AppointmentCard = ({
       appointment,
       size: cardSize,
     },
-    disabled: isDragging,
+    disabled: isDragging || !canEdit,
   });
 
   const getStatusColor = (status) => {
@@ -124,7 +128,7 @@ const AppointmentCard = ({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 10 }}
       className={`
-        p-2 rounded-lg border text-xs cursor-grab active:cursor-grabbing
+        p-2 rounded-lg border text-xs ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
         transition-all duration-200 hover:shadow-sm select-none
         ${getStatusColor(appointment.estado)}
         ${isDndDragging ? 'opacity-50' : ''}

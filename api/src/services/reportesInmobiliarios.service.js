@@ -523,19 +523,23 @@ class ReportesInmobiliariosService {
   async buscarInmueblesAutocomplete(q, limit = 10) {
       const pattern = `%${q}%`;
       const [rows] = await sequelize.query(`
-        SELECT 
+        SELECT
           i.id_inmueble,
           i.registro_inmobiliario,
           i.direccion,
           i.ciudad,
           i.categoria,
-          p.nombre_completo AS propietario
+          COALESCE(i.propietario, p.nombre_completo, prop.nombre_completo, '') AS propietario
         FROM Inmuebles i
-        LEFT JOIN Propiedad_inmueble pi 
-          ON pi.id_inmueble = i.id_inmueble 
+        LEFT JOIN Propiedad_inmueble pi
+          ON pi.id_inmueble = i.id_inmueble
           AND pi.estado = 'Activo'
-        LEFT JOIN Personas p 
+        LEFT JOIN Personas p
           ON p.id_persona = pi.id_persona
+        LEFT JOIN Propietarios prop_rel
+          ON prop_rel.id_propietario = i.id_propietario
+        LEFT JOIN Personas prop
+          ON prop.id_persona = prop_rel.id_persona
         WHERE (
           i.registro_inmobiliario LIKE :pattern
           OR i.direccion LIKE :pattern

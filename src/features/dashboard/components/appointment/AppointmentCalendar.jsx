@@ -22,6 +22,52 @@ import DayListModal from './DayListModal';
 import ConfirmationDialog from '../../../../shared/components/ui/ConfirmationDialog';
 import RescheduleConfirmModal from './RescheduleConfirmModal';
 import { useToast } from '../../../../shared/hooks/use-toast';
+import { useAuth } from '../../../../shared/contexts/AuthContext';
+
+// Componente para zonas de navegación invisibles
+const NavigationZone = ({ id, direction, onNavigate }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: id,
+    data: {
+      type: 'navigation',
+      direction: direction
+    }
+  });
+
+  const [hoverTimeout, setHoverTimeout] = React.useState(null);
+
+  React.useEffect(() => {
+    if (isOver) {
+      // Esperar 800ms antes de navegar para dar tiempo al usuario
+      const timeout = setTimeout(() => {
+        onNavigate(direction);
+      }, 800);
+      setHoverTimeout(timeout);
+    } else {
+      // Limpiar timeout si deja de estar over
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout);
+        setHoverTimeout(null);
+      }
+    }
+
+    return () => {
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout);
+      }
+    };
+  }, [isOver, direction, onNavigate]);
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`absolute inset-0 pointer-events-auto transition-all duration-200 ${
+        isOver ? 'bg-blue-100 bg-opacity-20' : ''
+      }`}
+      style={{ background: 'transparent' }}
+    />
+  );
+};
 
 const DayCell = ({
   day,
@@ -140,7 +186,9 @@ const AppointmentCalendar = ({
   const [dayListModal, setDayListModal] = useState({ isOpen: false, date: null, appointments: [] });
   const [rescheduleConfirm, setRescheduleConfirm] = useState({ isOpen: false, appointment: null, newDate: null });
   const [tempRescheduledAppointments, setTempRescheduledAppointments] = useState({});
+  const [isNavigating, setIsNavigating] = useState(false);
   const { toast } = useToast();
+  const { hasPermission } = useAuth();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -236,24 +284,24 @@ const AppointmentCalendar = ({
   const handleDragEnd = (event) => {
     const { active, over } = event;
     setActiveAppointment(null);
-  
+
     if (!over) return;
-  
+
     // ✅ CORREGIDO: Buscar por id_cita o id
     const appointment = active.data.current?.appointment ||
-      (active.id && citas.find(cita => 
+      (active.id && citas.find(cita =>
         `appointment-${cita.id_cita}` === active.id || `appointment-${cita.id}` === active.id
       ));
-  
+
     const targetDay = over.data.current?.day;
     const targetDate = over.data.current?.date;
-  
+
     if (!appointment || !targetDate) return;
-  
+
     // ✅ CORREGIDO: Comparar con fecha_cita
     const appointmentDate = appointment.fecha_cita || appointment.fecha;
     if (appointmentDate === targetDate) return;
-  
+
     // Validate date is not in the past
     const today = new Date().toISOString().split('T')[0];
     if (targetDate < today) {
@@ -264,22 +312,56 @@ const AppointmentCalendar = ({
       });
       return;
     }
-  
+
     // ✅ CORREGIDO: Usar id_cita o id
     const appointmentId = appointment.id_cita || appointment.id;
-    
+
     // Temporarily update appointment date for visual feedback
     setTempRescheduledAppointments(prev => ({
       ...prev,
       [appointmentId]: targetDate
     }));
-  
+
     // Show confirmation modal
     setRescheduleConfirm({
       isOpen: true,
       appointment,
       newDate: targetDate
     });
+  };
+
+  // Función para manejar navegación automática durante drag
+  const handleNavigate = (direction) => {
+    if (isNavigating) return; // Evitar navegación múltiple
+
+    setIsNavigating(true);
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() + direction);
+      return newDate;
+    });
+
+    // Reset navigation flag after a short delay
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 300);
+  };
+
+  // Nueva función para manejar navegación automática durante drag
+  const handleDragOver = (event) => {
+    const { active, over } = event;
+
+    if (!active || !over) return;
+
+    // Solo procesar si estamos arrastrando una cita
+    const appointment = active.data.current?.appointment;
+    if (!appointment) return;
+
+    // Detectar si estamos sobre un área especial de navegación
+    if (over.id === 'nav-prev-month' || over.id === 'nav-next-month') {
+      const direction = over.id === 'nav-prev-month' ? -1 : 1;
+      handleNavigate(direction);
+    }
   };
       
   const handleRescheduleConfirm = () => {
@@ -346,8 +428,30 @@ const AppointmentCalendar = ({
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
       >
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 p-6">
+        {/* Zonas invisibles para navegación automática durante drag */}
+        <div className="fixed inset-0 pointer-events-none z-10">
+          {/* Zona izquierda para mes anterior */}
+          <div className="absolute left-0 top-0 w-20 h-full">
+            <NavigationZone
+              id="nav-prev-month"
+              direction={-1}
+              onNavigate={handleNavigate}
+            />
+          </div>
+
+          {/* Zona derecha para mes siguiente */}
+          <div className="absolute right-0 top-0 w-20 h-full">
+            <NavigationZone
+              id="nav-next-month"
+              direction={1}
+              onNavigate={handleNavigate}
+            />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 p-6 relative">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
@@ -392,7 +496,7 @@ const AppointmentCalendar = ({
               const isToday = day === new Date().getDate() &&
                              currentDate.getMonth() === new Date().getMonth() &&
                              currentDate.getFullYear() === new Date().getFullYear();
-              const isActive = activeDay === day;
+              const isActive = activeDay === day && hasPermission("gCitas", "crear"); // Solo mostrar si tiene permiso de crear
 
               return (
                 <DayCell

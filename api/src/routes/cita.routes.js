@@ -4,6 +4,7 @@ const router = express.Router();
 const citaController = require('../controllers/cita.controller');
 const { validate, validateQuery } = require('../middlewares/validate.middleware');
 const { createLimiter, strictLimiter } = require('../middlewares/security.middleware');
+const { authenticateToken } = require('../middlewares/auth.middleware');
 
 const {
   crearCitaSchema,
@@ -98,10 +99,11 @@ router.patch(
 // POST /api/v1/citas/:id/asignar-agente - Asignar agente a cita
 router.post(
   '/:id/asignar-agente',
+  authenticateToken,
   strictLimiter,
   validate(Joi.object({
     id_agente_nuevo: Joi.number().integer().required(),
-    comentario: Joi.string().max(500).optional() // Obligatorio si es reasignación según lógica
+    comentario: Joi.string().max(500).allow('').optional() // Permitir vacío para primera asignación
   })),
   citaController.asignarAgente
 );

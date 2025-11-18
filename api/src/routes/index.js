@@ -10,6 +10,7 @@ const inmueblesRoutes = require('./inmuebles.routes');
 const reportesRoutes = require('./reportes.routes');
 const reportesInmobiliariosRoutes = require('./reportesInmobiliarios.routes');
 const setupRoutes = require('./setup.routes');
+const sseRoutes = require('./sse.routes');
 
 router.use('/auth', authRoutes);
 router.use('/administrativos', administrativosRoutes);
@@ -21,6 +22,7 @@ router.use('/inmuebles', inmueblesRoutes);
 router.use('/reportes', reportesRoutes);
 router.use('/reportes-inmobiliarios', reportesInmobiliariosRoutes);
 router.use('/setup', setupRoutes);
+router.use('/sse', sseRoutes);
 
 router.get('/health', (req, res) => {
   res.status(200).json({

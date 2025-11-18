@@ -61,6 +61,14 @@ const Cita = sequelize.define('Cita', {
       key: 'id_persona'
     }
   },
+  id_usuario_creador: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Personas',
+      key: 'id_persona'
+    }
+  },
   id_cita_original: {
     type: DataTypes.INTEGER,
     allowNull: true,

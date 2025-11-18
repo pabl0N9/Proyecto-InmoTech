@@ -1,7 +1,11 @@
-# TODO: Add Delete Endpoint for General Follow-ups
+# TODO: Actualizar diseño de tabla de roles
 
-## Tasks
-- [x] Add `eliminarSeguimientoGeneral(reporteId, seguimientoId)` method in api/src/services/reportesInmobiliarios.service.js
-- [x] Add `eliminarSeguimientoGeneral` method in api/src/controllers/reportesInmobiliarios.controller.js
-- [x] Add DELETE route `/:reporteId/seguimientos/:seguimientoId` in api/src/routes/reportesInmobiliarios.routes.js
-- [x] Test the new endpoint (authentication and authorization working correctly)
+## Tareas completadas:
+- [x] Actualizar contenedor principal con estilo moderno (rounded-2xl, shadow-xl, border)
+- [x] Cambiar colores de cabeceras y filas a slate theme
+- [x] Agregar animaciones framer-motion a botones
+- [x] Reemplazar iconos SVG con Lucide icons
+- [x] Hacer tabla responsiva con tarjetas móviles
+- [x] Integrar mejor el switch de estado
+- [x] Actualizar botón "Nuevo rol" con animaciones
+- [x] Importar dependencias necesarias (motion, icons)

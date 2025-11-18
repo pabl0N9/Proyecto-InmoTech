@@ -9,16 +9,31 @@ import ConfirmationDialog from "../../../../shared/components/ui/ConfirmationDia
 import rolesApiService from "../../../../shared/services/rolesApiService";
 import { useAuth } from "../../../../shared/contexts/AuthContext";
 import { useToast } from "../../../../shared/hooks/use-toast";
+import EmptyState from "../../../../shared/components/ui/EmptyState";
 import "./Switch.css";
 
 const RolesContent = () => {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
+  // Roles del sistema que no se pueden eliminar (todos los predefinidos)
+  const rolesNoEliminar = ['Super Administrador', 'Administrador', 'Empleado', 'Usuario', 'Propietario'];
+
+  // Roles protegidos que no se pueden editar ni cambiar estado (solo Super Admin y Admin)
+  const rolesProtegidos = ['Super Administrador', 'Administrador'];
+
+  const cannotDeleteRol = (rol) => rolesNoEliminar.includes(rol.nombre);
+  const cannotEditRol = (rol) => rolesProtegidos.includes(rol.nombre);
+  const cannotChangeStatusRol = (rol) => rolesProtegidos.includes(rol.nombre);
+
   const [roles, setRoles] = useState([]);
+  const [rolesFiltrados, setRolesFiltrados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
+
+  // Estado para el filtro
+  const [filtroEstado, setFiltroEstado] = useState('todos'); // 'todos', 'activo', 'inactivo'
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editarModalOpen, setEditarModalOpen] = useState(false);
@@ -65,15 +80,34 @@ const RolesContent = () => {
 
 
   
+  // Efecto para filtrar roles
+  useEffect(() => {
+    if (roles.length === 0) {
+      setRolesFiltrados([]);
+      return;
+    }
+
+    let filtrados = roles;
+
+    if (filtroEstado === 'activo') {
+      filtrados = roles.filter(rol => cannotChangeStatusRol(rol) || rol.estado);
+    } else if (filtroEstado === 'inactivo') {
+      filtrados = roles.filter(rol => !cannotChangeStatusRol(rol) && !rol.estado);
+    }
+    // Si filtroEstado === 'todos', no filtrar
+
+    setRolesFiltrados(filtrados);
+  }, [roles, filtroEstado]);
+
   useEffect(() => {
     if (authLoading) {
       setLoading(true);
       return;
     }
-  
+
     const userIsAdmin = isAuthenticated && user?.es_administrativo;
     setIsAuthorized(userIsAdmin);
-  
+
     if (userIsAdmin) {
       cargarRoles();
     } else {
@@ -137,7 +171,7 @@ const RolesContent = () => {
 
 
   const handleToggleEstadoRequest = (rol) => {
-    if (rol.id == 1 || rol.id == 2) {
+    if (cannotChangeStatusRol(rol)) {
       toast({
         title: "Acción no permitida",
         description: "No se puede cambiar el estado de un rol protegido.",
@@ -186,7 +220,7 @@ const RolesContent = () => {
   };
 
   const handleDeleteClick = (rol) => {
-    if (rol.id == 1 || rol.id == 2) {
+    if (cannotDeleteRol(rol)) {
       toast({
         title: "Acción no permitida",
         description: "No se puede eliminar un rol protegido.",
@@ -256,13 +290,11 @@ const RolesContent = () => {
     }
 
     if (roles.length === 0) {
-      return (
-        <div className="px-6 py-8 text-center">
-          <Shield className="w-12 h-12 mx-auto text-slate-400 mb-4" />
-          <p className="text-slate-600 font-medium mb-2">No hay roles disponibles</p>
-          <p className="text-slate-500">No se encontraron roles en el sistema.</p>
-        </div>
-      );
+      return <EmptyState message="No se encontraron roles en el sistema." />;
+    }
+
+    if (rolesFiltrados.length === 0) {
+      return <EmptyState message="No hay roles que coincidan con los filtros aplicados." />;
     }
 
     return (
@@ -280,11 +312,11 @@ const RolesContent = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {roles.map((rol) => (
-                  <motion.tr key={rol.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`hover:bg-slate-50 transition-colors ${(rol.id == 1 || rol.id == 2) ? "bg-blue-50 hover:bg-blue-100" : ""}`}>
+                {rolesFiltrados.map((rol) => (
+                  <motion.tr key={rol.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`hover:bg-slate-50 transition-colors ${cannotChangeStatusRol(rol) ? "bg-blue-50 hover:bg-blue-100" : ""}`}>
                     <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-slate-900">{rol.id}</div></td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {(rol.id == 1 || rol.id == 2) ? (
+                      {cannotChangeStatusRol(rol) ? (
                         <div className="flex items-center">
                           <Shield className="w-4 h-4 text-blue-600 mr-2" />
                           <span className="text-sm font-medium text-slate-900">{rol.nombre}</span>
@@ -296,14 +328,14 @@ const RolesContent = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <span className={`text-sm font-medium ${ (rol.id == 1 || rol.id == 2) || rol.estado ? "text-green-600" : "text-red-600" }`}>
-                          {(rol.id == 1 || rol.id == 2) || rol.estado ? "Activo" : "Inactivo"}
+                        <span className={`text-sm font-medium ${ cannotChangeStatusRol(rol) || rol.estado ? "text-green-600" : "text-red-600" }`}>
+                          {cannotChangeStatusRol(rol) || rol.estado ? "Activo" : "Inactivo"}
                         </span>
                         <label className="switch-container relative">
-                          <input type="checkbox" checked={(rol.id == 1 || rol.id == 2) ? true : rol.estado} disabled={rol.id == 1 || rol.id == 2} readOnly />
+                          <input type="checkbox" checked={cannotChangeStatusRol(rol) ? true : rol.estado} disabled={cannotChangeStatusRol(rol)} readOnly />
                           <span className="switch-slider"></span>
-                          { !(rol.id == 1 || rol.id == 2) && (
-                            <div 
+                          { !cannotChangeStatusRol(rol) && (
+                            <div
                               className="absolute inset-0 cursor-pointer"
                               onClick={() => handleToggleEstadoRequest(rol)}
                             ></div>
@@ -315,19 +347,19 @@ const RolesContent = () => {
                       <div className="flex items-center justify-center gap-2">
                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleVer(rol)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Ver detalles del rol"><Eye className="w-4 h-4" /></motion.button>
                         <motion.button
-                          whileHover={{ scale: (rol.id == 1 || rol.id == 2) ? 1 : 1.05 }}
-                          whileTap={{ scale: (rol.id == 1 || rol.id == 2) ? 1 : 0.95 }}
+                          whileHover={{ scale: cannotEditRol(rol) ? 1 : 1.05 }}
+                          whileTap={{ scale: cannotEditRol(rol) ? 1 : 0.95 }}
                           onClick={() => handleEditar(rol)}
-                          disabled={rol.id == 1 || rol.id == 2}
+                          disabled={cannotEditRol(rol)}
                           className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Editar rol">
                           <Edit className="w-4 h-4" />
                         </motion.button>
                         <motion.button
-                          whileHover={{ scale: (rol.id == 1 || rol.id == 2) ? 1 : 1.05 }}
-                          whileTap={{ scale: (rol.id == 1 || rol.id == 2) ? 1 : 0.95 }}
+                          whileHover={{ scale: cannotDeleteRol(rol) ? 1 : 1.05 }}
+                          whileTap={{ scale: cannotDeleteRol(rol) ? 1 : 0.95 }}
                           onClick={() => handleDeleteClick(rol)}
-                          disabled={rol.id == 1 || rol.id == 2}
+                          disabled={cannotDeleteRol(rol)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Eliminar rol">
                           <Trash2 className="w-4 h-4" />
@@ -343,11 +375,11 @@ const RolesContent = () => {
 
         {/* Mobile Cards */}
         <div className="md:hidden p-6">
-          {roles.map((rol) => (
-            <motion.div key={rol.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`bg-white rounded-lg border border-slate-200 p-4 mb-4 ${(rol.id == 1 || rol.id == 2) ? "bg-blue-50 border-blue-200" : ""}`}>
+          {rolesFiltrados.map((rol) => (
+            <motion.div key={rol.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`bg-white rounded-lg border border-slate-200 p-4 mb-4 ${cannotChangeStatusRol(rol) ? "bg-blue-50 border-blue-200" : ""}`}>
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  {(rol.id == 1 || rol.id == 2) ? (
+                  {cannotChangeStatusRol(rol) ? (
                     <div className="flex items-center mb-1">
                       <Shield className="w-4 h-4 text-blue-600 mr-2" />
                       <h3 className="font-medium text-slate-800">{rol.nombre}</h3>
@@ -359,14 +391,14 @@ const RolesContent = () => {
                   <p className="text-sm text-slate-600">ID: {rol.id}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`text-sm font-medium ${(rol.id == 1 || rol.id == 2) || rol.estado ? "text-green-600" : "text-red-600"}`}>
-                    {(rol.id == 1 || rol.id == 2) || rol.estado ? "Activo" : "Inactivo"}
+                  <span className={`text-sm font-medium ${cannotChangeStatusRol(rol) || rol.estado ? "text-green-600" : "text-red-600"}`}>
+                    {cannotChangeStatusRol(rol) || rol.estado ? "Activo" : "Inactivo"}
                   </span>
                   <label className="switch-container relative">
-                    <input type="checkbox" checked={(rol.id == 1 || rol.id == 2) ? true : rol.estado} disabled={rol.id == 1 || rol.id == 2} readOnly />
+                    <input type="checkbox" checked={cannotChangeStatusRol(rol) ? true : rol.estado} disabled={cannotChangeStatusRol(rol)} readOnly />
                     <span className="switch-slider"></span>
-                    { !(rol.id == 1 || rol.id == 2) && (
-                      <div 
+                    { !cannotChangeStatusRol(rol) && (
+                      <div
                         className="absolute inset-0 cursor-pointer"
                         onClick={() => handleToggleEstadoRequest(rol)}
                       ></div>
@@ -378,13 +410,13 @@ const RolesContent = () => {
                 <motion.button onClick={() => handleVer(rol)} className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"><Eye className="w-4 h-4" />Ver</motion.button>
                 <motion.button
                   onClick={() => handleEditar(rol)}
-                  disabled={rol.id == 1 || rol.id == 2}
+                  disabled={cannotEditRol(rol)}
                   className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   <Edit className="w-4 h-4" />Editar
                 </motion.button>
                 <motion.button
                   onClick={() => handleDeleteClick(rol)}
-                  disabled={rol.id == 1 || rol.id == 2}
+                  disabled={cannotDeleteRol(rol)}
                   className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   <Trash2 className="w-4 h-4" />Eliminar
                 </motion.button>
@@ -409,7 +441,7 @@ const RolesContent = () => {
       </div>
 
       <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-slate-800">Roles</h2>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -420,6 +452,43 @@ const RolesContent = () => {
             <Plus className="h-5 w-5" />
             Nuevo rol
           </motion.button>
+        </div>
+
+        {/* Filtro por estado */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-sm font-medium text-slate-600">Filtrar por estado:</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setFiltroEstado('todos')}
+              className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                filtroEstado === 'todos'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+              }`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setFiltroEstado('activo')}
+              className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                filtroEstado === 'activo'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+              }`}
+            >
+              Activos
+            </button>
+            <button
+              onClick={() => setFiltroEstado('inactivo')}
+              className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                filtroEstado === 'inactivo'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+              }`}
+            >
+              Inactivos
+            </button>
+          </div>
         </div>
       </div>
 

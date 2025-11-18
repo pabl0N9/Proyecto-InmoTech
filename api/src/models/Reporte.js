@@ -57,6 +57,7 @@ const Reporte = sequelize.define('Reportes', {
       key: 'id_persona'
     }
   },
+
   fecha_modificacion: {
     type: DataTypes.DATE,
     allowNull: false,

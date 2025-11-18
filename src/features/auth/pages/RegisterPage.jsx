@@ -246,7 +246,7 @@ export default function RegistroPage() {
                     <Input
                       id="numero_documento"
                       name="numero_documento"
-                      placeholder="Tu número de documento"
+                      placeholder="Número de documento"
                       className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                       value={formData.numero_documento}
                       onChange={handleChange}

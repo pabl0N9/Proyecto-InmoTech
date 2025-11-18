@@ -291,12 +291,25 @@ class CitaController {
         });
       }
 
+      console.log('🔍 Buscando persona en BD:', {
+        tipo_documento: tipo_documento.toUpperCase(),
+        numero_documento: numero_documento.replace(/[\s\-\.]/g, '')
+      });
+
       const persona = await Persona.findOne({
         where: {
           tipo_documento: tipo_documento.toUpperCase(),
           numero_documento: numero_documento.replace(/[\s\-\.]/g, '')
         }
       });
+
+      console.log('📊 Resultado de BD:', persona ? {
+        id: persona.id_persona,
+        nombre_completo: persona.nombre_completo,
+        apellido_completo: persona.apellido_completo,
+        telefono: persona.telefono,
+        correo: persona.correo
+      } : 'No encontrado');
 
       if (!persona) {
         return res.status(404).json({
@@ -305,18 +318,21 @@ class CitaController {
         });
       }
 
+      const responseData = {
+        nombre_completo: persona.nombre_completo,
+        apellido_completo: persona.apellido_completo,
+        telefono: persona.telefono,
+        correo: persona.correo
+      };
+
+      console.log('📤 Enviando respuesta:', responseData);
+
       res.json({
         success: true,
-        data: {
-          primer_nombre: persona.primer_nombre,
-          segundo_nombre: persona.segundo_nombre,
-          primer_apellido: persona.primer_apellido,
-          segundo_apellido: persona.segundo_apellido,
-          telefono: persona.telefono,
-          correo: persona.correo
-        }
+        data: responseData
       });
     } catch (error) {
+      console.error('❌ Error en buscarPersonaPorDocumento:', error);
       next(error);
     }
   }

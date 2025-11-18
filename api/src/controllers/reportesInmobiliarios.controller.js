@@ -1,302 +1,432 @@
-const service = require('../services/reportesInmobiliarios.service');
+const reportesInmobiliariosService = require('../services/reportesInmobiliarios.service');
 const logger = require('../utils/logger');
 
 class ReportesInmobiliariosController {
-  async listarReportes(req, res, next) {
-    try {
-      const data = await service.listarReportes(req.validatedQuery || req.query);
-      return res.status(200).json(data);
-    } catch (err) {
-      logger.error('Error listarReportes', err);
-      next(err);
-    }
-  }
-
+  /**
+   * Crear un nuevo reporte inmobiliario
+   */
   async crearReporte(req, res, next) {
     try {
-      const userId = req.user?.id;
-      const data = await service.crearReporte(req.validatedData, userId);
-      return res.status(201).json(data);
-    } catch (err) {
-      logger.error('Error crearReporte', err);
-      next(err);
+      const reporteData = req.validatedData;
+      const userId = req.user?.id || req.user?.id_persona;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Usuario no autenticado'
+        });
+      }
+
+      // Agregar el ID del usuario que reporta
+      reporteData.id_persona_reporta = userId;
+
+      const result = await reportesInmobiliariosService.crearReporte(reporteData, userId);
+
+      return res.status(result.success ? 201 : 400).json(result);
+    } catch (error) {
+      logger.error('Error creando reporte inmobiliario:', error);
+      next(error);
     }
   }
 
+  /**
+   * Listar reportes inmobiliarios con filtros
+   */
+  async listarReportes(req, res, next) {
+    try {
+      const filtros = req.query;
+      const result = await reportesInmobiliariosService.listarReportes(filtros);
+
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      logger.error('Error listando reportes inmobiliarios:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Obtener reporte inmobiliario por ID
+   */
   async obtenerReporte(req, res, next) {
     try {
-      const id = parseInt(req.params.id, 10);
-      const data = await service.obtenerReporte(id);
-      return res.status(200).json(data);
-    } catch (err) {
-      logger.error('Error obtenerReporte', err);
-      next(err);
+      const { id } = req.params;
+      const result = await reportesInmobiliariosService.obtenerReporte(parseInt(id));
+
+      return res.status(result.success ? 200 : 404).json(result);
+    } catch (error) {
+      logger.error('Error obteniendo reporte inmobiliario:', error);
+      next(error);
     }
   }
 
+  /**
+   * Actualizar reporte inmobiliario
+   */
   async actualizarReporte(req, res, next) {
     try {
-      const id = parseInt(req.params.id, 10);
-      const userId = req.user?.id;
-      const data = await service.actualizarReporte(id, req.validatedData, userId);
-      return res.status(200).json(data);
-    } catch (err) {
-      logger.error('Error actualizarReporte', err);
-      next(err);
+      const { id } = req.params;
+      const reporteData = req.validatedData;
+      const userId = req.user?.id || req.user?.id_persona;
+
+      const result = await reportesInmobiliariosService.actualizarReporte(parseInt(id), reporteData, userId);
+
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      logger.error('Error actualizando reporte inmobiliario:', error);
+      next(error);
     }
   }
 
+  /**
+   * Eliminar reporte inmobiliario
+   */
   async eliminarReporte(req, res, next) {
     try {
-      const id = parseInt(req.params.id, 10);
-      await service.eliminarReporte(id);
-      return res.status(200).json({ success: true, message: 'Reporte eliminado' });
-    } catch (err) {
-      logger.error('Error eliminarReporte', err);
-      next(err);
-    }
-  }
+      const { id } = req.params;
 
-  async crearSeguimientoGeneral(req, res, next) {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const userId = req.user?.id;
-      const data = await service.crearSeguimientoGeneral(id, req.validatedData, userId);
-      return res.status(201).json(data);
-    } catch (err) {
-      logger.error('Error crearSeguimientoGeneral', err);
-      next(err);
-    }
-  }
+      await reportesInmobiliariosService.eliminarReporte(parseInt(id));
 
-  async listarSeguimientosGenerales(req, res, next) {
-    try {
-      const id = req.params.id;
-      if (isNaN(id)) {
-        return res.status(400).json({ success: false, message: 'ID de reporte inválido' });
-      }
-      const idNum = parseInt(id, 10);
-      const data = await service.listarSeguimientosGenerales(idNum, req.query);
-      return res.status(200).json(data);
-    } catch (err) {
-      logger.error('Error listarSeguimientosGenerales', err);
-      next(err);
-    }
-  }
-
-  async actualizarSeguimientoGeneral(req, res, next) {
-    try {
-      const reporteId = parseInt(req.params.reporteId, 10);
-      const seguimientoId = parseInt(req.params.seguimientoId, 10);
-      const data = await service.actualizarSeguimientoGeneral(reporteId, seguimientoId, req.validatedData);
-      return res.status(200).json(data);
-    } catch (err) {
-      logger.error('Error actualizarSeguimientoGeneral', err);
-      next(err);
-    }
-  }
-
-  async eliminarSeguimientoGeneral(req, res, next) {
-    try {
-      const reporteId = parseInt(req.params.reporteId, 10);
-      const seguimientoId = parseInt(req.params.seguimientoId, 10);
-      await service.eliminarSeguimientoGeneral(reporteId, seguimientoId);
-      return res.status(200).json({ success: true, message: 'Seguimiento general eliminado' });
-    } catch (err) {
-      logger.error('Error eliminarSeguimientoGeneral', err);
-      next(err);
-    }
-  }
-
-  async agregarImagen(req, res, next) {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const data = await service.agregarImagen(id, req.validatedData);
-      return res.status(201).json(data);
-    } catch (err) {
-      logger.error('Error agregarImagen', err);
-      next(err);
-    }
-  }
-
-  async eliminarImagen(req, res, next) {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const imagenId = parseInt(req.params.imagenId, 10);
-      await service.eliminarImagen(id, imagenId);
-      return res.status(200).json({ success: true, message: 'Imagen eliminada' });
-    } catch (err) {
-      logger.error('Error eliminarImagen', err);
-      next(err);
-    }
-  }
-
-  async agregarArchivo(req, res, next) {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const data = await service.agregarArchivo(id, req.validatedData);
-      return res.status(201).json(data);
-    } catch (err) {
-      logger.error('Error agregarArchivo', err);
-      next(err);
-    }
-  }
-
-  async eliminarArchivo(req, res, next) {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const archivoId = parseInt(req.params.archivoId, 10);
-      await service.eliminarArchivo(id, archivoId);
-      return res.status(200).json({ success: true, message: 'Archivo eliminado' });
-    } catch (err) {
-      logger.error('Error eliminarArchivo', err);
-      next(err);
-    }
-  }
-
-  async crearRubro(req, res, next) {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const data = await service.crearRubro(id, req.validatedData);
-      return res.status(201).json(data);
-    } catch (err) {
-      logger.error('Error crearRubro', err);
-      next(err);
-    }
-  }
-
-  async listarRubros(req, res, next) {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const data = await service.listarRubros(id);
-      return res.status(200).json(data);
-    } catch (err) {
-      logger.error('Error listarRubros', err);
-      next(err);
-    }
-  }
-
-  async actualizarRubro(req, res, next) {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const rubroId = parseInt(req.params.rubroId, 10);
-      const data = await service.actualizarRubro(id, rubroId, req.validatedData);
-      return res.status(200).json(data);
-    } catch (err) {
-      logger.error('Error actualizarRubro', err);
-      next(err);
-    }
-  }
-
-  async eliminarRubro(req, res, next) {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const rubroId = parseInt(req.params.rubroId, 10);
-      await service.eliminarRubro(id, rubroId);
-      return res.status(200).json({ success: true, message: 'Rubro eliminado' });
-    } catch (err) {
-      logger.error('Error eliminarRubro', err);
-      next(err);
-    }
-  }
-
-  async crearSeguimientoRubro(req, res, next) {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const rubroId = parseInt(req.params.rubroId, 10);
-      const userId = req.user?.id;
-      const data = await service.crearSeguimientoRubro(id, rubroId, req.validatedData, userId);
-      return res.status(201).json(data);
-    } catch (err) {
-      logger.error('Error crearSeguimientoRubro', err);
-      next(err);
-    }
-  }
-
-  async listarSeguimientosRubro(req, res, next) {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const rubroId = parseInt(req.params.rubroId, 10);
-      const data = await service.listarSeguimientosRubro(id, rubroId, req.query);
-      return res.status(200).json(data);
-    } catch (err) {
-      logger.error('Error listarSeguimientosRubro', err);
-      next(err);
-    }
-  }
-
-  async actualizarSeguimientoRubro(req, res, next) {
-    try {
-      const id = parseInt(req.params.id, 10);
-      const rubroId = parseInt(req.params.rubroId, 10);
-      const seguimientoId = parseInt(req.params.seguimientoId, 10);
-      const data = await service.actualizarSeguimientoRubro(id, rubroId, seguimientoId, req.validatedData);
-      return res.status(200).json(data);
-    } catch (err) {
-      logger.error('Error actualizarSeguimientoRubro', err);
-      next(err);
-    }
-  }
-
-  async obtenerEstadisticas(req, res, next) {
-    try {
-      const data = await service.obtenerEstadisticas(req.query);
-      return res.status(200).json(data);
-    } catch (err) {
-      logger.error('Error obtenerEstadisticas', err);
-      next(err);
-    }
-  }
-
-  async exportarReportes(req, res, next) {
-    try {
-      // Stub: devuelve CSV simple por ahora
-      const csv = await service.exportarReportes(req.query);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename="reportes_inmobiliarios.csv"');
-      return res.status(200).send(csv);
-    } catch (err) {
-      logger.error('Error exportarReportes', err);
-      next(err);
-    }
-  }
-
-  async autocompleteInmuebles(req, res, next) {
-    try {
-      const { q, limit = 10 } = req.query;
-      const data = await service.buscarInmueblesAutocomplete(q, parseInt(limit));
       return res.status(200).json({
         success: true,
-        message: 'Resultados de autocompletado',
-        data
+        message: 'Reporte eliminado exitosamente'
       });
-    } catch (err) {
-      logger.error('Error autocompleteInmuebles', err);
-      next(err);
+    } catch (error) {
+      logger.error('Error eliminando reporte inmobiliario:', error);
+      next(error);
     }
   }
 
+  /**
+   * Crear seguimiento general
+   */
+  async crearSeguimientoGeneral(req, res, next) {
+    try {
+      const { id } = req.params;
+      const seguimientoData = req.validatedData;
+      const userId = req.user?.id || req.user?.id_persona;
+
+      const result = await reportesInmobiliariosService.crearSeguimientoGeneral(parseInt(id), seguimientoData, userId);
+
+      return res.status(result.success ? 201 : 400).json(result);
+    } catch (error) {
+      logger.error('Error creando seguimiento general:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Listar seguimientos generales
+   */
+  async listarSeguimientosGenerales(req, res, next) {
+    try {
+      const { id } = req.params;
+      const filtros = req.query;
+
+      const result = await reportesInmobiliariosService.listarSeguimientosGenerales(parseInt(id), filtros);
+
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      logger.error('Error listando seguimientos generales:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Actualizar seguimiento general
+   */
+  async actualizarSeguimientoGeneral(req, res, next) {
+    try {
+      const { reporteId, seguimientoId } = req.params;
+      const seguimientoData = req.validatedData;
+
+      const result = await reportesInmobiliariosService.actualizarSeguimientoGeneral(parseInt(reporteId), parseInt(seguimientoId), seguimientoData);
+
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      logger.error('Error actualizando seguimiento general:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Eliminar seguimiento general
+   */
+  async eliminarSeguimientoGeneral(req, res, next) {
+    try {
+      const { reporteId, seguimientoId } = req.params;
+
+      await reportesInmobiliariosService.eliminarSeguimientoGeneral(parseInt(reporteId), parseInt(seguimientoId));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Seguimiento general eliminado exitosamente'
+      });
+    } catch (error) {
+      logger.error('Error eliminando seguimiento general:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Agregar imagen al reporte
+   */
+  async agregarImagen(req, res, next) {
+    try {
+      const { id } = req.params;
+      const imagenData = req.validatedData;
+
+      const result = await reportesInmobiliariosService.agregarImagen(parseInt(id), imagenData);
+
+      return res.status(result.success ? 201 : 400).json(result);
+    } catch (error) {
+      logger.error('Error agregando imagen:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Eliminar imagen del reporte
+   */
+  async eliminarImagen(req, res, next) {
+    try {
+      const { id, imagenId } = req.params;
+
+      await reportesInmobiliariosService.eliminarImagen(parseInt(id), parseInt(imagenId));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Imagen eliminada exitosamente'
+      });
+    } catch (error) {
+      logger.error('Error eliminando imagen:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Agregar archivo al reporte
+   */
+  async agregarArchivo(req, res, next) {
+    try {
+      const { id } = req.params;
+      const archivoData = req.validatedData;
+
+      const result = await reportesInmobiliariosService.agregarArchivo(parseInt(id), archivoData);
+
+      return res.status(result.success ? 201 : 400).json(result);
+    } catch (error) {
+      logger.error('Error agregando archivo:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Eliminar archivo del reporte
+   */
+  async eliminarArchivo(req, res, next) {
+    try {
+      const { id, archivoId } = req.params;
+
+      await reportesInmobiliariosService.eliminarArchivo(parseInt(id), parseInt(archivoId));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Archivo eliminado exitosamente'
+      });
+    } catch (error) {
+      logger.error('Error eliminando archivo:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Crear rubro
+   */
+  async crearRubro(req, res, next) {
+    try {
+      const { id } = req.params;
+      const rubroData = req.validatedData;
+
+      const result = await reportesInmobiliariosService.crearRubro(parseInt(id), rubroData);
+
+      return res.status(result.success ? 201 : 400).json(result);
+    } catch (error) {
+      logger.error('Error creando rubro:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Listar rubros
+   */
+  async listarRubros(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      const result = await reportesInmobiliariosService.listarRubros(parseInt(id));
+
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      logger.error('Error listando rubros:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Actualizar rubro
+   */
+  async actualizarRubro(req, res, next) {
+    try {
+      const { id, rubroId } = req.params;
+      const rubroData = req.validatedData;
+
+      const result = await reportesInmobiliariosService.actualizarRubro(parseInt(id), parseInt(rubroId), rubroData);
+
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      logger.error('Error actualizando rubro:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Eliminar rubro
+   */
+  async eliminarRubro(req, res, next) {
+    try {
+      const { id, rubroId } = req.params;
+
+      await reportesInmobiliariosService.eliminarRubro(parseInt(id), parseInt(rubroId));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Rubro eliminado exitosamente'
+      });
+    } catch (error) {
+      logger.error('Error eliminando rubro:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Crear seguimiento de rubro
+   */
+  async crearSeguimientoRubro(req, res, next) {
+    try {
+      const { id, rubroId } = req.params;
+      const seguimientoData = req.validatedData;
+      const userId = req.user?.id || req.user?.id_persona;
+
+      const result = await reportesInmobiliariosService.crearSeguimientoRubro(parseInt(id), parseInt(rubroId), seguimientoData, userId);
+
+      return res.status(result.success ? 201 : 400).json(result);
+    } catch (error) {
+      logger.error('Error creando seguimiento de rubro:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Listar seguimientos de rubro
+   */
+  async listarSeguimientosRubro(req, res, next) {
+    try {
+      const { id, rubroId } = req.params;
+      const filtros = req.query;
+
+      const result = await reportesInmobiliariosService.listarSeguimientosRubro(parseInt(id), parseInt(rubroId), filtros);
+
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      logger.error('Error listando seguimientos de rubro:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Actualizar seguimiento de rubro
+   */
+  async actualizarSeguimientoRubro(req, res, next) {
+    try {
+      const { id, rubroId, seguimientoId } = req.params;
+      const seguimientoData = req.validatedData;
+
+      const result = await reportesInmobiliariosService.actualizarSeguimientoRubro(parseInt(id), parseInt(rubroId), parseInt(seguimientoId), seguimientoData);
+
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      logger.error('Error actualizando seguimiento de rubro:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Autocomplete de inmuebles
+   */
+  async autocompleteInmuebles(req, res, next) {
+    try {
+      const { q, limit } = req.query;
+
+      const result = await reportesInmobiliariosService.buscarInmueblesAutocomplete(q, parseInt(limit) || 10);
+
+      return res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error en autocomplete de inmuebles:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Obtener inmueble básico
+   */
   async obtenerInmuebleBasico(req, res, next) {
     try {
       const { id } = req.params;
-      const result = await service.obtenerInmuebleBasico(parseInt(id));
-      const status = result.success ? 200 : 404;
-      return res.status(status).json(result);
-    } catch (err) {
-      logger.error('Error obtenerInmuebleBasico', err);
-      next(err);
+
+      const result = await reportesInmobiliariosService.obtenerInmuebleBasico(parseInt(id));
+
+      return res.status(result.success ? 200 : 404).json(result);
+    } catch (error) {
+      logger.error('Error obteniendo inmueble básico:', error);
+      next(error);
     }
   }
 
-  async crearInmuebleBasico(req, res, next) {
+  /**
+   * Obtener estadísticas
+   */
+  async obtenerEstadisticas(req, res, next) {
     try {
-      const userId = req.user?.id;
-      const result = await service.crearInmuebleBasico(req.validatedData, userId);
-      const status = result.success ? 201 : 400;
-      return res.status(status).json(result);
-    } catch (err) {
-      logger.error('Error crearInmuebleBasico', err);
-      next(err);
+      const filtros = req.query;
+
+      const result = await reportesInmobiliariosService.obtenerEstadisticas(filtros);
+
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      logger.error('Error obteniendo estadísticas:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Exportar reportes
+   */
+  async exportarReportes(req, res, next) {
+    try {
+      const filtros = req.query;
+
+      const csvData = await reportesInmobiliariosService.exportarReportes(filtros);
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="reportes.csv"');
+
+      return res.status(200).send(csvData);
+    } catch (error) {
+      logger.error('Error exportando reportes:', error);
+      next(error);
     }
   }
 }

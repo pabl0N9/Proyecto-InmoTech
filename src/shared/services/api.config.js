@@ -164,7 +164,7 @@ class ApiClient {
 
   async request(endpoint, options = {}, retryCount = 0) {
     let url = `${API_CONFIG.BASE_URL}${endpoint}`;
-    
+
     // Manejar parámetros de consulta
     if (options.params && Object.keys(options.params).length > 0) {
       const urlObj = new URL(url);
@@ -185,7 +185,7 @@ class ApiClient {
         ...options.headers,
       },
     };
-    
+
     if (accessToken) {
       config.headers['Authorization'] = `Bearer ${accessToken}`;
       console.log('🔑 Token incluido en petición:', accessToken.substring(0, 30) + '...');
@@ -200,19 +200,55 @@ class ApiClient {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-      
+
       console.log(`📤 ${options.method || 'GET'} ${url}`);
-      
+
       const response = await fetch(url, {
         ...config,
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
 
       console.log(`📥 Respuesta: ${response.status}`);
 
-      // Manejar 401
+      // ⚠️ INTERCEPTOR DE SEGURIDAD: Verificar respuesta antes de procesar
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          message: response.statusText
+        }));
+
+        // 🚨 DETECTAR LOGOUT FORZADO
+        if (errorData.forceLogout === true) {
+          console.log('🚨 Respuesta con logout forzado detectado:', errorData);
+
+          try {
+            // Emitir evento SSE para logout forzado
+            const sseService = (await import('./sseService.js')).default;
+            sseService.emit('user_disabled', {
+              message: errorData.message,
+              action: 'logout',
+              reason: errorData.reason || 'security_required',
+              timestamp: new Date().toISOString()
+            });
+
+            // Esperar un poco para que el evento SSE sea procesado
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (sseError) {
+            console.warn('⚠️ Error enviando evento SSE de logout forzado:', sseError.message);
+          }
+
+          // No lanzar error, el SSE se encargará del logout
+          return errorData;
+        }
+
+        const error = new Error(errorData.message || `Error ${response.status}`);
+        error.status = response.status;
+        error.data = errorData;
+        throw error;
+      }
+
+      // ✅ Respuesta OK: continuar normalmente
       if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
         console.warn('🔄 Token expirado (401), intentando refrescar...');
         return await this.handleTokenRefresh(endpoint, options, retryCount);
@@ -223,37 +259,27 @@ class ApiClient {
         throw new Error('Demasiadas peticiones. Por favor, espera un momento e intenta nuevamente.');
       }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          message: response.statusText
-        }));
-        const error = new Error(errorData.message || `Error ${response.status}`);
-        error.status = response.status;
-        error.data = errorData;
-        throw error;
-      }
-
       const data = await response.json();
-      
+
       // Guardar tokens si vienen en la respuesta
       if (data.success && data.data && data.data.accessToken) {
         console.log('🔑 Tokens detectados en respuesta, guardando...');
         this.setTokens(data.data.accessToken, data.data.refreshToken);
       }
-      
+
       return data;
-      
+
     } catch (error) {
       if (error.name === 'AbortError') {
         const timeoutError = new Error('La petición tardó demasiado tiempo.');
         timeoutError.code = 'TIMEOUT';
-        
+
         if (retryCount < API_CONFIG.RETRY_ATTEMPTS) {
           console.warn(`⏳ Timeout. Reintentando... (${retryCount + 1}/${API_CONFIG.RETRY_ATTEMPTS})`);
           await this.delay(API_CONFIG.RETRY_DELAY);
           return this.request(endpoint, options, retryCount + 1);
         }
-        
+
         throw timeoutError;
       }
 

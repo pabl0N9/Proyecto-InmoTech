@@ -45,6 +45,11 @@ Cita.belongsTo(Persona, {
   as: 'agente'
 });
 
+Cita.belongsTo(Persona, {
+  foreignKey: 'id_usuario_creador',
+  as: 'creador'
+});
+
 Cita.belongsTo(Cita, {
   foreignKey: 'id_cita_original',
   as: 'citaOriginal'

@@ -3,6 +3,7 @@ const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
+const sseService = require('./sse.service');
 
 class AdministrativoService {
   /**
@@ -312,7 +313,7 @@ class AdministrativoService {
           throw new Error('No se puede editar a un Super Administrador o Administrador');
         }
 
-        const { personaData, administrativoData } = updateData;
+        const { personaData, administrativoData, rolId } = updateData;
 
         // Actualizar datos de persona si se proporcionan
         if (personaData) {
@@ -322,6 +323,26 @@ class AdministrativoService {
         // Actualizar datos administrativos
         if (administrativoData) {
           await administrativo.update(administrativoData, { transaction: t });
+        }
+
+        // Actualizar rol si se proporciona
+        if (rolId) {
+          const personaId = administrativo.persona.id_persona;
+          const rolActual = await PersonasRol.findOne({
+            where: { id_persona: personaId },
+            transaction: t
+          });
+
+          if (rolActual) {
+            if (rolActual.id_rol !== rolId) {
+              await rolActual.update({ id_rol: rolId }, { transaction: t });
+            }
+          } else {
+            await PersonasRol.create({
+              id_persona: personaId,
+              id_rol: rolId
+            }, { transaction: t });
+          }
         }
 
         logger.info(`Administrativo actualizado: ID ${id}`);
@@ -386,6 +407,12 @@ class AdministrativoService {
 
       await administrativo.update(updateData);
 
+      // ✅ SSE: Notificar al usuario que su acceso administrativo ha sido revocado
+      if (estadoLaboral === 'Retirado' || estadoLaboral === 'Inactivo') {
+        sseService.notifyAdminAccessRevoked(administrativo.persona.id_persona);
+        logger.info(`📡 SSE: Notificación enviada - Acceso administrativo revocado para usuario ${administrativo.persona.id_persona}`);
+      }
+
       logger.info(`Estado laboral actualizado para administrativo ID ${id}: ${estadoLaboral}`);
 
       return administrativo;
@@ -448,6 +475,10 @@ class AdministrativoService {
           estado: false
         }, { transaction: t });
 
+        // ✅ SSE: Notificar al usuario que su cuenta ha sido deshabilitada
+        sseService.notifyUserDisabled(administrativo.persona.id_persona);
+        logger.info(`📡 SSE: Notificación enviada - Usuario deshabilitado ${administrativo.persona.id_persona}`);
+
         logger.info(`Administrativo eliminado: ID ${id}`);
 
       } catch (error) {
@@ -457,6 +488,69 @@ class AdministrativoService {
     });
 
     return result;
+  }
+
+  /**
+   * Cambia la contraseña de un administrativo (solo para administradores)
+   * @param {number} id - ID del administrativo
+   * @param {string} nuevaPassword - Nueva contraseña
+   * @returns {Promise<boolean>} True si se cambió exitosamente
+   */
+  async cambiarContrasenaAdministrativo(id, nuevaPassword) {
+    try {
+      const administrativo = await Administrativo.findOne({
+        where: { id_administrativo: id },
+        include: [
+          {
+            model: Persona,
+            as: 'persona',
+            include: [
+              {
+                model: Rol,
+                as: 'roles',
+                through: { attributes: ['estado', 'fecha_asignacion'] },
+                where: { estado: true },
+                required: false
+              }
+            ]
+          }
+        ]
+      });
+
+      if (!administrativo) {
+        throw new Error('Administrativo no encontrado');
+      }
+
+      // Verificar si el administrativo es Super Administrador o Administrador
+      const isSuperAdminOrAdmin = administrativo.persona.roles?.some(rol =>
+        rol.nombre_rol === 'Super Administrador' || rol.nombre_rol === 'Administrador'
+      );
+
+      if (isSuperAdminOrAdmin) {
+        throw new Error('No se puede cambiar la contraseña de un Super Administrador o Administrador');
+      }
+
+      // Hashear nueva contraseña y actualizar
+      const hashedPassword = await bcryptUtils.hashPassword(nuevaPassword);
+      await Acceso.update({
+        contrasena: hashedPassword,
+        ultimo_cambio_password: new Date()
+      }, {
+        where: { id_persona: administrativo.persona.id_persona }
+      });
+
+      // ✅ SSE: Notificar al usuario que su contraseña ha sido cambiada
+      sseService.notifyPasswordChanged(administrativo.persona.id_persona);
+      logger.info(`📡 SSE: Notificación enviada - Contraseña cambiada para usuario ${administrativo.persona.id_persona}`);
+
+      logger.info(`Contraseña cambiada para administrativo ID: ${id}`);
+
+      return true;
+
+    } catch (error) {
+      logger.error('Error cambiando contraseña de administrativo:', error);
+      throw error;
+    }
   }
 
   /**
