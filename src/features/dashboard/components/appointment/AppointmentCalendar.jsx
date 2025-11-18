@@ -18,6 +18,7 @@ import {
 import { Calendar, ChevronLeft, ChevronRight, Clock, User, MapPin, Plus } from 'lucide-react';
 import AppointmentCard from './AppointmentCard';
 import ActionsPopover from './ActionsPopover';
+import UserActionsPopover from '../../../../features/appointments/components/UserActionsPopover';
 import DayListModal from './DayListModal';
 import ConfirmationDialog from '../../../../shared/components/ui/ConfirmationDialog';
 import RescheduleConfirmModal from './RescheduleConfirmModal';
@@ -104,7 +105,7 @@ const DayCell = ({
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       className={`
-        day-cell min-h-[120px] p-2 border border-slate-200 rounded-lg transition-all duration-200 relative
+        day-cell min-h-[100px] max-h-[120px] p-1.5 border border-slate-200 rounded-lg transition-all duration-200 relative
         ${day ? 'hover:shadow-md cursor-pointer' : ''}
         ${isToday ? 'bg-blue-50 border-blue-300' : 'bg-white hover:bg-slate-50'}
         ${isOver ? 'ring-2 ring-blue-400 ring-opacity-50 bg-blue-25' : ''}
@@ -177,7 +178,9 @@ const AppointmentCalendar = ({
   onRescheduleAppointment,
   onCreateAppointment,
   onAcceptAppointment,
-  onRejectAppointment
+  onRejectAppointment,
+  onOpenRescheduleModal,
+  userMode = false
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeAppointment, setActiveAppointment] = useState(null);
@@ -313,6 +316,18 @@ const AppointmentCalendar = ({
       return;
     }
 
+    const maxEdits = appointment.ediciones_maximas ?? 2;
+    const usedEdits = appointment.ediciones_realizadas ?? 0;
+
+    if (userMode && usedEdits >= maxEdits) {
+      toast({
+        title: "Límite de ediciones alcanzado",
+        description: "No puedes mover esta cita nuevamente.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // ✅ CORREGIDO: Usar id_cita o id
     const appointmentId = appointment.id_cita || appointment.id;
 
@@ -322,12 +337,22 @@ const AppointmentCalendar = ({
       [appointmentId]: targetDate
     }));
 
-    // Show confirmation modal
-    setRescheduleConfirm({
-      isOpen: true,
-      appointment,
-      newDate: targetDate
-    });
+    // Show confirmation modal - use custom modal for user mode or default modal
+    if (userMode && onOpenRescheduleModal) {
+      onOpenRescheduleModal(appointment, targetDate);
+      // Clean up temp state since we'll handle it in the parent component
+      setTempRescheduledAppointments(prev => {
+        const copy = { ...prev };
+        delete copy[appointmentId];
+        return copy;
+      });
+    } else {
+      setRescheduleConfirm({
+        isOpen: true,
+        appointment,
+        newDate: targetDate
+      });
+    }
   };
 
   // Función para manejar navegación automática durante drag
@@ -364,12 +389,14 @@ const AppointmentCalendar = ({
     }
   };
       
-  const handleRescheduleConfirm = () => {
-    if (rescheduleConfirm.appointment && rescheduleConfirm.newDate) {
+  const handleRescheduleConfirm = (reagendamientoData) => {
+    if (rescheduleConfirm.appointment && reagendamientoData) {
       // ✅ CORREGIDO: Usar id_cita o id
       const appointmentId = rescheduleConfirm.appointment.id_cita || rescheduleConfirm.appointment.id;
-      onRescheduleAppointment(appointmentId, rescheduleConfirm.newDate);
-      
+
+      // Pasar todos los datos de reagendamiento (incluyendo motivo y nueva hora)
+      onRescheduleAppointment(appointmentId, reagendamientoData);
+
       setTempRescheduledAppointments(prev => {
         const copy = { ...prev };
         delete copy[appointmentId];
@@ -496,7 +523,7 @@ const AppointmentCalendar = ({
               const isToday = day === new Date().getDate() &&
                              currentDate.getMonth() === new Date().getMonth() &&
                              currentDate.getFullYear() === new Date().getFullYear();
-              const isActive = activeDay === day && hasPermission("gCitas", "crear"); // Solo mostrar si tiene permiso de crear
+              const isActive = activeDay === day && (userMode || hasPermission("citas", "crear")); // Mostrar para usuarios o admin con permisos
 
               return (
                 <DayCell
@@ -561,19 +588,31 @@ const AppointmentCalendar = ({
       </DndContext>
 
       {/* Actions Popover */}
-      <ActionsPopover
-        isOpen={popoverState.isOpen}
-        onClose={closePopover}
-        referenceElement={popoverState.referenceElement}
-        appointment={popoverState.appointment}
-        date={popoverState.date}
-        onView={onViewAppointment}
-        onEdit={onEditAppointment}
-        onDelete={onDeleteAppointment}
-        onCreate={onCreateAppointment}
-        onAccept={onAcceptAppointment}
-        onReject={onRejectAppointment}
-      />
+      {userMode ? (
+        <UserActionsPopover
+          isOpen={popoverState.isOpen}
+          onClose={closePopover}
+          referenceElement={popoverState.referenceElement}
+          appointment={popoverState.appointment}
+          onView={onViewAppointment}
+          onEdit={onEditAppointment}
+          onCancel={onDeleteAppointment}
+        />
+      ) : (
+        <ActionsPopover
+          isOpen={popoverState.isOpen}
+          onClose={closePopover}
+          referenceElement={popoverState.referenceElement}
+          appointment={popoverState.appointment}
+          date={popoverState.date}
+          onView={onViewAppointment}
+          onEdit={onEditAppointment}
+          onDelete={onDeleteAppointment}
+          onCreate={onCreateAppointment}
+          onAccept={onAcceptAppointment}
+          onReject={onRejectAppointment}
+        />
+      )}
 
       {/* Day List Modal */}
       <DayListModal

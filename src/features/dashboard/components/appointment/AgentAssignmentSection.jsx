@@ -168,7 +168,7 @@ const AgentAssignmentSection = ({
                 </div>
               </div>
             </div>
-            {showEdit && hasPermission("gCitas", "editar") && (
+            {showEdit && hasPermission("citas", "editar") && (
               <button
                 onClick={() => setIsEditing(true)}
                 className="absolute -top-1 -right-1 p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md"
@@ -187,7 +187,7 @@ const AgentAssignmentSection = ({
                 <p className="text-xs text-amber-600 truncate">Asigna un agente para continuar</p>
               </div>
             </div>
-          {showEdit && hasPermission("gCitas", "editar") && cita.estado !== 'solicitada' && (
+          {showEdit && hasPermission("citas", "editar") && cita.estado !== 'solicitada' && (
             <button
               onClick={() => setIsEditing(true)}
               className="absolute -top-1 -right-1 p-1.5 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition-colors shadow-md"
@@ -462,7 +462,7 @@ const AgentAssignmentSection = ({
                 <RotateCcw className="w-4 h-4" />
               </button>
             )}
-          {hasPermission("gCitas", "editar") && (!agenteActual || cita.estado !== 'solicitada') && (
+          {hasPermission("citas", "editar") && (!agenteActual || cita.estado !== 'solicitada') && (
             <button
               onClick={() => setIsEditing(true)}
               className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"

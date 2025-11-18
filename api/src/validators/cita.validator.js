@@ -179,10 +179,27 @@ const cancelarCitaSchema = Joi.object({
 });
 
 const reagendarCitaSchema = Joi.object({
-  fecha_cita: Joi.date()
-    .iso()
-    .custom(isTodayOrFuture)
-    .required(),
+  fecha_cita: Joi.string()
+    .pattern(/^\d{4}-\d{2}-\d{2}$/)
+    .custom((value, helpers) => {
+      // Validar que la fecha sea válida y no anterior a HOY
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const citaDate = new Date(value);
+      citaDate.setHours(0, 0, 0, 0);
+
+      if (citaDate < today) {
+        return helpers.error('date.min');
+      }
+
+      return value;
+    })
+    .required()
+    .messages({
+      'date.min': 'La fecha de la cita no puede ser anterior a hoy',
+      'string.pattern.base': 'El formato de fecha debe ser YYYY-MM-DD'
+    }),
 
   hora_inicio: Joi.string()
     .pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)
@@ -190,7 +207,23 @@ const reagendarCitaSchema = Joi.object({
 
   hora_fin: Joi.string()
     .pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)
+    .required(),
+
+  motivo_reagendamiento: Joi.string()
+    .min(10)
+    .max(500)
     .required()
+    .messages({
+      'string.min': 'El motivo de reagendamiento debe tener al menos 10 caracteres',
+      'string.max': 'El motivo de reagendamiento no puede exceder 500 caracteres',
+      'any.required': 'El motivo de reagendamiento es obligatorio'
+    }),
+
+  id_agente_asignado: Joi.number()
+    .integer()
+    .positive()
+    .allow(null)
+    .optional()
 });
 
 const buscarPersonaSchema = Joi.object({

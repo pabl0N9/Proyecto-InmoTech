@@ -3,6 +3,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { motion } from 'framer-motion';
 import { Clock, User, MapPin } from 'lucide-react';
 import { useAuth } from '../../../../shared/contexts/AuthContext';
+import { formatTimeTo12Hour } from '../../../../shared/utils/time';
 
 const AppointmentCard = ({
   appointment,
@@ -13,7 +14,7 @@ const AppointmentCard = ({
 }) => {
   const cardRef = useRef(null);
   const [cardSize, setCardSize] = useState({ width: 0, height: 0 });
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
 
   // Measure card size for overlay centering
   useLayoutEffect(() => {
@@ -23,7 +24,14 @@ const AppointmentCard = ({
     }
   }, []);
 
-  const canEdit = hasPermission("gCitas", "editar");
+  const canEdit = hasPermission("citas", "editar");
+  const remainingEdits = (appointment?.ediciones_maximas ?? 2) - (appointment?.ediciones_realizadas ?? 0);
+  const userCanDrag = user && !canEdit && remainingEdits > 0;
+
+  // Permitir drag si:
+  // 1. Es admin con permisos, O
+  // 2. Es usuario normal y aún tiene ediciones disponibles
+  const canDrag = canEdit || userCanDrag;
 
   const {
     attributes,
@@ -38,7 +46,7 @@ const AppointmentCard = ({
       appointment,
       size: cardSize,
     },
-    disabled: isDragging || !canEdit,
+    disabled: isDragging || !canDrag,
   });
 
   const getStatusColor = (status) => {
@@ -55,53 +63,7 @@ const AppointmentCard = ({
   
   const formatTime = (timeString) => {
     if (!timeString) return '';
-    
-    // Manejar formato ISO (1970-01-01T06:00:00.000Z)
-    if (timeString.includes('T') && timeString.includes('Z')) {
-      const date = new Date(timeString);
-      if (!isNaN(date.getTime())) {
-        const hours = date.getUTCHours();
-        const minutes = date.getUTCMinutes();
-        const isPM = hours >= 12;
-        const hours12 = hours === 0 ? 12 : (hours > 12 ? hours - 12 : hours);
-        return `${hours12}:${String(minutes).padStart(2, '0')} ${isPM ? 'pm' : 'am'}`;
-      }
-    }
-
-    // Clean multiple AM/PM suffixes for display safety
-    let cleanedTime = timeString;
-    const amMatches = timeString.match(/\b(am|AM)\b/g);
-    const pmMatches = timeString.match(/\b(pm|PM)\b/g);
-    const totalSuffixes = (amMatches ? amMatches.length : 0) + (pmMatches ? pmMatches.length : 0);
-
-    if (totalSuffixes > 1) {
-      const lastAM = amMatches && amMatches.length > 0 ? amMatches[amMatches.length - 1] : null;
-      const lastPM = pmMatches && pmMatches.length > 0 ? pmMatches[pmMatches.length - 1] : null;
-      cleanedTime = timeString.replace(/\s*\b(am|pm)\b/gi, '');
-      
-      if (lastPM) {
-        cleanedTime += ' ' + lastPM.toLowerCase();
-      } else if (lastAM) {
-        cleanedTime += ' ' + lastAM.toLowerCase();
-      }
-      
-      cleanedTime = cleanedTime.trim();
-    }
-
-    if (cleanedTime.includes('am') || cleanedTime.includes('pm') ||
-        cleanedTime.includes('AM') || cleanedTime.includes('PM')) {
-      return cleanedTime;
-    }
-
-    const [hours, minutes] = cleanedTime.split(':');
-    const hour24 = parseInt(hours, 10);
-    
-    if (isNaN(hour24)) return cleanedTime;
-    
-    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
-    const ampm = hour24 >= 12 ? 'pm' : 'am';
-
-    return `${hour12}:${minutes} ${ampm}`;
+    return formatTimeTo12Hour(timeString) || timeString;
   };
   
   // Extraer datos de objetos anidados
@@ -128,7 +90,7 @@ const AppointmentCard = ({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 10 }}
       className={`
-        p-2 rounded-lg border text-xs ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
+        p-2 rounded-lg border text-xs ${canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
         transition-all duration-200 hover:shadow-sm select-none
         ${getStatusColor(appointment.estado)}
         ${isDndDragging ? 'opacity-50' : ''}

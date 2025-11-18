@@ -11,10 +11,30 @@ class AuthController {
       const userData = req.validatedData;
       const result = await authService.registrarUsuario(userData);
 
+      // Enviar tokens como cookies httpOnly para registro
+      const { accessToken, refreshToken } = result;
+      const isProduction = process.env.NODE_ENV === 'production';
+
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: isProduction, // Solo HTTPS en producción
+        sameSite: 'strict',
+        maxAge: 1 * 60 * 60 * 1000 // 1 hora
+      });
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+      });
+
       return res.status(201).json({
         success: true,
         message: 'Usuario registrado exitosamente',
-        data: result
+        data: {
+          user: result.user
+        }
       });
     } catch (error) {
       logger.error('Error en registro de usuario:', error);
@@ -30,10 +50,30 @@ class AuthController {
       const { email, password } = req.validatedData;
       const result = await authService.iniciarSesion(email, password);
 
+      // Enviar tokens como cookies httpOnly para login
+      const { accessToken, refreshToken } = result;
+      const isProduction = process.env.NODE_ENV === 'production';
+
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: isProduction, // Solo HTTPS en producción
+        sameSite: 'strict',
+        maxAge: 1 * 60 * 60 * 1000 // 1 hora
+      });
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+      });
+
       return res.status(200).json({
         success: true,
         message: 'Inicio de sesión exitoso',
-        data: result
+        data: {
+          user: result.user
+        }
       });
     } catch (error) {
       logger.error('Error en inicio de sesión:', error);
@@ -48,6 +88,23 @@ class AuthController {
     try {
       const { refreshToken } = req.validatedData;
       const tokens = await authService.refrescarToken(refreshToken);
+
+      // Enviar tokens refrescados como cookies httpOnly
+      const isProduction = process.env.NODE_ENV === 'production';
+
+      res.cookie('accessToken', tokens.accessToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: 1 * 60 * 60 * 1000 // 1 hora
+      });
+
+      res.cookie('refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+      });
 
       return res.status(200).json({
         success: true,
@@ -144,12 +201,25 @@ class AuthController {
   }
 
   /**
-   * Cierra la sesión del usuario (invalidar tokens)
+   * Cierra la sesión del usuario (limpia cookies)
    */
   async cerrarSesion(req, res, next) {
     try {
-      // En una implementación completa, aquí invalidaríamos el token
-      // Por ahora, solo devolvemos una respuesta exitosa
+      // Limpiar cookies de tokens
+      const isProduction = process.env.NODE_ENV === 'production';
+
+      res.clearCookie('accessToken', {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict'
+      });
+
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict'
+      });
+
       return res.status(200).json({
         success: true,
         message: 'Sesión cerrada exitosamente'

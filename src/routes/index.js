@@ -8,7 +8,8 @@ export const publicRoutes = {
   services: '/servicios',
   properties: '/inmuebles',
   propertyDetails: '/inmuebles/:id',
-  contact: '/contactanos'
+  contact: '/contactanos',
+  userAppointments: '/mis-citas'
 };
 
 export const publicNavigationLinks = [

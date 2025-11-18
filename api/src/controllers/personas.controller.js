@@ -155,7 +155,9 @@ class PersonasController {
   async crearPersona(req, res, next) {
     try {
       const personaData = req.validatedData;
-      const persona = await personasService.crearOActualizar(personaData);
+      const { password, confirmPassword, ...personaDataSinPassword } = personaData;
+
+      const persona = await personasService.crearPersonaAdmin(personaDataSinPassword, password);
 
       return res.status(201).json({
         success: true,

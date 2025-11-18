@@ -167,32 +167,32 @@ const NotificationDropdown = ({
                     </div>
                     <div className="flex gap-1 ml-2">
                       <motion.button
-                        disabled={!hasPermission("gCitas", "ver")}
-                        whileHover={hasPermission("gCitas", "ver") ? { scale: 1.1 } : {}}
-                        whileTap={hasPermission("gCitas", "ver") ? { scale: 0.9 } : {}}
-                        onClick={() => hasPermission("gCitas", "ver") ? onViewAppointment(appointment) : null}
-                        className={`p-1.5 rounded transition-colors ${hasPermission("gCitas", "ver") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
-                        title={hasPermission("gCitas", "ver") ? "Ver detalles" : "No tienes permiso para ver"}
+                        disabled={!hasPermission("citas", "ver")}
+                        whileHover={hasPermission("citas", "ver") ? { scale: 1.1 } : {}}
+                        whileTap={hasPermission("citas", "ver") ? { scale: 0.9 } : {}}
+                        onClick={() => hasPermission("citas", "ver") ? onViewAppointment(appointment) : null}
+                        className={`p-1.5 rounded transition-colors ${hasPermission("citas", "ver") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
+                        title={hasPermission("citas", "ver") ? "Ver detalles" : "No tienes permiso para ver"}
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </motion.button>
                       <motion.button
-                        disabled={!hasPermission("gCitas", "editar")}
-                        whileHover={hasPermission("gCitas", "editar") ? { scale: 1.1 } : {}}
-                        whileTap={hasPermission("gCitas", "editar") ? { scale: 0.9 } : {}}
-                        onClick={() => hasPermission("gCitas", "editar") ? onAcceptAppointment(appointment) : null}
-                        className={`p-1.5 rounded transition-colors ${hasPermission("gCitas", "editar") ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
-                        title={hasPermission("gCitas", "editar") ? "Aceptar cita" : "No tienes permiso para aceptar"}
+                        disabled={!hasPermission("citas", "editar")}
+                        whileHover={hasPermission("citas", "editar") ? { scale: 1.1 } : {}}
+                        whileTap={hasPermission("citas", "editar") ? { scale: 0.9 } : {}}
+                        onClick={() => hasPermission("citas", "editar") ? onAcceptAppointment(appointment) : null}
+                        className={`p-1.5 rounded transition-colors ${hasPermission("citas", "editar") ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
+                        title={hasPermission("citas", "editar") ? "Aceptar cita" : "No tienes permiso para aceptar"}
                       >
                         <Check className="w-3.5 h-3.5" />
                       </motion.button>
                       <motion.button
-                        disabled={!hasPermission("gCitas", "eliminar")}
-                        whileHover={hasPermission("gCitas", "eliminar") ? { scale: 1.1 } : {}}
-                        whileTap={hasPermission("gCitas", "eliminar") ? { scale: 0.9 } : {}}
-                        onClick={() => hasPermission("gCitas", "eliminar") ? onRejectAppointment(appointment) : null}
-                        className={`p-1.5 rounded transition-colors ${hasPermission("gCitas", "eliminar") ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
-                        title={hasPermission("gCitas", "eliminar") ? "Rechazar cita" : "No tienes permiso para rechazar"}
+                        disabled={!hasPermission("citas", "eliminar")}
+                        whileHover={hasPermission("citas", "eliminar") ? { scale: 1.1 } : {}}
+                        whileTap={hasPermission("citas", "eliminar") ? { scale: 0.9 } : {}}
+                        onClick={() => hasPermission("citas", "eliminar") ? onRejectAppointment(appointment) : null}
+                        className={`p-1.5 rounded transition-colors ${hasPermission("citas", "eliminar") ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
+                        title={hasPermission("citas", "eliminar") ? "Rechazar cita" : "No tienes permiso para rechazar"}
                       >
                         <X className="w-3.5 h-3.5" />
                       </motion.button>

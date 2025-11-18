@@ -157,12 +157,18 @@ class CitaController {
         });
       }
 
-      const { fecha_cita, hora_inicio, hora_fin } = req.validatedData;
+      const { fecha_cita, hora_inicio, hora_fin, motivo_reagendamiento, id_agente_asignado } = req.validatedData;
+
+      // Usar el ID del usuario autenticado como agente si no se especifica otro
+      const idAgenteFinal = id_agente_asignado || req.user.id_persona;
 
       const cita = await citaService.reagendarCita(parsedId, {
         fecha_cita,
         hora_inicio,
-        hora_fin
+        hora_fin,
+        motivo_reagendamiento,
+        id_agente_asignado: idAgenteFinal,
+        id_usuario_realizo: req.user.id_persona
       });
 
       return res.status(200).json({
@@ -210,6 +216,18 @@ class CitaController {
           message: 'ID de cita inválido'
         });
       }
+
+      // ✅ Verificar límite de ediciones antes de actualizar
+      const citaExistente = await citaService.obtenerCitaPorId(parsedId);
+      if (citaExistente.ediciones_realizadas >= citaExistente.ediciones_maximas) {
+        return res.status(400).json({
+          success: false,
+          message: `Esta cita ha alcanzado el límite máximo de ${citaExistente.ediciones_maximas} ediciones permitidas`
+        });
+      }
+
+      // ✅ Incrementar contador de ediciones antes de actualizar
+      await citaService.incrementarContadorEdicionesActualizar(parsedId);
 
       const cita = await citaService.actualizarCita(parsedId, req.validatedData);
 
@@ -318,11 +336,18 @@ class CitaController {
         });
       }
 
+      // ✅ FORMATEAR RESPUESTA PARA AUTOCOMPLETADO DEL FORMULARIO
+      // El formulario tiene separados: nombres (primer + segundo), apellidos (primer + segundo)
+      const nombresPartes = persona.nombre_completo ? persona.nombre_completo.trim().split(' ') : [];
+      const apellidosPartes = persona.apellido_completo ? persona.apellido_completo.trim().split(' ') : [];
+
       const responseData = {
-        nombre_completo: persona.nombre_completo,
-        apellido_completo: persona.apellido_completo,
-        telefono: persona.telefono,
-        correo: persona.correo
+        primer_nombre: nombresPartes[0] || '',
+        segundo_nombre: nombresPartes.slice(1).join(' ') || '',
+        primer_apellido: apellidosPartes[0] || '',
+        segundo_apellido: apellidosPartes.slice(1).join(' ') || '',
+        telefono: persona.telefono || '',
+        correo: persona.correo || ''
       };
 
       console.log('📤 Enviando respuesta:', responseData);
@@ -459,6 +484,254 @@ class CitaController {
       });
     } catch (error) {
       logger.error(`❌ Error obteniendo cita con historial ${req.params.id}: ${error.message}`);
+      next(error);
+    }
+  }
+
+  /**
+   * Obtener citas del usuario autenticado como cliente
+   * Endpoint: GET /api/v1/citas/mis-citas
+   */
+  async obtenerMisCitas(req, res, next) {
+    try {
+      const userId = req.user.id; // ID del usuario autenticado
+      const filtros = req.query; // Filtros opcionales de query params
+
+      logger.info(`🔍 Obteniendo citas del cliente ${userId}`);
+
+      const citas = await citaService.obtenerCitasPorCliente(userId, filtros);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Citas obtenidas exitosamente',
+        data: citas
+      });
+    } catch (error) {
+      logger.error(`❌ Error obteniendo citas del cliente ${req.user.id}: ${error.message}`);
+      next(error);
+    }
+  }
+
+  /**
+   * Cancelar cita por el usuario (cliente)
+   * Endpoint: POST /api/v1/citas/mis-citas/:id/cancelar
+   */
+  async cancelarMiCita(req, res, next) {
+    try {
+      const { id } = req.params;
+      const parsedId = parseInt(id);
+      const userId = req.user.id;
+
+      if (!id || isNaN(parsedId) || parsedId <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de cita inválido'
+        });
+      }
+
+      const { motivo_cancelacion } = req.validatedData;
+
+      // Verificar que la cita pertenece al usuario
+      const cita = await citaService.obtenerCitaPorId(parsedId);
+      if (!cita || cita.id_persona !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tiene permisos para cancelar esta cita'
+        });
+      }
+
+      // Verificar que el estado permita cancelación
+      const estadosPermitidos = ['solicitada', 'confirmada', 'programada', 're agendada'];
+      if (!estadosPermitidos.includes(cita.estado?.toLowerCase())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Esta cita no puede ser cancelada en su estado actual'
+        });
+      }
+
+      const citaCancelada = await citaService.cancelarCita(parsedId, motivo_cancelacion);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Cita cancelada exitosamente',
+        data: citaCancelada
+      });
+    } catch (error) {
+      logger.error(`❌ Error cancelando cita ${req.params.id} por usuario ${req.user.id}: ${error.message}`);
+      next(error);
+    }
+  }
+
+  /**
+   * Obtener horarios disponibles para reagendamiento (usuario normal)
+   * Endpoint: GET /api/v1/citas/mis-citas/horarios-disponibles
+   */
+  async obtenerHorariosDisponiblesReagendar(req, res, next) {
+    try {
+      const { fecha_cita, id_servicio } = req.query;
+
+      if (!fecha_cita || !id_servicio) {
+        return res.status(400).json({
+          success: false,
+          message: 'fecha_cita e id_servicio son requeridos'
+        });
+      }
+
+      const idServicioParsed = parseInt(id_servicio);
+      if (isNaN(idServicioParsed) || idServicioParsed <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de servicio inválido'
+        });
+      }
+
+      logger.info(`🔍 Usuario obteniendo horarios disponibles para reagendamiento: fecha=${fecha_cita}, servicio=${idServicioParsed}`);
+
+      // 🚨 LÓGICA ESPECIAL: Si es servicio "Visita a Propiedad" (ID 1)
+      if (idServicioParsed === 1) {
+        logger.info("🏠 Servicio 'Visita a Propiedad': Aplicando restricciones de bloqueo para reagendamiento");
+
+        // Obtener citas existentes para esa fecha y servicio de visitas a inmuebles
+        // Solo citas confirmadas, programadas o reagendada (no canceladas ni completadas)
+        const filtros = {
+          fecha: fecha_cita,
+          estado_in: "2,3,4" // confirmada, programada, re agendada
+        };
+
+        const result = await citaService.obtenerTodasLasCitas(filtros);
+        const citasExistentes = Array.isArray(result) ? result : (result.citas || []);
+
+        logger.info(`📅 Citas existentes activas para ${fecha_cita}:`, citasExistentes.length);
+
+        // Generar todos los horarios disponibles inicialmente
+        const todosHorarios = [];
+        for (let hora = 8; hora <= 17; hora++) {
+          todosHorarios.push(`${hora.toString().padStart(2, '0')}:00`);
+          if (hora < 17) {
+            todosHorarios.push(`${hora.toString().padStart(2, '0')}:30`);
+          }
+        }
+
+        // Extraer horarios ocupados
+        const horariosOcupados = new Set(
+          citasExistentes.map(cita => cita.hora_inicio)
+        );
+
+        // Filtrar horarios disponibles (no ocupados)
+        const horariosDisponibles = todosHorarios.filter(hora =>
+          !horariosOcupados.has(hora)
+        );
+
+        logger.info(`✅ Horarios disponibles para reagendamiento: ${horariosDisponibles.length} de ${todosHorarios.length}`);
+
+        return res.status(200).json({
+          success: true,
+          message: 'Horarios disponibles obtenidos exitosamente',
+          data: horariosDisponibles
+        });
+
+      } else {
+        // 🆓 PARA OTROS SERVICIOS: Sin restricciones, todos los horarios disponibles
+        logger.info("🆓 Otro servicio: Sin restricciones de bloqueo para reagendamiento");
+
+        const defaultHorarios = [];
+        for (let hora = 8; hora <= 17; hora++) {
+          defaultHorarios.push(`${hora.toString().padStart(2, '0')}:00`);
+          if (hora < 17) {
+            defaultHorarios.push(`${hora.toString().padStart(2, '0')}:30`);
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Horarios disponibles obtenidos exitosamente',
+          data: defaultHorarios
+        });
+      }
+
+    } catch (error) {
+      logger.error(`❌ Error obteniendo horarios disponibles para reagendamiento: ${error.message}`);
+      next(error);
+    }
+  }
+
+  /**
+   * Reagendar cita por el usuario (cliente)
+   * Endpoint: PUT /api/v1/citas/user/:id/reagendar
+   */
+  async reagendarMiCita(req, res, next) {
+    try {
+      console.log(`🚨🚨🚨 [CONTROLLER] reagendarMiCita EJECUTADO!!! usuario ${req.user?.id} - cita ${req.params?.id}`);
+
+      const { id } = req.params;
+      const parsedId = parseInt(id);
+      const userId = req.user.id;
+
+      if (!id || isNaN(parsedId) || parsedId <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de cita inválido'
+        });
+      }
+
+      const { fecha_cita, hora_inicio, hora_fin, motivo_reagendamiento } = req.validatedData;
+      console.log(`📥 [CONTROLLER] Datos recibidos: fecha=${fecha_cita}, hora=${hora_inicio}, user=${userId}`);
+
+      // Verificar que la cita pertenece al usuario
+      const cita = await citaService.obtenerCitaPorId(parsedId);
+      if (!cita || cita.id_persona !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tiene permisos para reagendar esta cita'
+        });
+      }
+
+      console.log(`📊 [CONTROLLER] Cita original: fecha=${cita.fecha_cita}, ediciones=${cita.ediciones_realizadas}/${cita.ediciones_maximas}`);
+
+      // ✅ Verificar límite de ediciones realizado
+      if (cita.ediciones_realizadas >= cita.ediciones_maximas) {
+        return res.status(400).json({
+          success: false,
+          message: `Esta cita ha alcanzado el límite máximo de ${cita.ediciones_maximas} ediciones permitidas`
+        });
+      }
+
+      // Usar el agente asignado actual o null si no hay
+      const idAgenteFinal = cita.id_agente_asignado || null;
+
+      console.log(`🔄 [CONTROLLER] Llamando método atómico...`);
+      console.log(`🔄 [CONTROLLER] Datos para método atómico:`, {fecha_cita, hora_inicio, hora_fin, idAgenteFinal, userId});
+
+      // ✅ OPERACIÓN ATÓMICA: Incrementar contador y actualizar cita en una transacción
+      const citaReagendada = await citaService.incrementarContadorEdicionesActualizar(parsedId, {
+        fecha_cita,
+        hora_inicio,
+        hora_fin,
+        motivo_reagendamiento,
+        id_agente_asignado: idAgenteFinal,
+        id_estado_cita: 4, // Reagendada
+        id_usuario_realizo: userId
+      });
+
+      console.log(`✅ [CONTROLLER] Cita reagendada exitosamente! Fecha nueva: ${citaReagendada.fecha_cita}, Ediciones: ${citaReagendada.ediciones_realizadas}`);
+
+      // ✅ IMPORTANTE: El objeto citaReagendada YA incluye los includes completos, debe mostrar ediciones=1
+      // Si muestra ediciones=0 es porque el método NO incrementó, pero el método terminó sin error
+      // Esto es el problema principal
+      console.log(`🔍 [CONTROLLER] DETALLES de respuesta:`, {
+        fecha: citaReagendada.fecha_cita,
+        hora: citaReagendada.hora_inicio,
+        ediciones: citaReagendada.ediciones_realizadas,
+        ediciones_maximas: citaReagendada.ediciones_maximas
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Cita reagendada exitosamente',
+        data: citaReagendada
+      });
+    } catch (error) {
+      logger.error(`❌ Error reagendando cita ${req.params.id} por usuario ${req.user.id}: ${error.message}`);
       next(error);
     }
   }

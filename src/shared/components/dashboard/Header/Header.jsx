@@ -109,18 +109,23 @@ const Header = () => {
   const getUserRole = () => {
     if (!user || !user.roles) return 'Usuario';
 
+    // Extraer nombres de roles (manejar tanto objetos como strings)
+    const roleNames = user.roles.map(rol =>
+      typeof rol === 'object' ? rol.nombre_rol : rol
+    ).filter(Boolean);
+
     // Si es Super Administrador, mostrar eso
-    if (user.roles.includes('Super Administrador')) {
+    if (roleNames.includes('Super Administrador')) {
       return 'Super Administrador';
     }
 
     // Si es Administrador
-    if (user.roles.includes('Administrador')) {
+    if (roleNames.includes('Administrador')) {
       return 'Administrador';
     }
 
     // Mostrar el primer rol disponible
-    return user.roles[0] || 'Usuario';
+    return roleNames[0] || 'Usuario';
   };
 
   return (

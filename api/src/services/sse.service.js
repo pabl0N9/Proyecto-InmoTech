@@ -3,6 +3,8 @@
  * Maneja conexiones SSE para notificaciones de seguridad de usuarios
  */
 
+const logger = require('../utils/logger');
+
 class SSEService {
   constructor() {
     this.clients = new Map(); // userId -> Set of response objects
@@ -11,7 +13,7 @@ class SSEService {
   }
 
   /**
-   * Inicia el envío de heartbeats para mantener conexiones vivas
+   * Inicia el envio de heartbeats para mantener conexiones vivas
    */
   startHeartbeat() {
     this.heartbeatInterval = setInterval(() => {
@@ -20,7 +22,7 @@ class SSEService {
   }
 
   /**
-   * Agrega una nueva conexión SSE para un usuario
+   * Agrega una nueva conexion SSE para un usuario
    * @param {number} userId - ID del usuario
    * @param {Object} res - Objeto response de Express
    */
@@ -41,28 +43,28 @@ class SSEService {
     // Agregar cliente
     this.clients.get(userId).add(res);
 
-    // Enviar mensaje de conexión
+    // Enviar mensaje de conexion
     this.sendToClient(res, 'connected', {
-      message: 'Conexión SSE establecida',
+      message: 'Conexion SSE establecida',
       userId,
       timestamp: new Date().toISOString()
     });
 
-    console.log(`📡 SSE: Cliente conectado - User ID: ${userId}, Total clientes: ${this.clients.size}`);
+    logger.info('[SSE] Client connected', { userId, totalClients: this.clients.size });
 
-    // Manejar desconexión
+    // Manejar desconexion
     res.on('close', () => {
       this.removeClient(userId, res);
     });
 
     res.on('error', (error) => {
-      console.error(`❌ SSE Error para usuario ${userId}:`, error.message);
+      logger.error('[SSE] Error for user', { userId, error: error.message });
       this.removeClient(userId, res);
     });
   }
 
   /**
-   * Remueve una conexión SSE
+   * Remueve una conexion SSE
    * @param {number} userId - ID del usuario
    * @param {Object} res - Objeto response a remover
    */
@@ -75,12 +77,12 @@ class SSEService {
         this.clients.delete(userId);
       }
 
-      console.log(`📡 SSE: Cliente desconectado - User ID: ${userId}, Clientes restantes: ${this.clients.size}`);
+      logger.info('[SSE] Client disconnected', { userId, remainingClients: this.clients.size });
     }
   }
 
   /**
-   * Envía un evento a un cliente específico
+   * Envia un evento a un cliente especifico
    * @param {Object} res - Objeto response del cliente
    * @param {string} event - Nombre del evento
    * @param {Object} data - Datos del evento
@@ -90,12 +92,12 @@ class SSEService {
       const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
       res.write(message);
     } catch (error) {
-      console.error('❌ Error enviando mensaje SSE:', error.message);
+      logger.error('[SSE] Error sending message', { event, error: error.message });
     }
   }
 
   /**
-   * Envía un evento a todos los clientes de un usuario específico
+   * Envia un evento a todos los clientes de un usuario especifico
    * @param {number} userId - ID del usuario
    * @param {string} event - Nombre del evento
    * @param {Object} data - Datos del evento
@@ -107,12 +109,12 @@ class SSEService {
         this.sendToClient(res, event, data);
       });
 
-      console.log(`📡 SSE: Evento '${event}' enviado a usuario ${userId} (${clients.size} conexiones)`);
+      logger.info('[SSE] Event sent to user', { userId, event, connections: clients.size });
     }
   }
 
   /**
-   * Envía un evento a todos los clientes conectados
+   * Envia un evento a todos los clientes conectados
    * @param {string} event - Nombre del evento
    * @param {Object} data - Datos del evento
    */
@@ -126,7 +128,7 @@ class SSEService {
     }
 
     if (event !== 'heartbeat') {
-      console.log(`📡 SSE: Evento '${event}' broadcast a ${totalClients} clientes`);
+      logger.info('[SSE] Event broadcast', { event, totalClients });
     }
   }
 
@@ -142,7 +144,7 @@ class SSEService {
         this.sendToClient(res, 'user_disabled', data);
       });
 
-      console.log(`📡 SSE: Enviado logout inmediato a usuario ${userId} (${clients.size} conexiones activas)`);
+      logger.warn('[SSE] Immediate logout sent', { userId, activeConnections: clients.size });
 
       // Close the connections after sending the logout
       setTimeout(() => {
@@ -154,7 +156,7 @@ class SSEService {
           }
         });
         this.clients.delete(userId);
-        console.log(`📡 SSE: Conexiones del usuario ${userId} cerradas después de logout forzado`);
+        logger.info('[SSE] Connections closed after forced logout', { userId });
       }, 100); // Small delay to ensure message is sent
     }
   }
@@ -172,12 +174,12 @@ class SSEService {
   }
 
   /**
-   * Notifica a un usuario que su contraseña ha sido cambiada
+   * Notifica a un usuario que su contrasena ha sido cambiada
    * @param {number} userId - ID del usuario
    */
   notifyPasswordChanged(userId) {
     this.sendToUser(userId, 'password_changed', {
-      message: 'Tu contraseña ha sido cambiada por un administrador',
+      message: 'Tu contrasena ha sido cambiada por un administrador',
       action: 'logout',
       timestamp: new Date().toISOString()
     });
@@ -196,7 +198,7 @@ class SSEService {
   }
 
   /**
-   * Obtiene estadísticas de conexiones SSE
+   * Obtiene estadisticas de conexiones SSE
    */
   getStats() {
     let totalConnections = 0;
@@ -234,7 +236,7 @@ class SSEService {
     }
 
     this.clients.clear();
-    console.log('📡 SSE: Servicio cerrado correctamente');
+    logger.info('[SSE] Service shut down successfully');
   }
 }
 

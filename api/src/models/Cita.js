@@ -85,6 +85,20 @@ const Cita = sequelize.define('Cita', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  motivo_reagendamiento: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  ediciones_realizadas: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
+  ediciones_maximas: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 2
+  },
   // Auditoría de estados (timestamps de cambios)
   fecha_confirmacion: {
     type: DataTypes.DATE,

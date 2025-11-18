@@ -850,6 +850,13 @@ PRINT '   - Se muestra en la vista de detalles de citas reagendadas';
 PRINT '   - Permite seguimiento específico de reagendamientos';
 PRINT '';
 
+-- Agregar campos para contador de ediciones
+ALTER TABLE Citas
+ADD ediciones_realizadas INT NOT NULL DEFAULT 0;
+
+ALTER TABLE Citas
+ADD ediciones_maximas INT NOT NULL DEFAULT 2;
+GO
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- Seed: Inmueble de prueba (opcional, para testing)

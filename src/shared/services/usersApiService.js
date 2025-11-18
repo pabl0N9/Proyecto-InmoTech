@@ -120,26 +120,26 @@ class UsersApiService {
   }
 
   /**
-   * Crear un nuevo usuario (utiliza el endpoint de registro para crear cuenta completa)
+   * Crear un nuevo usuario (utiliza el endpoint administrativo /personas para crear cuenta completa)
    * @param {Object} userData - Datos del usuario
    * @returns {Promise<Object>} Usuario creado
    */
   async createUser(userData) {
     try {
-      // ✅ CAMBIO: Usar el endpoint de registro (/auth/register) en lugar de /personas
-      // Esto crea la persona, access, y todo lo necesario para que pueda hacer login
-      const registerPayload = {
+      // ✅ CAMBIO: Usar el endpoint administrativo /personas en lugar de /auth/register
+      // Esto crea la persona, acceso y rol sin cambiar la sesión del administrador
+      const personaPayload = {
         tipo_documento: userData.tipo_documento,
         numero_documento: userData.numero_documento,
         nombre_completo: userData.nombre_completo,
         apellido_completo: userData.apellido_completo,
-        email: userData.correo,  // El auth/register espera 'email'
+        correo: userData.correo,
         telefono: userData.telefono,
         password: userData.password,
         confirmPassword: userData.confirmPassword
       };
 
-      return await apiClient.post('/auth/register', registerPayload);
+      return await apiClient.post('/personas', personaPayload);
     } catch (error) {
       console.error('Error creando usuario:', error);
       throw error;

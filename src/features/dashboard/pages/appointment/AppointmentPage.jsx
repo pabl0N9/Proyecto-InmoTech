@@ -344,12 +344,12 @@ const CitasPage = () => {
           </div>
           {/* Botón aparece siempre pero deshabilitado si no tiene permisos */}
           <motion.button
-            disabled={!hasPermission("gCitas", "crear")}
-            whileHover={hasPermission("gCitas", "crear") ? { scale: 1.02 } : {}}
-            whileTap={hasPermission("gCitas", "crear") ? { scale: 0.98 } : {}}
-            onClick={() => hasPermission("gCitas", "crear") ? setIsCreateModalOpen(true) : null}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${hasPermission("gCitas", "crear") ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
-            title={hasPermission("gCitas", "crear") ? "Crear nueva cita" : "No tienes permiso para crear citas"}
+            disabled={!hasPermission("citas", "crear")}
+            whileHover={hasPermission("citas", "crear") ? { scale: 1.02 } : {}}
+            whileTap={hasPermission("citas", "crear") ? { scale: 0.98 } : {}}
+            onClick={() => hasPermission("citas", "crear") ? setIsCreateModalOpen(true) : null}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${hasPermission("citas", "crear") ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
+            title={hasPermission("citas", "crear") ? "Crear nueva cita" : "No tienes permiso para crear citas"}
           >
             <Plus className="w-5 h-5" />
             Nueva Cita

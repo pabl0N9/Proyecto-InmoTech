@@ -3,12 +3,13 @@
  * @version 2.0.0 - Corregido manejo de tokens con apiClient
  */
 
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
 import { apiClient } from '../services/api.config';
 import sseService from '../services/sseService';
 import { useToast } from '../hooks/use-toast';
+import { canonicalizePermissions, normalizeModuleKey, normalizePermissionKey, ADMIN_FULL_ACCESS_MODULES } from '../utils/permissions';
 
 const AuthContext = createContext(undefined);
 
@@ -23,33 +24,28 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   /**
-   * Carga la información de autenticación desde storage
+   * Carga la información de autenticación desde cookies
    */
-  const loadAuthFromStorage = useCallback(() => {
+  const loadAuthFromStorage = useCallback(async () => {
     try {
-      // Verificar tokens usando apiClient (que maneja localStorage)
-      const accessToken = apiClient.getAccessToken();
-      const refreshToken = apiClient.getRefreshToken();
-      
-      // Buscar datos de usuario en localStorage o sessionStorage
-      let userData = localStorage.getItem(USER_KEY);
-      if (!userData) {
-        userData = sessionStorage.getItem(USER_KEY);
-      }
+      // Verificar si hay sesión válida haciendo una petición autenticada al backend
+      const response = await authService.getProfile();
 
-      if (accessToken && userData) {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
+      if (response.success && response.data) {
+        const userData = response.data;
+        setUser(userData);
         setIsAuthenticated(true);
-        console.log('✅ Autenticación cargada:', parsedUser.email);
+        console.log('✅ Sesión restaurada desde cookies:', userData.correo);
       } else {
         setUser(null);
         setIsAuthenticated(false);
-        console.log('⚠️ No hay sesión activa');
+        console.log('⚠️ No hay sesión activa en cookies');
       }
     } catch (error) {
-      console.error('❌ Error cargando autenticación:', error);
-      clearAuthData();
+      console.error('❌ Error verificando sesión:', error);
+      setUser(null);
+      setIsAuthenticated(false);
+      console.log('❌ Sesión expirada o inválida');
     } finally {
       setLoading(false);
     }
@@ -58,20 +54,15 @@ export const AuthProvider = ({ children }) => {
   /**
    * Guarda la información de autenticación
    */
-  const saveAuthToStorage = useCallback((userData, accessToken, refreshToken, rememberMe = false) => {
+  const saveAuthToStorage = useCallback((userData, accessToken, refreshToken) => {
     try {
       // ✅ CRÍTICO: Guardar tokens usando apiClient (siempre en localStorage)
       apiClient.setTokens(accessToken, refreshToken);
-      
-      // Guardar info de usuario según preferencia
+
+      // Guardar info de usuario en sessionStorage
       const userDataString = JSON.stringify(userData);
-      if (rememberMe) {
-        localStorage.setItem(USER_KEY, userDataString);
-        console.log('💾 Sesión persistente guardada');
-      } else {
-        sessionStorage.setItem(USER_KEY, userDataString);
-        console.log('💾 Sesión temporal guardada');
-      }
+      sessionStorage.setItem(USER_KEY, userDataString);
+      console.log('💾 Sesión guardada');
     } catch (error) {
       console.error('❌ Error guardando autenticación:', error);
     }
@@ -81,7 +72,7 @@ export const AuthProvider = ({ children }) => {
    * Limpia toda la información de autenticación
    */
   const clearAuthData = useCallback(() => {
-    apiClient.clearTokens();
+    // Tokens ya se limpiaron en el backend con cookies.clearCookie()
     localStorage.removeItem(USER_KEY);
     sessionStorage.removeItem(USER_KEY);
     setUser(null);
@@ -90,76 +81,36 @@ export const AuthProvider = ({ children }) => {
     console.log('🧹 Datos de autenticación limpiados');
   }, []);
 
-  /**
-   * Inicia sesión del usuario
-   */
 /**
  * Inicia sesión del usuario
  */
-const login = async (email, password, rememberMe = false) => {
+const login = async (email, password) => {
   try {
     setLoading(true);
     setError(null);
     console.log('🔐 Intentando iniciar sesión:', email);
 
-    // authService.login() ya guarda los tokens automáticamente
+    // authService.login() envía tokens como cookies httpOnly
     const response = await authService.login(email, password);
 
     if (response.success && response.data) {
-      const { user: userData, accessToken, refreshToken } = response.data;
-      
-      console.log('📦 Respuesta de login:', {
-        hasUser: !!userData,
-        hasAccessToken: !!accessToken,
-        hasRefreshToken: !!refreshToken
-      });
+      const userData = response.data.user;
 
-      // ✅ CRÍTICO: Verificar que authService guardó los tokens
-      const savedAccessToken = apiClient.getAccessToken();
-      const savedRefreshToken = apiClient.getRefreshToken();
-      
-      console.log('🔍 Verificación de tokens guardados:');
-      console.log('   - Access Token guardado:', !!savedAccessToken);
-      console.log('   - Refresh Token guardado:', !!savedRefreshToken);
-      
-      if (!savedAccessToken || !savedRefreshToken) {
-        console.warn('⚠️ authService no guardó los tokens, guardando ahora...');
-        apiClient.setTokens(accessToken, refreshToken);
-      }
-
-      // Guardar info de usuario según preferencia
-      const userDataString = JSON.stringify(userData);
-      if (rememberMe) {
-        localStorage.setItem(USER_KEY, userDataString);
-        console.log('💾 Sesión persistente guardada');
-      } else {
-        sessionStorage.setItem(USER_KEY, userDataString);
-        console.log('💾 Sesión temporal guardada');
-      }
-      
       // Resetear la bandera de desconexión forzada porque es un login normal
       sseService.resetForcedDisconnect();
 
       setUser(userData);
       setIsAuthenticated(true);
 
-      console.log('✅ Usuario autenticado:', userData.email);
-      console.log('👤 Datos del usuario:', {
-        roles: userData.roles,
-        es_administrativo: userData.es_administrativo,
-        permisos: userData.permisos ? Object.keys(userData.permisos) : 'SIN PERMISOS'
-      });
+      console.log('📦 Datos de usuario recibidos:', response.data);
+      console.log('✅ Usuario autenticado:', userData.correo);
+      console.log('🍪 Tokens guardados como cookies httpOnly');
 
-      // Verificación final
-      console.log('🎯 Verificación FINAL:');
-      console.log('   - localStorage Access Token:', !!localStorage.getItem('inmotech_access_token'));
-      console.log('   - localStorage Refresh Token:', !!localStorage.getItem('inmotech_refresh_token'));
-      
       return userData;
     } else {
       throw new Error(response.message || 'Error en la autenticación');
     }
-  } catch (error) {30000
+  } catch (error) {
     console.error('❌ Error en login:', error);
     setError(error.message || 'Error al iniciar sesión');
     throw error;
@@ -180,14 +131,22 @@ const login = async (email, password, rememberMe = false) => {
       const response = await authService.register(userData);
 
       if (response.success && response.data) {
-        const { user: newUser, accessToken, refreshToken } = response.data;
-        
-        saveAuthToStorage(newUser, accessToken, refreshToken, true);
-        setUser(newUser);
+        const newUser = response.data; // ⚠️ Cambiar de response.data.user a response.data
+
+        // Después del registro, agregar los datos enviados que podrían no estar en la respuesta
+        const completeUserData = {
+          ...userData, // Los datos que intentamos registrar
+          ...newUser   // Datos que devuelve el backend (id, etc.)
+        };
+
+        setUser(completeUserData);
         setIsAuthenticated(true);
 
-        console.log('✅ Usuario registrado:', newUser.email);
-        return newUser;
+        console.log('✅ Usuario registrado:', completeUserData.correo);
+        console.log('🍪 Tokens enviados como cookies httpOnly');
+        console.log('📊 Datos completos del usuario:', completeUserData);
+
+        return completeUserData;
       } else {
         throw new Error(response.message || 'Error en el registro');
       }
@@ -321,6 +280,14 @@ const login = async (email, password, rememberMe = false) => {
   /**
    * Verifica si el usuario tiene un rol específico
    */
+  const permissionsMap = useMemo(() => {
+    if (!user) {
+      return {};
+    }
+
+    return canonicalizePermissions(user.permisos || {});
+  }, [user]);
+
   const hasRole = useCallback((roles) => {
     if (!user || !user.roles) return false;
 
@@ -334,33 +301,39 @@ const login = async (email, password, rememberMe = false) => {
 
   /**
    * Verifica si el usuario tiene un permiso específico
-   */
+  */
   const hasPermission = useCallback((modulo, permiso) => {
-    // ✅ SUPER ADMINISTRADOR TIENE TODOS LOS PERMISOS
-    if (user && user.roles && user.roles.includes('Super Administrador')) {
-      console.log(`🔍 hasPermission - Super Admin: modulo:${modulo}, permiso:${permiso} -> ✅ (acceso total)`);
+    const roleNames = user?.roles?.map(rol =>
+      typeof rol === 'object' ? rol.nombre_rol : rol
+    ).filter(Boolean) || [];
+
+    if (roleNames.includes('Super Administrador') || roleNames.includes('Administrador')) {
       return true;
     }
 
-    if (!user || !user.permisos) {
-      console.log(`❌ hasPermission - Sin usuario o permisos: modulo=${modulo}, permiso=${permiso}`);
+    const modulesToCheck = (Array.isArray(modulo) ? modulo : [modulo]).filter(Boolean);
+    const canonicalModules = modulesToCheck
+      .map((moduleKey) => normalizeModuleKey(moduleKey))
+      .filter(Boolean);
+
+    if (!canonicalModules.length) {
       return false;
     }
 
-    // 🔥 MANEJAR AMBOS FORMATOS: Array y Object
-    let hasPerm = false;
+    const permisosToCheck = permiso ? (Array.isArray(permiso) ? permiso : [permiso]) : [];
+    const canonicalPermissions = permisosToCheck
+      .map((permisoKey) => normalizePermissionKey(permisoKey))
+      .filter(Boolean);
 
-    if (Array.isArray(user.permisos)) {
-      // Formato Array: buscar por objeto
-      hasPerm = user.permisos.some(p => p.modulo === modulo && p.permiso === permiso);
-    } else {
-      // Formato Object: acceder directamente
-      hasPerm = user.permisos[modulo] && user.permisos[modulo][permiso] === true;
-    }
+    const hasPermiso = canonicalModules.some(moduleKey => {
+      const modulePermissions = permissionsMap[moduleKey];
+      if (!modulePermissions) return false;
+      if (!canonicalPermissions.length) return Object.keys(modulePermissions).length > 0;
+      return canonicalPermissions.some(permisoKey => modulePermissions[permisoKey]);
+    });
 
-    console.log(`🔍 hasPermission - modulo:${modulo}, permiso:${permiso} -> ${hasPerm ? '✅' : '❌'}`);
-    return hasPerm;
-  }, [user]);
+    return hasPermiso;
+  }, [permissionsMap, user]);
 
   /**
    * Verifica si el usuario está autenticado y tiene roles específicos
@@ -373,104 +346,34 @@ const login = async (email, password, rememberMe = false) => {
    * Obtiene los módulos disponibles para el usuario basado en sus permisos
    */
   const getAvailableModules = useCallback(() => {
-    if (!user) {
-      console.log('❌ getAvailableModules - Sin usuario');
-      return [];
+    if (!user) return [];
+
+    const roleNames = user.roles?.map(rol =>
+      typeof rol === 'object' ? rol.nombre_rol : rol
+    ).filter(Boolean) || [];
+
+    if (roleNames.includes('Super Administrador') || roleNames.includes('Administrador')) {
+      return ADMIN_FULL_ACCESS_MODULES;
     }
 
-    // ✅ SUPER ADMINISTRADOR TIENE ACCESO A TODOS LOS MÓDULOS
-    if (user.roles && user.roles.includes('Super Administrador')) {
-      console.log('✅ getAvailableModules - Super Admin, todos los módulos');
-      return ['propiedades', 'citas', 'reportes', 'administrativos', 'roles'];
-    }
-
-    if (!user.permisos) {
-      console.log('❌ getAvailableModules - Sin permisos');
-      return [];
-    }
-
-    console.log('🔍 getAvailableModules - Tipos de datos:', {
-      permisosType: typeof user.permisos,
-      permisosIsArray: Array.isArray(user.permisos),
-      permisosKeys: user.permisos ? (Array.isArray(user.permisos) ? user.permisos.length : Object.keys(user.permisos)) : 'null'
-    });
-
-    // 🔥 PERMISOS COMO ARRAY - Transformar a objeto si es necesario
-    let permisosObj = user.permisos;
-    if (Array.isArray(user.permisos)) {
-      permisosObj = {};
-      user.permisos.forEach(permiso => {
-        if (!permisosObj[permiso.modulo]) {
-          permisosObj[permiso.modulo] = {};
-        }
-        permisosObj[permiso.modulo][permiso.permiso] = true;
-      });
-    }
-
-    const availableModules = [];
-
-    if (permisosObj.gInmuebles) {
-      console.log('✅ Permiso gInmuebles encontrado');
-      availableModules.push('propiedades');
-    }
-    if (permisosObj.gCitas) {
-      console.log('✅ Permiso gCitas encontrado');
-      availableModules.push('citas');
-    }
-    if (permisosObj.gReporteInmuebles) {
-      console.log('✅ Permiso gReporteInmuebles encontrado');
-      availableModules.push('reportes');
-    }
-    // Solo Super Administrador y Administrador pueden acceder a administrativos
-    if (user.roles && (user.roles.includes('Super Administrador') || user.roles.includes('Administrador'))) {
-      console.log('✅ Rol Super Administrador o Administrador encontrado - acceso a administrativos');
-      availableModules.push('administrativos');
-    }
-    if (permisosObj.roles) {
-      console.log('✅ Permiso roles encontrado');
-      availableModules.push('roles');
-    }
-
-    // Buscar otros permisos que podrían haber
-    if (permisosObj.gArriendos) {
-      console.log('✅ Permiso gArriendos encontrado');
-      // No hay módulo para arriendos aún
-    }
-    if (permisosObj.gClientes) {
-      console.log('✅ Permiso gClientes encontrado');
-      // No hay módulo para clientes aún
-    }
-    if (permisosObj.gComprador) {
-      console.log('✅ Permiso gComprador encontrado');
-      // No hay módulo para comprador aún
-    }
-    if (permisosObj.gVentas) {
-      console.log('✅ Permiso gVentas encontrado');
-      // No hay módulo para ventas aún
-    }
-    if (permisosObj.gArrendatario) {
-      console.log('✅ Permiso gArrendatario encontrado');
-      // No hay módulo para arrendatario aún
-    }
-
-    console.log('📦 getAvailableModules - Módulos disponibles:', availableModules);
-    return availableModules;
-  }, [user]);
+    const modules = Object.keys(permissionsMap || {});
+    return modules;
+  }, [permissionsMap, user]);
 
   /**
    * Conecta al servicio SSE para notificaciones en tiempo real
    */
   const connectSSE = useCallback(async () => {
     try {
-      const token = apiClient.getAccessToken();
-      if (token && isAuthenticated) {
-        console.log('� Conectando SSE...');
-        await sseService.connect(token);
+      // SSE ahora se conecta con cookies httpOnly automáticamente
+      if (isAuthenticated && user) {
+        console.log('📡 Conectando SSE con cookies httpOnly...');
+        await sseService.connect();
       }
     } catch (error) {
       console.error('❌ Error conectando SSE:', error);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   /**
    * Desconecta del servicio SSE

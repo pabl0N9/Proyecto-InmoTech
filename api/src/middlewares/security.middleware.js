@@ -1,8 +1,8 @@
 const rateLimit = require('express-rate-limit');
 
 const generalLimiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60 * 60 * 1000, // 1 hour for development
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 500, // Increased for development
   message: {
     success: false,
     message: 'Demasiadas solicitudes desde esta IP, por favor intenta de nuevo más tarde'

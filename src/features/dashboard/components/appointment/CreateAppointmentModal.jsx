@@ -426,7 +426,7 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
   const calcularHoraFin = (horaInicio) => {
     const [horas, minutos] = horaInicio.split(":").map(Number);
     let horaFin = horas;
-    let minutosFin = minutos + 30;
+    let minutosFin = minutos + 30; // ✅ Citas de 30 minutos
 
     if (minutosFin >= 60) {
       horaFin += 1;
@@ -449,12 +449,52 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
     }
   };
 
-  // ✅ NUEVO: Función que realmente crea la cita después de la confirmación
+  // ✅ MODIFICADO: Función que realmente crea la cita después de la confirmación
+  // CON VALIDACIÓN FINAL DE HORARIO DISPONIBLE
   const handleConfirmAppointment = async () => {
     setIsCreatingAppointment(true);
 
     try {
-      // Convertir hora_inicio a 24h y calcular hora_fin (30 minutos después)
+      // 🛡️ VALIDACIÓN FINAL: Verificar que el horario sigua disponible justo antes de crear
+      const idServicio = SERVICIO_MAP[formData.servicio] || 1;
+
+      if (idServicio === 1) { // Solo para "Visita a Propiedad"
+        console.log("🔍 Validando disponibilidad final para Visita a Propiedad:", {
+          fecha: formData.fecha,
+          hora_inicio: formData.hora,
+          servicio: formData.servicio
+        });
+
+        // Convertir hora al formato esperado por la API
+        const horaInicio24h = formatHoraParaAPI(formData.hora);
+
+        // Consultar horarios disponibles
+        const disponibilidadData = {
+          fecha_cita: formData.fecha,
+          id_servicio: idServicio
+        };
+
+        const horariosDisponibles = await citaApiService.obtenerHorariosDisponibles(disponibilidadData);
+
+        // Verificar si nuestra hora aún está disponible
+        if (!horariosDisponibles.includes(horaInicio24h)) {
+          console.error("❌ Horario ya no disponible:", horaInicio24h);
+          toast({
+            title: "Horario no disponible",
+            description: `El horario ${formData.hora} para el día ${formData.fecha} ya fue ocupado. Por favor selecciona otro horario.`,
+            variant: "destructive"
+          });
+
+          // Cerrar modal de confirmación y regresar al paso de fecha/hora
+          setShowConfirmationModal(false);
+          setCurrentStep(2);
+          return;
+        }
+
+        console.log("✅ Horario confirmado disponible:", horaInicio24h);
+      }
+
+      // Si la validación pasa, continuar con la creación normal
       const horaInicio24h = formatHoraParaAPI(formData.hora);
       const horaFin24h = calcularHoraFin(horaInicio24h);
 
@@ -478,7 +518,7 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
         fecha_cita: formData.fecha,
         hora_inicio: horaInicio24h,
         hora_fin: horaFin24h,
-        id_servicio: SERVICIO_MAP[formData.servicio] || 1,
+        id_servicio: idServicio,
         id_estado_cita: idEstadoCita,
         id_agente_asignado: idAgenteAsignado,
         id_usuario_creador: user?.id || null,

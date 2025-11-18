@@ -65,6 +65,24 @@ const crearPersonaSchema = Joi.object({
       'string.pattern.base': 'El teléfono debe tener formato colombiano (+57 XXX XXX XXXX o 3XX XXX XXXX)'
     }),
 
+  password: Joi.string()
+    .min(8)
+    .max(100)
+    .required()
+    .messages({
+      'string.min': 'La contraseña debe tener al menos 8 caracteres',
+      'string.max': 'La contraseña no puede exceder 100 caracteres',
+      'any.required': 'La contraseña es requerida para crear una cuenta de usuario'
+    }),
+
+  confirmPassword: Joi.string()
+    .valid(Joi.ref('password'))
+    .required()
+    .messages({
+      'any.only': 'Las contraseñas no coinciden',
+      'any.required': 'La confirmación de contraseña es requerida'
+    }),
+
   tiene_cuenta: Joi.boolean()
     .optional()
     .default(false),

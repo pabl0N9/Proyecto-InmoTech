@@ -45,9 +45,7 @@ export const AppointmentProvider = ({ children }) => {
 
   // Cargar citas solo si hay autenticación y es un administrativo
   useEffect(() => {
-    const token = localStorage.getItem('inmotech_access_token') ||
-                  sessionStorage.getItem('inmotech_access_token');
-    if (token && isAuthenticated && user?.es_administrativo) {
+    if (isAuthenticated && user?.es_administrativo) {
       loadAppointments();
     } else {
       setLoading(false);

@@ -1,6 +1,6 @@
 /**
- * @fileoverview Configuración centralizada de la API y cliente HTTP reutilizable
- * @version 4.0.0 - Corregido loop infinito de refresh
+ * @fileoverview Configuración centralizada de la API con cookies httpOnly
+ * @version 5.0.0 - Usando cookies httpOnly para tokens JWT (más seguro)
  */
 
 const API_CONFIG = {
@@ -12,9 +12,6 @@ const API_CONFIG = {
     'Content-Type': 'application/json',
   }
 };
-
-const ACCESS_TOKEN_KEY = 'inmotech_access_token';
-const REFRESH_TOKEN_KEY = 'inmotech_refresh_token';
 
 class ApiClient {
   constructor() {
@@ -35,31 +32,23 @@ class ApiClient {
   }
 
   getAccessToken() {
-    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
-    console.log('📖 Leyendo Access Token:', token ? '✅ Existe' : '❌ No existe');
-    return token;
+    console.log('🛡️ Tokens ahora almacenados en cookies httpOnly - no accesibles desde frontend');
+    return null; // Los tokens están en cookies httpOnly
   }
 
   getRefreshToken() {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+    console.log('🛡️ Refresh token también en cookies httpOnly');
+    return null; // Los tokens están en cookies httpOnly
   }
 
   setTokens(accessToken, refreshToken) {
-    console.log('💾 Guardando tokens...');
-    if (accessToken) {
-      localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-      console.log('   ✅ Access Token guardado');
-    }
-    if (refreshToken) {
-      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-      console.log('   ✅ Refresh Token guardado');
-    }
+    console.log('🛡️ Tokens enviados como cookies httpOnly por el backend');
+    // Los tokens se envían como cookies httpOnly por el backend
   }
 
   clearTokens() {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    console.log('🗑️ Tokens eliminados del localStorage');
+    console.log('🛡️ Tokens limpiados mediante endpoint /auth/logout');
+    // Los tokens se limpian via backend (cookies.clearCookie)
   }
 
   async refreshAccessToken() {
@@ -176,22 +165,18 @@ class ApiClient {
       url = urlObj.toString();
     }
 
-    // ✅ CRÍTICO: Obtener el token AHORA, no al inicio
-    const accessToken = this.getAccessToken();
     const config = {
       ...options,
       headers: {
         ...API_CONFIG.HEADERS,
         ...options.headers,
       },
+      // Habilitar envío de cookies automáticamente
+      credentials: 'include',
     };
 
-    if (accessToken) {
-      config.headers['Authorization'] = `Bearer ${accessToken}`;
-      console.log('🔑 Token incluido en petición:', accessToken.substring(0, 30) + '...');
-    } else {
-      console.log('⚠️ No hay token para incluir en la petición');
-    }
+    // No necesitamos Authorization headers - el navegador envía cookies automáticamente
+    console.log('🍪 Cookies httpOnly serán enviadas automáticamente por el navegador');
 
     if (config.params) {
       delete config.params;

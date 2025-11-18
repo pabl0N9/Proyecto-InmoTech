@@ -1,10 +1,11 @@
 export const routes = {
     home: '/',
     about: '/nosotros',
-    services: '/servicios', 
+    services: '/servicios',
     properties: '/inmuebles',
     propertyDetails: '/inmuebles/:id',
     contact: '/contactanos',
+    userAppointments: '/mis-citas',
 
     //Dashboard
 

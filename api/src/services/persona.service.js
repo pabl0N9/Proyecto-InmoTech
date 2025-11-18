@@ -388,6 +388,65 @@ class PersonaService {
     }
   }
 
+  /**
+   * Crea una persona administrativa con posibilidad de crear cuenta de usuario
+   * @param {Object} personaData - Datos de la persona
+   * @param {string|null} password - Contraseña si se va a crear usuario
+   * @returns {Promise<Object>} Persona creada
+   */
+  async crearPersonaAdmin(personaData, password = null) {
+    const result = await sequelize.transaction(async (t) => {
+      try {
+        // Preparar datos de persona
+        const datosPersona = {
+          ...personaData,
+          tiene_cuenta: !!password, // Si hay password, tiene cuenta
+          estado: personaData.estado ?? true
+        };
+
+        // Crear persona
+        const persona = await this.crearOActualizar(datosPersona, t);
+
+        // Si se proporciona password, crear acceso y asignar rol Usuario
+        if (password) {
+          const hashedPassword = await bcryptUtils.hashPassword(password);
+
+          // Crear acceso
+          await Acceso.create({
+            id_persona: persona.id_persona,
+            contrasena: hashedPassword,
+            ultimo_cambio_password: new Date()
+          }, { transaction: t });
+
+          // Asignar rol Usuario
+          const rolUsuario = await Rol.findOne({
+            where: { nombre_rol: 'Usuario' },
+            transaction: t
+          });
+
+          if (rolUsuario) {
+            await PersonasRol.create({
+              id_persona: persona.id_persona,
+              id_rol: rolUsuario.id_rol
+            }, { transaction: t });
+          }
+
+          logger.info(`Usuario administrativo creado: ${persona.correo || persona.nombre_completo}`);
+        } else {
+          logger.info(`Persona administrativa creada (sin cuenta): ${persona.nombre_completo}`);
+        }
+
+        return persona;
+
+      } catch (error) {
+        logger.error('Error creando persona administrativa:', error);
+        throw error;
+      }
+    });
+
+    return result;
+  }
+
   // Mantener métodos existentes para compatibilidad
   async buscarPorDocumento(tipo_documento, numero_documento, transaction = null) {
     try {

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, UserCheck, Loader2, Eye, EyeOff, CheckCircle2, XCircle, User, Mail, Phone, Lock } from 'lucide-react';
+import { X, UserCheck, Loader2, Eye, EyeOff, CheckCircle2, XCircle, User, Mail, Phone, Lock, AlertCircle } from 'lucide-react';
 import PasswordValidator from '../../../../shared/components/ui/PasswordValidator';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../shared/components/ui/select';
 import { Input } from '../../../../shared/components/ui/input';
@@ -61,99 +61,106 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
     }
   };
 
-  // ✅ Validar nombres (igual que PropertyVisitModal)
-  const validateNombres = (nombres) => {
-    if (!nombres.trim()) return "Los nombres son requeridos";
-    if (nombres.trim().length < 2)
-      return "Los nombres deben tener al menos 2 caracteres";
-    if (nombres.trim().length > 50)
-      return "Los nombres no pueden tener más de 50 caracteres";
-    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(nombres.trim()))
-      return "Los nombres solo pueden contener letras y espacios";
-    return "";
+  // Funciones de validación (exactamente igual que RegisterPage.jsx)
+  const validateTipoDocumento = (tipo) => {
+    if (!tipo) return 'El tipo de documento es obligatorio';
+    const tiposValidos = ['CC', 'CE', 'NIT', 'PASAPORTE', 'TI'];
+    if (!tiposValidos.includes(tipo)) return 'Tipo de documento inválido';
+    return '';
   };
 
-  // ✅ Validar apellidos (igual que PropertyVisitModal)
-  const validateApellidos = (apellidos) => {
-    if (!apellidos.trim()) return "Los apellidos son requeridos";
-    if (apellidos.trim().length < 2)
-      return "Los apellidos deben tener al menos 2 caracteres";
-    if (apellidos.trim().length > 50)
-      return "Los apellidos no pueden tener más de 50 caracteres";
-    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(apellidos.trim()))
-      return "Los apellidos solo pueden contener letras y espacios";
-    return "";
-  };
+  const validateNumeroDocumento = (numero, tipo) => {
+    if (!numero || !numero.trim()) return 'El número de documento es obligatorio';
+    const numeroLimpio = numero.replace(/[\s\-\.]/g, '');
 
-  // ✅ Validar teléfono colombiano (igual que PropertyVisitModal)
-  const validateTelefono = (telefono) => {
-    if (!telefono.trim()) return "El teléfono es requerido";
-    const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, "");
-    if (!/^(\+57|57)?[3][0-9]{9}$/.test(telefonoLimpio)) {
-      return "El teléfono debe tener formato colombiano (+57 XXX XXX XXXX o 3XX XXX XXXX)";
-    }
-    return "";
-  };
-
-  // ✅ Validar email (igual que PropertyVisitModal)
-  const validateEmail = (email) => {
-    if (!email.trim()) return "El email es requerido";
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email.trim())) return "Ingresa un email válido";
-    if (email.length > 254) return "El email es demasiado largo";
-    return "";
-  };
-
-  // ✅ Validar tipo de documento (igual que PropertyVisitModal)
-  const validateTipoDocumento = (tipoDocumento) => {
-    if (!tipoDocumento) return "El tipo de documento es requerido";
-    return "";
-  };
-
-  // ✅ Validar número de documento (igual que PropertyVisitModal)
-  const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
-    if (!numeroDocumento.trim()) return "El número de documento es requerido";
-
-    const numeroLimpio = numeroDocumento.replace(/[\s.-]/g, "");
-
-    switch (tipoDocumento) {
-      case "CC":
-      case "Cédula de Ciudadanía":
+    switch (tipo) {
+      case 'CC':
         if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
-          return "La cédula debe tener entre 8 y 10 dígitos";
+          return 'La cédula debe tener entre 8 y 10 dígitos numéricos';
         }
         break;
-      case "CE":
-      case "Cédula de Extranjería":
+      case 'CE':
         if (!/^[0-9]{6,10}$/.test(numeroLimpio)) {
-          return "La cédula de extranjería debe tener entre 6 y 10 dígitos";
+          return 'La cédula de extranjería debe tener entre 6 y 10 dígitos numéricos';
         }
         break;
-      case "NIT":
+      case 'NIT':
         if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
-          return "El NIT debe tener entre 8 y 10 dígitos";
+          return 'El NIT debe tener entre 8 y 10 dígitos numéricos';
         }
         break;
-      case "PASAPORTE":
-      case "Pasaporte":
+      case 'PASAPORTE':
         if (numeroLimpio.length < 6 || numeroLimpio.length > 20) {
-          return "El pasaporte debe tener entre 6 y 20 caracteres";
+          return 'El pasaporte debe tener entre 6 y 20 caracteres alfanuméricos';
         }
         if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) {
-          return "El pasaporte solo puede contener letras y números";
+          return 'El pasaporte solo puede contener letras y números';
         }
         break;
-      case "TI":
-      case "Tarjeta de Identidad":
+      case 'TI':
         if (!/^[0-9]{10,11}$/.test(numeroLimpio)) {
-          return "La tarjeta de identidad debe tener 10 u 11 dígitos";
+          return 'La tarjeta de identidad debe tener 10 u 11 dígitos numéricos';
         }
         break;
       default:
-        return "Tipo de documento no válido";
+        return 'Primero selecciona un tipo de documento';
+    }
+    return '';
+  };
+
+  const validateNombreCompleto = (nombre) => {
+    if (!nombre || !nombre.trim()) return 'El nombre completo es obligatorio';
+    const nombreTrim = nombre.trim();
+    if (nombreTrim.length < 2) return 'El nombre debe tener al menos 2 caracteres';
+    if (nombreTrim.length > 50) return 'El nombre no puede tener más de 50 caracteres';
+    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(nombreTrim)) {
+      return 'El nombre solo puede contener letras y espacios';
+    }
+    return '';
+  };
+
+  const validateApellidoCompleto = (apellido) => {
+    if (!apellido || !apellido.trim()) return 'El apellido completo es obligatorio';
+    const apellidoTrim = apellido.trim();
+    if (apellidoTrim.length < 2) return 'El apellido debe tener al menos 2 caracteres';
+    if (apellidoTrim.length > 50) return 'El apellido no puede tener más de 50 caracteres';
+    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(apellidoTrim)) {
+      return 'El apellido solo puede contener letras y espacios';
+    }
+    return '';
+  };
+
+  const validateEmail = (email) => {
+    if (!email || !email.trim()) return 'El correo electrónico es obligatorio';
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) return 'Ingresa un correo electrónico válido';
+    if (email.length > 254) return 'El correo electrónico es demasiado largo';
+    return '';
+  };
+
+  const validateTelefono = (telefono) => {
+    if (!telefono || !telefono.trim()) return 'El teléfono es obligatorio';
+
+    const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, '');
+    const digitosNumericos = telefonoLimpio.replace(/\D/g, '');
+
+    // Formato colombiano:
+    // - Sin +57: exactamente 10 dígitos, comenzando con 3 (ej: 3001234567)
+    // - Con +57: exactamente 12 dígitos totales, comenzando con +57 seguido de número que empiece con 3 (ej: +573001234567)
+
+    if (telefonoLimpio.startsWith('+57')) {
+      // Con prefijo internacional: debe tener exactamente 12 dígitos (+57 + 10 dígitos)
+      if (digitosNumericos.length !== 12 || !/^573\d{9}$/.test(digitosNumericos)) {
+        return 'Con prefijo +57 debe tener formato +573XXXXXXXXX (12 dígitos totales)';
+      }
+    } else {
+      // Sin prefijo internacional: debe tener exactamente 10 dígitos comenzando con 3
+      if (digitosNumericos.length !== 10 || !/^3\d{9}$/.test(digitosNumericos)) {
+        return 'Sin prefijo internacional debe tener 10 dígitos comenzando con 3 (ej: 3001234567)';
+      }
     }
 
-    return "";
+    return '';
   };
 
   const validateField = (field, value) => {
@@ -161,10 +168,10 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
 
     switch (field) {
       case 'nombre_completo':
-        error = validateNombres(value);
+        error = validateNombreCompleto(value);
         break;
       case 'apellido_completo':
-        error = validateApellidos(value);
+        error = validateApellidoCompleto(value);
         break;
       case 'correo':
         error = validateEmail(value);
@@ -411,6 +418,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                       placeholder="Tu número de documento"
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      maxLength={formData.tipo_documento === 'PASAPORTE' ? 20 : formData.tipo_documento === 'TI' ? 11 : 10}
                     />
                     <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                     {/* Indicador de verificación */}
@@ -462,6 +470,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                       className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                       required
                       placeholder="Tu nombre completo"
+                      maxLength={50}
                     />
                     <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                   </div>
@@ -487,6 +496,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                       className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                       required
                       placeholder="Tu apellido completo"
+                      maxLength={50}
                     />
                     <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                   </div>
@@ -515,6 +525,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                       className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                       required
                       placeholder="tu@email.com"
+                      maxLength={254}
                     />
                     <Mail className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                     {/* Indicador de verificación */}

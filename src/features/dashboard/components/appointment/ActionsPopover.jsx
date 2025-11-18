@@ -74,51 +74,51 @@ const ActionsPopover = ({
       actions.push({
         label: 'Ver',
         icon: Eye,
-        action: () => hasPermission("gCitas", "ver") ? onView(appointment) : null,
-        disabled: !hasPermission("gCitas", "ver"),
-        color: hasPermission("gCitas", "ver") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed'
+        action: () => hasPermission("citas", "ver") ? onView(appointment) : null,
+        disabled: !hasPermission("citas", "ver"),
+        color: hasPermission("citas", "ver") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed'
       });
 
       // Aceptar y Cancelar - asumimos que administrativos pueden aprobar/rechazar
       actions.push({
         label: 'Aceptar',
         icon: Check,
-        action: () => hasPermission("gCitas", "editar") ? (onAccept && onAccept(appointment)) : null,
-        disabled: !hasPermission("gCitas", "editar"),
-        color: hasPermission("gCitas", "editar") ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 cursor-not-allowed'
+        action: () => hasPermission("citas", "editar") ? (onAccept && onAccept(appointment)) : null,
+        disabled: !hasPermission("citas", "editar"),
+        color: hasPermission("citas", "editar") ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 cursor-not-allowed'
       });
 
       actions.push({
         label: 'Cancelar',
         icon: X,
-        action: () => hasPermission("gCitas", "eliminar") ? (onReject && onReject(appointment)) : null,
-        disabled: !hasPermission("gCitas", "eliminar"),
-        color: hasPermission("gCitas", "eliminar") ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed'
+        action: () => hasPermission("citas", "eliminar") ? (onReject && onReject(appointment)) : null,
+        disabled: !hasPermission("citas", "eliminar"),
+        color: hasPermission("citas", "eliminar") ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed'
       });
     } else {
       // Para citas confirmadas - TODOS LOS BOTONES APARECEN
       actions.push({
         label: 'Ver',
         icon: Eye,
-        action: () => hasPermission("gCitas", "ver") ? onView(appointment) : null,
-        disabled: !hasPermission("gCitas", "ver"),
-        color: hasPermission("gCitas", "ver") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed'
+        action: () => hasPermission("citas", "ver") ? onView(appointment) : null,
+        disabled: !hasPermission("citas", "ver"),
+        color: hasPermission("citas", "ver") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed'
       });
 
       actions.push({
         label: 'Editar',
         icon: Edit,
-        action: () => hasPermission("gCitas", "editar") ? onEdit(appointment) : null,
-        disabled: !hasPermission("gCitas", "editar"),
-        color: hasPermission("gCitas", "editar") ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 cursor-not-allowed'
+        action: () => hasPermission("citas", "editar") ? onEdit(appointment) : null,
+        disabled: !hasPermission("citas", "editar"),
+        color: hasPermission("citas", "editar") ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 cursor-not-allowed'
       });
 
       actions.push({
         label: 'Eliminar',
         icon: Trash2,
-        action: () => hasPermission("gCitas", "eliminar") ? onDelete(appointment) : null,
-        disabled: !hasPermission("gCitas", "eliminar"),
-        color: hasPermission("gCitas", "eliminar") ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed'
+        action: () => hasPermission("citas", "eliminar") ? onDelete(appointment) : null,
+        disabled: !hasPermission("citas", "eliminar"),
+        color: hasPermission("citas", "eliminar") ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed'
       });
     }
   } else {
@@ -126,9 +126,9 @@ const ActionsPopover = ({
     actions.push({
       label: 'Crear cita',
       icon: Plus,
-      action: () => hasPermission("gCitas", "crear") ? onCreate(date) : null,
-      disabled: !hasPermission("gCitas", "crear"),
-      color: hasPermission("gCitas", "crear") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed'
+      action: () => hasPermission("citas", "crear") ? onCreate(date) : null,
+      disabled: !hasPermission("citas", "crear"),
+      color: hasPermission("citas", "crear") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed'
     });
   }
 

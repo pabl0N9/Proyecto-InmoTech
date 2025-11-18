@@ -23,44 +23,26 @@ import {
 
 const modulesData = [
   {
-    name: "Gestión de Inmuebles",
-    key: "gInmuebles",
+    name: "Gestion de Inmuebles",
+    key: "inmuebles",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Building2,
     color: "bg-slate-50 border-slate-200",
     iconColor: "text-slate-600",
-    description: "Administración completa del portafolio inmobiliario"
+    description: "Administracion completa del portafolio inmobiliario"
   },
   {
-    name: "Gestión de Clientes",
-    key: "gClientes",
-    permisos: ["Crear", "Editar", "Eliminar", "Ver"],
-    icon: Users,
-    color: "bg-slate-50 border-slate-200",
-    iconColor: "text-slate-600",
-    description: "Control de base de datos de clientes y prospectos"
-  },
-  {
-    name: "Gestión de Citas",
-    key: "gCitas",
+    name: "Gestion de Citas",
+    key: "citas",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Calendar,
     color: "bg-slate-50 border-slate-200",
     iconColor: "text-slate-600",
-    description: "Programación y seguimiento de citas comerciales"
+    description: "Programacion y seguimiento de citas comerciales"
   },
   {
-    name: "Gestión de Compradores",
-    key: "gComprador",
-    permisos: ["Crear", "Editar", "Eliminar", "Ver"],
-    icon: ShoppingCart,
-    color: "bg-slate-50 border-slate-200",
-    iconColor: "text-slate-600",
-    description: "Administración de clientes compradores potenciales"
-  },
-  {
-    name: "Gestión de Ventas",
-    key: "gVentas",
+    name: "Gestion de Ventas",
+    key: "ventas",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: DollarSign,
     color: "bg-slate-50 border-slate-200",
@@ -68,17 +50,8 @@ const modulesData = [
     description: "Control de procesos de venta y transacciones"
   },
   {
-    name: "Gestión de Arrendatarios",
-    key: "gArrendatario",
-    permisos: ["Crear", "Editar", "Eliminar", "Ver"],
-    icon: Home,
-    color: "bg-slate-50 border-slate-200",
-    iconColor: "text-slate-600",
-    description: "Administración de inquilinos y contratos de arriendo"
-  },
-  {
-    name: "Gestión de Arriendos",
-    key: "gArriendos",
+    name: "Gestion de Arriendos",
+    key: "arriendos",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Key,
     color: "bg-slate-50 border-slate-200",
@@ -87,14 +60,13 @@ const modulesData = [
   },
   {
     name: "Reportes Inmobiliarios",
-    key: "gReporteInmuebles",
+    key: "reportes",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: BarChart3,
     color: "bg-slate-50 border-slate-200",
     iconColor: "text-slate-600",
-    description: "Generación de informes y análisis de mercado"
-  },
-
+    description: "Generacion de informes y analisis de mercado"
+  }
 ];
 
 const permissionConfig = {

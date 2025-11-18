@@ -4,7 +4,7 @@ import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
 import { Toaster } from './shared/components/ui/toaster'
 import DashboardLayout from './shared/components/dashboard/Layout/DashboardLayout'
-import ProtectedRoute, { EmployeeRoute, DashboardRoute } from './shared/components/ProtectedRoute'
+import ProtectedRoute, { EmployeeRoute, DashboardRoute, AuthenticatedRoute } from './shared/components/ProtectedRoute'
 
 // Pages
 import HomePage from './features/properties/pages/HomePage'
@@ -15,6 +15,7 @@ import AboutPage from './features/about/pages/AboutPage'
 import ServicesPage from './features/services/pages/ServicesPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
+import UserAppointmentsPage from './features/appointments/pages/UserAppointmentsPage'
 
 // Dashboard pages
 import DashboardPage from './features/dashboard/DashboardPage'
@@ -115,6 +116,18 @@ function App() {
               <RegisterPage />
               <Footer />
             </>
+          }
+        />
+
+        {/* Authenticated user routes with navbar/footer */}
+        <Route
+          path="/mis-citas"
+          element={
+            <AuthenticatedRoute>
+              <Navbar />
+              <UserAppointmentsPage />
+              <Footer />
+            </AuthenticatedRoute>
           }
         />
 

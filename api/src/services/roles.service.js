@@ -2,6 +2,7 @@ const { Rol, Persona, PersonasRol, Permiso } = require('../models');
 const { sequelize } = require('../config/database');
 const { Op } = require('sequelize'); // ✅ AGREGADO: Importar Op
 const logger = require('../utils/logger');
+const { buildPermissionsPayload, normalizePermissionsStructure } = require('../utils/permissions.helper');
 
 class RolesService {
   
@@ -76,19 +77,7 @@ if (rolInactivo) {
 
         // Crear permisos si se enviaron
         if (rolData.permisos && Object.keys(rolData.permisos).length > 0) {
-          const permisosData = [];
-          Object.entries(rolData.permisos).forEach(([modulo, permisosModulo]) => {
-            Object.entries(permisosModulo).forEach(([permiso, valor]) => {
-              if (valor === true) {
-                permisosData.push({
-                  id_rol: rol.id_rol,
-                  modulo,
-                  permiso: permiso.toLowerCase(),
-                  estado: true
-                });
-              }
-            });
-          });
+          const permisosData = buildPermissionsPayload(rolData.permisos, rol.id_rol);
 
           if (permisosData.length > 0) {
             await Permiso.bulkCreate(permisosData, { transaction: t });
@@ -395,6 +384,7 @@ if (rolInactivo) {
 
         // Si se enviaron permisos, actualizarlos
         if (permisos) {
+          const normalizedPermissions = normalizePermissionsStructure(permisos);
           // Desactivar permisos existentes
           await Permiso.update(
             { estado: false },
@@ -402,26 +392,31 @@ if (rolInactivo) {
           );
 
           // Reactivar o crear permisos según se necesite
-          for (const [modulo, permisosModulo] of Object.entries(permisos)) {
+          for (const [modulo, permisosModulo] of Object.entries(normalizedPermissions)) {
             for (const [permiso, valor] of Object.entries(permisosModulo)) {
-              if (valor === true) {
-                // Buscar si ya existe el permiso (desactivado o activo)
-                const [permisoExistente, created] = await Permiso.findOrCreate({
-                  where: {
-                    id_rol: rolId,
-                    modulo,
-                    permiso: permiso.toLowerCase()
-                  },
-                  defaults: {
-                    estado: true
-                  },
-                  transaction: t
-                });
+              if (!valor) {
+                continue;
+              }
 
-                // Si no se creó (ya existía), reactivarlo
-                if (!created) {
-                  await permisoExistente.update({ estado: true }, { transaction: t });
-                }
+              // Buscar si ya existe el permiso (desactivado o activo)
+              const [permisoExistente, created] = await Permiso.findOrCreate({
+                where: {
+                  id_rol: rolId,
+                  modulo,
+                  permiso
+                },
+                defaults: {
+                  id_rol: rolId,
+                  modulo,
+                  permiso,
+                  estado: true
+                },
+                transaction: t
+              });
+
+              // Si no se creó (ya existía), reactivarlo
+              if (!created) {
+                await permisoExistente.update({ estado: true }, { transaction: t });
               }
             }
           }

@@ -143,7 +143,7 @@ const DayListModal = ({
                           {appointment.estado === 'solicitada' ? (
                             <>
                               {/* Para citas solicitadas */}
-                              {hasPermission("gCitas", "ver") && (
+                              {hasPermission("citas", "ver") && (
                                 <button
                                   onClick={() => onViewAppointment(appointment)}
                                   className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
@@ -168,7 +168,7 @@ const DayListModal = ({
                           ) : (
                             <>
                               {/* Para citas confirmadas */}
-                              {hasPermission("gCitas", "ver") && (
+                              {hasPermission("citas", "ver") && (
                                 <button
                                   onClick={() => onViewAppointment(appointment)}
                                   className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
@@ -176,7 +176,7 @@ const DayListModal = ({
                                   Ver
                                 </button>
                               )}
-                              {hasPermission("gCitas", "editar") && (
+                              {hasPermission("citas", "editar") && (
                                 <button
                                   onClick={() => onEditAppointment(appointment)}
                                   className="flex-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
@@ -184,7 +184,7 @@ const DayListModal = ({
                                   Editar
                                 </button>
                               )}
-                              {hasPermission("gCitas", "eliminar") && (
+                              {hasPermission("citas", "eliminar") && (
                                 <button
                                   onClick={() => onDeleteAppointment(appointment)}
                                   className="flex-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"

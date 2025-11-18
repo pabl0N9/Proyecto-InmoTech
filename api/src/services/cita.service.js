@@ -99,7 +99,13 @@ class CitaService {
 
     if (!cita) throw new Error('Cita no encontrada');
 
-    return cita;
+    // ✅ FORZAR VALORES POR DEFECTO PARA CAMPOS NULLABLE
+    // ⚠️ IMPORTANTE: Usar ?? (nullish coalescing) para NO sobrescribir valores válidos (como 0)
+    const citaData = cita.toJSON();
+    citaData.ediciones_realizadas = citaData.ediciones_realizadas ?? 0;
+    citaData.ediciones_maximas = citaData.ediciones_maximas ?? 2;
+
+    return citaData;
   }
 
   async obtenerTodasLasCitas(filtros = {}) {
@@ -297,23 +303,56 @@ class CitaService {
   }
 
   async reagendarCita(id, nuevosDatos) {
-    try {
-      const cita = await this.obtenerCitaPorId(id);
+    const result = await sequelize.transaction(async (t) => {
+      try {
+        logger.info(`🔄 Reagendando cita ${id} con datos: ${JSON.stringify(nuevosDatos)}`);
 
-      if (!cita) {
-        throw new Error('Cita no encontrada');
+        const cita = await this.obtenerCitaPorId(id, t);
+
+        if (!cita) {
+          throw new Error('Cita no encontrada');
+        }
+
+        // Guardar ID del agente anterior para historial
+        const idAgenteAnterior = cita.id_agente_asignado;
+
+        // Actualizar la cita con los nuevos datos
+        const datosActualizados = {
+          fecha_cita: nuevosDatos.fecha_cita,
+          hora_inicio: nuevosDatos.hora_inicio,
+          hora_fin: nuevosDatos.hora_fin,
+          motivo_reagendamiento: nuevosDatos.motivo_reagendamiento,
+          id_agente_asignado: nuevosDatos.id_agente_asignado,
+          id_estado_cita: 4, // Reagendada
+          fecha_actualizacion: new Date()
+        };
+
+        await cita.update(datosActualizados, { transaction: t });
+
+        // Si se cambió el agente, registrar en historial de asignaciones
+        if (idAgenteAnterior !== nuevosDatos.id_agente_asignado) {
+          const { HistorialAsignacionAgente } = require('../models');
+          await HistorialAsignacionAgente.create({
+            id_cita: id,
+            id_agente_anterior: idAgenteAnterior,
+            id_agente_nuevo: nuevosDatos.id_agente_asignado,
+            comentario: `Reagendamiento de cita - ${nuevosDatos.motivo_reagendamiento}`,
+            estado_asignacion: idAgenteAnterior ? 'Reasignada' : 'Activa',
+            id_usuario_realizo: nuevosDatos.id_usuario_realizo,
+            fecha_asignacion: new Date()
+          }, { transaction: t });
+        }
+
+        logger.info(`✅ Cita ${id} reagendada exitosamente`);
+        return await this.obtenerCitaPorId(id, t);
+
+      } catch (error) {
+        logger.error(`❌ Error reagendando cita ${id}: ${error.message}`);
+        throw error;
       }
+    });
 
-      await cita.update({
-        ...nuevosDatos,
-        id_estado_cita: 4, // Reagendada
-        fecha_actualizacion: new Date()
-      });
-
-      return cita;
-    } catch (error) {
-      throw error;
-    }
+    return result;
   }
 
   async completarCita(id) {
@@ -747,6 +786,236 @@ class CitaService {
       logger.error(`❌ Error en obtenerCitasPorUsuario: ${error.message}`);
       throw error;
     }
+  }
+
+  /**
+   * Obtener citas del usuario como cliente (citas que agendó para sí mismo)
+   * @param {number} userId - ID del usuario (cliente)
+   * @param {Object} filtros - Filtros adicionales (estado, fecha, etc.)
+   * @returns {Promise<Array>} Lista de citas del usuario como cliente
+   */
+  async obtenerCitasPorCliente(userId, filtros = {}) {
+    try {
+      logger.info(`🔍 Consultando citas como cliente para usuario ${userId} con filtros: ${JSON.stringify(filtros)}`);
+
+      let whereClause = { id_persona: userId };
+
+      // Aplicar filtros básicos
+      if (filtros.id_estado_cita) whereClause.id_estado_cita = filtros.id_estado_cita;
+      if (filtros.fecha_cita) whereClause.fecha_cita = filtros.fecha_cita;
+      if (filtros.id_servicio) whereClause.id_servicio = filtros.id_servicio;
+
+      logger.info(`📋 WHERE clause para cliente ${userId}: ${JSON.stringify(whereClause)}`);
+
+      const citas = await Cita.findAll({
+        where: whereClause,
+        include: [
+          {
+            association: 'inmueble',
+            attributes: ['registro_inmobiliario', 'direccion', 'pais', 'departamento', 'ciudad']
+          },
+          {
+            association: 'servicio',
+            attributes: ['nombre_servicio']
+          },
+          {
+            association: 'estado',
+            attributes: ['nombre_estado']
+          },
+          {
+            association: 'agente',
+            required: false,
+            attributes: ['id_persona', 'nombre_completo', 'apellido_completo', 'telefono', 'correo']
+          },
+          {
+            association: 'creador',
+            required: false,
+            attributes: ['id_persona', 'nombre_completo', 'apellido_completo']
+          }
+        ],
+        order: [
+          ['fecha_cita', 'DESC'],
+          ['hora_inicio', 'ASC']
+        ],
+        logging: false
+      });
+
+      // Transformar al formato del frontend
+      const citasFormateadas = citas.map(cita => ({
+        id: cita.id_cita,
+        id_cita: cita.id_cita,
+        id_persona: cita.id_persona,
+        id_inmueble: cita.id_inmueble,
+        id_servicio: cita.id_servicio,
+        id_usuario_creador: cita.id_usuario_creador,
+        fecha_cita: cita.fecha_cita,
+        hora_inicio: cita.hora_inicio,
+        hora_fin: cita.hora_fin,
+        id_estado_cita: cita.id_estado_cita,
+        id_agente_asignado: cita.id_agente_asignado,
+        observaciones: cita.observaciones,
+        fecha_creacion: cita.fecha_creacion,
+        fecha_actualizacion: cita.fecha_actualizacion,
+        ediciones_realizadas: cita.ediciones_realizadas || 0,
+        ediciones_maximas: cita.ediciones_maximas || 2,
+
+        inmueble: cita.inmueble ? {
+          registro_inmobiliario: cita.inmueble.registro_inmobiliario,
+          direccion: cita.inmueble.direccion,
+          pais: cita.inmueble.pais,
+          departamento: cita.inmueble.departamento,
+          ciudad: cita.inmueble.ciudad
+        } : null,
+
+        servicio: cita.servicio ? {
+          nombre_servicio: cita.servicio.nombre_servicio
+        } : null,
+
+        estado: cita.estado ? cita.estado.nombre_estado : 'Desconocido',
+
+        agente: cita.agente ? {
+          id_persona: cita.agente.id_persona,
+          nombre_completo: cita.agente.nombre_completo,
+          apellido_completo: cita.agente.apellido_completo,
+          telefono: cita.agente.telefono,
+          correo: cita.agente.correo
+        } : null,
+
+        creador: cita.creador ? {
+          id_persona: cita.creador.id_persona,
+          nombre_completo: cita.creador.nombre_completo,
+          apellido_completo: cita.creador.apellido_completo
+        } : null
+      }));
+
+      logger.info(`✅ ${citasFormateadas.length} citas obtenidas para cliente ${userId}`);
+      return citasFormateadas;
+
+    } catch (error) {
+      logger.error(`❌ Error en obtenerCitasPorCliente: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Incrementar el contador de ediciones realizadas sobre una cita
+   * @param {number} idCita - ID de la cita
+   * @returns {Promise<boolean>} True si se incrementó exitosamente
+   */
+  async incrementarContadorEdiciones(idCita) {
+    try {
+      logger.info(`🔢 Incrementando contador de ediciones para cita ${idCita}`);
+
+      const [affectedRows] = await Cita.increment('ediciones_realizadas', {
+        where: { id_cita: idCita },
+        by: 1
+      });
+
+      if (affectedRows === 0) {
+        throw new Error('No se pudo incrementar el contador de ediciones');
+      }
+
+      logger.info(`✅ Contador de ediciones incrementado para cita ${idCita}`);
+      return true;
+
+    } catch (error) {
+      logger.error(`❌ Error incrementando contador de ediciones para cita ${idCita}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * ✅ MÉTODO COMBINADO: Incrementar contador + Actualizar cita en una transacción atómica
+   * @param {number} idCita - ID de la cita
+   * @param {Object} nuevosDatos - Datos para actualizar
+   * @returns {Promise<Object>} Cita actualizada con contador incrementado
+   */
+  async incrementarContadorEdicionesActualizar(idCita, nuevosDatos) {
+    console.log(`🚨🚨🚨 [SERVICE] incrementarContadorEdicionesActualizar llamado para cita ${idCita}`);
+    console.log(`🚨🚨🚨 [SERVICE] Datos recibidos:`, nuevosDatos);
+
+    const result = await sequelize.transaction(async (t) => {
+      try {
+        console.log(`🔢🔄 [DEBUG] Entrando a transacción para cita ${idCita}`);
+        console.log(`🔢🔄 [DEBUG] Datos recibidos en try: ${JSON.stringify(nuevosDatos)}`);
+        logger.info(`🔢🔄 [DEBUG] Incrementando contador Y actualizando cita ${idCita} atómicamente`);
+        logger.info(`🔢🔄 [DEBUG] Datos recibidos: ${JSON.stringify(nuevosDatos)}`);
+
+        // Verificar cita original antes de actualizar
+        const citaOriginal = await Cita.findByPk(idCita, {
+          attributes: [
+            'id_cita',
+            'fecha_cita',
+            'hora_inicio',
+            'ediciones_realizadas',
+            'ediciones_maximas',
+            'id_agente_asignado',
+            'id_persona',
+            'id_inmueble',
+            'id_servicio',
+            'id_estado_cita'
+          ],
+          transaction: t
+        });
+
+        if (!citaOriginal) {
+          throw new Error(`Cita ${idCita} no encontrada`);
+        }
+
+        const edicionesMaximas = citaOriginal.ediciones_maximas ?? 2;
+        logger.info(`🔢🔄 [DEBUG] Cita original antes: fecha=${citaOriginal.fecha_cita}, ediciones=${citaOriginal.ediciones_realizadas}/${edicionesMaximas}`);
+
+        // Obtener el valor actual del contador y actualizar todo en una sola operación
+        const citaActual = await Cita.findByPk(idCita, {
+          attributes: ['id_cita', 'ediciones_realizadas'],
+          transaction: t
+        });
+
+        const valorActual = citaActual.ediciones_realizadas || 0;
+        const nuevoValor = valorActual + 1;
+
+        logger.info(`✅ [DEBUG] Valor actual del contador: ${valorActual}, nuevo valor: ${nuevoValor}`);
+
+        // ACTUALIZACIÓN SIMULTÁNEA: Fecha/hora Y contador en una sola operación
+        const datosCompletos = {
+          fecha_cita: nuevosDatos.fecha_cita,
+          hora_inicio: nuevosDatos.hora_inicio,
+          hora_fin: nuevosDatos.hora_fin,
+          motivo_reagendamiento: nuevosDatos.motivo_reagendamiento,
+          id_agente_asignado: nuevosDatos.id_agente_asignado,
+          id_estado_cita: nuevosDatos.id_estado_cita,
+          ediciones_realizadas: nuevoValor, // ✅ VALOR CALCULADO (0+1=1)
+          ediciones_maximas: edicionesMaximas,
+          fecha_actualizacion: new Date()
+        };
+
+        logger.info(`🔢🔄 [DEBUG] ACTUALIZACIÓN FINAL - Datos: ${JSON.stringify(datosCompletos)}`);
+
+        // Usar Sequelize update con todos los campos en una sola operación atómica
+        const [affectedRows] = await Cita.update(datosCompletos, {
+          where: { id_cita: idCita },
+          transaction: t
+        });
+
+        logger.info(`✅ [DEBUG] UPDATE-Sequelize ejecutado. Filas afectadas: ${affectedRows}`);
+
+        if (affectedRows === 0) {
+          throw new Error('No se pudo actualizar la cita');
+        }
+
+        // Verificar que realmente se guardó en la base de datos y retornar con includes completos
+        const citaFinal = await this.obtenerCitaPorId(idCita, t);
+        logger.info(`🔢🔄 [DEBUG] VERIFICACIÓN POST-UPDATE: fecha=${citaFinal.fecha_cita}, ediciones=${citaFinal.ediciones_realizadas}/${citaFinal.ediciones_maximas}`);
+        logger.info(`🔢🔄 [DEBUG] Cita final retornada con EDICIONES: ${citaFinal.ediciones_realizadas}`);
+        return citaFinal;
+
+      } catch (error) {
+        logger.error(`❌ Error en operación atómica para cita ${idCita}: ${error.message}`);
+        throw error;
+      }
+    });
+
+    return result;
   }
 
 }

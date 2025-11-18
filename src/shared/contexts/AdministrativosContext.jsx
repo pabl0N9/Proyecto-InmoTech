@@ -181,10 +181,9 @@ export const AdministrativosProvider = ({ children }) => {
 
   // Cargar datos iniciales solo si hay autenticación y roles adecuados
   useEffect(() => {
-    // Solo cargar si hay un token de autenticación, está autenticado y tiene rol Super Administrador o Administrador
-    const token = localStorage.getItem('inmotech_access_token') || sessionStorage.getItem('inmotech_access_token');
+    // Solo cargar si está autenticado y tiene rol Super Administrador o Administrador
     const hasRequiredRole = user?.roles?.some(role => ['Super Administrador', 'Administrador'].includes(role));
-    if (token && isAuthenticated && hasRequiredRole) {
+    if (isAuthenticated && hasRequiredRole) {
       loadAdministrativos();
     } else {
       setLoading(false);

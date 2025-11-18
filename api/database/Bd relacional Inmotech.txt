@@ -252,6 +252,10 @@ CREATE TABLE Citas (
     es_reagendada BIT NOT NULL DEFAULT 0, -- 1 si fue reagendada
     id_cita_original INT NULL, -- FK autorreferencial para trazabilidad
     
+    -- Contador de ediciones realizadas sobre esta cita
+    ediciones_realizadas INT NOT NULL DEFAULT 0, -- Número de ediciones realizadas
+    ediciones_maximas INT NOT NULL DEFAULT 2, -- Máximo de ediciones permitidas (configurable)
+
     -- Auditoría
     fecha_creacion DATETIME NOT NULL DEFAULT GETDATE(),
     fecha_confirmacion DATETIME NULL, -- Cuando el agente la confirma

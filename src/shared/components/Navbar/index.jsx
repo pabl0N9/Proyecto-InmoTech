@@ -59,7 +59,7 @@ const Navbar = () => {
       {/* Mobile Menu with Enhanced Animation */}
       <div className={`md:hidden overflow-hidden transition-all duration-500 ease-out ${
         mobileMenu.isOpen
-          ? 'max-h-96 opacity-100 transform translate-y-0'
+          ? 'max-h-screen opacity-100 transform translate-y-0'
           : 'max-h-0 opacity-0 transform -translate-y-4'
       }`}>
         <MobileMenu

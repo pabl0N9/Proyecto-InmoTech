@@ -3,6 +3,7 @@ const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
+const { buildPermissionsResponse } = require('../utils/permissions.helper');
 
 class AuthService {
   /**
@@ -167,19 +168,16 @@ class AuthService {
       const es_administrativo = es_super_admin || (tiene_rol_administrativo && persona.administrativo !== null);
 
       // Consolidar permisos de todos los roles del usuario
-      const permisos = {};
-      if (persona.roles) {
-        persona.roles.forEach(rol => {
-          if (rol.permisos) {
-            rol.permisos.forEach(permiso => {
-              if (!permisos[permiso.modulo]) {
-                permisos[permiso.modulo] = {};
-              }
-              permisos[permiso.modulo][permiso.permiso] = true;
-            });
+      const permisosConsolidados = persona.roles?.reduce((acc, rol) => {
+        rol.permisos?.forEach(p => {
+          if (!acc[p.modulo]) {
+            acc[p.modulo] = {};
           }
+          acc[p.modulo][p.permiso] = true;
         });
-      }
+        return acc;
+      }, {}) || {};
+      const permisos = buildPermissionsResponse(permisosConsolidados);
 
       // Generar tokens
       const payload = {
@@ -197,8 +195,12 @@ class AuthService {
         user: {
           id: persona.id_persona,
           email: persona.correo,
+          correo: persona.correo,
           nombre_completo: persona.nombre_completo,
           apellido_completo: persona.apellido_completo,
+          tipo_documento: persona.tipo_documento,
+          numero_documento: persona.numero_documento,
+          telefono: persona.telefono,
           roles: roles,
           es_administrativo: es_administrativo,
           permisos: permisos,
@@ -291,13 +293,22 @@ class AuthService {
           {
             model: Acceso,
             as: 'acceso',
-            required: true
+            required: false,
+            attributes: ['ultimo_cambio_password']
           },
           {
             model: Rol,
             as: 'roles',
             through: { attributes: [] },
-            attributes: ['id_rol', 'nombre_rol', 'descripcion', 'es_rol_administrativo']
+            attributes: ['id_rol', 'nombre_rol', 'descripcion', 'es_rol_administrativo'],
+            include: [
+              {
+                model: require('../models').Permiso,
+                as: 'permisos',
+                where: { estado: true },
+                required: false
+              }
+            ]
           },
           {
             model: Administrativo,
@@ -332,16 +343,31 @@ class AuthService {
         throw new Error('Acceso administrativo revocado - sesión terminada por seguridad');
       }
 
+      // Consolidar permisos de todos los roles del usuario
+      const permisosConsolidados = persona.roles?.reduce((acc, rol) => {
+        rol.permisos?.forEach(p => {
+          if (!acc[p.modulo]) {
+            acc[p.modulo] = {};
+          }
+          acc[p.modulo][p.permiso] = true;
+        });
+        return acc;
+      }, {}) || {};
+      const permisos = buildPermissionsResponse(permisosConsolidados);
+
       return {
         id_persona: persona.id_persona,
+        tipo_documento: persona.tipo_documento,
+        numero_documento: persona.numero_documento,
         nombre_completo: persona.nombre_completo,
         apellido_completo: persona.apellido_completo,
         correo: persona.correo,
         telefono: persona.telefono,
         fecha_registro: persona.fecha_registro,
         estado: persona.estado,
-        roles: persona.roles || [],
+        roles: persona.roles ? persona.roles.map(rol => rol.nombre_rol) : [],
         es_administrativo: es_administrativo,
+        permisos: permisos,
         ultimo_cambio_password: persona.acceso.ultimo_cambio_password
       };
 

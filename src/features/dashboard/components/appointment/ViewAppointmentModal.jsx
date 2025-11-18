@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Phone, Mail, Calendar, Clock, Home, FileText, MapPin, Hash } from 'lucide-react';
 import { useAuth } from '../../../../shared/contexts/AuthContext';
+import citaApiService from '../../../../shared/services/citaApiService';
 
 const ViewAppointmentModal = ({ isOpen, onClose, cita }) => {
   const contentRef = useRef(null);
@@ -20,80 +21,58 @@ const ViewAppointmentModal = ({ isOpen, onClose, cita }) => {
   const formatDate = (dateString) => {
     if (!dateString) return '';
 
-    let date;
+    try {
+      let date;
 
-    // Si es un string en formato YYYY-MM-DD
-    if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      const [year, month, day] = dateString.split('-');
-      date = new Date(Number(year), Number(month) - 1, Number(day));
-    }
-    // Si es un string ISO o Date object
-    else if (typeof dateString === 'string' || dateString instanceof Date) {
-      date = new Date(dateString);
-    }
-    // Si no es válido
-    else {
-      return 'Fecha inválida';
-    }
+      // Si es un formato ISO con T (puede tener zona horaria UTC)
+      if (typeof dateString === 'string' && dateString.includes('T')) {
+        date = new Date(dateString);
+        // Si viene en UTC y podemos afectar la fecha, normalizamos
+        const utcDate = date.getUTCDate();
+        const utcMonth = date.getUTCMonth();
+        const utcYear = date.getUTCFullYear();
 
-    // Verificar si la fecha es válida
-    if (isNaN(date.getTime())) {
-      return 'Fecha inválida';
-    }
+        // Crear fecha local sin zona horaria
+        date = new Date(utcYear, utcMonth, utcDate);
+      }
+      // Si es formato YYYY-MM-DD
+      else if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        date = new Date(dateString + 'T00:00:00');
+      }
+      // Otros formatos
+      else {
+        date = new Date(dateString);
+      }
 
-    return date.toLocaleDateString('es-ES', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
+      // Verificar si la fecha es válida
+      if (isNaN(date.getTime())) {
+        console.error('Fecha inválida:', dateString);
+        return 'Fecha inválida';
+      }
+
+      return date.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formateando fecha en ViewAppointmentModal:', error, dateString);
+      return 'Error de fecha';
+    }
   };
 
 
   const formatTime = (timeString) => {
     if (!timeString) return '';
-    
-    const timeStr = timeString.trim();
-    
-    // ✅ AGREGADO: Manejar formato ISO (1970-01-01T06:00:00.000Z)
-    if (timeStr.includes('T') && timeStr.includes('Z')) {
-      const date = new Date(timeStr);
-      if (!isNaN(date.getTime())) {
-        const hours = date.getUTCHours();
-        const minutes = date.getUTCMinutes();
-        const isPM = hours >= 12;
-        const hours12 = hours === 0 ? 12 : (hours > 12 ? hours - 12 : hours);
-        return `${hours12}:${String(minutes).padStart(2, '0')} ${isPM ? 'pm' : 'am'}`;
-      }
+
+    try {
+      // Usar la función centralizada corregida para zona horaria
+      return citaApiService.formatHoraDesdeAPI(timeString);
+    } catch (error) {
+      console.error('❌ Error formateando hora en ViewAppointmentModal:', error, timeString);
+      return timeString || 'Error de formato';
     }
-    
-    // Tu código original para otros formatos
-    let cleanedTime = timeStr;
-    const ampmMatches = cleanedTime.match(/\b(am|pm)\b/gi) || [];
-    const totalSuffixes = ampmMatches.length;
-    
-    if (totalSuffixes > 1) {
-      cleanedTime = cleanedTime.replace(/\s*\b(am|pm)\b/gi, '').trim();
-      const lastSuffix = ampmMatches[totalSuffixes - 1].toLowerCase();
-      cleanedTime += ' ' + lastSuffix;
-    }
-    
-    if (/\b(am|pm)\b/i.test(cleanedTime)) {
-      return cleanedTime;
-    }
-    
-    const timeParts = cleanedTime.split(':');
-    if (timeParts.length !== 2) return cleanedTime;
-    
-    const hours24 = parseInt(timeParts[0], 10);
-    const minutes = timeParts[1];
-    
-    if (isNaN(hours24)) return cleanedTime;
-    
-    const hours12 = hours24 === 0 ? 12 : hours24 > 12 ? hours24 - 12 : hours24;
-    const ampm = hours24 >= 12 ? 'pm' : 'am';
-    
-    return `${hours12}:${minutes} ${ampm}`;
   };
   
   
@@ -280,6 +259,26 @@ const infoItems = [
                     <div className="flex-1">
                       <p className="text-sm font-medium text-slate-600 mb-2">Observaciones</p>
                       <p className="text-slate-800 leading-relaxed">{cita.observaciones}</p> {/* ✅ CAMBIO: notas → observaciones */}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Motivo de Reagendamiento */}
+              {cita.motivo_reagendamiento && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.7 }}
+                  className="bg-orange-50 border border-orange-200 rounded-xl p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-white shadow-sm">
+                      <FileText className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-orange-600 mb-2">Motivo de Reagendamiento</p>
+                      <p className="text-orange-800 leading-relaxed">{cita.motivo_reagendamiento}</p>
                     </div>
                   </div>
                 </motion.div>

@@ -18,7 +18,7 @@ export const UsersProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { toast } = useToast();
-  const { isAuthenticated, user, hasPermission } = useAuth();
+  const { isAuthenticated, user, hasPermission, hasRole } = useAuth();
 
   // Cargar usuarios
   const loadUsers = useCallback(async (params = {}) => {
@@ -240,12 +240,10 @@ export const UsersProvider = ({ children }) => {
 
   // Cargar datos iniciales solo si hay autenticación Y el usuario tiene permisos
   useEffect(() => {
-    const token = localStorage.getItem('inmotech_access_token') || sessionStorage.getItem('inmotech_access_token');
+    const isAdminRole = hasRole(['Super Administrador', 'Administrador']);
+    const canReadUsers = isAdminRole;
 
-    // Usar hasPermission para verificar si puede leer usuarios (funciona para super admin)
-    const canReadUsers = user && hasPermission('usuarios', 'read');
-
-    if (token && isAuthenticated && canReadUsers) {
+    if (isAuthenticated && canReadUsers) {
       loadUsers();
     } else {
       setLoading(false);
@@ -254,7 +252,7 @@ export const UsersProvider = ({ children }) => {
         setError(null);
       }
     }
-  }, [loadUsers, isAuthenticated, user, hasPermission]);
+  }, [loadUsers, isAuthenticated, hasRole]);
 
   const value = {
     users,

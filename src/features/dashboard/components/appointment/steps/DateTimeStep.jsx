@@ -1,17 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import citaApiService from '../../../../../shared/services/citaApiService';
 
 const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(formData.fecha);
   const [isPreselected, setIsPreselected] = useState(!!formData.fecha);
-  const [availableHours] = useState([
-    '8:00 am', '8:30 am', '9:00 am', '9:30 am', '10:00 am', '10:30 am',
-    '11:00 am', '11:30 am', '12:00 pm', '12:30 pm', '1:00 pm', '1:30 pm',
-    '2:00 pm', '2:30 pm', '3:00 pm', '3:30 pm', '4:00 pm', '4:30 pm',
-    '5:00 pm', '5:30 pm'
-  ]);
+  const [availableHours, setAvailableHours] = useState([]);
+  const [loadingHours, setLoadingHours] = useState(false);
 
   // Refs para los campos
   const calendarRef = useRef(null);
@@ -115,12 +112,71 @@ const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => 
     return `${weekday}, ${day} de ${monthName} de ${year}`;
   };
 
+  // Función para cargar horarios disponibles
+  const loadAvailableHours = async (fecha, servicio = null) => {
+    if (!fecha) return;
+
+    setLoadingHours(true);
+    try {
+      // Si hay servicio seleccionado, usar la lógica de bloqueo
+      // Caso contrario, usar horarios predeterminados
+      if (servicio) {
+        console.log('Loading restricted hours for service:', servicio);
+
+        // Mapear el nombre del servicio al ID
+        const SERVICIO_MAP = {
+          "Visita a Propiedad": 1,
+          "Avalúos": 2,
+          "Gestión de Alquileres": 3,
+          "Asesoría Legal": 4,
+        };
+
+        const idServicio = SERVICIO_MAP[servicio] || 1;
+
+        const data = {
+          fecha_cita: fecha,
+          id_servicio: idServicio
+        };
+
+        const response = await citaApiService.obtenerHorariosDisponibles(data);
+        setAvailableHours(response);
+      } else {
+        // Sin servicio seleccionado: horarios predeterminados
+        console.log('Loading default hours (no service restriction)');
+        const defaultHours = [];
+        for (let hora = 8; hora <= 17; hora++) {
+          defaultHours.push(`${hora.toString().padStart(2, '0')}:00`);
+          if (hora < 17) {
+            defaultHours.push(`${hora.toString().padStart(2, '0')}:30`);
+          }
+        }
+        setAvailableHours(defaultHours);
+      }
+    } catch (error) {
+      console.error('Error loading available hours:', error);
+      // Fallback: horarios predeterminados
+      const defaultHours = [];
+      for (let hora = 8; hora <= 17; hora++) {
+        defaultHours.push(`${hora.toString().padStart(2, '0')}:00`);
+        if (hora < 17) {
+          defaultHours.push(`${hora.toString().padStart(2, '0')}:30`);
+        }
+      }
+      setAvailableHours(defaultHours);
+    } finally {
+      setLoadingHours(false);
+    }
+  };
+
   const handleDateSelect = (day) => {
     if (day.isDisabled) return;
 
     const dateString = formatDateForInput(day.date);
     setSelectedDate(dateString);
     updateFormData('fecha', dateString);
+
+    // Cargar horarios para esta fecha
+    loadAvailableHours(dateString, formData.servicio);
   };
 
   const handleHourSelect = (hour) => {
@@ -146,6 +202,13 @@ const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => 
       });
     }
   }, [selectedDate]);
+
+  // Recargar horarios cuando cambia el servicio (si ya hay fecha seleccionada)
+  useEffect(() => {
+    if (selectedDate && formData.servicio) {
+      loadAvailableHours(selectedDate, formData.servicio);
+    }
+  }, [formData.servicio]);
 
   return (
     <motion.div
@@ -260,27 +323,49 @@ const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => 
           <div className="flex items-center gap-2 text-slate-700">
             <Clock className="w-5 h-5" />
             <h4 className="font-medium">Seleccionar Hora</h4>
+            {formData.servicio && (
+              <span className="text-sm text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+                Servicio: {formData.servicio}
+              </span>
+            )}
           </div>
 
-          <div className="grid grid-cols-4 gap-3">
-            {availableHours.map(hour => (
-              <motion.button
-                key={hour}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleHourSelect(hour)}
-                className={`
-                  py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200
-                  ${formData.hora === hour
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-blue-50'
-                  }
-                `}
-              >
-                {hour}
-              </motion.button>
-            ))}
-          </div>
+          {loadingHours ? (
+            <div className="flex items-center justify-center py-8 bg-slate-50 rounded-lg">
+              <div className="flex items-center gap-3 text-slate-600">
+                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <span>Cargando horarios disponibles...</span>
+              </div>
+            </div>
+          ) : availableHours.length > 0 ? (
+            <div className="grid grid-cols-4 gap-3">
+              {availableHours.map(hour => (
+                <motion.button
+                  key={hour}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleHourSelect(hour)}
+                  className={`
+                    py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200
+                    ${formData.hora === hour
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-blue-50'
+                    }
+                  `}
+                >
+                  {hour}
+                </motion.button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-8 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="text-center text-yellow-700">
+                <Clock className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+                <p className="text-sm font-medium">No hay horarios disponibles</p>
+                <p className="text-xs">Selecciona otra fecha o servicio</p>
+              </div>
+            </div>
+          )}
 
           {errors.hora && (
             <motion.p

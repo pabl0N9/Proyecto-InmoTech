@@ -16,22 +16,24 @@ class SSEService {
   }
 
   /**
-   * Conecta al servidor SSE
-   * @param {string} token - Token de autenticación JWT
+   * Conecta al servidor SSE usando cookies httpOnly
    * @returns {Promise<void>}
    */
-  async connect(token) {
+  async connect() {
     if (this.eventSource) {
       this.disconnect();
     }
 
     try {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
-      const url = `${baseUrl}/sse/connect?token=${encodeURIComponent(token)}`;
+      const url = `${baseUrl}/sse/connect`;
 
-      console.log('📡 SSE: Intentando conectar...', url);
+      console.log('📡 SSE: Intentando conectar con cookies httpOnly...', url);
 
-      this.eventSource = new EventSource(url);
+      // ⚠️ IMPORTANTE: EventSource NO soporta headers, pero sí soporta credentials
+      // Las cookies httpOnly se enviarán automáticamente porque el navegador las incluye
+      const urlWithCreds = url + '?credentials=include'; // Este query param tiene meaning en el servidor
+      this.eventSource = new EventSource(urlWithCreds, { withCredentials: true });
 
       this.eventSource.onopen = () => {
         console.log('📡 SSE: Conexión establecida');
@@ -55,12 +57,12 @@ class SSEService {
 
         let shouldForceLogout = false;
 
-        // Verificar si el token está inválido (usuario deshabilitado)
+        // Verificar si el usuario está deshabilitado haciendo petición con cookies
         try {
           const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'}/auth/me`, {
             method: 'GET',
+            credentials: 'include', // ⚠️ IMPORTANTE: incluye cookies automáticamente
             headers: {
-              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           });
@@ -87,7 +89,7 @@ class SSEService {
 
         // NO intentar reconectar si el usuario fue forzado a logout
         if (!this.forcedDisconnect) {
-          this.handleReconnect(token);
+          this.handleReconnect();
         } else {
           console.log('📡 SSE: Usuario forzado logout - no reconectar');
         }
@@ -98,7 +100,7 @@ class SSEService {
 
     } catch (error) {
       console.error('❌ SSE: Error creando conexión:', error);
-      this.handleReconnect(token);
+      this.handleReconnect();
     }
   }
 
@@ -146,9 +148,8 @@ class SSEService {
 
   /**
    * Maneja la reconexión automática
-   * @param {string} token - Token de autenticación
    */
-  handleReconnect(token) {
+  handleReconnect() {
     // NO reconectar si el usuario fue forzado a logout
     if (this.forcedDisconnect) {
       console.log('📡 SSE: Omitiendo reconexión - usuario forzado logout');
@@ -165,7 +166,7 @@ class SSEService {
     console.log(`📡 SSE: Intentando reconectar en ${this.reconnectDelay}ms (intento ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
     setTimeout(() => {
-      this.connect(token);
+      this.connect();
     }, this.reconnectDelay);
 
     // Aumentar el delay exponencialmente

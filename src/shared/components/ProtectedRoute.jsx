@@ -148,6 +148,15 @@ export const DashboardRoute = ({ children, ...props }) => {
 };
 
 /**
+ * Componente específico para rutas que requieren solo autenticación (usuarios normales)
+ */
+export const AuthenticatedRoute = ({ children, ...props }) => (
+  <ProtectedRoute requireAuth={true} {...props}>
+    {children}
+  </ProtectedRoute>
+);
+
+/**
  * Componente específico para rutas públicas (login, register, etc.)
  */
 export const PublicRoute = ({ children, ...props }) => (
