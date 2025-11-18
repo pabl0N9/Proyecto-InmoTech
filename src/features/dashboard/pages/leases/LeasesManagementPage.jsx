@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
-import { FaUserPlus, FaEye, FaEdit, FaSearch, FaTrash } from "react-icons/fa";
+import { motion } from 'framer-motion';
+import { FaUserPlus, FaEye, FaEdit, FaSearch, FaTrash, FaHome, FaPhone, FaEnvelope } from "react-icons/fa";
+import { Plus, Search, Filter, Eye, Edit, Trash2, Users, Home, Phone, Mail } from 'lucide-react';
 import "../../../../shared/styles/globals.css";
 import LeasesPersonForm from "../../components/leases/TenantForm";
 import ViewTenantModal from "../../components/leases/ViewTenantForm";
@@ -109,6 +111,14 @@ export function LeasesManagementPage() {
     }
   };
 
+  // Calcular estadísticas
+  const stats = {
+    total: filteredTenants.length,
+    activos: filteredTenants.filter(t => t.estado === 'Activo').length,
+    morosos: filteredTenants.filter(t => t.estado === 'Moroso').length,
+    conInmuebles: filteredTenants.filter(t => t.inmueblesArrendados && t.inmueblesArrendados.length > 0).length
+  };
+
   const renderFormModal = () => {
     if (!showForm) return null;
 
@@ -140,181 +150,368 @@ export function LeasesManagementPage() {
     );
   };
 
+  const renderDeleteModal = () => {
+    if (!tenantToDelete) return null;
+
+    const modalContent = (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm transition-opacity duration-300">
+        <div className="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full transform transition-all duration-300 scale-100 opacity-100">
+          <h3 className="text-2xl font-bold text-red-700 mb-4 flex items-center gap-2">
+            <Trash2 className="w-5 h-5" /> Eliminar Arrendatario
+          </h3>
+          <p className="mb-6 text-gray-700">
+            ¿Confirma que desea eliminar a{" "}
+            <span className="font-extrabold text-purple-700">
+              {tenantToDelete.primerNombre} {tenantToDelete.primerApellido}
+            </span>
+            ? Esta acción es irreversible.
+          </p>
+          <div className="flex justify-end gap-3 pt-3 border-t">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setTenantToDelete(null)}
+              className="bg-gray-300 text-gray-800 px-5 py-2 rounded-xl font-semibold hover:bg-gray-400 transition duration-150"
+            >
+              Cancelar
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleDeleteTenant}
+              className="bg-red-600 text-white px-5 py-2 rounded-xl font-semibold transition duration-150 shadow-md flex items-center gap-2 hover:bg-red-700"
+            >
+              <Trash2 className="w-4 h-4" />
+              Eliminar
+            </motion.button>
+          </div>
+        </div>
+      </div>
+    );
+
+    return ReactDOM.createPortal(
+      modalContent,
+      document.getElementById('modal-root') || document.body 
+    );
+  };
+
   return (
     <>
-      <div className="p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Gestión de arrendatarios</h1>
-          <p className="text-gray-600 text-lg">
-            Administra la información de tus arrendatarios, contratos y propiedades vinculadas.
-          </p>
-        </div>
+      <div className="p-6 space-y-6">
+        {/* HEADER CON NUEVO ESTILO */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+        >
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">Gestión de Arrendatarios</h1>
+            <p className="text-slate-600 mt-1">Administra la información de tus arrendatarios, contratos y propiedades vinculadas</p>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              setTenantToEdit(null);
+              setShowForm(true);
+            }}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl"
+          >
+            <Plus className="w-5 h-5" />
+            Nuevo Arrendatario
+          </motion.button>
+        </motion.div>
 
-        <div className="flex justify-between items-center mb-6">
+        {/* STATS CARDS */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        >
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-sm font-medium">Total Arrendatarios</p>
+                <p className="text-2xl font-bold mt-1">{stats.total}</p>
+              </div>
+              <div className="bg-blue-400 rounded-lg p-3">
+                <Users className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-sm font-medium">Activos</p>
+                <p className="text-2xl font-bold mt-1">{stats.activos}</p>
+              </div>
+              <div className="bg-green-400 rounded-lg p-3">
+                <FaUserPlus className="text-lg" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-4 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-red-100 text-sm font-medium">Morosos</p>
+                <p className="text-2xl font-bold mt-1">{stats.morosos}</p>
+              </div>
+              <div className="bg-red-400 rounded-lg p-3">
+                <FaUserPlus className="text-lg" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-100 text-sm font-medium">Con Inmuebles</p>
+                <p className="text-2xl font-bold mt-1">{stats.conInmuebles}</p>
+              </div>
+              <div className="bg-purple-400 rounded-lg p-3">
+                <Home className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* SEARCH AND FILTERS */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex flex-col sm:flex-row gap-4 items-start sm:items-center"
+        >
           <div className="flex-1 max-w-md">
-            <div className="relative w-full">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
                 placeholder="Buscar arrendatario por nombre, documento, correo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition duration-150 shadow-sm"
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-150 shadow-sm bg-white"
               />
             </div>
           </div>
-
-          <button
-            onClick={() => {
-              setTenantToEdit(null);
-              setShowForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 shadow-lg transition duration-200 font-semibold"
-          >
-            <FaUserPlus className="text-lg" /> Crear arrendatario
-          </button>
-        </div>
+          
+          <div className="flex gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300"
+            >
+              <Filter className="w-4 h-4" />
+              Filtros
+            </motion.button>
+          </div>
+        </motion.div>
 
         {statusMessage && (
-          <div
-            className={`mb-4 rounded-lg px-4 py-3 text-sm font-medium ${
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`rounded-lg px-4 py-3 text-sm font-medium ${
               statusMessage.type === "success"
                 ? "bg-green-50 text-green-800 border border-green-200"
                 : "bg-red-50 text-red-800 border border-red-200"
             }`}
           >
             {statusMessage.message}
-          </div>
+          </motion.div>
         )}
 
-        <div className="rent-table-wrapper rounded-xl shadow-lg">
-          <div className="rent-table-header rounded-t-xl bg-blue-700">
-            ¿ Lista de arrendatarios ({filteredTenants.length}{" "}
-            {filteredTenants.length === 1 ? "resultado" : "resultados"})
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="rent-table w-full border-collapse bg-white rounded-b-lg overflow-hidden">
-              <thead className="bg-green-50">
-                <tr>
-                  <th>Arrendatario</th>
-                  <th>Documento</th>
-                  <th>Inmueble</th>
-                  <th>Contacto</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
+        {/* CONTENT AREA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          {/* TABLA REORGANIZADA */}
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            {/* CABECERA DE TABLA */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+              <h3 className="text-white font-semibold flex items-center gap-2">
+                👥 Lista de Arrendatarios ({filteredTenants.length} {filteredTenants.length === 1 ? "resultado" : "resultados"})
+              </h3>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead className="bg-slate-50">
                   <tr>
-                    <td colSpan={6} className="text-center py-6 text-gray-500">
-                      Cargando arrendatarios...
-                    </td>
+                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Información Personal</th>
+                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Documento</th>
+                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Inmueble Asignado</th>
+                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Contacto</th>
+                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Estado</th>
+                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Acciones</th>
                   </tr>
-                ) : filteredTenants.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-6 text-gray-500">
-                      No se encontraron arrendatarios con el criterio seleccionado.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTenants.map((tenant) => (
-                    <tr key={tenant.id} className="border-b border-gray-100 hover:bg-blue-50 transition duration-150">
-                      <td className="px-4 py-4">
-                        <strong>{tenant.primerNombre} {tenant.primerApellido}</strong>
-                        <p className="text-sm text-gray-500">{tenant.correo}</p>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className="text-gray-600">{tenant.tipoDocumento}</span>
-                        <p className="text-sm text-gray-500">{tenant.documento}</p>
-                      </td>
-                      <td className="px-4 py-4">
-                        {tenant.inmueblesArrendados && tenant.inmueblesArrendados.length > 0 ? (
-                          <div>
-                            <p className="font-semibold text-gray-800">{tenant.inmueblesArrendados[0].nombre}</p>
-                            <p className="text-sm text-gray-500">{tenant.inmueblesArrendados[0].direccion}</p>
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 italic">Sin inmuebles</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className="text-gray-600">{tenant.telefono}</span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span
-                          className={`inline-block px-3 py-1 text-sm font-semibold rounded-full border ${
-                            tenant.estado === "Activo"
-                              ? "bg-green-100 text-green-700 border-green-200"
-                              : tenant.estado === "Moroso"
-                              ? "bg-red-100 text-red-700 border-red-200"
-                              : "bg-yellow-100 text-yellow-700 border-yellow-200"
-                          }`}
-                        >
-                          {tenant.estado}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 flex flex-col gap-2">
-                        <button
-                          onClick={() => setTenantToView(tenant)}
-                          className="text-blue-600 hover:text-blue-800 flex items-center gap-2 font-semibold"
-                        >
-                          <FaEye /> Ver
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTenantToEdit(tenant);
-                            setShowForm(true);
-                          }}
-                          className="text-green-600 hover:text-green-800 flex items-center gap-2 font-semibold"
-                        >
-                          <FaEdit /> Editar
-                        </button>
-                        <button
-                          onClick={() => setTenantToDelete(tenant)}
-                          className="text-red-600 hover:text-red-800 flex items-center gap-2 font-semibold"
-                        >
-                          <FaTrash /> Eliminar
-                        </button>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500 border-b">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                          Cargando arrendatarios...
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+                  ) : filteredTenants.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500 border-b">
+                        <div className="flex flex-col items-center gap-2">
+                          <Users className="w-8 h-8 text-slate-400" />
+                          <p>No se encontraron arrendatarios con el criterio seleccionado.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTenants.map((tenant) => (
+                      <tr key={tenant.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        {/* INFORMACIÓN PERSONAL */}
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-blue-100 rounded-full p-2">
+                              <Users className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div className="text-center">
+                              <p className="font-semibold text-slate-800 text-sm">
+                                {tenant.primerNombre} {tenant.primerApellido}
+                              </p>
+                              <p className="text-xs text-slate-500 flex items-center justify-center gap-1 mt-1">
+                                <Mail className="w-3 h-3" />
+                                {tenant.correo}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
 
-      {renderFormModal()}
-      {renderViewModal()}
+                        {/* DOCUMENTO */}
+                        <td className="px-4 py-4 text-center">
+                          <div className="space-y-1">
+                            <span className="text-xs text-slate-500 block">Tipo</span>
+                            <span className="text-sm font-medium text-slate-700 block">{tenant.tipoDocumento}</span>
+                            <span className="text-xs text-slate-500 block">Número</span>
+                            <span className="text-sm font-semibold text-slate-800 block">{tenant.documento}</span>
+                          </div>
+                        </td>
 
-      {tenantToDelete && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 shadow-xl w-full max-w-md">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Eliminar arrendatario</h3>
-            <p className="text-gray-600 mb-4">
-              ¿Confirma que desea eliminar a{" "}
-              <strong>{tenantToDelete.primerNombre} {tenantToDelete.primerApellido}</strong>?
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setTenantToDelete(null)}
-                className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDeleteTenant}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700"
-              >
-                Eliminar
-              </button>
+                        {/* INMUEBLE ASIGNADO */}
+                        <td className="px-4 py-4">
+                          {tenant.inmueblesArrendados && tenant.inmueblesArrendados.length > 0 ? (
+                            <div className="flex items-center gap-3">
+                              <div className="bg-green-100 rounded-full p-2">
+                                <Home className="w-4 h-4 text-green-600" />
+                              </div>
+                              <div className="text-center">
+                                <p className="font-semibold text-slate-800 text-sm">
+                                  {tenant.inmueblesArrendados[0].nombre || "Inmueble #" + tenant.inmueblesArrendados[0].id}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  {tenant.inmueblesArrendados[0].direccion || "Dirección no especificada"}
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-slate-400">
+                              <Home className="w-6 h-6 mb-1" />
+                              <span className="text-xs italic">Sin inmuebles asignados</span>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* CONTACTO */}
+                        <td className="px-4 py-4 text-center">
+                          <div className="flex flex-col items-center justify-center space-y-1">
+                            <div className="flex items-center gap-1 text-slate-600">
+                              <Phone className="w-3 h-3" />
+                              <span className="text-sm font-medium">{tenant.telefono}</span>
+                            </div>
+                            {tenant.celular && (
+                              <div className="text-xs text-slate-500">
+                                Cel: {tenant.celular}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* ESTADO */}
+                        <td className="px-4 py-4 text-center">
+                          <div className="flex flex-col items-center justify-center space-y-2">
+                            <span
+                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${
+                                tenant.estado === "Activo"
+                                  ? "bg-green-100 text-green-700 border-green-200"
+                                  : tenant.estado === "Moroso"
+                                  ? "bg-red-100 text-red-700 border-red-200"
+                                  : "bg-yellow-100 text-yellow-700 border-yellow-200"
+                              }`}
+                            >
+                              {tenant.estado || "Pendiente"}
+                            </span>
+                            {tenant.fechaInicio && (
+                              <span className="text-xs text-slate-500">
+                                Desde: {new Date(tenant.fechaInicio).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* ACCIONES */}
+                        <td className="px-4 py-4">
+                          <div className="flex flex-col gap-2 items-center">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setTenantToView(tenant)}
+                              className="w-full flex items-center justify-center gap-2 text-blue-600 hover:text-blue-800 font-medium text-sm p-2 rounded-lg hover:bg-blue-50 transition-colors border border-blue-200"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Ver
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => {
+                                setTenantToEdit(tenant);
+                                setShowForm(true);
+                              }}
+                              className="w-full flex items-center justify-center gap-2 text-green-600 hover:text-green-800 font-medium text-sm p-2 rounded-lg hover:bg-green-50 transition-colors border border-green-200"
+                            >
+                              <Edit className="w-4 h-4" />
+                              Editar
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setTenantToDelete(tenant)}
+                              className="w-full flex items-center justify-center gap-2 text-red-600 hover:text-red-800 font-medium text-sm p-2 rounded-lg hover:bg-red-50 transition-colors border border-red-200"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Eliminar
+                            </motion.button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
-      )}
+        </motion.div>
+      </div>
+
+      {/* MODALES */}
+      {renderFormModal()}
+      {renderViewModal()}
+      {renderDeleteModal()}
     </>
   );
 }

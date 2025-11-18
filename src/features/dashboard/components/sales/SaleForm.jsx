@@ -39,8 +39,8 @@ const BUYER_AUTOFILL_FIELDS = [
     "compradorTelefono",
 ];
 
-// Datos iniciales fuera del componente para evitar recreación
-const defaultFormValues = {
+// Estado inicial
+const initial = {
     vendedorTipoDocumento: "CC",
     vendedorDocumento: "",
     vendedorNombreCompleto: "",
@@ -74,15 +74,13 @@ const defaultFormValues = {
 export default function SalesForm({ onClose, onSubmit }) {
     const [step, setStep] = useState(1);
     const [errors, setErrors] = useState({});
-    const [dirtyFields, setDirtyFields] = useState({});
-    
-    // SOLUCIÓN: Estado inicializado correctamente sin dependencias problemáticas
-    const [formValues, setFormValues] = useState(defaultFormValues);
-    
     const totalSteps = 4;
 
+    // Refs para manejo eficiente de estado (igual que en el formulario de arriendos)
+    const valuesRef = useRef({ ...initial });
+    const displayValuesRef = useRef({ ...initial });
     const elRefs = useRef({});
-    const errorFocusTimeout = useRef(null); 
+    const errorFocusTimeout = useRef(null);
     const buyerLookupTimeoutRef = useRef(null);
     const buyerLookupRequestId = useRef(0);
     const selectedBuyerRef = useRef(null);
@@ -97,18 +95,7 @@ export default function SalesForm({ onClose, onSubmit }) {
         error: null,
     });
 
-    useEffect(() => {
-        return () => {
-            if (buyerLookupTimeoutRef.current) {
-                clearTimeout(buyerLookupTimeoutRef.current);
-            }
-            if (errorFocusTimeout.current) {
-                clearTimeout(errorFocusTimeout.current);
-            }
-        };
-    }, []);
-
-    // Lista de campos que deben ser estrictamente numéricos (solo dígitos)
+    // Campos estrictamente numéricos (solo dígitos)
     const strictNumericFields = [
         "inmuebleArea", "inmuebleHabitaciones", "inmuebleBanos", "inmuebleEstrato"
     ];
@@ -120,9 +107,9 @@ export default function SalesForm({ onClose, onSubmit }) {
     const nameFields = [
         "vendedorNombreCompleto", "compradorNombreCompleto",
     ];
-    const docFields = [ VENDEDOR_DOC, COMPRADOR_DOC ];
-    const phoneFields = [ "vendedorTelefono", "compradorTelefono" ];
-    const emailFields = [ "vendedorCorreo", "compradorCorreo" ];
+    const docFields = [VENDEDOR_DOC, COMPRADOR_DOC];
+    const phoneFields = ["vendedorTelefono", "compradorTelefono"];
+    const emailFields = ["vendedorCorreo", "compradorCorreo"];
 
     // Campos agrupados por paso para la validación
     const stepFields = {
@@ -144,6 +131,17 @@ export default function SalesForm({ onClose, onSubmit }) {
             "fechaVenta", "medioPago", "inmueblePrecio"
         ]
     };
+
+    useEffect(() => {
+        return () => {
+            if (buyerLookupTimeoutRef.current) {
+                clearTimeout(buyerLookupTimeoutRef.current);
+            }
+            if (errorFocusTimeout.current) {
+                clearTimeout(errorFocusTimeout.current);
+            }
+        };
+    }, []);
 
     const getLabel = (name) => {
         const labels = {
@@ -185,6 +183,258 @@ export default function SalesForm({ onClose, onSubmit }) {
         return labels[name] ?? name;
     };
 
+    // === VALIDACIONES MEJORADAS PARA DOCUMENTOS ===
+
+    // Función para validar documentos según el tipo
+    const validateDocument = (tipoDocumento, numeroDocumento) => {
+        const numeroLimpio = numeroDocumento.replace(/[^0-9]/g, '');
+        
+        switch (tipoDocumento) {
+            case 'CC': // Cédula de Ciudadanía
+                if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
+                    return 'La cédula de ciudadanía debe tener entre 8 y 10 dígitos';
+                }
+                break;
+                
+            case 'CE': // Cédula de Extranjería
+                if (!/^[0-9]{6,10}$/.test(numeroLimpio)) {
+                    return 'La cédula de extranjería debe tener entre 6 y 10 dígitos';
+                }
+                break;
+                
+            case 'NIT': // NIT
+                if (!/^[0-9]{9,10}$/.test(numeroLimpio)) {
+                    return 'El NIT debe tener 9 o 10 dígitos';
+                }
+                break;
+                
+            case 'PASAPORTE': // Pasaporte
+                if (numeroLimpio.length < 6 || numeroLimpio.length > 20) {
+                    return 'El pasaporte debe tener entre 6 y 20 caracteres';
+                }
+                if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) {
+                    return 'El pasaporte solo puede contener letras y números';
+                }
+                break;
+                
+            case 'TI': // Tarjeta de Identidad
+                if (!/^[0-9]{10,11}$/.test(numeroLimpio)) {
+                    return 'La tarjeta de identidad debe tener 10 u 11 dígitos';
+                }
+                break;
+                
+            default:
+                return 'Tipo de documento no válido';
+        }
+        
+        return '';
+    };
+
+    // Función para obtener la clase de estilo (incluyendo el resaltado de error)
+    const getFieldClass = useCallback((fieldName) => {
+        const errorClass = errors[fieldName] 
+            ? 'border-red-500 ring-2 ring-red-500' 
+            : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+        return `w-full p-3 border rounded-lg focus:outline-none transition duration-150 ${errorClass}`;
+    }, [errors]);
+
+    // Formateador de números con separadores de miles
+    const formatNumberWithThousandsSeparator = (value) => {
+        if (!value) return "";
+        const cleanValue = value.replace(/[^0-9]/g, '');
+        if (cleanValue === "") return "";
+        
+        const formatter = new Intl.NumberFormat('es-CO', { 
+            style: 'decimal',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+        return formatter.format(cleanValue);
+    };
+
+    // Configuración de referencias de elementos
+    const setElRef = (name) => (el) => {
+        if (!el) return;
+        elRefs.current[name] = el;
+        
+        if (valuesRef.current[name] === undefined || valuesRef.current[name] === null) {
+            valuesRef.current[name] = initial[name] ?? "";
+        }
+        
+        // Inicializar valor de visualización para campos de moneda
+        if (currencyFields.includes(name) && valuesRef.current[name]) {
+            displayValuesRef.current[name] = formatNumberWithThousandsSeparator(valuesRef.current[name].toString());
+        } else {
+            displayValuesRef.current[name] = valuesRef.current[name];
+        }
+
+        if (el.type === "checkbox") {
+            el.checked = !!valuesRef.current[name];
+        } else {
+            if (displayValuesRef.current[name] !== undefined) {
+                try { el.value = displayValuesRef.current[name]; } catch (err) { /* ignore */ }
+            }
+        }
+    };
+
+    // Manejador de cambios en inputs (sistema optimizado)
+    const handleInputChange = (e) => {
+        let { name, type, value, checked } = e.target;
+        let cleanValue = value;
+
+        if (type === "checkbox") {
+            valuesRef.current[name] = checked;
+        } else {
+            // Formatear campos de moneda
+            if (currencyFields.includes(name)) {
+                cleanValue = value.replace(/[^0-9]/g, '');
+                const formattedValue = formatNumberWithThousandsSeparator(cleanValue);
+                
+                displayValuesRef.current[name] = formattedValue;
+                e.target.value = formattedValue;
+            } else {
+                displayValuesRef.current[name] = value;
+            }
+            
+            valuesRef.current[name] = cleanValue;
+
+            // Reset de selección de comprador si cambian documentos
+            if (name === COMPRADOR_DOC || name === "compradorTipoDocumento") {
+                selectedBuyerRef.current = null;
+                manuallyEditedBuyerFieldsRef.current.clear();
+            }
+
+            // Marcar campos editados manualmente
+            if (BUYER_AUTOFILL_FIELDS.includes(name)) {
+                manuallyEditedBuyerFieldsRef.current.add(name);
+            }
+        }
+
+        // Limpiar errores al escribir
+        if (errors[name]) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
+    };
+
+    // Funciones de validación de formato
+    const isValidName = (value) => /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]*$/.test(value);
+    const isValidNumeric = (value) => /^\d*$/.test(value);
+    const isValidEmail = (value) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value);
+
+    // Manejador de blur para validación MEJORADO
+    const handleInputBlur = (e) => {
+        const { name } = e.target;
+        const value = valuesRef.current[name] || ""; 
+        
+        let errorMessage = null;
+        const isRequired = requiredFields.includes(name);
+
+        setErrors(prev => {
+            const newErrors = { ...prev };
+
+            // Validar campo obligatorio
+            if (isRequired && !value.trim() && name !== 'inmuebleGaraje') { 
+                 errorMessage = "Este campo es obligatorio.";
+            }
+
+            // Validar formato y longitud (solo si no hay error de obligatoriedad y el campo tiene valor)
+            if (!errorMessage && value.trim()) {
+                if (nameFields.includes(name) && !isValidName(value)) {
+                    errorMessage = `Solo se permiten letras.`;
+                } 
+                // VALIDACIÓN MEJORADA PARA DOCUMENTOS
+                else if (docFields.includes(name)) {
+                    let tipoDocumento = "";
+                    
+                    if (name === VENDEDOR_DOC) {
+                        tipoDocumento = valuesRef.current.vendedorTipoDocumento || "CC";
+                    } else if (name === COMPRADOR_DOC) {
+                        tipoDocumento = valuesRef.current.compradorTipoDocumento || "CC";
+                    }
+                    
+                    // Validar formato básico primero
+                    if (!/^[A-Za-z0-9\s\-\.]*$/.test(displayValuesRef.current[name])) {
+                        errorMessage = `Solo se permiten letras, números, espacios, puntos y guiones`;
+                    } else {
+                        // Validación específica por tipo de documento
+                        errorMessage = validateDocument(tipoDocumento, value);
+                    }
+                } 
+                else if (phoneFields.includes(name)) {
+                    if (!isValidNumeric(value)) {
+                        errorMessage = `Solo se permiten números.`;
+                    } else if (value.length < 10) {
+                        errorMessage = `El teléfono debe tener al menos 10 dígitos`;
+                    }
+                } 
+                else if (emailFields.includes(name) && !isValidEmail(value)) {
+                    errorMessage = `El correo electrónico debe ser válido.`;
+                } 
+                else if (strictNumericFields.includes(name)) {
+                    if (!isValidNumeric(value)) {
+                        errorMessage = `Solo se permiten números enteros.`;
+                    } else if (parseFloat(value) <= 0) {
+                        errorMessage = `Debe ser un número mayor a 0`;
+                    }
+                    
+                    // Validaciones específicas por campo numérico
+                    if (name === "inmuebleEstrato" && value) {
+                        const estrato = parseInt(value);
+                        if (estrato < 1 || estrato > 6) {
+                            errorMessage = `El estrato debe estar entre 1 y 6`;
+                        }
+                    }
+                    
+                    if (name === "inmuebleHabitaciones" && value) {
+                        const habitaciones = parseInt(value);
+                        if (habitaciones < 0 || habitaciones > 20) {
+                            errorMessage = `El número de habitaciones debe ser razonable (0-20)`;
+                        }
+                    }
+                    
+                    if (name === "inmuebleBanos" && value) {
+                        const banos = parseInt(value);
+                        if (banos < 0 || banos > 10) {
+                            errorMessage = `El número de baños debe ser razonable (0-10)`;
+                        }
+                    }
+                }
+            }
+
+            // Aplicar o limpiar error
+            if (errorMessage) {
+                newErrors[name] = errorMessage;
+            } else {
+                delete newErrors[name];
+            }
+
+            return newErrors;
+        });
+
+        // Lógica de búsqueda de comprador
+        if (name === COMPRADOR_DOC || name === "compradorTipoDocumento") {
+            const currentTipo = valuesRef.current.compradorTipoDocumento || "";
+            const normalizedDocumento = valuesRef.current.compradorDocumento || "";
+            const docChanged =
+                buyerDocumentSnapshotRef.current.tipo !== currentTipo ||
+                buyerDocumentSnapshotRef.current.numero !== normalizedDocumento;
+
+            if (docChanged) {
+                resetBuyerSelection({ resetState: true, resetFields: true });
+                buyerDocumentSnapshotRef.current = {
+                    tipo: currentTipo,
+                    numero: normalizedDocumento,
+                };
+            }
+
+            triggerBuyerLookup(name === COMPRADOR_DOC ? 0 : 200);
+        }
+    };
+
     // === FUNCIONES DE NORMALIZACIÓN ===
     const normalizeValueForStorage = (fieldName, value) => {
         if (typeof value === "boolean") return value;
@@ -218,17 +468,17 @@ export default function SalesForm({ onClose, onSubmit }) {
         ({ resetState = false, resetFields = false } = {}) => {
             selectedBuyerRef.current = null;
             manuallyEditedBuyerFieldsRef.current.clear();
-            setFormValues((prev) => ({
-                ...prev,
-                compradorPersonaId: "",
-                ...(resetFields
-                    ? {
-                          compradorNombreCompleto: "",
-                          compradorCorreo: "",
-                          compradorTelefono: "",
-                      }
-                    : {}),
-            }));
+            
+            if (resetFields) {
+                valuesRef.current.compradorPersonaId = "";
+                valuesRef.current.compradorNombreCompleto = "";
+                valuesRef.current.compradorCorreo = "";
+                valuesRef.current.compradorTelefono = "";
+                displayValuesRef.current.compradorNombreCompleto = "";
+                displayValuesRef.current.compradorCorreo = "";
+                displayValuesRef.current.compradorTelefono = "";
+            }
+            
             if (resetState) {
                 setBuyerLookupState({
                     loading: false,
@@ -268,25 +518,38 @@ export default function SalesForm({ onClose, onSubmit }) {
             return "";
         };
 
-        setFormValues((prev) => {
-            const nextValues = {
-                ...prev,
-                compradorPersonaId: buyer.personaId || "",
-            };
+        // Actualizar directamente las refs en lugar del estado
+        valuesRef.current.compradorPersonaId = buyer.personaId || "";
 
-            if (!manuallyEditedBuyerFieldsRef.current.has("compradorNombreCompleto")) {
-                nextValues.compradorNombreCompleto = buildFullName();
-            }
-            if (!manuallyEditedBuyerFieldsRef.current.has("compradorCorreo")) {
-                nextValues.compradorCorreo = buyer.correo || buyer.raw?.persona?.correo || "";
-            }
-            if (!manuallyEditedBuyerFieldsRef.current.has("compradorTelefono")) {
-                nextValues.compradorTelefono = buyer.telefono || buyer.raw?.persona?.telefono || "";
-            }
+        if (!manuallyEditedBuyerFieldsRef.current.has("compradorNombreCompleto")) {
+            valuesRef.current.compradorNombreCompleto = buildFullName();
+            displayValuesRef.current.compradorNombreCompleto = buildFullName();
+        }
+        if (!manuallyEditedBuyerFieldsRef.current.has("compradorCorreo")) {
+            valuesRef.current.compradorCorreo = buyer.correo || buyer.raw?.persona?.correo || "";
+            displayValuesRef.current.compradorCorreo = buyer.correo || buyer.raw?.persona?.correo || "";
+        }
+        if (!manuallyEditedBuyerFieldsRef.current.has("compradorTelefono")) {
+            valuesRef.current.compradorTelefono = buyer.telefono || buyer.raw?.persona?.telefono || "";
+            displayValuesRef.current.compradorTelefono = buyer.telefono || buyer.raw?.persona?.telefono || "";
+        }
 
-            return nextValues;
-        });
+        // Forzar actualización de los inputs
+        const nombreEl = elRefs.current.compradorNombreCompleto;
+        const correoEl = elRefs.current.compradorCorreo;
+        const telefonoEl = elRefs.current.compradorTelefono;
 
+        if (nombreEl && !manuallyEditedBuyerFieldsRef.current.has("compradorNombreCompleto")) {
+            nombreEl.value = valuesRef.current.compradorNombreCompleto;
+        }
+        if (correoEl && !manuallyEditedBuyerFieldsRef.current.has("compradorCorreo")) {
+            correoEl.value = valuesRef.current.compradorCorreo;
+        }
+        if (telefonoEl && !manuallyEditedBuyerFieldsRef.current.has("compradorTelefono")) {
+            telefonoEl.value = valuesRef.current.compradorTelefono;
+        }
+
+        // Limpiar errores
         setErrors((prev) => {
             const nextErrors = { ...prev };
             BUYER_AUTOFILL_FIELDS.forEach((field) => {
@@ -299,14 +562,22 @@ export default function SalesForm({ onClose, onSubmit }) {
     }, []);
 
     const fetchBuyerByDocument = useCallback(async () => {
-        const tipoDocumento = (formValues.compradorTipoDocumento || "").trim();
-        const numeroDocumento = normalizeValueForStorage(
-            COMPRADOR_DOC,
-            formValues.compradorDocumento || ""
-        );
+        const tipoDocumento = (valuesRef.current.compradorTipoDocumento || "").trim();
+        const numeroDocumento = valuesRef.current.compradorDocumento || "";
 
         if (!tipoDocumento || !numeroDocumento) {
             resetBuyerSelection({ resetState: true, resetFields: true });
+            return;
+        }
+
+        // Validar el documento antes de hacer la búsqueda
+        const documentError = validateDocument(tipoDocumento, numeroDocumento);
+        if (documentError) {
+            setBuyerLookupState({
+                loading: false,
+                message: "",
+                error: "Documento inválido. Corrija el formato antes de buscar.",
+            });
             return;
         }
 
@@ -355,12 +626,7 @@ export default function SalesForm({ onClose, onSubmit }) {
                 error: error?.message || "No fue posible buscar el comprador.",
             });
         }
-    }, [
-        applyBuyerData,
-        resetBuyerSelection,
-        formValues.compradorTipoDocumento,
-        formValues.compradorDocumento,
-    ]);
+    }, [applyBuyerData, resetBuyerSelection]);
 
     const triggerBuyerLookup = useCallback(
         (delay = 250) => {
@@ -375,267 +641,103 @@ export default function SalesForm({ onClose, onSubmit }) {
         [fetchBuyerByDocument]
     );
 
-    // Formatear número con separadores de miles (solo para display)
-    const formatNumberWithThousandsSeparator = (value) => {
-        if (!value && value !== 0) return "";
-        const cleanValue = value.toString().replace(/[^0-9]/g, '');
-        if (cleanValue === "") return "";
-
-        const formatter = new Intl.NumberFormat('es-CO', { 
-            style: 'decimal',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        });
-        return formatter.format(cleanValue);
-    };
-
-    // === SISTEMA DE VALIDACIÓN MEJORADO ===
-    const validateField = (fieldName, value = null, isFinalValidation = false) => {
-        const displayValue = formValues[fieldName] ?? "";
-        const normalizedValue =
-            value !== null && value !== undefined
-                ? value
-                : normalizeValueForStorage(fieldName, displayValue);
-        const label = getLabel(fieldName);
-        const isRequired = requiredFields.includes(fieldName);
-        const isTouched = dirtyFields[fieldName];
-        const enforceFullRules = isFinalValidation || isTouched;
-        const stringValue = normalizedValue.toString().trim();
-        const displayStringValue = displayValue.toString().trim();
-
-        // Validación de campo requerido (solo si es dirty o validación final)
-        if (isRequired && !stringValue && enforceFullRules) {
-            return `${label} es requerido`;
-        }
-
-        // Si el campo está vacío y no es requerido, no hay error
-        if (!stringValue) {
-            return '';
-        }
-
-        // Validaciones específicas por tipo de campo
-
-        // Campos de nombre completo
-        if (nameFields.includes(fieldName)) {
-            if (!/^[a-zA-ZÁÉÍÓÚáéíóúñÑüÜ\s]*$/.test(displayStringValue)) {
-                return `${label} solo puede contener letras y espacios`;
-            }
-            if (!enforceFullRules) {
-                return '';
-            }
-            if (stringValue.length < 2) return `${label} debe tener al menos 2 caracteres`;
-            if (stringValue.length > 100) return `${label} no puede superar los 100 caracteres`;
-        }
-
-        // Campos de email
-        if (emailFields.includes(fieldName)) {
-            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-            if (!emailRegex.test(stringValue)) return `${label} debe ser un correo válido`;
-            if (stringValue.length > 254) return `${label} es demasiado largo`;
-        }
-
-        // Campos de teléfono - validación más permisiva durante escritura
-        if (phoneFields.includes(fieldName)) {
-            const telefonoLimpio = stringValue.replace(/[\s\-\(\)]/g, '');
-
-            if (!/^[\d\s\+\-\(\)]*$/.test(displayStringValue)) {
-                return `${label} solo puede contener números, espacios y los símbolos + - ( )`;
-            }
-            if (!enforceFullRules) {
-                return '';
-            }
-
-            if (!/^(\+57|57)?[3][0-9]{9}$/.test(telefonoLimpio)) {
-                return `${label} debe usar formato colombiano (+57 XXX XXX XXXX o 3XX XXX XXXX)`;
-            }
-        }
-
-        // Campos de documento - validación más permisiva durante escritura
-        if (docFields.includes(fieldName)) {
-            let tipoDocumento = "";
-
-            if (fieldName === VENDEDOR_DOC) {
-                tipoDocumento = formValues.vendedorTipoDocumento || "CC";
-            } else if (fieldName === COMPRADOR_DOC) {
-                tipoDocumento = formValues.compradorTipoDocumento || "CC";
-            }
-
-            if (!/^[A-Za-z0-9\s\-\.]*$/.test(displayStringValue)) {
-                return `${label} solo puede contener letras, números, espacios, puntos y guiones`;
-            }
-            if (!enforceFullRules) {
-                return '';
-            }
-
-            const numeroLimpio = stringValue.replace(/[\s\-\.]/g, '');
-
-            switch (tipoDocumento) {
-                case 'CC':
-                    if (!/^[0-9]{8,10}$/.test(numeroLimpio)) return 'La cédula debe tener entre 8 y 10 dígitos';
-                    break;
-                case 'CE':
-                    if (!/^[0-9]{6,10}$/.test(numeroLimpio)) return 'La cédula de extranjería debe tener entre 6 y 10 dígitos';
-                    break;
-                case 'NIT':
-                    if (!/^[0-9]{8,10}$/.test(numeroLimpio)) return 'El NIT debe tener entre 8 y 10 dígitos';
-                    break;
-                case 'PASAPORTE':
-                    if (numeroLimpio.length < 6 || numeroLimpio.length > 20) return 'El pasaporte debe tener entre 6 y 20 caracteres';
-                    if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) return 'El pasaporte solo puede contener letras y números';
-                    break;
-                case 'TI':
-                    if (!/^[0-9]{10,11}$/.test(numeroLimpio)) return 'La tarjeta de identidad debe tener 10 u 11 dígitos';
-                    break;
-                default:
-                    return 'Tipo de documento no válido';
-            }
-        }
-
-        // Campos numéricos estrictos
-        if (strictNumericFields.includes(fieldName)) {
-            if (!/^\d*$/.test(displayStringValue)) return `${label} solo permite números`;
-            if (!enforceFullRules) {
-                return '';
-            }
-
-            const numericValue = parseFloat(stringValue);
-            if (isNaN(numericValue) || numericValue <= 0) return `${label} debe ser un número mayor a 0`;
-            if (!/^\d+$/.test(stringValue)) return `${label} solo permite números enteros`;
-        }
-
-        // Campos de moneda
-        if (currencyFields.includes(fieldName)) {
-            if (!/^[\d\s\.,]*$/.test(displayStringValue)) return `${label} solo permite números, espacios, puntos y comas`;
-            if (!enforceFullRules) {
-                return '';
-            }
-
-            const numericValue = parseFloat(stringValue.replace(/\./g, '').replace(/,/g, '.'));
-            if (isNaN(numericValue) || numericValue <= 0) return `${label} debe ser un número mayor a 0`;
-        }
-
-        return '';
-    };
-
-    // Validación de paso completo (validación final)
-    const validateStep = (stepNumber) => {
-        const fieldsToValidate = stepFields[stepNumber];
-        const newErrors = {};
+    // Validación centralizada MEJORADA
+    const runValidation = (fieldsToCheck) => {
+        let currentErrors = { ...errors };
         let hasError = false;
+        let firstErrorField = null;
+        
+        for (const fieldName of fieldsToCheck) {
+            const value = valuesRef.current[fieldName] || "";
+            let error = null;
 
-        fieldsToValidate.forEach(field => {
-            const currentValue = normalizeValueForStorage(field, formValues[field] ?? "");
-            const error = validateField(field, currentValue, true);
-            if (error) {
-                newErrors[field] = error;
-                hasError = true;
-            }
-        });
-
-        setErrors(newErrors);
-        return { isValid: !hasError, errors: newErrors };
-    };
-
-    // Función para obtener la clase de estilo (incluyendo el resaltado de error)
-    const getFieldClass = useCallback((fieldName) => {
-        const baseClass = "w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-150 shadow-sm text-sm text-gray-700 bg-white";
-        const errorClass = errors[fieldName] 
-            ? 'border-red-500 ring-1 ring-red-500 focus:ring-red-500 focus:border-red-500' 
-            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500';
-        return `${baseClass} ${errorClass}`;
-    }, [errors]);
-
-    const setElRef = (name) => (el) => {
-        if (!el) return;
-        elRefs.current[name] = el;
-    };
-
-    const markBuyerFieldAsEdited = useCallback((name) => {
-        if (BUYER_AUTOFILL_FIELDS.includes(name)) {
-            manuallyEditedBuyerFieldsRef.current.add(name);
-        }
-    }, []);
-
-    // === SOLUCIÓN PRINCIPAL: Manejo de cambios optimizado ===
-    const handleInputChange = useCallback((e) => {
-        const { name, type, value, checked } = e.target;
-
-        // SOLUCIÓN: Usar función de actualización para evitar problemas de estado
-        setFormValues(prev => {
-            const newValue = type === "checkbox" ? checked : value;
+            const isRequired = requiredFields.includes(fieldName);
             
-            // Reset de selección de comprador si cambian documentos
-            if (name === COMPRADOR_DOC || name === "compradorTipoDocumento") {
-                selectedBuyerRef.current = null;
-                manuallyEditedBuyerFieldsRef.current.clear();
+            // Validación de obligatoriedad
+            if (isRequired && !value.toString().trim() && fieldName !== 'inmuebleGaraje') { 
+                error = "Este campo es obligatorio.";
+            } 
+            
+            // Validación de números estrictos
+            if (isRequired && strictNumericFields.includes(fieldName)) {
+                 if (!value.toString().trim() || parseFloat(value) <= 0 || isNaN(parseFloat(value))) {
+                     error = "Este campo es obligatorio y debe ser mayor a 0";
+                 }
             }
 
-            markBuyerFieldAsEdited(name);
-
-            return {
-                ...prev,
-                [name]: newValue
-            };
-        });
-
-        // Limpiar error inmediatamente al escribir
-        if (errors[name]) {
-            setErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors[name];
-                return newErrors;
-            });
-        }
-    }, [errors, markBuyerFieldAsEdited]);
-
-    const handleInputBlur = useCallback((e) => {
-        const { name, value } = e.target;
-        
-        // Marcar como touched
-        if (!dirtyFields[name]) {
-            setDirtyFields((prev) => ({ ...prev, [name]: true }));
-        }
-
-        // Validación en blur
-        const normalizedValue = normalizeValueForStorage(name, value);
-        const error = validateField(name, normalizedValue, true);
-        
-        setErrors((prev) => ({
-            ...prev,
-            [name]: error,
-        }));
-
-        // Lógica de búsqueda de comprador
-        if (name === COMPRADOR_DOC || name === "compradorTipoDocumento") {
-            const currentTipo = formValues.compradorTipoDocumento || "";
-            const normalizedDocumento = normalizeValueForStorage(
-                COMPRADOR_DOC,
-                formValues.compradorDocumento || ""
-            );
-            const docChanged =
-                buyerDocumentSnapshotRef.current.tipo !== currentTipo ||
-                buyerDocumentSnapshotRef.current.numero !== normalizedDocumento;
-
-            if (docChanged) {
-                resetBuyerSelection({ resetState: true, resetFields: true });
-                buyerDocumentSnapshotRef.current = {
-                    tipo: currentTipo,
-                    numero: normalizedDocumento,
-                };
+            // Validación de formato MEJORADA
+            if (!error && value.toString().trim()) {
+                if (nameFields.includes(fieldName) && !isValidName(value)) {
+                    error = `Solo se permiten letras, espacios y acentos.`;
+                } 
+                // VALIDACIÓN MEJORADA PARA DOCUMENTOS
+                else if (docFields.includes(fieldName)) {
+                    let tipoDocumento = "";
+                    
+                    if (fieldName === VENDEDOR_DOC) {
+                        tipoDocumento = valuesRef.current.vendedorTipoDocumento || "CC";
+                    } else if (fieldName === COMPRADOR_DOC) {
+                        tipoDocumento = valuesRef.current.compradorTipoDocumento || "CC";
+                    }
+                    
+                    error = validateDocument(tipoDocumento, value);
+                } 
+                else if (phoneFields.includes(fieldName)) {
+                    if (!isValidNumeric(value)) {
+                        error = `Solo se permiten dígitos.`;
+                    } else if (value.length < 10) {
+                        error = `El teléfono debe tener al menos 10 dígitos`;
+                    }
+                } 
+                else if (emailFields.includes(fieldName) && !isValidEmail(value)) {
+                    error = `Debe ser un correo electrónico válido.`;
+                } 
+                else if (strictNumericFields.includes(fieldName) && !isValidNumeric(value)) { 
+                    error = `Solo se permiten números enteros.`;
+                }
+                
+                // Validaciones específicas para campos numéricos
+                if (!error && strictNumericFields.includes(fieldName)) {
+                    const numericValue = parseInt(value);
+                    
+                    if (fieldName === "inmuebleEstrato" && (numericValue < 1 || numericValue > 6)) {
+                        error = `El estrato debe estar entre 1 y 6`;
+                    }
+                    
+                    if (fieldName === "inmuebleHabitaciones" && (numericValue < 0 || numericValue > 20)) {
+                        error = `El número de habitaciones debe ser razonable (0-20)`;
+                    }
+                    
+                    if (fieldName === "inmuebleBanos" && (numericValue < 0 || numericValue > 10)) {
+                        error = `El número de baños debe ser razonable (0-10)`;
+                    }
+                }
             }
-
-            triggerBuyerLookup(name === COMPRADOR_DOC ? 0 : 200);
+            
+            // Actualizar errores
+            if (error) {
+                currentErrors[fieldName] = error;
+                hasError = true;
+                if (!firstErrorField) {
+                    firstErrorField = fieldName;
+                }
+            } else {
+                delete currentErrors[fieldName];
+            }
         }
-    }, [dirtyFields, formValues.compradorTipoDocumento, formValues.compradorDocumento, resetBuyerSelection, triggerBuyerLookup]);
+        
+        return { currentErrors, hasError, firstErrorField };
+    };
 
+    // Navegación entre pasos
     const handleNextStep = () => {
-        const { isValid, errors: stepErrors } = validateStep(step);
+        let fieldsToValidate = stepFields[step].filter(f => f !== 'inmuebleGaraje' || requiredFields.includes('inmuebleGaraje'));
+        
+        const { currentErrors, hasError, firstErrorField } = runValidation(fieldsToValidate);
 
-        if (!isValid) {
-            setErrors(stepErrors);
+        setErrors(currentErrors);
 
-            // Enfocar el primer campo con error
-            const firstErrorField = Object.keys(stepErrors)[0];
+        if (hasError) {
             if (errorFocusTimeout.current) clearTimeout(errorFocusTimeout.current);
             errorFocusTimeout.current = setTimeout(() => {
                 const el = elRefs.current[firstErrorField];
@@ -649,108 +751,98 @@ export default function SalesForm({ onClose, onSubmit }) {
 
     const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
+    // Envío del formulario
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        const allFieldsToValidate = Object.values(stepFields).flat().filter(f => f !== 'inmuebleGaraje' || requiredFields.includes('inmuebleGaraje'));
+        const { currentErrors, hasError, firstErrorField } = runValidation(allFieldsToValidate);
 
-        const normalizedValues = Object.keys(formValues).reduce((acc, fieldName) => {
-            const currentValue = formValues[fieldName] ?? "";
-            acc[fieldName] = normalizeValueForStorage(fieldName, currentValue);
-            return acc;
-        }, {});
-
-        // Validar todos los campos requeridos (validación final)
-        const allErrors = {};
-        let hasError = false;
-        let firstErrorField = null;
-
-        requiredFields.forEach(field => {
-            const error = validateField(field, normalizedValues[field] ?? "", true);
-            if (error) {
-                allErrors[field] = error;
-                hasError = true;
-                if (!firstErrorField) firstErrorField = field;
-            }
-        });
-
-        setErrors(allErrors);
+        setErrors(currentErrors);
 
         if (hasError) {
-            // Determinar a qué paso debe volver para mostrar el error
             let targetStep = 1;
             if (stepFields[2].includes(firstErrorField)) targetStep = 2;
             else if (stepFields[3].includes(firstErrorField)) targetStep = 3;
             else if (stepFields[4].includes(firstErrorField)) targetStep = 4;
-
+            
             setStep(targetStep);
-
+            
             if (errorFocusTimeout.current) clearTimeout(errorFocusTimeout.current);
             errorFocusTimeout.current = setTimeout(() => {
                 const el = elRefs.current[firstErrorField];
                 if (el) el.focus();
             }, 50);
+            
             return;
         }
+
+        const normalizedValues = Object.keys(valuesRef.current).reduce((acc, fieldName) => {
+            const currentValue = valuesRef.current[fieldName] ?? "";
+            acc[fieldName] = normalizeValueForStorage(fieldName, currentValue);
+            return acc;
+        }, {});
 
         const payload = {
             ...normalizedValues,
             selectedBuyer: selectedBuyerRef.current,
         };
+        
         if (onSubmit) onSubmit(payload);
         onClose?.();
     };
 
-    // Field: componente auxiliar reutilizando el estilo
-    const Field = React.memo(({ name, as = "input", options = [], placeholder, type = "text" }) => {
+    // Componente Field reutilizable (con validaciones mejoradas)
+    const Field = ({ name, as = "input", options = [], placeholder, type = "text" }) => {
         const label = getLabel(name);
         const errorMessage = errors[name];
         const isRequired = requiredFields.includes(name);
-        const displayValue = formValues[name] ?? "";
 
-        const needsBlurValidation = isRequired || 
-            name.includes('Nombre') || 
-            name.includes('Correo') || 
-            name.includes('Telefono') || 
-            name.includes('Documento') ||
-            strictNumericFields.includes(name) || 
-            currencyFields.includes(name);
+        const isDocField = docFields.includes(name);
+        const isPhoneField = phoneFields.includes(name);
+        const isEmailField = emailFields.includes(name);
+        const isStrictNumeric = strictNumericFields.includes(name);
+        const isNameField = nameFields.includes(name);
 
+        const needsBlurValidation = isDocField || isNameField || isPhoneField || isEmailField || isRequired || isStrictNumeric;
         const onBlurHandler = needsBlurValidation ? handleInputBlur : undefined;
-
+        
         let inputType = type;
-        if ((name.includes('Documento') || name.includes('Telefono') || strictNumericFields.includes(name)) && 
-            type !== 'date' && type !== 'email' && type !== 'checkbox') {
-            inputType = "tel";
-        } else if (name.includes('Correo')) {
+        if (isDocField || isPhoneField || isStrictNumeric) {
+            if (type !== 'date' && type !== 'email') {
+                inputType = "tel";
+            }
+        }
+        else if (isEmailField) {
             inputType = "email";
         }
 
-        // Caso especial para checkbox
+        // Placeholders mejorados para documentos
+        let fieldPlaceholder = placeholder;
+        if (isDocField) {
+            fieldPlaceholder = "Ej: 1234567890 (8-10 dígitos según el tipo)";
+        }
+
         if (type === "checkbox") {
             return (
-                <div className="flex items-center space-x-3 h-10">
+                <label htmlFor={name} className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                     <input
                         id={name}
                         name={name}
                         ref={setElRef(name)}
                         type="checkbox"
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 shadow-sm transition duration-150"
+                        defaultChecked={!!initial[name]}
                         onChange={handleInputChange}
                         onBlur={onBlurHandler}
-                        checked={!!displayValue}
+                        className="rounded text-blue-600 focus:ring-blue-500"
                     />
-                    <label htmlFor={name} className="text-sm font-semibold text-gray-700 cursor-pointer">
-                        {label}
-                        {isRequired && <span className="text-red-500 ml-1">*</span>}
-                    </label>
-                    {errorMessage && (
-                        <p className="text-red-500 text-xs mt-1 font-medium absolute top-full left-0 right-0">{errorMessage}</p>
-                    )}
-                </div>
+                    <span>{label} {isRequired && <span className="text-red-500 ml-1">*</span>}</span>
+                </label>
             );
         }
 
         const LabelContent = (
-            <label htmlFor={name} className="block text-xs font-semibold text-gray-700 mb-1">
+            <label htmlFor={name} className="block text-sm font-semibold text-gray-700 mb-2">
                 {label}
                 {isRequired && <span className="text-red-500 ml-1">*</span>}
             </label>
@@ -758,14 +850,14 @@ export default function SalesForm({ onClose, onSubmit }) {
 
         if (as === "select") {
             return (
-                <div className="flex flex-col">
+                <div>
                     {LabelContent}
                     <select
                         id={name}
                         name={name}
                         ref={setElRef(name)}
-                        className={getFieldClass(name)} 
-                        value={displayValue}
+                        className={getFieldClass(name)}
+                        defaultValue={initial[name] ?? ""}
                         onChange={handleInputChange}
                         onBlur={onBlurHandler}
                     >
@@ -777,7 +869,7 @@ export default function SalesForm({ onClose, onSubmit }) {
                         ))}
                     </select>
                     {errorMessage && (
-                        <p className="text-red-500 text-xs mt-1 font-medium">{errorMessage}</p>
+                        <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
                     )}
                 </div>
             );
@@ -785,47 +877,47 @@ export default function SalesForm({ onClose, onSubmit }) {
 
         if (as === "textarea") {
             return (
-                <div className="col-span-1 sm:col-span-2 flex flex-col">
+                <div className="col-span-1 sm:col-span-2">
                     {LabelContent}
                     <textarea
                         id={name}
                         name={name}
                         ref={setElRef(name)}
                         className={`${getFieldClass(name)} h-20 resize-none`}
-                        placeholder={placeholder}
-                        value={displayValue}
+                        placeholder={fieldPlaceholder}
+                        defaultValue={initial[name] ?? ""}
                         onChange={handleInputChange}
                         onBlur={onBlurHandler}
                     />
                     {errorMessage && (
-                        <p className="text-red-500 text-xs mt-1 font-medium">{errorMessage}</p>
+                        <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
                     )}
                 </div>
             );
         }
 
         return (
-            <div className="flex flex-col">
+            <div>
                 {LabelContent}
                 <input
                     id={name}
                     name={name}
                     ref={setElRef(name)}
-                    className={getFieldClass(name)} 
+                    className={getFieldClass(name)}
                     type={inputType}
-                    placeholder={placeholder}
-                    value={displayValue}
+                    placeholder={fieldPlaceholder}
+                    defaultValue={initial[name] ?? ""}
                     onChange={handleInputChange}
-                    onBlur={onBlurHandler} 
+                    onBlur={onBlurHandler}
                 />
                 {errorMessage && (
-                    <p className="text-red-500 text-xs mt-1 font-medium">{errorMessage}</p>
+                    <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
                 )}
             </div>
         );
-    });
+    };
 
-    const formattedPrice = formatNumberWithThousandsSeparator(formValues.inmueblePrecio || 0);
+    const formattedPrice = formatNumberWithThousandsSeparator(valuesRef.current.inmueblePrecio || 0);
 
     return (
         <div 
@@ -876,10 +968,10 @@ export default function SalesForm({ onClose, onSubmit }) {
                                     as="select"
                                     options={DOCUMENT_OPTIONS}
                                 />
-                                <Field name={VENDEDOR_DOC} placeholder="Ej: 12345678 o 1.234.567-8" />
-                                <Field name="vendedorNombreCompleto" placeholder="Nombre completo" />
+                                <Field name={VENDEDOR_DOC} placeholder="Ej: 1234567890 (8-10 dígitos según el tipo)" />
+                                <Field name="vendedorNombreCompleto" placeholder="Solo letras y espacios." />
                                 <Field name="vendedorCorreo" placeholder="correo@dominio.com" type="email" />
-                                <Field name="vendedorTelefono" placeholder="Ej: +57 300 123 4567" />
+                                <Field name="vendedorTelefono" placeholder="Solo números. Mínimo 10 dígitos." />
                             </div>
                         </div>
                     )}
@@ -894,10 +986,10 @@ export default function SalesForm({ onClose, onSubmit }) {
                                     as="select"
                                     options={DOCUMENT_OPTIONS}
                                 />
-                                <Field name={COMPRADOR_DOC} placeholder="Ej: 12345678 o 1.234.567-8" />
-                                <Field name="compradorNombreCompleto" placeholder="Nombre completo" />
+                                <Field name={COMPRADOR_DOC} placeholder="Ej: 1234567890 (8-10 dígitos según el tipo)" />
+                                <Field name="compradorNombreCompleto" placeholder="Solo letras y espacios." />
                                 <Field name="compradorCorreo" placeholder="correo@dominio.com" type="email" />
-                                <Field name="compradorTelefono" placeholder="Ej: +57 300 123 4567" />
+                                <Field name="compradorTelefono" placeholder="Solo números. Mínimo 10 dígitos." />
                                 {(buyerLookupState.loading || buyerLookupState.error || buyerLookupState.message) && (
                                     <div className="md:col-span-2">
                                         <p
@@ -938,10 +1030,10 @@ export default function SalesForm({ onClose, onSubmit }) {
                                 <div className="md:col-span-2">
                                     <Field name="inmuebleNombre" placeholder="Ej: Apartamento 501, Edificio La Torre" />
                                 </div>
-                                <Field name="inmuebleArea" placeholder="Área en metros cuadrados" />
-                                <Field name="inmuebleHabitaciones" placeholder="Cantidad de habitaciones" />
-                                <Field name="inmuebleBanos" placeholder="Cantidad de baños" />
-                                <Field name="inmuebleEstrato" placeholder="Estrato (1 a 6)" />
+                                <Field name="inmuebleArea" placeholder="Área en metros cuadrados. Solo números enteros mayores a 0." />
+                                <Field name="inmuebleHabitaciones" placeholder="Cantidad de habitaciones. Solo números enteros (0-20)." />
+                                <Field name="inmuebleBanos" placeholder="Cantidad de baños. Solo números enteros (0-10)." />
+                                <Field name="inmuebleEstrato" placeholder="Estrato (1-6). Solo números enteros." />
 
                                 <Field name="inmueblePais" placeholder="País" />
                                 <Field name="inmuebleDepartamento" placeholder="Departamento o Estado" />
@@ -976,7 +1068,7 @@ export default function SalesForm({ onClose, onSubmit }) {
                                     as="select"
                                     options={PAYMENT_OPTIONS}
                                 />
-                                <Field name="inmueblePrecio" placeholder="Ej: 150.000.000" />
+                                <Field name="inmueblePrecio" placeholder="Ej: 150000000 (Solo números enteros mayores a 0)." />
                             </div>
 
                             <div className="p-4 bg-blue-50 border border-blue-300 rounded-xl shadow-inner text-gray-800 max-w-xl mx-auto">
@@ -984,15 +1076,15 @@ export default function SalesForm({ onClose, onSubmit }) {
                                 <div className="space-y-1 text-sm">
                                     <div className="flex justify-between">
                                         <p className="font-medium text-gray-700">Tipo/Nombre:</p>
-                                        <p className="text-right font-medium text-gray-900">{formValues.inmuebleTipo || "N/A"} - {formValues.inmuebleNombre || "N/A"}</p>
+                                        <p className="text-right font-medium text-gray-900">{valuesRef.current.inmuebleTipo || "N/A"} - {valuesRef.current.inmuebleNombre || "N/A"}</p>
                                     </div>
                                     <div className="flex justify-between">
                                         <p className="font-medium text-gray-700">Ubicación:</p>
-                                        <p className="text-right font-medium text-gray-900">{formValues.inmuebleCiudad || "N/A"}</p>
+                                        <p className="text-right font-medium text-gray-900">{valuesRef.current.inmuebleCiudad || "N/A"}</p>
                                     </div>
                                     <div className="flex justify-between">
                                         <p className="font-medium text-gray-700">Garaje:</p>
-                                        <p className="text-right font-medium text-gray-900">{formValues.inmuebleGaraje ? "Sí" : "No"}</p>
+                                        <p className="text-right font-medium text-gray-900">{valuesRef.current.inmuebleGaraje ? "Sí" : "No"}</p>
                                     </div>
                                     <div className="border-t border-blue-400 pt-2 flex justify-between items-center font-extrabold text-lg mt-2">
                                         <span className="text-gray-900">PRECIO FINAL:</span>

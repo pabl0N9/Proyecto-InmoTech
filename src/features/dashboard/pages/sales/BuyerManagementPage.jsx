@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import ReactDOM from 'react-dom';
-import { FaUserPlus, FaEye, FaEdit, FaSearch, FaTrash, FaTimes } from "react-icons/fa";
+import { motion } from 'framer-motion';
+import { FaUserPlus, FaEye, FaEdit, FaSearch, FaTrash, FaTimes, FaCalendar, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
+import { Plus, Search, Filter, Eye, Edit, Trash2, Calendar, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import "../../../../shared/styles/globals.css"
 import BuyerForm from "../../components/sales/BuyerForm";
 import BuyerViewModal from "../../components/sales/BuyerView";
@@ -8,16 +10,16 @@ import { buyersApiService } from "../../../../shared/services/buyersApiService";
 
 export function BuyersManagementPage() {
     const [compradores, setCompradores] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [formSubmitting, setFormSubmitting] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [statusMessage, setStatusMessage] = useState(null);
-
-    // --- ESTADOS DE ACCION ---
-    const [searchTerm, setSearchTerm] = useState("");
-    const [showForm, setShowForm] = useState(false);
-    const [buyerToEdit, setBuyerToEdit] = useState(null);
-    const [buyerToView, setBuyerToView] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [formSubmitting, setFormSubmitting] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [statusMessage, setStatusMessage] = useState(null);
+
+    // --- ESTADOS DE ACCION ---
+    const [searchTerm, setSearchTerm] = useState("");
+    const [showForm, setShowForm] = useState(false);
+    const [buyerToEdit, setBuyerToEdit] = useState(null);
+    const [buyerToView, setBuyerToView] = useState(null);
     const [buyerToDelete, setBuyerToDelete] = useState(null);
 
     const showStatus = (type, message) => {
@@ -48,8 +50,8 @@ export function BuyersManagementPage() {
         }, 400);
         return () => clearTimeout(timeoutId);
     }, [searchTerm, fetchBuyers]);
-
-// --- FILTRO DE BÚSQUEDA ---
+
+    // --- FILTRO DE BÚSQUEDA ---
     const filteredBuyers = compradores;
 
     // --- HANDLERS GENERALES ---
@@ -204,7 +206,7 @@ export function BuyersManagementPage() {
                     onClick={(e) => e.stopPropagation()} 
                 >
                     <h3 className="text-2xl font-bold text-red-700 mb-4 flex items-center gap-2">
-                        <FaTrash /> Confirmar Eliminación
+                        <Trash2 className="w-5 h-5" /> Confirmar Eliminación
                     </h3>
                     <p className="mb-6 text-gray-700">
                         ¿Estás seguro de que deseas eliminar a
@@ -213,22 +215,26 @@ export function BuyersManagementPage() {
                     </p>
                     
                     <div className="flex justify-end gap-3 pt-3 border-t">
-                        <button
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={handleCancelDelete}
                             className="bg-gray-300 text-gray-800 px-5 py-2 rounded-xl font-semibold hover:bg-gray-400 transition duration-150"
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={handleConfirmDelete}
                             disabled={isDeleting}
                             className={`bg-red-600 text-white px-5 py-2 rounded-xl font-semibold transition duration-150 shadow-md flex items-center gap-2 ${
                                 isDeleting ? "opacity-70 cursor-not-allowed" : "hover:bg-red-700"
                             }`}
                         >
-                            {!isDeleting && <FaTimes />}
+                            {!isDeleting && <Trash2 className="w-4 h-4" />}
                             {isDeleting ? "Eliminando..." : "Eliminar"}
-                        </button>
+                        </motion.button>
                     </div>
                 </div>
             </div>
@@ -240,12 +246,21 @@ export function BuyersManagementPage() {
         );
     };
 
+    // Calcular estadísticas
+    const stats = {
+        total: filteredBuyers.length,
+        activos: filteredBuyers.filter(b => b.estado === 'activo').length,
+        inactivos: filteredBuyers.filter(b => b.estado === 'inactivo').length,
+    };
+
     // --- RENDERIZADO PRINCIPAL ---
     return (
         <>
-            <div className="p-6">
+            <div className="p-6 space-y-6">
                 {statusMessage && (
-                    <div
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
                         className={`mb-6 rounded-lg border px-4 py-3 text-sm font-semibold ${
                             statusMessage.type === "error"
                                 ? "border-red-200 bg-red-50 text-red-700"
@@ -253,143 +268,226 @@ export function BuyersManagementPage() {
                         }`}
                     >
                         {statusMessage.message}
-                    </div>
+                    </motion.div>
                 )}
 
-                {/* HEADER CON ESTILO DEL BANNER */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                        Gestión de compradores
-                    </h1>
-                    <p className="text-gray-600 text-lg">
-                        Administra toda la información de tus compradores
-                    </p>
-                </div>
+                {/* HEADER CON NUEVO ESTILO */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+                >
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-800">Gestión de Compradores</h1>
+                        <p className="text-slate-600 mt-1">Administra toda la información de tus compradores</p>
+                    </div>
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleNewClick}
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Nuevo Comprador
+                    </motion.button>
+                </motion.div>
 
-                {/* CONTENEDOR SUPERIOR CON BOTÓN */}
-                <div className="flex justify-between items-center mb-6">
+                {/* STATS CARDS */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                >
+                    <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-blue-100 text-sm font-medium">Total Compradores</p>
+                                <p className="text-2xl font-bold mt-1">{stats.total}</p>
+                            </div>
+                            <div className="bg-blue-400 rounded-lg p-3">
+                                <FaUserPlus className="text-xl" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-green-100 text-sm font-medium">Activos</p>
+                                <p className="text-2xl font-bold mt-1">{stats.activos}</p>
+                            </div>
+                            <div className="bg-green-400 rounded-lg p-3">
+                                <CheckCircle className="w-5 h-5" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-gradient-to-r from-gray-500 to-gray-600 rounded-xl p-4 text-white shadow-lg">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-gray-100 text-sm font-medium">Inactivos</p>
+                                <p className="text-2xl font-bold mt-1">{stats.inactivos}</p>
+                            </div>
+                            <div className="bg-gray-400 rounded-lg p-3">
+                                <XCircle className="w-5 h-5" />
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* SEARCH AND FILTERS */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="flex flex-col sm:flex-row gap-4 items-start sm:items-center"
+                >
                     <div className="flex-1 max-w-md">
-                        {/* BARRA DE BÚSQUEDA */}
-                        <div className="relative w-full">
-                            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                             <input
                                 type="text"
                                 placeholder="Buscar comprador por nombre, apellido, doc, correo..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition duration-150 shadow-sm"
+                                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-150 shadow-sm bg-white"
                             />
                         </div>
                     </div>
                     
-                    {/* BOTÓN CON COLOR AZUL COMO EL BANNER */}
-                    <button
-                        onClick={handleNewClick}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 shadow-lg transition duration-200 font-semibold"
-                    >
-                        <FaUserPlus className="text-lg" /> Crear comprador
-                    </button>
-                </div>
-
-                {/* TABLA */}
-                <div className="rent-table-wrapper rounded-xl shadow-lg">
-                    {/* CABECERA DE TABLA CON COLOR AZUL */}
-                    <div className="rent-table-header rounded-t-xl bg-blue-700">
-                        👥 Lista de compradores ({filteredBuyers.length}{" "}
-                        {filteredBuyers.length === 1 ? "resultado" : "resultados"})
+                    <div className="flex gap-2">
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300"
+                        >
+                            <Filter className="w-4 h-4" />
+                            Filtros
+                        </motion.button>
                     </div>
-                    
-                    <div className="overflow-x-auto">
-                        <table className="rent-table w-full border-collapse bg-white rounded-b-lg overflow-hidden">
-                            <thead className="bg-green-50">
-                                <tr>
-                                    <th className="px-3 py-3 text-center border-0">ID</th>
-                                    <th className="px-3 py-3 text-center border-0">Tipo doc</th>
-                                    <th className="px-3 py-3 text-center border-0">#Documento</th>
-                                    <th className="px-3 py-3 text-center border-0">Primer nombre</th>
-                                    <th className="px-3 py-3 text-center border-0">Segundo nombre</th>
-                                    <th className="px-3 py-3 text-center border-0">Primer apellido</th>
-                                    <th className="px-3 py-3 text-center border-0">Segundo apellido</th>
-                                    <th className="px-3 py-3 text-center border-0">Correo</th>
-                                    <th className="px-3 py-3 text-center border-0">Teléfono</th>
-                                    <th className="px-3 py-3 text-center border-0">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {isLoading ? (
+                </motion.div>
+
+                {/* CONTENT AREA */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                    {/* TABLA CON NUEVO ESTILO */}
+                    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                        {/* CABECERA DE TABLA */}
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                            <h3 className="text-white font-semibold flex items-center gap-2">
+                                👥 Lista de Compradores ({filteredBuyers.length} {filteredBuyers.length === 1 ? "resultado" : "resultados"})
+                            </h3>
+                        </div>
+                        
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                                <thead className="bg-slate-50">
                                     <tr>
-                                        <td
-                                            colSpan="10"
-                                            className="px-4 py-6 text-center text-gray-500 border-0"
-                                        >
-                                            Cargando compradores...
-                                        </td>
+                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Tipo doc</th>
+                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">#Documento</th>
+                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Primer nombre</th>
+                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Segundo nombre</th>
+                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Primer apellido</th>
+                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Segundo apellido</th>
+                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Correo</th>
+                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Teléfono</th>
+                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Acciones</th>
                                     </tr>
-                                ) : filteredBuyers.length > 0 ? (
-                                    filteredBuyers.map((c) => (
-                                        <tr
-                                            key={c.id}
-                                            className="hover:bg-gray-50 border-t border-gray-200"
-                                        >
-                                            <td className="px-3 py-3 text-center border-0">{c.id}</td>
-                                            <td className="px-3 py-3 text-center border-0">{c.tipoDocumento}</td>
-                                            <td className="px-3 py-3 text-center border-0">{c.documento}</td>
-                                            <td className="px-3 py-3 text-center border-0">{c.primerNombre}</td>
-                                            <td className="px-3 py-3 text-center border-0">
-                                                {c.segundoNombre || "-"}
-                                            </td>
-                                            <td className="px-3 py-3 text-center border-0">{c.primerApellido}</td>
-                                            <td className="px-3 py-3 text-center border-0">
-                                                {c.segundoApellido || "-"}
-                                            </td>
-                                            <td className="px-3 py-3 text-center border-0 truncate">
-                                                <a
-                                                    href={`mailto:${c.correo}`}
-                                                    className="text-blue-600 underline hover:text-blue-800"
-                                                >
-                                                    {c.correo}
-                                                </a>
-                                            </td>
-                                            <td className="px-3 py-3 text-center border-0">{c.telefono}</td>
-                                            <td className="px-3 py-3 text-center flex gap-2 justify-center border-0">
-                                                <button
-                                                    aria-label="Editar comprador"
-                                                    className="text-green-600 hover:text-green-800 transition-colors"
-                                                    onClick={() => handleEditClick(c)}
-                                                >
-                                                    <FaEdit />
-                                                </button>
-                                                <button
-                                                    aria-label="Ver comprador"
-                                                    className="text-sky-600 hover:text-sky-800 transition-colors"
-                                                    onClick={() => handleViewClick(c)}
-                                                >
-                                                    <FaEye />
-                                                </button>
-                                                <button
-                                                    aria-label="Eliminar comprador"
-                                                    className="text-red-600 hover:text-red-800 transition-colors"
-                                                    onClick={() => handleDeleteRequest(c)}
-                                                >
-                                                    <FaTrash />
-                                                </button>
+                                </thead>
+                                <tbody>
+                                    {isLoading ? (
+                                        <tr>
+                                            <td
+                                                colSpan="9"
+                                                className="px-4 py-8 text-center text-slate-500 border-b"
+                                            >
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                                                    Cargando compradores...
+                                                </div>
                                             </td>
                                         </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td
-                                            colSpan="10"
-                                            className="px-4 py-6 text-center text-gray-500 border-0"
-                                        >
-                                            No se encontraron compradores.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                    ) : filteredBuyers.length > 0 ? (
+                                        filteredBuyers.map((c) => (
+                                            <tr
+                                                key={c.id}
+                                                className="hover:bg-slate-50 border-b border-slate-100 transition-colors"
+                                            >
+                                                <td className="px-4 py-3 text-center text-slate-700">{c.tipoDocumento}</td>
+                                                <td className="px-4 py-3 text-center text-slate-700 font-medium">{c.documento}</td>
+                                                <td className="px-4 py-3 text-center text-slate-700">{c.primerNombre}</td>
+                                                <td className="px-4 py-3 text-center text-slate-500">
+                                                    {c.segundoNombre || "-"}
+                                                </td>
+                                                <td className="px-4 py-3 text-center text-slate-700">{c.primerApellido}</td>
+                                                <td className="px-4 py-3 text-center text-slate-500">
+                                                    {c.segundoApellido || "-"}
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <a
+                                                        href={`mailto:${c.correo}`}
+                                                        className="text-blue-600 hover:text-blue-800 transition-colors font-medium"
+                                                    >
+                                                        {c.correo}
+                                                    </a>
+                                                </td>
+                                                <td className="px-4 py-3 text-center text-slate-700">{c.telefono}</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <div className="flex gap-2 justify-center">
+                                                        <motion.button
+                                                            whileHover={{ scale: 1.1 }}
+                                                            whileTap={{ scale: 0.9 }}
+                                                            aria-label="Editar comprador"
+                                                            className="text-green-600 hover:text-green-800 transition-colors p-1 rounded-lg hover:bg-green-50"
+                                                            onClick={() => handleEditClick(c)}
+                                                        >
+                                                            <Edit className="w-4 h-4" />
+                                                        </motion.button>
+                                                        <motion.button
+                                                            whileHover={{ scale: 1.1 }}
+                                                            whileTap={{ scale: 0.9 }}
+                                                            aria-label="Ver comprador"
+                                                            className="text-sky-600 hover:text-sky-800 transition-colors p-1 rounded-lg hover:bg-sky-50"
+                                                            onClick={() => handleViewClick(c)}
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                        </motion.button>
+                                                        <motion.button
+                                                            whileHover={{ scale: 1.1 }}
+                                                            whileTap={{ scale: 0.9 }}
+                                                            aria-label="Eliminar comprador"
+                                                            className="text-red-600 hover:text-red-800 transition-colors p-1 rounded-lg hover:bg-red-50"
+                                                            onClick={() => handleDeleteRequest(c)}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </motion.button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td
+                                                colSpan="9"
+                                                className="px-4 py-8 text-center text-slate-500 border-b"
+                                            >
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <AlertCircle className="w-8 h-8 text-slate-400" />
+                                                    <p>No se encontraron compradores.</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+                </motion.div>
             </div>
 
             {/* MODALES CON PORTAL - TODOS SE RENDERIZAN EN EL MISMO SITIO */}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import ReactDOM from 'react-dom';
-import { FaUsers, FaPlus, FaEye, FaChartBar, FaSearch } from "react-icons/fa";
+import { motion } from 'framer-motion';
+import { FaUsers, FaPlus, FaEye, FaChartBar, FaSearch, FaDollarSign, FaCalendarCheck, FaClipboardList } from "react-icons/fa";
+import { Plus, Search, Filter, Eye, BarChart3, DollarSign, Calendar, Users, Home } from 'lucide-react';
 import "../../../../shared/styles/globals.css";
 import SaleForm from "../../components/sales/SaleForm";
 import PurchaseTrackingModal from "../../components/sales/SalesTracking";
@@ -504,6 +506,7 @@ export function SalesManagementPage() {
       setSavingVenta(false);
     }
   };
+
   const handleUpdateTracking = (updatedSale) => {
     setVentas((prevVentas) =>
       prevVentas.map((v) =>
@@ -527,6 +530,14 @@ export function SalesManagementPage() {
       tipo.includes(normalizedSearch)
     );
   });
+
+  // Calcular estadísticas
+  const stats = {
+    total: filteredVentas.length,
+    pagadas: filteredVentas.filter(v => v.estado === 'Pagado').length,
+    pendientes: filteredVentas.filter(v => v.estado === 'Pendiente').length,
+    totalValor: filteredVentas.reduce((sum, v) => sum + toNumericValue(v.valor), 0)
+  };
 
   // 🔑 --- FUNCIONES PARA RENDERIZAR MODALES CON PORTAL ---
   const renderFormModal = () => {
@@ -592,34 +603,116 @@ export function SalesManagementPage() {
 
   return (
     <>
-      <div className="p-6">
-        {/* HEADER CON ESTILO DEL BANNER */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Gestión de ventas
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Administra todas las transacciones de venta de tus propiedades
-          </p>
-        </div>
+      <div className="p-6 space-y-6">
+        {/* HEADER CON NUEVO ESTILO */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+        >
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">Gestión de Ventas</h1>
+            <p className="text-slate-600 mt-1">Administra todas las transacciones de venta de tus propiedades</p>
+          </div>
+          
+          {/* BOTÓN CREAR VENTA EN POSICIÓN DESTACADA - COLOR AZUL */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowForm(true)}
+            disabled={savingVenta}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+              savingVenta 
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl'
+            }`}
+          >
+            <Plus className="w-5 h-5" />
+            {savingVenta ? "Guardando..." : "Crear Venta"}
+          </motion.button>
+        </motion.div>
+
+        {/* STATS CARDS */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        >
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-sm font-medium">Total Ventas</p>
+                <p className="text-2xl font-bold mt-1">{stats.total}</p>
+              </div>
+              <div className="bg-blue-400 rounded-lg p-3">
+                <Home className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-sm font-medium">Ventas Pagadas</p>
+                <p className="text-2xl font-bold mt-1">{stats.pagadas}</p>
+              </div>
+              <div className="bg-green-400 rounded-lg p-3">
+                <DollarSign className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl p-4 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-yellow-100 text-sm font-medium">Pendientes</p>
+                <p className="text-2xl font-bold mt-1">{stats.pendientes}</p>
+              </div>
+              <div className="bg-yellow-400 rounded-lg p-3">
+                <Calendar className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-100 text-sm font-medium">Valor Total</p>
+                <p className="text-lg font-bold mt-1">{formatCurrencyValue(stats.totalValor)}</p>
+              </div>
+              <div className="bg-purple-400 rounded-lg p-3">
+                <FaDollarSign className="text-lg" />
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
         {propertiesError && (
-          <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 flex items-start justify-between gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 flex items-start justify-between gap-4"
+          >
             <span>{propertiesError}</span>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               type="button"
               onClick={loadProperties}
               className="text-xs font-semibold uppercase tracking-wide text-yellow-700 hover:text-yellow-900"
             >
               Reintentar
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
         )}
 
-
         {statusMessage && (
-          <div
-            className={`mb-6 rounded-lg border px-4 py-3 text-sm font-medium ${
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`rounded-lg border px-4 py-3 text-sm font-medium ${
               statusMessage.type === "error"
                 ? "border-red-200 bg-red-50 text-red-700"
                 : "border-green-200 bg-green-50 text-green-700"
@@ -628,132 +721,152 @@ export function SalesManagementPage() {
             <div className="flex items-center justify-between gap-4">
               <span>{statusMessage.text}</span>
               {statusMessage.type === "error" && (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   type="button"
                   className="text-xs font-semibold uppercase tracking-wide text-red-600 hover:text-red-800"
                   onClick={fetchVentas}
                 >
                   Reintentar
-                </button>
+                </motion.button>
               )}
             </div>
-          </div>
+          </motion.div>
         )}
-        {/* CONTENEDOR SUPERIOR CON BOTONES Y BÚSQUEDA */}
-        <div className="flex justify-between items-center mb-6">
+
+        {/* SEARCH AND FILTERS - SIN BOTÓN CREAR VENTA AQUÍ */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex flex-col sm:flex-row gap-4 items-start sm:items-center"
+        >
           <div className="flex-1 max-w-md">
-            {/* BARRA DE BÚSQUEDA */}
-            <div className="relative w-full">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
                 placeholder="Buscar por registro, comprador o tipo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition duration-150 shadow-sm"
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-150 shadow-sm bg-white"
               />
             </div>
           </div>
           
-          {/* BOTONES CON COLOR AZUL COMO EL BANNER */}
-          <div className="flex gap-3">
-            <button
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 shadow-lg transition duration-200 font-semibold"
+          <div className="flex gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setShowInterestedPeople(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-300"
             >
-              <FaUsers /> Personas interesadas
-            </button>
-            <button
-              className={`bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 shadow-lg transition duration-200 font-semibold ${savingVenta ? "opacity-60 cursor-not-allowed" : ""}`}
-              onClick={() => setShowForm(true)}
-              disabled={savingVenta}
-            >
-              <FaPlus /> {savingVenta ? "Guardando..." : "Crear venta"}
-            </button>
+              <Users className="w-4 h-4" />
+              Personas Interesadas
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
 
-        {/* TABLA CON ESTILO ACTUALIZADO */}
-        <div className="rent-table-wrapper rounded-xl shadow-lg">
-          {/* CABECERA DE TABLA CON COLOR AZUL */}
-          <div className="rent-table-header rounded-t-xl bg-blue-700">
-            🏠 Lista de ventas ({filteredVentas.length}{" "}
-            {filteredVentas.length === 1 ? "resultado" : "resultados"})
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="rent-table w-full border-collapse bg-white rounded-b-lg overflow-hidden">
-              <thead className="bg-green-50">
-                <tr>
-                  <th className="px-3 py-3 text-center border-0">ID</th>
-                  <th className="px-3 py-3 text-center border-0">Registro</th>
-                  <th className="px-3 py-3 text-center border-0">Tipo</th>
-                  <th className="px-3 py-3 text-center border-0">Comprador</th>
-                  <th className="px-3 py-3 text-center border-0">Fecha</th>
-                  <th className="px-3 py-3 text-center border-0">Valor</th>
-                  <th className="px-3 py-3 text-center border-0">Estado</th>
-                  <th className="px-3 py-3 text-center border-0">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingVentas ? (
+        {/* CONTENT AREA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          {/* TABLA CON NUEVO ESTILO - SIN COLUMNA ID */}
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            {/* CABECERA DE TABLA */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+              <h3 className="text-white font-semibold flex items-center gap-2">
+                🏠 Lista de Ventas ({filteredVentas.length} {filteredVentas.length === 1 ? "resultado" : "resultados"})
+              </h3>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead className="bg-slate-50">
                   <tr>
-                    <td
-                      colSpan="8"
-                      className="px-4 py-6 text-center text-gray-500 border-0"
-                    >
-                      Cargando ventas desde la API...
-                    </td>
+                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Registro</th>
+                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Tipo</th>
+                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Comprador</th>
+                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Fecha</th>
+                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Valor</th>
+                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Estado</th>
+                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Acciones</th>
                   </tr>
-                ) : filteredVentas.length > 0 ? (
-                  filteredVentas.map((v) => (
-                    <tr
-                      key={v.id}
-                      className="hover:bg-gray-50 border-t border-gray-200"
-                    >
-                      <td className="px-3 py-3 text-center border-0">{v.id}</td>
-                      <td className="px-3 py-3 text-center border-0">{v.registro}</td>
-                      <td className="px-3 py-3 text-center border-0">{v.tipo}</td>
-                      <td className="px-3 py-3 text-center border-0 truncate max-w-[150px]">{v.comprador}</td>
-                      <td className="px-3 py-3 text-center border-0">{v.fecha}</td>
-                      <td className="px-3 py-3 text-center font-semibold text-purple-700 border-0">
-                        {v.valor}
-                      </td>
-                      <td className="px-3 py-3 text-center border-0">
-                        <EstadoBadge estado={v.estado} />
-                      </td>
-                      <td className="px-3 py-3 text-center flex gap-3 justify-center border-0">
-                        <button
-                          aria-label="Ver detalles de la venta"
-                          className="text-green-600 hover:text-green-800 transition-colors p-1"
-                          onClick={() => handleViewClick(v)}
-                        >
-                          <FaEye />
-                        </button>
-                        <button
-                          aria-label="Seguimiento de compra"
-                          className="text-sky-600 hover:text-sky-800 transition-colors p-1"
-                          onClick={() => handleTrackingClick(v)}
-                        >
-                          <FaChartBar />
-                        </button>
+                </thead>
+                <tbody>
+                  {loadingVentas ? (
+                    <tr>
+                      <td
+                        colSpan="7"
+                        className="px-4 py-8 text-center text-slate-500 border-b"
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                          Cargando ventas desde la API...
+                        </div>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan="8"
-                      className="px-4 py-6 text-center text-gray-500 border-0"
-                    >
-                      No se encontraron resultados
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  ) : filteredVentas.length > 0 ? (
+                    filteredVentas.map((v) => (
+                      <tr
+                        key={v.id}
+                        className="hover:bg-slate-50 border-b border-slate-100 transition-colors"
+                      >
+                        <td className="px-4 py-3 text-slate-700">{v.registro}</td>
+                        <td className="px-4 py-3 text-slate-700">{v.tipo}</td>
+                        <td className="px-4 py-3 text-slate-700 truncate max-w-[150px]">{v.comprador}</td>
+                        <td className="px-4 py-3 text-slate-700">{v.fecha}</td>
+                        <td className="px-4 py-3 font-semibold text-purple-700">
+                          {v.valor}
+                        </td>
+                        <td className="px-4 py-3">
+                          <EstadoBadge estado={v.estado} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              aria-label="Ver detalles de la venta"
+                              className="text-green-600 hover:text-green-800 transition-colors p-1 rounded-lg hover:bg-green-50"
+                              onClick={() => handleViewClick(v)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              aria-label="Seguimiento de compra"
+                              className="text-sky-600 hover:text-sky-800 transition-colors p-1 rounded-lg hover:bg-sky-50"
+                              onClick={() => handleTrackingClick(v)}
+                            >
+                              <BarChart3 className="w-4 h-4" />
+                            </motion.button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="7"
+                        className="px-4 py-8 text-center text-slate-500 border-b"
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <Home className="w-8 h-8 text-slate-400" />
+                          <p>No se encontraron resultados</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* --- MODALES RENDERIZADOS CON PORTAL --- */}
@@ -764,4 +877,3 @@ export function SalesManagementPage() {
     </>
   );
 }
-
