@@ -31,9 +31,11 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
     password: '',
 
     // Paso 2: Información Laboral
+    codigoEmpleado: '',
     fechaIngreso: '',
     cargo: '',
     departamento: '',
+    salario: '',
 
     // Paso 3: Rol
     rol: '',
@@ -146,7 +148,17 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
     return '';
   };
 
-
+  // Función para validar código de empleado
+  const validateCodigoEmpleado = (codigo) => {
+    if (!codigo.trim()) return 'El código de empleado es requerido';
+    if (codigo.trim().length < 3 || codigo.trim().length > 20) {
+      return 'El código de empleado debe tener entre 3 y 20 caracteres';
+    }
+    if (!/^[A-Z0-9\-_]+$/.test(codigo.trim())) {
+      return 'El código de empleado solo puede contener letras mayúsculas, números, guiones y guiones bajos';
+    }
+    return '';
+  };
 
   // Función para validar fecha de ingreso
   const validateFechaIngreso = (fecha) => {
@@ -171,7 +183,13 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
     return '';
   };
 
-
+  // Función para validar salario
+  const validateSalario = (salario) => {
+    if (salario && (isNaN(salario) || parseFloat(salario) < 0)) {
+      return 'El salario debe ser un número positivo';
+    }
+    return '';
+  };
 
   // Función para validar rol
   const validateRol = (rol) => {
@@ -193,9 +211,11 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
         newErrors.password = validatePassword(formData.password);
         break;
       case 2:
+        newErrors.codigoEmpleado = validateCodigoEmpleado(formData.codigoEmpleado);
         newErrors.fechaIngreso = validateFechaIngreso(formData.fechaIngreso);
         newErrors.cargo = validateCargo(formData.cargo);
         newErrors.departamento = validateDepartamento(formData.departamento);
+        newErrors.salario = validateSalario(formData.salario);
         break;
       case 3:
         newErrors.rol = validateRol(formData.rol);
@@ -228,11 +248,14 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
                Object.keys(step1Errors).every(key => !step1Errors[key]);
       case 2:
         const step2Errors = {
+          codigoEmpleado: validateCodigoEmpleado(formData.codigoEmpleado),
           fechaIngreso: validateFechaIngreso(formData.fechaIngreso),
           cargo: validateCargo(formData.cargo),
-          departamento: validateDepartamento(formData.departamento)
+          departamento: validateDepartamento(formData.departamento),
+          salario: validateSalario(formData.salario)
         };
-        return formData.fechaIngreso &&
+        return formData.codigoEmpleado.trim() &&
+               formData.fechaIngreso &&
                Object.keys(step2Errors).every(key => !step2Errors[key]);
       case 3:
         const step3Errors = {
@@ -276,9 +299,11 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
     } };
     // Validate step 2
     allErrors = { ...allErrors, ...{
+      codigoEmpleado: validateCodigoEmpleado(formData.codigoEmpleado),
       fechaIngreso: validateFechaIngreso(formData.fechaIngreso),
       cargo: validateCargo(formData.cargo),
-      departamento: validateDepartamento(formData.departamento)
+      departamento: validateDepartamento(formData.departamento),
+      salario: validateSalario(formData.salario)
     } };
     // Validate step 3
     allErrors = { ...allErrors, ...{ rol: validateRol(formData.rol) } };
@@ -287,61 +312,42 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
   };
 
   const handleSubmit = async () => {
-    console.log('🚀 INICIO handleSubmit'); // ✅ AGREGAR ESTA LÍNEA
-    
     if (validateAllSteps()) {
-      console.log('✅ Validación exitosa, preparando datos...'); // ✅ AGREGAR ESTA LÍNEA
-      
       try {
-        // Limpiar teléfono de formato antes de enviar
-        const telefonoLimpio = formData.telefono.replace(/[\s\-\(\)\+]/g, '');
-                
         // Preparar los datos para el backend según la estructura esperada
         const administrativoData = {
           tipo_documento: formData.tipoDocumento,
-          numero_documento: formData.numeroDocumento.replace(/[\s\-\.]/g, ''), // Limpiar documento también
-          nombre_completo: formData.nombreCompleto.trim(),
-          apellido_completo: formData.apellidoCompleto.trim(),
-          email: formData.email.trim().toLowerCase(),
-          telefono: telefonoLimpio, // ✅ Teléfono limpio
+          numero_documento: formData.numeroDocumento,
+          nombre_completo: formData.nombreCompleto,
+          apellido_completo: formData.apellidoCompleto,
+          email: formData.email,
+          telefono: formData.telefono,
           password: formData.password,
-
+          codigo_empleado: formData.codigoEmpleado,
           fecha_ingreso: formData.fechaIngreso,
-          cargo: formData.cargo ? formData.cargo.trim() : null,
-          departamento: formData.departamento ? formData.departamento.trim() : null,
-
+          cargo: formData.cargo || null,
+          departamento: formData.departamento || null,
+          salario: formData.salario ? parseFloat(formData.salario) : null,
           id_rol: parseInt(formData.rol)
         };
-  
-        // ✅ AGREGAR CONSOLE.LOG DETALLADO
-        console.log("📤 Datos preparados para crear administrativo:", administrativoData);
-        console.log('🔍 Validación de campos obligatorios:');
-        console.log('- tipo_documento:', administrativoData.tipo_documento);
-        console.log('- numero_documento:', administrativoData.numero_documento);
-        console.log('- nombre_completo:', administrativoData.nombre_completo);
-        console.log('- apellido_completo:', administrativoData.apellido_completo);
-        console.log('- email:', administrativoData.email);
-        console.log('- telefono:', administrativoData.telefono);
-        console.log('- password:', administrativoData.password ? '✅ (existe)' : '❌ (falta)');
 
-        console.log('- fecha_ingreso:', administrativoData.fecha_ingreso);
-        console.log('- id_rol:', administrativoData.id_rol);
-  
+        console.log("📤 Datos preparados para crear administrativo:", administrativoData);
+
         // ✅ Crear el administrativo usando createAdministrativo
         await createAdministrativo(administrativoData);
-  
+
         toast({
           title: "¡Administrativo creado exitosamente!",
           description: "El administrativo ha sido registrado correctamente.",
           variant: "default"
         });
-  
+
         handleClose();
       } catch (error) {
         console.error("Error al crear administrativo:", error);
         toast({
           title: "Error al crear el administrativo",
-          description: error.message || "No se pudo registrar el administrativo. Por favor, intenta nuevamente.",
+          description: "No se pudo registrar el administrativo. Por favor, intenta nuevamente.",
           variant: "destructive"
         });
       }
@@ -353,7 +359,7 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
       });
     }
   };
-  
+
   const handleClose = () => {
     setCurrentStep(1);
     setFormData({
@@ -368,7 +374,7 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
       fechaIngreso: '',
       cargo: '',
       departamento: '',
-
+      salario: '',
       rol: '',
       estado: 'programada'
     });
@@ -413,7 +419,9 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
       case 'password':
         newErrors.password = validatePassword(cleanedValue);
         break;
-
+      case 'codigoEmpleado':
+        newErrors.codigoEmpleado = validateCodigoEmpleado(cleanedValue);
+        break;
       case 'fechaIngreso':
         newErrors.fechaIngreso = validateFechaIngreso(cleanedValue);
         break;
@@ -422,6 +430,9 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
         break;
       case 'departamento':
         newErrors.departamento = validateDepartamento(cleanedValue);
+        break;
+      case 'salario':
+        newErrors.salario = validateSalario(cleanedValue);
         break;
       case 'rol':
         newErrors.rol = validateRol(cleanedValue);

@@ -1,73 +1,69 @@
 import React from "react";
-import { FaImage, FaPhoneAlt, FaShieldAlt } from "react-icons/fa";
-
-const formatCurrency = (value) => {
-  if (!value && value !== 0) return "-";
-  return Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0
-  }).format(Number(value));
-};
+import { FaTimes, FaImage } from "react-icons/fa";
 
 export default function ViewTenantModal({ tenant, onClose }) {
   if (!tenant) return null;
 
-  const fullName = [
-    tenant.primerNombre,
-    tenant.segundoNombre,
-    tenant.primerApellido,
-    tenant.segundoApellido
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  const inmueble = tenant.inmueble || null;
-
   return (
-    <div
+    // 🔑 Fondo del modal con desenfoque - CAMBIO PRINCIPAL
+    <div 
       className="fixed inset-0 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm z-50 p-4"
       onClick={onClose}
     >
-      <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-6 relative max-h-[90vh] overflow-hidden"
+      {/* Contenido principal del modal */}
+      <div 
+        className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-6 pr-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">Información del arrendatario</h2>
-          <p className="text-gray-600 text-sm">
-            Resumen del arrendatario, su contrato y el inmueble asociado.
-          </p>
+        
+        {/* Header con estilo del banner */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Información del Arrendatario</h2>
+          <p className="text-gray-600 text-sm">Detalles completos del arrendatario y sus propiedades</p>
         </div>
 
+        {/* Botón cerrar con estilo azul */}
         <button
           onClick={onClose}
           className="absolute top-6 right-6 text-gray-500 hover:text-blue-600 transition duration-150 p-1 rounded-full"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-              clipRule="evenodd"
-            />
+            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         </button>
 
+        {/* Contenido desplazable */}
         <div className="space-y-6 max-h-[65vh] overflow-y-auto pr-2">
-          <section className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          
+          {/* --- Sección de Información Personal --- */}
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
             <h3 className="text-lg font-bold text-blue-800 mb-3 pb-2 border-b border-blue-200">
-              Información personal
+              Información Personal
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="font-semibold text-gray-700">Nombre completo:</p>
-                <p className="text-gray-900">{fullName || "-"}</p>
+                <p className="font-semibold text-gray-700">Tipo de documento:</p>
+                <p className="text-gray-900">{tenant.tipoDocumento || "-"}</p>
               </div>
               <div>
-                <p className="font-semibold text-gray-700">Documento:</p>
-                <p className="text-gray-900">
-                  {tenant.tipoDocumento} · {tenant.documento}
-                </p>
+                <p className="font-semibold text-gray-700">Número de documento:</p>
+                <p className="text-gray-900">{tenant.documento || "-"}</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700">Primer nombre:</p>
+                <p className="text-gray-900">{tenant.primerNombre || "-"}</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700">Segundo nombre:</p>
+                <p className="text-gray-900">{tenant.segundoNombre || "-"}</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700">Primer apellido:</p>
+                <p className="text-gray-900">{tenant.primerApellido || "-"}</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700">Segundo apellido:</p>
+                <p className="text-gray-900">{tenant.segundoApellido || "-"}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Correo electrónico:</p>
@@ -79,155 +75,82 @@ export default function ViewTenantModal({ tenant, onClose }) {
                   <p className="text-gray-900">-</p>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <FaPhoneAlt className="text-gray-500" />
-                <div>
-                  <p className="font-semibold text-gray-700">Teléfono:</p>
-                  <p className="text-gray-900">{tenant.telefono || "-"}</p>
-                </div>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Estado:</p>
-                <span
-                  className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${
-                    tenant.estado === "Activo"
-                      ? "bg-green-100 text-green-700 border-green-400"
-                      : tenant.estado === "Moroso"
-                      ? "bg-red-100 text-red-700 border-red-400"
-                      : "bg-yellow-100 text-yellow-700 border-yellow-400"
-                  }`}
-                >
-                  {tenant.estado}
-                </span>
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-green-50 rounded-lg p-4 border border-green-200">
-            <h3 className="text-lg font-bold text-green-800 mb-3 pb-2 border-b border-green-200">
-              Datos del arrendamiento
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="font-semibold text-gray-700">Fecha inicio:</p>
-                <p className="text-gray-900">
-                  {tenant.fechaInicio ? new Date(tenant.fechaInicio).toLocaleDateString() : "-"}
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Fecha fin:</p>
-                <p className="text-gray-900">
-                  {tenant.fechaFin ? new Date(tenant.fechaFin).toLocaleDateString() : "No definida"}
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Canon mensual:</p>
-                <p className="text-gray-900 font-semibold">
-                  {formatCurrency(tenant.valorMensual)}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
-              <div className="flex items-center gap-2">
-                <FaShieldAlt className="text-gray-500" />
-                <div>
-                  <p className="font-semibold text-gray-700">Tipo de garantía:</p>
-                  <p className="text-gray-900">{tenant.tipoGarantia || "-"}</p>
-                </div>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Valor garantía:</p>
-                <p className="text-gray-900">{tenant.valorGarantia ? formatCurrency(tenant.valorGarantia) : "-"}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Estado del contrato:</p>
-                <p className="text-gray-900">{tenant.estado || "-"}</p>
-              </div>
-            </div>
-
-            {tenant.descripcionGarantia && (
-              <div className="mt-4 text-sm">
-                <p className="font-semibold text-gray-700 mb-1">Descripción de la garantía:</p>
-                <p className="text-gray-900 bg-white rounded-lg p-3 border border-gray-200">
-                  {tenant.descripcionGarantia}
-                </p>
-              </div>
-            )}
-          </section>
-
-          <section className="bg-white rounded-lg p-4 border border-gray-200">
-            <h3 className="text-lg font-bold text-gray-800 mb-3 pb-2 border-b border-gray-100">
-              Contacto de emergencia
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="font-semibold text-gray-700">Nombre:</p>
-                <p className="text-gray-900">{tenant.contactoEmergenciaNombre || "-"}</p>
-              </div>
               <div>
                 <p className="font-semibold text-gray-700">Teléfono:</p>
-                <p className="text-gray-900">{tenant.contactoEmergenciaTelefono || "-"}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Parentesco:</p>
-                <p className="text-gray-900">{tenant.contactoEmergenciaParentesco || "-"}</p>
+                <p className="text-gray-900">{tenant.telefono || "-"}</p>
               </div>
             </div>
-          </section>
+          </div>
 
-          <section className="bg-white rounded-lg p-4 border border-gray-200">
-            <h3 className="text-lg font-bold text-gray-800 mb-3 pb-2 border-b border-gray-100">
-              Inmueble arrendado
+          {/* --- Sección de Inmuebles Arrendados --- */}
+          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+            <h3 className="text-lg font-bold text-green-800 mb-3 pb-2 border-b border-green-200">
+              Inmuebles Arrendados
             </h3>
-
-            {inmueble ? (
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-shrink-0 w-full md:w-40 h-32 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 border border-gray-200">
-                  <FaImage size={32} />
-                </div>
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="font-semibold text-gray-700">Registro:</p>
-                    <p className="text-gray-900">{inmueble.registro || "-"}</p>
+            
+            {tenant.inmueblesArrendados && tenant.inmueblesArrendados.length > 0 ? (
+              <div className="space-y-4">
+                {tenant.inmueblesArrendados.map((inmueble, index) => (
+                  <div key={index} className="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-md transition duration-150">
+                    <div className="flex items-start gap-4 mb-3">
+                      <div className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 border border-gray-200">
+                        <FaImage size={24} />
+                      </div>
+                      <div className="flex-grow">
+                        <h4 className="font-bold text-gray-800 text-base mb-2">{inmueble.nombre}</h4>
+                        <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-2">
+                          <div className="flex items-center gap-1">
+                            <span className="font-semibold">Área:</span>
+                            <span>{inmueble.m2} m²</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="font-semibold">Habitaciones:</span>
+                            <span>{inmueble.hab}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="font-semibold">Baños:</span>
+                            <span>{inmueble.baños}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                          inmueble.estado === "Activo" 
+                            ? "bg-green-100 text-green-700 border-green-400" 
+                            : "bg-yellow-100 text-yellow-700 border-yellow-400"
+                        }`}>
+                          {inmueble.estado}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm border-t border-gray-100 pt-3">
+                      <div>
+                        <p className="font-semibold text-gray-700">Registro inmobiliario:</p>
+                        <p className="text-gray-900">{inmueble.registro}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-700">Tipo de inmueble:</p>
+                        <p className="text-gray-900">{inmueble.tipo}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="font-semibold text-gray-700">Dirección:</p>
+                        <p className="text-gray-900">{inmueble.direccion}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-700">Categoría:</p>
-                    <p className="text-gray-900">{inmueble.categoria || "-"}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="font-semibold text-gray-700">Dirección:</p>
-                    <p className="text-gray-900">{inmueble.direccion || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-700">Ubicación:</p>
-                    <p className="text-gray-900">
-                      {[inmueble.ciudad, inmueble.departamento].filter(Boolean).join(", ") || "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-700">Estado:</p>
-                    <span
-                      className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${
-                        inmueble.estado === "Activo"
-                          ? "bg-green-100 text-green-700 border-green-400"
-                          : "bg-yellow-100 text-yellow-700 border-yellow-400"
-                      }`}
-                    >
-                      {inmueble.estado}
-                    </span>
-                  </div>
-                </div>
+                ))}
               </div>
             ) : (
-              <div className="text-center py-6">
-                <FaImage size={40} className="mx-auto text-gray-300 mb-2" />
-                <p className="text-gray-500 italic">Aún no se ha vinculado un inmueble a este arrendatario.</p>
+              <div className="text-center py-6 bg-white rounded-lg border border-gray-200">
+                <FaImage className="mx-auto text-gray-300 mb-2" size={32} />
+                <p className="text-gray-500 italic">No hay inmuebles registrados para este arrendatario.</p>
               </div>
             )}
-          </section>
+          </div>
         </div>
-
+        
+        {/* Pie del modal con botón azul */}
         <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
           <button
             onClick={onClose}

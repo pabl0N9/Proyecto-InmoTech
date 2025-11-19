@@ -76,7 +76,7 @@ BEGIN
         -- Identificador único de la persona
         id_persona INT PRIMARY KEY IDENTITY(1,1),
 
-        -- Información de documento (permites identificación sin duplicados)
+        -- Información de documento (permite identificación sin duplicados)
         tipo_documento VARCHAR(5) NOT NULL CHECK (tipo_documento IN ('CC', 'CE', 'NIT', 'Pasaporte', 'TI')),
         numero_documento VARCHAR(20) NOT NULL,
 
@@ -180,32 +180,6 @@ BEGIN
     );
     PRINT '✅ Tabla Personas_rol creada';
 END
-GO
-
--- ---------------------------------------------------------------------------------------------------------------------
--- Tabla: Permisos
--- Descripción: Almacena los permisos específicos por módulo para cada rol
--- Relación: Un rol puede tener múltiples permisos por módulo
--- ---------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Permisos]') AND type = 'U')
-BEGIN
-    CREATE TABLE Permisos (
-        id_permiso INT PRIMARY KEY IDENTITY(1,1),
-        id_rol INT NOT NULL,
-        modulo VARCHAR(50) NOT NULL,                    -- Ej: "gInmuebles", "gClientes"
-        permiso VARCHAR(50) NOT NULL,                   -- Ej: "crear", "editar", "eliminar", "ver"
-        estado BIT NOT NULL DEFAULT 1,
-        fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
-
-        CONSTRAINT FK_Permisos_Rol FOREIGN KEY (id_rol) REFERENCES Roles(id_rol) ON DELETE CASCADE,
-        CONSTRAINT UQ_Permiso_Unico UNIQUE (id_rol, modulo, permiso)
-    );
-    PRINT '✅ Tabla Permisos creada';
-END
-GO
-
--- Índice para búsquedas por rol
-CREATE NONCLUSTERED INDEX IX_Permisos_Rol ON Permisos(id_rol);
 GO
 
 -- Índices para consultas de roles
@@ -459,57 +433,6 @@ CREATE NONCLUSTERED INDEX IX_Citas_ConflictoHorario ON Citas(id_inmueble, fecha_
 CREATE NONCLUSTERED INDEX IX_Citas_Creador ON Citas(id_usuario_creador);                      -- Quién creó las citas
 GO
 
-
-
-
--- =====================================================================================================================
--- TABLA DE HISTORIAL DE ASIGNACIÓN DE AGENTES
--- =====================================================================================================================
-
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[HistorialAsignacionAgentes]') AND type = 'U')
-BEGIN
-    CREATE TABLE HistorialAsignacionAgentes (
-        id_historial INT PRIMARY KEY IDENTITY(1,1),
-
-        -- Relación con cita
-        id_cita INT NOT NULL,
-
-        -- Agentes involucrados
-        id_agente_anterior INT NULL,  -- NULL si es primera asignación
-        id_agente_nuevo INT NOT NULL,
-
-        -- Información de la asignación
-        comentario TEXT NULL,  -- Obligatorio cuando se reasigna
-        estado_asignacion VARCHAR(20) NOT NULL DEFAULT 'Activa',  -- Activa, Reasignada, Cancelada
-
-        -- Usuario que realizó la asignación/reasignación
-        id_usuario_realizo INT NOT NULL,  -- Quién realizó la acción
-
-        -- Fechas
-        fecha_asignacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
-
-        -- Auditoría
-        fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
-
-        CONSTRAINT FK_HistorialAsignacion_Cita FOREIGN KEY (id_cita) REFERENCES Citas(id_cita) ON DELETE CASCADE,
-        CONSTRAINT FK_HistorialAsignacion_AgenteAnterior FOREIGN KEY (id_agente_anterior) REFERENCES Personas(id_persona),
-        CONSTRAINT FK_HistorialAsignacion_AgenteNuevo FOREIGN KEY (id_agente_nuevo) REFERENCES Personas(id_persona),
-        CONSTRAINT FK_HistorialAsignacion_UsuarioRealizo FOREIGN KEY (id_usuario_realizo) REFERENCES Personas(id_persona),
-        CONSTRAINT CHK_HistorialAsignacion_Estado CHECK (estado_asignacion IN ('Activa', 'Reasignada', 'Cancelada'))
-    );
-    PRINT '✅ Tabla HistorialAsignacionAgentes creada - NUEVA FUNCIONALIDAD';
-END
-GO
-
--- Índices para búsquedas frecuentes
-CREATE NONCLUSTERED INDEX IX_Historial_Cita ON HistorialAsignacionAgentes(id_cita, fecha_asignacion DESC);
-CREATE NONCLUSTERED INDEX IX_Historial_AgenteNuevo ON HistorialAsignacionAgentes(id_agente_nuevo);
-CREATE NONCLUSTERED INDEX IX_Historial_UsuarioRealizo ON HistorialAsignacionAgentes(id_usuario_realizo);
-GO
-
-
-
-
 -- =====================================================================================================================
 -- PASO 6: SISTEMA DE NOTIFICACIONES
 -- =====================================================================================================================
@@ -619,249 +542,7 @@ CREATE NONCLUSTERED INDEX IX_Reportes_Prioridad ON Reportes(prioridad) WHERE est
 GO
 
 -- =====================================================================================================================
--- PASO 8: MÓDULO DE VENTAS Y ARRENDAMIENTOS
--- =====================================================================================================================
--- Sistema completo para gestión de ventas y contratos de arrendamiento
-
--- ---------------------------------------------------------------------------------------------------------------------
--- Tabla: Ventas
--- Descripción: Registro de ventas de inmuebles
--- ---------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Ventas]') AND type = 'U')
-BEGIN
-    CREATE TABLE Ventas (
-        id_venta INT PRIMARY KEY IDENTITY(1,1),
-        
-        -- Relaciones
-        id_persona INT NOT NULL,                    -- Comprador
-        id_inmueble INT NOT NULL,                   -- Inmueble vendido
-        
-        -- Información de la venta
-        fecha_venta DATE NOT NULL,
-        valor_venta DECIMAL(15,2) NOT NULL,
-        medio_pago VARCHAR(50) NOT NULL CHECK (medio_pago IN ('efectivo', 'transferencia', 'credito', 'mixto')),
-        
-        -- Estado y auditoría
-        estado VARCHAR(50) NOT NULL DEFAULT 'Activa' CHECK (estado IN ('Activa', 'Cancelada', 'Finalizada')),
-        fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
-        
-        -- Foreign Keys
-        CONSTRAINT FK_Ventas_Persona FOREIGN KEY (id_persona) REFERENCES Personas(id_persona),
-        CONSTRAINT FK_Ventas_Inmueble FOREIGN KEY (id_inmueble) REFERENCES Inmuebles(id_inmueble),
-        
-        -- Validaciones
-        CONSTRAINT CHK_Ventas_Valor CHECK (valor_venta > 0),
-        CONSTRAINT CHK_Ventas_Fecha CHECK (fecha_venta <= CAST(GETDATE() AS DATE))
-    );
-    PRINT '✅ Tabla Ventas creada';
-END
-GO
-
--- Índices para Ventas
-CREATE NONCLUSTERED INDEX IX_Ventas_Persona ON Ventas(id_persona);
-CREATE NONCLUSTERED INDEX IX_Ventas_Inmueble ON Ventas(id_inmueble);
-CREATE NONCLUSTERED INDEX IX_Ventas_Fecha ON Ventas(fecha_venta DESC);
-GO
-
--- ---------------------------------------------------------------------------------------------------------------------
--- Tabla: Estados_venta
--- Descripción: Catálogo de estados para el seguimiento de ventas
--- ---------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Estados_venta]') AND type = 'U')
-BEGIN
-    CREATE TABLE Estados_venta (
-        id_estado_venta INT PRIMARY KEY IDENTITY(1,1),
-        nombre_estado VARCHAR(50) NOT NULL UNIQUE,
-        descripcion VARCHAR(200) NULL,
-        orden INT NOT NULL,                         -- Orden en el flujo
-        es_estado_final BIT NOT NULL DEFAULT 0,
-        estado BIT NOT NULL DEFAULT 1
-    );
-    PRINT '✅ Tabla Estados_venta creada';
-END
-GO
-
--- ---------------------------------------------------------------------------------------------------------------------
--- Tabla: Seguimiento_venta
--- Descripción: Historial de seguimiento del proceso de venta
--- ---------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Seguimiento_venta]') AND type = 'U')
-BEGIN
-    CREATE TABLE Seguimiento_venta (
-        id_seguimiento_venta INT PRIMARY KEY IDENTITY(1,1),
-        
-        -- Relaciones
-        id_venta INT NOT NULL,
-        id_estado_venta INT NOT NULL,
-        id_persona INT NOT NULL,                    -- Quién registró el seguimiento (agente)
-        
-        -- Información del seguimiento
-        fecha_estado_seguimiento DATE NOT NULL,
-        descripcion TEXT NOT NULL,                  -- Observaciones del seguimiento
-        
-        -- Auditoría
-        fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
-        
-        -- Foreign Keys
-        CONSTRAINT FK_SeguimientoVenta_Venta FOREIGN KEY (id_venta) REFERENCES Ventas(id_venta) ON DELETE CASCADE,
-        CONSTRAINT FK_SeguimientoVenta_Estado FOREIGN KEY (id_estado_venta) REFERENCES Estados_venta(id_estado_venta),
-        CONSTRAINT FK_SeguimientoVenta_Persona FOREIGN KEY (id_persona) REFERENCES Personas(id_persona),
-        
-        -- Validaciones
-        CONSTRAINT CHK_SeguimientoVenta_Fecha CHECK (fecha_estado_seguimiento <= CAST(GETDATE() AS DATE))
-    );
-    PRINT '✅ Tabla Seguimiento_venta creada';
-END
-GO
-
--- Índices para Seguimiento_venta
-CREATE NONCLUSTERED INDEX IX_SeguimientoVenta_Venta ON Seguimiento_venta(id_venta);
-CREATE NONCLUSTERED INDEX IX_SeguimientoVenta_Fecha ON Seguimiento_venta(fecha_estado_seguimiento DESC);
-GO
-
--- ---------------------------------------------------------------------------------------------------------------------
--- Tabla: Arrendamientos
--- Descripción: Contratos de arrendamiento de inmuebles
--- ---------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Arrendamientos]') AND type = 'U')
-BEGIN
-    CREATE TABLE Arrendamientos (
-        id_arrendamiento INT PRIMARY KEY IDENTITY(1,1),
-        
-        -- Relaciones
-        id_cliente INT NOT NULL,                    -- Arrendatario
-        id_inmueble INT NOT NULL,                   -- Inmueble arrendado
-        
-        -- Términos del contrato
-        fecha_inicio DATE NOT NULL,
-        fecha_finalizacion DATE NOT NULL,
-        valor_mensual DECIMAL(15,2) NOT NULL,
-        
-        -- Estado del arrendamiento
-        estado VARCHAR(50) NOT NULL DEFAULT 'Activo' CHECK (estado IN ('Activo', 'Al día', 'Pendiente', 'Recuperación', 'Finalizado', 'Cancelado')),
-        
-        -- Información adicional
-        duracion_meses AS DATEDIFF(MONTH, fecha_inicio, fecha_finalizacion),  -- Campo calculado
-        
-        -- Auditoría
-        fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
-        
-        -- Foreign Keys
-        CONSTRAINT FK_Arrendamientos_Cliente FOREIGN KEY (id_cliente) REFERENCES Personas(id_persona),
-        CONSTRAINT FK_Arrendamientos_Inmueble FOREIGN KEY (id_inmueble) REFERENCES Inmuebles(id_inmueble),
-        
-        -- Validaciones
-        CONSTRAINT CHK_Arrendamientos_Valor CHECK (valor_mensual > 0),
-        CONSTRAINT CHK_Arrendamientos_Fechas CHECK (fecha_finalizacion > fecha_inicio),
-        CONSTRAINT CHK_Arrendamientos_Duracion CHECK (DATEDIFF(MONTH, fecha_inicio, fecha_finalizacion) >= 1)  -- Mínimo 1 mes
-    );
-    PRINT '✅ Tabla Arrendamientos creada';
-END
-GO
-
--- Índices para Arrendamientos
-CREATE NONCLUSTERED INDEX IX_Arrendamientos_Cliente ON Arrendamientos(id_cliente);
-CREATE NONCLUSTERED INDEX IX_Arrendamientos_Inmueble ON Arrendamientos(id_inmueble);
-CREATE NONCLUSTERED INDEX IX_Arrendamientos_Estado ON Arrendamientos(estado) WHERE estado IN ('Activo', 'Pendiente');
-CREATE NONCLUSTERED INDEX IX_Arrendamientos_Fechas ON Arrendamientos(fecha_inicio, fecha_finalizacion);
-GO
-
--- ---------------------------------------------------------------------------------------------------------------------
--- Tabla: Cobros
--- Descripción: Registro de cobros mensuales de arrendamientos
--- ---------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Cobros]') AND type = 'U')
-BEGIN
-    CREATE TABLE Cobros (
-        id_cobro INT PRIMARY KEY IDENTITY(1,1),
-        
-        -- Relaciones
-        id_arrendamiento INT NOT NULL,
-        
-        -- Información del cobro
-        fecha_cobro DATE NOT NULL,                          -- Fecha en que se genera el cobro
-        fecha_limite DATE NOT NULL,                         -- Fecha límite para pagar
-        valor_pago DECIMAL(15,2) NOT NULL,
-        
-        -- Estado del pago
-        estado VARCHAR(50) NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'Pagado', 'Vencido', 'Cancelado')),
-        
-        -- Fechas de estado
-        fecha_estado DATE NULL,                             -- Fecha del último cambio de estado
-        fecha_pago DATE NULL,                               -- Fecha real de pago (cuando estado = 'Pagado')
-        
-        -- Auditoría
-        fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
-        
-        -- Foreign Keys
-        CONSTRAINT FK_Cobros_Arrendamiento FOREIGN KEY (id_arrendamiento) REFERENCES Arrendamientos(id_arrendamiento) ON DELETE CASCADE,
-        
-        -- Validaciones
-        CONSTRAINT CHK_Cobros_Valor CHECK (valor_pago > 0),
-        CONSTRAINT CHK_Cobros_Fechas CHECK (fecha_limite >= fecha_cobro),
-        CONSTRAINT CHK_Cobros_FechaPago CHECK (fecha_pago IS NULL OR fecha_pago >= fecha_cobro)
-    );
-    PRINT '✅ Tabla Cobros creada';
-END
-GO
-
--- Índices para Cobros
-CREATE NONCLUSTERED INDEX IX_Cobros_Arrendamiento ON Cobros(id_arrendamiento);
-CREATE NONCLUSTERED INDEX IX_Cobros_Estado ON Cobros(estado) WHERE estado IN ('Pendiente', 'Vencido');
-CREATE NONCLUSTERED INDEX IX_Cobros_Fechas ON Cobros(fecha_cobro, fecha_limite);
-CREATE NONCLUSTERED INDEX IX_Cobros_Vencidos ON Cobros(estado, fecha_limite) WHERE estado = 'Pendiente' AND fecha_limite < CAST(GETDATE() AS DATE);
-GO
-
--- ---------------------------------------------------------------------------------------------------------------------
--- Tabla: Comprobantes_pago
--- Descripción: Registro de comprobantes de pago de cobros
--- ---------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Comprobantes_pago]') AND type = 'U')
-BEGIN
-    CREATE TABLE Comprobantes_pago (
-        id_comprobante INT PRIMARY KEY IDENTITY(1,1),
-        
-        -- Relaciones
-        id_cobro INT NOT NULL,
-        
-        -- Información del comprobante
-        url_comprobante VARCHAR(500) NOT NULL,              -- Ruta/URL de la imagen/documento
-        entidad_bancaria VARCHAR(100) NOT NULL,             -- Bancolombia, Nequi, Davivienda, etc.
-        referencia_bancaria VARCHAR(100) NOT NULL,          -- Número de referencia/transacción
-        monto_pagado DECIMAL(15,2) NOT NULL,
-        
-        -- Estado del comprobante
-        estado VARCHAR(50) NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'Confirmado', 'Negado', 'En revisión')),
-        
-        -- Fechas
-        fecha_pago DATE NOT NULL,                           -- Fecha del pago según comprobante
-        fecha_revision DATE NULL,                           -- Fecha de revisión por administrador
-        
-        -- Observaciones
-        observaciones TEXT NULL,                            -- Razones si es negado
-        
-        -- Auditoría
-        fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
-        
-        -- Foreign Keys
-        CONSTRAINT FK_Comprobantes_Cobro FOREIGN KEY (id_cobro) REFERENCES Cobros(id_cobro) ON DELETE CASCADE,
-        
-        -- Validaciones
-        CONSTRAINT CHK_Comprobantes_Monto CHECK (monto_pagado > 0),
-        CONSTRAINT CHK_Comprobantes_Fecha CHECK (fecha_pago <= CAST(GETDATE() AS DATE))
-    );
-    PRINT '✅ Tabla Comprobantes_pago creada';
-END
-GO
-
--- Índices para Comprobantes_pago
-CREATE NONCLUSTERED INDEX IX_Comprobantes_Cobro ON Comprobantes_pago(id_cobro);
-CREATE NONCLUSTERED INDEX IX_Comprobantes_Estado ON Comprobantes_pago(estado) WHERE estado IN ('Pendiente', 'En revisión');
-CREATE NONCLUSTERED INDEX IX_Comprobantes_Referencia ON Comprobantes_pago(referencia_bancaria, entidad_bancaria);
-GO
-
--- =====================================================================================================================
--- PASO 9: FUNCIONES Y VISTAS AUXILIARES
+-- PASO 8: FUNCIONES Y VISTAS AUXILIARES
 -- =====================================================================================================================
 -- Funciones helper y vistas optimizadas para consultas frecuentes
 
@@ -947,65 +628,8 @@ GO
 PRINT '✅ Vista vw_PersonalAdministrativo creada';
 GO
 
--- ---------------------------------------------------------------------------------------------------------------------
--- Vista: vw_ArrendamientosActivos
--- Descripción: Resumen de arrendamientos activos con información de clientes e inmuebles
--- ---------------------------------------------------------------------------------------------------------------------
-IF OBJECT_ID('dbo.vw_ArrendamientosActivos', 'V') IS NOT NULL
-    DROP VIEW dbo.vw_ArrendamientosActivos;
-GO
-
-CREATE VIEW dbo.vw_ArrendamientosActivos AS
-SELECT 
-    a.id_arrendamiento,
-    p.nombre_completo + ' ' + p.apellido_completo AS arrendatario,
-    i.registro_inmobiliario,
-    i.direccion,
-    i.ciudad,
-    a.fecha_inicio,
-    a.fecha_finalizacion,
-    a.valor_mensual,
-    a.estado,
-    a.duracion_meses
-FROM Arrendamientos a
-INNER JOIN Personas p ON a.id_cliente = p.id_persona
-INNER JOIN Inmuebles i ON a.id_inmueble = i.id_inmueble
-WHERE a.estado IN ('Activo', 'Al día', 'Pendiente');
-GO
-PRINT '✅ Vista vw_ArrendamientosActivos creada';
-GO
-
--- ---------------------------------------------------------------------------------------------------------------------
--- Vista: vw_CobrosPendientes
--- Descripción: Cobros pendientes y vencidos con información detallada
--- ---------------------------------------------------------------------------------------------------------------------
-IF OBJECT_ID('dbo.vw_CobrosPendientes', 'V') IS NOT NULL
-    DROP VIEW dbo.vw_CobrosPendientes;
-GO
-
-CREATE VIEW dbo.vw_CobrosPendientes AS
-SELECT 
-    c.id_cobro,
-    a.id_arrendamiento,
-    p.nombre_completo + ' ' + p.apellido_completo AS arrendatario,
-    i.direccion,
-    c.fecha_cobro,
-    c.fecha_limite,
-    c.valor_pago,
-    c.estado,
-    DATEDIFF(DAY, GETDATE(), c.fecha_limite) AS dias_restantes
-FROM Cobros c
-INNER JOIN Arrendamientos a ON c.id_arrendamiento = a.id_arrendamiento
-INNER JOIN Personas p ON a.id_cliente = p.id_persona
-INNER JOIN Inmuebles i ON a.id_inmueble = i.id_inmueble
-WHERE c.estado IN ('Pendiente', 'Vencido')
-AND a.estado IN ('Activo', 'Al día', 'Pendiente');
-GO
-PRINT '✅ Vista vw_CobrosPendientes creada';
-GO
-
 -- =====================================================================================================================
--- PASO 10: DATOS INICIALES (SEEDS)
+-- PASO 9: DATOS INICIALES (SEEDS)
 -- =====================================================================================================================
 -- Insertar datos necesarios para que el sistema funcione desde el inicio
 
@@ -1083,23 +707,6 @@ END
 GO
 
 -- ---------------------------------------------------------------------------------------------------------------------
--- Seeds: Estados de Venta
--- ---------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT 1 FROM Estados_venta WHERE nombre_estado = 'Iniciada')
-BEGIN
-    INSERT INTO Estados_venta (nombre_estado, descripcion, orden, es_estado_final) VALUES
-    ('Iniciada', 'Proceso de venta iniciado', 1, 0),
-    ('En negociación', 'En proceso de negociación con el cliente', 2, 0),
-    ('Reservada', 'Inmueble reservado con seña', 3, 0),
-    ('Contrato firmado', 'Contrato de compraventa firmado', 4, 0),
-    ('Finalizada', 'Venta completada exitosamente', 5, 1),
-    ('Cancelada', 'Venta cancelada', 6, 1);
-    
-    PRINT '✅ Estados de venta insertados (6 estados)';
-END
-GO
-
--- ---------------------------------------------------------------------------------------------------------------------
 -- Seed: Super Administrador (Usuario inicial del sistema)
 -- Importante: CAMBIAR LA CONTRASEÑA EN PRODUCCIÓN
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -1167,111 +774,8 @@ BEGIN
 END
 GO
 
-
-
-
-
 -- =====================================================================================================================
--- PASO 9.5: OPTIMIZACIÓN DE ÍNDICES PARA ENDPOINTS LENTOS
--- =====================================================================================================================
--- Este script agrega índices faltantes en columnas FK para mejorar rendimiento de JOINs
--- Especialmente optimizado para /api/v1/citas, /api/v1/personas, /api/v1/administrativos
--- Debe ejecutarse DESPUÉS de crear todas las tablas y datos iniciales
--- =====================================================================================================================
-
-PRINT '';
-PRINT '=====================================================================================================================';
-PRINT 'OPTIMIZACIÓN DE ÍNDICES PARA MEJORAR RENDIMIENTO DE CONSULTAS';
-PRINT '=====================================================================================================================';
-PRINT '';
-
--- Índices para tabla Citas (FKs más consultadas en endpoints de citas)
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Citas') AND name = 'IX_Citas_Inmueble')
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_Citas_Inmueble ON Citas(id_inmueble);
-    PRINT '✅ Índice agregado: IX_Citas_Inmueble';
-END
-ELSE
-BEGIN
-    PRINT '⚠️  Índice IX_Citas_Inmueble ya existe';
-END
-
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Citas') AND name = 'IX_Citas_Servicio')
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_Citas_Servicio ON Citas(id_servicio);
-    PRINT '✅ Índice agregado: IX_Citas_Servicio';
-END
-ELSE
-BEGIN
-    PRINT '⚠️  Índice IX_Citas_Servicio ya existe';
-END
-
--- Índices para tabla Administrativos (optimización de consultas de personal)
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Administrativos') AND name = 'IX_Administrativos_Persona')
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_Administrativos_Persona ON Administrativos(id_persona);
-    PRINT '✅ Índice agregado: IX_Administrativos_Persona';
-END
-ELSE
-BEGIN
-    PRINT '⚠️  Índice IX_Administrativos_Persona ya existe';
-END
-
--- Índices para tabla Personas_rol (optimización de filtros por roles y estado)
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Personas_rol') AND name = 'IX_PersonasRol_Estado')
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_PersonasRol_Estado ON Personas_rol(id_persona, estado) WHERE estado = 1;
-    PRINT '✅ Índice agregado: IX_PersonasRol_Estado (filtrado para activos)';
-END
-ELSE
-BEGIN
-    PRINT '⚠️  Índice IX_PersonasRol_Estado ya existe';
-END
-
--- Índice compuesto para optimización de consultas con joins complejos rol-persona
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Personas_rol') AND name = 'IX_PersonasRol_RolEstado')
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_PersonasRol_RolEstado ON Personas_rol(id_rol, estado) INCLUDE (id_persona) WHERE estado = 1;
-    PRINT '✅ Índice agregado: IX_PersonasRol_RolEstado (con columna incluida)';
-END
-ELSE
-BEGIN
-    PRINT '⚠️  Índice IX_PersonasRol_RolEstado ya existe';
-END
-
--- Índice para consultas de personas con cuenta activa (login y autenticación)
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Personas') AND name = 'IX_Personas_EstadoCuenta')
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_Personas_EstadoCuenta ON Personas(estado, tiene_cuenta) WHERE estado = 1;
-    PRINT '✅ Índice agregado: IX_Personas_EstadoCuenta (filtrado para activos)';
-END
-ELSE
-BEGIN
-    PRINT '⚠️  Índice IX_Personas_EstadoCuenta ya existe';
-END
-
-PRINT '';
-PRINT '🎯 OPTIMIZACIÓN DE ÍNDICES COMPLETADA';
-PRINT '';
-PRINT '📊 Estos índices mejorarán significativamente el rendimiento de:';
-PRINT '   ✓ GET /api/v1/citas         - Joins con persona, inmueble, servicio';
-PRINT '   ✓ GET /api/v1/personas      - Filtrado por rol Usuario y estado activo';
-PRINT '   ✓ GET /api/v1/administrativos - Joins con persona y roles';
-PRINT '   ✓ POST /api/v1/auth/login   - Búsqueda de usuarios con cuenta activa';
-PRINT '';
-PRINT '💡 RECOMENDACIONES:';
-PRINT '   - Monitorear tiempo de respuesta de los endpoints después de aplicar';
-PRINT '   - Usar SET STATISTICS TIME ON para medir mejoras';
-PRINT '   - Considerar actualizar estadísticas: UPDATE STATISTICS [tabla]';
-PRINT '';
-GO
-
-
-
-
-
--- =====================================================================================================================
--- PASO 11: VERIFICACIÓN FINAL Y RESUMEN
+-- PASO 10: VERIFICACIÓN FINAL Y RESUMEN
 -- =====================================================================================================================
 
 PRINT '';
@@ -1308,29 +812,19 @@ IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Notificac
     PRINT '   ✓ Notificaciones';
 IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Reportes')
     PRINT '   ✓ Reportes';
-IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Ventas')
-    PRINT '   ✓ Ventas (NUEVA)';
-IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Arrendamientos')
-    PRINT '   ✓ Arrendamientos (NUEVA)';
-IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Cobros')
-    PRINT '   ✓ Cobros (NUEVA)';
-IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Comprobantes_pago')
-    PRINT '   ✓ Comprobantes_pago (NUEVA)';
 PRINT '';
 
 -- Verificar datos iniciales
-DECLARE @TotalRoles INT, @TotalEstados INT, @TotalServicios INT, @TotalAdmins INT, @TotalEstadosVenta INT;
+DECLARE @TotalRoles INT, @TotalEstados INT, @TotalServicios INT, @TotalAdmins INT;
 SELECT @TotalRoles = COUNT(*) FROM Roles;
 SELECT @TotalEstados = COUNT(*) FROM Estados_cita;
 SELECT @TotalServicios = COUNT(*) FROM Servicios_cita;
 SELECT @TotalAdmins = COUNT(*) FROM Administrativos;
-SELECT @TotalEstadosVenta = COUNT(*) FROM Estados_venta;
 
 PRINT '📋 DATOS INICIALES:';
 PRINT '   - Roles:             ' + CAST(@TotalRoles AS VARCHAR(10));
 PRINT '   - Estados de cita:   ' + CAST(@TotalEstados AS VARCHAR(10));
 PRINT '   - Servicios de cita: ' + CAST(@TotalServicios AS VARCHAR(10));
-PRINT '   - Estados de venta:  ' + CAST(@TotalEstadosVenta AS VARCHAR(10));
 PRINT '   - Administrativos:   ' + CAST(@TotalAdmins AS VARCHAR(10));
 PRINT '';
 
@@ -1349,17 +843,6 @@ PRINT '   │  - Acceso a: Ver inmuebles, agendar citas           │';
 PRINT '   └─────────────────────────────────────────────────────┘';
 PRINT '';
 
-PRINT '🚀 MÓDULOS IMPLEMENTADOS:';
-PRINT '   1. Gestión de Personas y Usuarios';
-PRINT '   2. Sistema de Citas';
-PRINT '   3. Notificaciones';
-PRINT '   4. Reportes';
-PRINT '   5. Ventas de Inmuebles';
-PRINT '   6. Arrendamientos';
-PRINT '   7. Sistema de Cobros';
-PRINT '   8. Comprobantes de Pago';
-PRINT '';
-
 PRINT '🔑 CREDENCIALES SUPER ADMINISTRADOR:';
 PRINT '   Email:    admin@inmotech.com';
 PRINT '   Password: Admin123!';
@@ -1372,14 +855,11 @@ PRINT '   2. Iniciar servidor API: npm run dev';
 PRINT '   3. Probar endpoint de login: POST /api/v1/auth/login';
 PRINT '   4. Crear empleados desde panel admin';
 PRINT '   5. Probar flujo de citas desde frontend';
-PRINT '   6. Probar módulo de ventas y arrendamientos';
 PRINT '';
 
 PRINT '📖 DOCUMENTACIÓN:';
 PRINT '   - Consultar vista: SELECT * FROM vw_PersonalAdministrativo';
 PRINT '   - Verificar admin: SELECT dbo.fn_EsAdministrativo(1)';
-PRINT '   - Arrendamientos activos: SELECT * FROM vw_ArrendamientosActivos';
-PRINT '   - Cobros pendientes: SELECT * FROM vw_CobrosPendientes';
 PRINT '   - API Docs: http://localhost:5000/api-docs';
 PRINT '   - Health Check: http://localhost:5000/api/v1/health';
 PRINT '';

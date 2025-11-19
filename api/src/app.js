@@ -41,17 +41,8 @@ app.use(generalLimiter);
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'API Inmotech - Sistema Integral de Inmobiliaria',
+    message: 'API Inmotech - Módulo de Citas',
     version: process.env.API_VERSION || 'v1',
-    modules: [
-      'Citas',
-      'Ventas', 
-      'Arriendos',
-      'Inmuebles',
-      'Personas',
-      'Notificaciones',
-      'Reportes'
-    ],
     documentation: '/api/v1/health'
   });
 });

@@ -37,18 +37,14 @@ const validarRegistroAdmin = [
     .notEmpty()
     .withMessage('El nombre completo es obligatorio')
     .isLength({ min: 2, max: 100 })
-    .withMessage('El nombre completo debe tener entre 2 y 100 caracteres')
-    .matches(/^[a-zA-ZÀ-ÿ\s]+$/)
-    .withMessage('El nombre completo solo puede contener letras y espacios'),
+    .withMessage('El nombre completo debe tener entre 2 y 100 caracteres'),
 
   body('apellido_completo')
     .trim()
     .notEmpty()
     .withMessage('El apellido completo es obligatorio')
     .isLength({ min: 2, max: 100 })
-    .withMessage('El apellido completo debe tener entre 2 y 100 caracteres')
-    .matches(/^[a-zA-ZÀ-ÿ\s]+$/)
-    .withMessage('El apellido completo solo puede contener letras y espacios'),
+    .withMessage('El apellido completo debe tener entre 2 y 100 caracteres'),
 
   body('email')
     .isEmail()
@@ -67,14 +63,14 @@ const validarRegistroAdmin = [
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('La contraseña debe contener al menos una letra minúscula, una mayúscula y un número'),
 
-  body('id_rol')
+  body('codigo_empleado')
+    .trim()
     .notEmpty()
-    .withMessage('El rol es obligatorio')
-    .isInt({ min: 1 })
-    .withMessage('El ID del rol debe ser un número válido'),
-
-
-  // Código de empleado eliminado - ahora se genera automáticamente en el backend
+    .withMessage('El código de empleado es obligatorio')
+    .isLength({ min: 3, max: 20 })
+    .withMessage('El código de empleado debe tener entre 3 y 20 caracteres')
+    .matches(/^[A-Z0-9\-_]+$/)
+    .withMessage('El código de empleado solo puede contener letras mayúsculas, números, guiones y guiones bajos'),
 
   body('fecha_ingreso')
     .isISO8601()
@@ -100,6 +96,11 @@ const validarRegistroAdmin = [
     .isLength({ min: 0, max: 100 })
     .withMessage('El departamento debe tener máximo 100 caracteres'),
 
+  body('salario')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('El salario debe ser un número positivo'),
+
   handleValidationErrors
 ];
 
@@ -120,17 +121,13 @@ const validarActualizacionAdmin = [
     .optional()
     .trim()
     .isLength({ min: 2, max: 100 })
-    .withMessage('El nombre completo debe tener entre 2 y 100 caracteres')
-    .matches(/^[a-zA-ZÀ-ÿ\s]+$/)
-    .withMessage('El nombre completo solo puede contener letras y espacios'),
+    .withMessage('El nombre completo debe tener entre 2 y 100 caracteres'),
 
   body('personaData.apellido_completo')
     .optional()
     .trim()
     .isLength({ min: 2, max: 100 })
-    .withMessage('El apellido completo debe tener entre 2 y 100 caracteres')
-    .matches(/^[a-zA-ZÀ-ÿ\s]+$/)
-    .withMessage('El apellido completo solo puede contener letras y espacios'),
+    .withMessage('El apellido completo debe tener entre 2 y 100 caracteres'),
 
   body('personaData.telefono')
     .optional()
@@ -155,6 +152,12 @@ const validarActualizacionAdmin = [
     .trim()
     .isLength({ min: 0, max: 100 })
     .withMessage('El departamento debe tener máximo 100 caracteres'),
+
+  body('administrativoData.salario')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('El salario debe ser un número positivo'),
+
   handleValidationErrors
 ];
 
@@ -167,8 +170,8 @@ const validarCambioEstado = [
     .withMessage('El ID del administrativo debe ser un número entero positivo'),
 
   body('estado_laboral')
-    .isIn(['Activo', 'Inactivo'])
-    .withMessage('El estado laboral debe ser: Activo o Inactivo'),
+    .isIn(['Activo', 'Inactivo', 'Suspendido', 'Retirado'])
+    .withMessage('El estado laboral debe ser: Activo, Inactivo, Suspendido o Retirado'),
 
   body('fecha_retiro')
     .optional()

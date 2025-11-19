@@ -1,9 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Eye, Edit, ChevronLeft, ChevronRight, User, Mail, Phone, Calendar, Building, Check, X } from 'lucide-react';
+import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, User, Mail, Phone, Calendar, Building, DollarSign, Check, X } from 'lucide-react';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import administrativosApiService from '../../../../shared/services/administrativosApiService';
-import AdministrativoStatusSelector from '../../../../shared/components/ui/AdministrativoStatusSelector';
 
 const AdministrativosTable = ({
   administrativos,
@@ -11,6 +10,8 @@ const AdministrativosTable = ({
   onEdit,
   onDelete,
   onStatusChange,
+  onActivate,
+  onDeactivate,
   loadingStatusChanges,
   currentPage,
   totalPages,
@@ -56,6 +57,10 @@ const AdministrativosTable = ({
     return administrativosApiService.formatFecha(dateString);
   };
 
+  const formatSalary = (salary) => {
+    return administrativosApiService.formatSalario(salary);
+  };
+
   // Helper para obtener el nombre completo
   const getFullName = (administrativo) => {
     if (!administrativo?.persona) return 'Sin nombre';
@@ -94,12 +99,9 @@ const AdministrativosTable = ({
     return administrativo?.fecha_ingreso ? formatDate(administrativo.fecha_ingreso) : '-';
   };
 
-  // Helper para verificar si el administrativo es super admin o admin
-  const isSuperAdminOrAdmin = (administrativo) => {
-    if (!administrativo?.persona?.roles) return false;
-    return administrativo.persona.roles.some(rol =>
-      rol.nombre_rol === 'Super Administrador' || rol.nombre_rol === 'Administrador'
-    );
+  // Helper para obtener el salario
+  const getSalary = (administrativo) => {
+    return administrativo?.salario ? formatSalary(administrativo.salario) : '-';
   };
 
   // Componente para vista móvil
@@ -117,13 +119,7 @@ const AdministrativosTable = ({
             <h3 className="font-medium text-slate-800">{getFullName(administrativo)}</h3>
             <p className="text-sm text-slate-600">{getEmployeeCode(administrativo)}</p>
           </div>
-          <AdministrativoStatusSelector
-            value={administrativo.estado_laboral}
-            onChange={(newStatus) => onStatusChange(administrativo, newStatus)}
-            loading={loadingStatusChanges.has(administrativo.id_administrativo)}
-            disabled={isSuperAdminOrAdmin(administrativo)}
-            className="w-[120px]"
-          />
+          {getStatusBadge(administrativo.estado_laboral)}
         </div>
 
         <div className="space-y-2 mb-3">
@@ -143,7 +139,10 @@ const AdministrativosTable = ({
             <Calendar className="w-4 h-4" />
             <span>Ingreso: {getHireDate(administrativo)}</span>
           </div>
-
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <DollarSign className="w-4 h-4" />
+            <span>{getSalary(administrativo)}</span>
+          </div>
         </div>
 
         <div className="flex gap-2">
@@ -162,19 +161,44 @@ const AdministrativosTable = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onEdit(administrativo)}
-            disabled={isSuperAdminOrAdmin(administrativo)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isSuperAdminOrAdmin(administrativo)
-                ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                : 'bg-slate-600 text-white hover:bg-slate-700 cursor-pointer'
-            }`}
-            title={isSuperAdminOrAdmin(administrativo) ? "No se puede editar" : "Editar administrativo"}
+            className="flex items-center gap-2 px-3 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
           >
             <Edit className="w-4 h-4" />
             Editar
           </motion.button>
-
-
+          <motion.button
+            key={`mobile-delete-${administrativo.id_administrativo}`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onDelete(administrativo)}
+            className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Eliminar
+          </motion.button>
+          {administrativo.estado_laboral === 'Activo' ? (
+            <motion.button
+              key={`mobile-deactivate-${administrativo.id_administrativo}`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onDeactivate(administrativo)}
+              className="flex items-center gap-2 px-3 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 transition-colors"
+            >
+              <X className="w-4 h-4" />
+              Desactivar
+            </motion.button>
+          ) : administrativo.estado_laboral !== 'Retirado' && (
+            <motion.button
+              key={`mobile-activate-${administrativo.id_administrativo}`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onActivate(administrativo)}
+              className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+            >
+              <Check className="w-4 h-4" />
+              Activar
+            </motion.button>
+          )}
         </div>
       </motion.div>
     );
@@ -247,20 +271,17 @@ const AdministrativosTable = ({
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <AdministrativoStatusSelector
-                        value={administrativo.estado_laboral}
-                        onChange={(newStatus) => onStatusChange(administrativo, newStatus)}
-                        loading={loadingStatusChanges.has(administrativo.id_administrativo)}
-                        disabled={isSuperAdminOrAdmin(administrativo)}
-                        className="w-[120px]"
-                      />
+                      {getStatusBadge(administrativo.estado_laboral)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-slate-400" />
                         <span className="text-sm text-slate-900">{getHireDate(administrativo)}</span>
                       </div>
-
+                      <div className="flex items-center gap-2 mt-1">
+                        <DollarSign className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm text-slate-500">{getSalary(administrativo)}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center gap-2">
@@ -279,18 +300,44 @@ const AdministrativosTable = ({
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => onEdit(administrativo)}
-                          disabled={isSuperAdminOrAdmin(administrativo)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            isSuperAdminOrAdmin(administrativo)
-                              ? 'text-slate-300 cursor-not-allowed'
-                              : 'text-slate-600 hover:bg-slate-50 cursor-pointer'
-                          }`}
-                          title={isSuperAdminOrAdmin(administrativo) ? "No se puede editar" : "Editar administrativo"}
+                          className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                          title="Editar administrativo"
                         >
                           <Edit className="w-4 h-4" />
                         </motion.button>
-
-
+                        <motion.button
+                          key={`delete-${administrativo.id_administrativo}`}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => onDelete(administrativo)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar administrativo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </motion.button>
+                        {administrativo.estado_laboral === 'Activo' ? (
+                          <motion.button
+                            key={`deactivate-${administrativo.id_administrativo}`}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => onDeactivate(administrativo)}
+                            className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                            title="Desactivar administrativo"
+                          >
+                            <X className="w-4 h-4" />
+                          </motion.button>
+                        ) : administrativo.estado_laboral !== 'Retirado' && (
+                          <motion.button
+                            key={`activate-${administrativo.id_administrativo}`}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => onActivate(administrativo)}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Activar administrativo"
+                          >
+                            <Check className="w-4 h-4" />
+                          </motion.button>
+                        )}
                       </div>
                     </td>
                   </motion.tr>

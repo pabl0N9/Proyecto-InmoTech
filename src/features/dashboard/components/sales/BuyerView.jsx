@@ -1,203 +1,158 @@
 import React from "react";
-import { FaImage, FaMapMarkerAlt, FaMoneyBillWave } from "react-icons/fa";
+import { FaImage } from "react-icons/fa";
 
 export default function BuyerView({ buyer, onClose }) {
   if (!buyer) return null;
 
-  const fullName = [
-    buyer.primerNombre,
-    buyer.segundoNombre,
-    buyer.primerApellido,
-    buyer.segundoApellido
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  const inmueble = buyer.inmueble || null;
-
   return (
-    <div
+    // 🔑 Fondo del modal con desenfoque - CAMBIO PRINCIPAL
+    <div 
       className="fixed inset-0 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm z-50 p-4"
       onClick={onClose}
     >
-      <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-6 relative max-h-[90vh] overflow-hidden"
+      {/* Contenido principal del modal */}
+      <div 
+        className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-6 pr-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">Información del comprador</h2>
-          <p className="text-gray-600 text-sm">
-            Detalles completos del comprador, el inmueble y la operación realizada.
-          </p>
+        
+        {/* Header con estilo del banner */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Información del Comprador</h2>
+          <p className="text-gray-600 text-sm">Detalles completos del comprador y sus propiedades</p>
         </div>
 
+        {/* Botón cerrar con estilo azul */}
         <button
           onClick={onClose}
           className="absolute top-6 right-6 text-gray-500 hover:text-blue-600 transition duration-150 p-1 rounded-full"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-              clipRule="evenodd"
-            />
+            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         </button>
 
-        <div className="space-y-6 max-h-[65vh] overflow-y-auto pr-2">
-          <section className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        {/* Contenido desplazable */}
+        <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+          
+          {/* --- Sección de Información Personal --- */}
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
             <h3 className="text-lg font-bold text-blue-800 mb-3 pb-2 border-b border-blue-200">
-              Información personal
+              Información Personal
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div>
-                <p className="font-semibold text-gray-700">Nombre completo:</p>
-                <p className="text-gray-900">{fullName || "-"}</p>
+                <p className="font-semibold text-gray-700">Tipo de documento:</p>
+                <p className="text-gray-900">{buyer.tipoDocumento}</p>
               </div>
               <div>
-                <p className="font-semibold text-gray-700">Documento:</p>
-                <p className="text-gray-900">
-                  {buyer.tipoDocumento} · {buyer.documento}
-                </p>
+                <p className="font-semibold text-gray-700">Número de documento:</p>
+                <p className="text-gray-900">{buyer.documento}</p>
               </div>
               <div>
-                <p className="font-semibold text-gray-700">Correo electrónico:</p>
-                {buyer.correo ? (
-                  <a href={`mailto:${buyer.correo}`} className="text-blue-600 hover:text-blue-800 underline">
-                    {buyer.correo}
-                  </a>
-                ) : (
-                  <p className="text-gray-900">-</p>
-                )}
+                <p className="font-semibold text-gray-700">Primer nombre:</p>
+                <p className="text-gray-900">{buyer.primerNombre}</p>
               </div>
               <div>
+                <p className="font-semibold text-gray-700">Segundo nombre:</p>
+                <p className="text-gray-900">{buyer.segundoNombre || '-'}</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700">Primer apellido:</p>
+                <p className="text-gray-900">{buyer.primerApellido}</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700">Segundo apellido:</p>
+                <p className="text-gray-900">{buyer.segundoApellido || '-'}</p>
+              </div>
+              <div className="md:col-span-2">
+                <p className="font-semibold text-gray-700">Correo:</p>
+                <a href={`mailto:${buyer.correo}`} className="text-blue-600 hover:text-blue-800 underline">
+                  {buyer.correo}
+                </a>
+              </div>
+              <div className="md:col-span-2">
                 <p className="font-semibold text-gray-700">Teléfono:</p>
-                <p className="text-gray-900">{buyer.telefono || "-"}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Ciudad de residencia:</p>
-                <p className="text-gray-900">{buyer.ciudadResidencia || "-"}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Dirección anterior:</p>
-                <p className="text-gray-900">{buyer.direccionAnterior || "-"}</p>
+                <p className="text-gray-900">{buyer.telefono}</p>
               </div>
             </div>
-          </section>
+          </div>
 
-          <section className="bg-green-50 rounded-lg p-4 border border-green-200">
-            <h3 className="text-lg font-bold text-green-800 mb-3 pb-2 border-b border-green-200 flex items-center gap-2">
-              <FaMoneyBillWave className="text-green-600" />
-              Datos de la operación
+          {/* --- Sección de Inmuebles Comprados --- */}
+          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+            <h3 className="text-lg font-bold text-green-800 mb-3 pb-2 border-b border-green-200">
+              Inmuebles Comprados ({buyer.inmueblesComprados?.length || 0})
             </h3>
+            
+            {buyer.inmueblesComprados && buyer.inmueblesComprados.length > 0 ? (
+              <div className="space-y-4">
+                {buyer.inmueblesComprados.map((inmueble, index) => (
+                  <div key={index} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    
+                    {/* Header del inmueble */}
+                    <div className="flex items-start gap-4 mb-3">
+                      {/* Placeholder de Imagen */}
+                      <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 border border-gray-300">
+                        <FaImage size={24} /> 
+                      </div>
+                      
+                      {/* Información principal */}
+                      <div className="flex-grow">
+                        <h4 className="font-bold text-gray-800 text-base mb-2">{inmueble.nombre}</h4>
+                        <div className="flex gap-4 text-sm text-gray-600">
+                          <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md font-medium">
+                            {inmueble.m2} m²
+                          </span>
+                          <span className="bg-green-100 text-green-700 px-2 py-1 rounded-md font-medium">
+                            {inmueble.hab} hab.
+                          </span>
+                          <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-md font-medium">
+                            {inmueble.baños} baños
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="font-semibold text-gray-700">Fecha de compra:</p>
-                <p className="text-gray-900">
-                  {buyer.fechaCompra ? new Date(buyer.fechaCompra).toLocaleDateString() : "-"}
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Tipo de compra:</p>
-                <p className="text-gray-900">{buyer.tipoCompra}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Valor de compra:</p>
-                <p className="text-gray-900 font-semibold">
-                  {buyer.valorCompra ? Intl.NumberFormat("es-CO", {
-                    style: "currency",
-                    currency: "COP",
-                    maximumFractionDigits: 0
-                  }).format(Number(buyer.valorCompra)) : "-"}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
-              <div>
-                <p className="font-semibold text-gray-700">Entidad financiera:</p>
-                <p className="text-gray-900">{buyer.entidadFinanciera || "-"}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Número de crédito:</p>
-                <p className="text-gray-900">{buyer.numeroCredito || "-"}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Monto financiado:</p>
-                <p className="text-gray-900">
-                  {buyer.montoFinanciado
-                    ? Intl.NumberFormat("es-CO", {
-                        style: "currency",
-                        currency: "COP",
-                        maximumFractionDigits: 0
-                      }).format(Number(buyer.montoFinanciado))
-                    : "-"}
-                </p>
-              </div>
-            </div>
-
-            {buyer.observaciones && (
-              <div className="mt-4 text-sm">
-                <p className="font-semibold text-gray-700 mb-1">Observaciones:</p>
-                <p className="text-gray-900 bg-white rounded-lg p-3 border border-gray-200">{buyer.observaciones}</p>
-              </div>
-            )}
-          </section>
-
-          <section className="bg-white rounded-lg p-4 border border-gray-200">
-            <h3 className="text-lg font-bold text-gray-800 mb-3 pb-2 border-b border-gray-100 flex items-center gap-2">
-              <FaMapMarkerAlt className="text-blue-600" />
-              Inmueble adquirido
-            </h3>
-
-            {inmueble ? (
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-shrink-0 w-full md:w-40 h-32 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 border border-gray-200">
-                  <FaImage size={32} />
-                </div>
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="font-semibold text-gray-700">Registro inmobiliario:</p>
-                    <p className="text-gray-900">{inmueble.registro || "-"}</p>
+                    {/* Detalles del inmueble */}
+                    <div className="space-y-2 text-sm border-t border-gray-100 pt-3">
+                      <div className="flex justify-between">
+                        <span className="font-semibold text-gray-700">Registro:</span>
+                        <span className="text-gray-900">{inmueble.registro}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-semibold text-gray-700">Tipo:</span>
+                        <span className="text-gray-900">{inmueble.tipo}</span>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-gray-700">Dirección:</span>
+                        <p className="text-gray-900 mt-1">{inmueble.direccion}</p>
+                      </div>
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="font-semibold text-gray-700">Estado:</span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          inmueble.estado === 'Activo' 
+                            ? 'bg-green-100 text-green-800 border border-green-300' 
+                            : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                        }`}>
+                          {inmueble.estado}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-700">Categoría:</p>
-                    <p className="text-gray-900">{inmueble.categoria || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-700">Dirección:</p>
-                    <p className="text-gray-900">{inmueble.direccion || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-700">Ubicación:</p>
-                    <p className="text-gray-900">
-                      {[inmueble.ciudad, inmueble.departamento].filter(Boolean).join(", ") || "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-700">Estado:</p>
-                    <span
-                      className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${
-                        inmueble.estado === "Activo"
-                          ? "bg-green-100 text-green-700 border-green-400"
-                          : "bg-yellow-100 text-yellow-700 border-yellow-400"
-                      }`}
-                    >
-                      {inmueble.estado}
-                    </span>
-                  </div>
-                </div>
+                ))}
               </div>
             ) : (
               <div className="text-center py-6">
-                <FaImage size={40} className="mx-auto text-gray-300 mb-2" />
-                <p className="text-gray-500 italic">Aún no se ha vinculado un inmueble a este comprador.</p>
+                <div className="text-gray-400 mb-2">
+                  <FaImage size={48} className="mx-auto" />
+                </div>
+                <p className="text-gray-500 text-sm italic">No hay inmuebles registrados para este comprador.</p>
               </div>
             )}
-          </section>
+          </div>
         </div>
-
+        
+        {/* Pie del modal con botón azul */}
         <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
           <button
             onClick={onClose}

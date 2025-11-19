@@ -9,7 +9,6 @@ const CustomerStep = ({
   errors,
   updateFormData,
   onFieldComplete,
-  isSearchingPerson = false,
 }) => {
   const [prevPhone, setPrevPhone] = useState("");
 
@@ -211,12 +210,6 @@ const CustomerStep = ({
               >
                 {errors.numeroDocumento}
               </motion.p>
-            )}
-            {isSearchingPerson && (
-              <div className="text-blue-500 text-sm mt-1 flex items-center gap-2">
-                <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                Buscando información...
-              </div>
             )}
           </div>
         </div>

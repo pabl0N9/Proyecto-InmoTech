@@ -11,8 +11,6 @@ class AdministrativoService {
    * @returns {Promise<Object>} Administrativo creado con tokens
    */
   async registrarAdministrativo(adminData) {
-    let adminId; // Declarar variable para acceder fuera de la transacción
-
     const result = await sequelize.transaction(async (t) => {
       try {
         const {
@@ -23,9 +21,11 @@ class AdministrativoService {
           telefono,
           tipo_documento,
           numero_documento,
+          codigo_empleado,
           fecha_ingreso,
           cargo,
           departamento,
+          salario,
           id_rol
         } = adminData;
 
@@ -49,7 +49,15 @@ class AdministrativoService {
           throw new Error('El documento ya está registrado');
         }
 
+        // Verificar si el código de empleado ya existe
+        const adminExistente = await Administrativo.findOne({
+          where: { codigo_empleado },
+          transaction: t
+        });
 
+        if (adminExistente) {
+          throw new Error('El código de empleado ya está registrado');
+        }
 
         // Crear persona
         const nuevaPersona = await Persona.create({
@@ -70,18 +78,18 @@ class AdministrativoService {
           contrasena: hashedPassword
         }, { transaction: t });
 
-        // Crear registro administrativo inicialmente con código temporal
+        // Crear registro administrativo
         const nuevoAdministrativo = await Administrativo.create({
           id_persona: nuevaPersona.id_persona,
-          codigo_empleado: 'TEMP', // Código temporal, será actualizado después
+          codigo_empleado,
           fecha_ingreso,
           cargo,
           departamento,
+          salario,
           estado_laboral: 'Activo'
         }, { transaction: t });
 
-        // Crear código de empleado basado en el rol
-        let rolAsignado;
+        // Asignar rol administrativo específico si se proporciona
         if (id_rol) {
           // Verificar que el rol existe y es administrativo
           const rolSeleccionado = await Rol.findOne({
@@ -97,7 +105,6 @@ class AdministrativoService {
             throw new Error('El rol seleccionado no es válido o no es administrativo');
           }
 
-          rolAsignado = rolSeleccionado;
           await PersonasRol.create({
             id_persona: nuevaPersona.id_persona,
             id_rol: id_rol
@@ -114,7 +121,6 @@ class AdministrativoService {
           });
 
           if (rolDefault) {
-            rolAsignado = rolDefault;
             await PersonasRol.create({
               id_persona: nuevaPersona.id_persona,
               id_rol: rolDefault.id_rol
@@ -122,20 +128,49 @@ class AdministrativoService {
           }
         }
 
-        // Generar código de empleado automáticamente
-        const prefijo = rolAsignado ? this.getPrefijoPorRol(rolAsignado.nombre_rol) : 'EMPLEADO';
-        const siguienteNumero = await this.getSiguienteNumeroEmpleado(prefijo, t);
-        const codigoGenerado = `${prefijo}-${siguienteNumero.toString().padStart(3, '0')}`;
+        logger.info(`Administrativo registrado: ${email} (Código: ${codigo_empleado})`);
 
-        // Actualizar el administrativo con el código generado
-        await nuevoAdministrativo.update({
-          codigo_empleado: codigoGenerado
-        }, { transaction: t });
+        // Obtener roles asignados
+        const rolesAsignados = await PersonasRol.findAll({
+          where: { id_persona: nuevaPersona.id_persona },
+          include: [{
+            model: Rol,
+            as: 'rol',
+            where: { estado: true },
+            required: true
+          }],
+          transaction: t
+        });
 
-        // Guardar referencia para la consulta posterior
-        adminId = nuevoAdministrativo.id_administrativo;
+        const rolesNombres = rolesAsignados.map(pr => pr.rol.nombre_rol);
 
-        logger.info(`Administrativo registrado: ${email} (Código generado: ${codigoGenerado})`);
+        // Generar tokens
+        const payload = {
+          id: nuevaPersona.id_persona,
+          email: nuevaPersona.correo,
+          roles: rolesNombres,
+          es_administrativo: true
+        };
+
+        const tokens = jwtUtils.generateTokens(payload);
+
+        return {
+          user: {
+            id: nuevaPersona.id_persona,
+            email: nuevaPersona.correo,
+            nombre_completo: nuevaPersona.nombre_completo,
+            apellido_completo: nuevaPersona.apellido_completo,
+            roles: rolesNombres,
+            es_administrativo: true,
+            administrativo: {
+              id_administrativo: nuevoAdministrativo.id_administrativo,
+              codigo_empleado: nuevoAdministrativo.codigo_empleado,
+              cargo: nuevoAdministrativo.cargo,
+              departamento: nuevoAdministrativo.departamento
+            }
+          },
+          ...tokens
+        };
 
       } catch (error) {
         logger.error('Error en registro de administrativo:', error);
@@ -143,37 +178,11 @@ class AdministrativoService {
       }
     });
 
-    // Obtener el administrativo completo con todos sus joins para el frontend
-    try {
-      const administrativoCompleto = await Administrativo.findOne({
-        where: { id_administrativo: adminId },
-        include: [
-          {
-            model: Persona,
-            as: 'persona',
-            attributes: ['id_persona', 'tipo_documento', 'numero_documento', 'nombre_completo', 'apellido_completo', 'correo', 'telefono', 'fecha_registro'],
-            include: [
-              {
-                model: Rol,
-                as: 'roles',
-                through: { attributes: ['estado', 'fecha_asignacion'] },
-                where: { estado: true },
-                required: false
-              }
-            ]
-          }
-        ]
-      });
-
-      return administrativoCompleto;
-    } catch (queryError) {
-      logger.warn('Error obteniendo administrativo completo para respuesta, pero el registro fue exitoso:', queryError);
-      throw new Error('Administrativo registrado pero hubo un error obteniendo los datos completos');
-    }
+    return result;
   }
 
   /**
-   * Obtiene administrativos con paginación (optimizado)
+   * Obtiene administrativos con paginación
    * @param {Object} options - Opciones de consulta
    * @returns {Promise<Object>} Lista de administrativos
    */
@@ -186,33 +195,18 @@ class AdministrativoService {
         whereClause.estado_laboral = estado;
       }
 
-      // ✅ OPTIMIZACIÓN: Usar consulta RAW o encontrar/crear índice para mejorar rendimiento
       const { count, rows } = await Administrativo.findAndCountAll({
         where: whereClause,
         include: [
           {
             model: Persona,
             as: 'persona',
-            attributes: ['id_persona', 'tipo_documento', 'numero_documento', 'nombre_completo', 'apellido_completo', 'correo', 'telefono', 'fecha_registro'],
-            include: [
-              {
-                model: Rol,
-                as: 'roles',
-                through: {
-                  attributes: ['estado', 'fecha_asignacion'],
-                  where: { estado: true }
-                },
-                where: { estado: true },
-                required: false
-              }
-            ]
+            attributes: ['id_persona', 'tipo_documento', 'numero_documento', 'nombre_completo', 'apellido_completo', 'correo', 'telefono', 'fecha_registro']
           }
         ],
         limit,
         offset,
-        order: [['fecha_ingreso', 'DESC']],
-        logging: false, // ✅ Deshabilitar logging SQL para mejor rendimiento
-        distinct: true // ✅ Evitar duplicados en conteo de paginación
+        order: [['fecha_ingreso', 'DESC']]
       });
 
       return {
@@ -244,16 +238,7 @@ class AdministrativoService {
           {
             model: Persona,
             as: 'persona',
-            attributes: ['id_persona', 'tipo_documento', 'numero_documento', 'nombre_completo', 'apellido_completo', 'correo', 'telefono', 'fecha_registro'],
-            include: [
-              {
-                model: Rol,
-                as: 'roles',
-                through: { attributes: ['estado', 'fecha_asignacion'] },
-                where: { estado: true },
-                required: false
-              }
-            ]
+            attributes: ['id_persona', 'tipo_documento', 'numero_documento', 'nombre_completo', 'apellido_completo', 'correo', 'telefono', 'fecha_registro']
           }
         ]
       });
@@ -284,16 +269,7 @@ class AdministrativoService {
           include: [
             {
               model: Persona,
-              as: 'persona',
-              include: [
-                {
-                  model: Rol,
-                  as: 'roles',
-                  through: { attributes: ['estado', 'fecha_asignacion'] },
-                  where: { estado: true },
-                  required: false
-                }
-              ]
+              as: 'persona'
             }
           ],
           transaction: t
@@ -301,15 +277,6 @@ class AdministrativoService {
 
         if (!administrativo) {
           throw new Error('Administrativo no encontrado');
-        }
-
-        // Verificar si el administrativo es Super Administrador o Administrador
-        const isSuperAdminOrAdmin = administrativo.persona.roles?.some(rol =>
-          rol.nombre_rol === 'Super Administrador' || rol.nombre_rol === 'Administrador'
-        );
-
-        if (isSuperAdminOrAdmin) {
-          throw new Error('No se puede editar a un Super Administrador o Administrador');
         }
 
         const { personaData, administrativoData } = updateData;
@@ -347,35 +314,11 @@ class AdministrativoService {
   async cambiarEstadoLaboral(id, estadoLaboral, fechaRetiro = null) {
     try {
       const administrativo = await Administrativo.findOne({
-        where: { id_administrativo: id },
-        include: [
-          {
-            model: Persona,
-            as: 'persona',
-            include: [
-              {
-                model: Rol,
-                as: 'roles',
-                through: { attributes: ['estado', 'fecha_asignacion'] },
-                where: { estado: true },
-                required: false
-              }
-            ]
-          }
-        ]
+        where: { id_administrativo: id }
       });
 
       if (!administrativo) {
         throw new Error('Administrativo no encontrado');
-      }
-
-      // Verificar si el administrativo es Super Administrador o Administrador
-      const isSuperAdminOrAdmin = administrativo.persona.roles?.some(rol =>
-        rol.nombre_rol === 'Super Administrador' || rol.nombre_rol === 'Administrador'
-      );
-
-      if (isSuperAdminOrAdmin) {
-        throw new Error('No se puede cambiar el estado de un Super Administrador o Administrador');
       }
 
       const updateData = { estado_laboral: estadoLaboral };
@@ -409,16 +352,7 @@ class AdministrativoService {
           include: [
             {
               model: Persona,
-              as: 'persona',
-              include: [
-                {
-                  model: Rol,
-                  as: 'roles',
-                  through: { attributes: ['estado', 'fecha_asignacion'] },
-                  where: { estado: true },
-                  required: false
-                }
-              ]
+              as: 'persona'
             }
           ],
           transaction: t
@@ -426,15 +360,6 @@ class AdministrativoService {
 
         if (!administrativo) {
           throw new Error('Administrativo no encontrado');
-        }
-
-        // Verificar si el administrativo es Super Administrador o Administrador
-        const isSuperAdminOrAdmin = administrativo.persona.roles?.some(rol =>
-          rol.nombre_rol === 'Super Administrador' || rol.nombre_rol === 'Administrador'
-        );
-
-        if (isSuperAdminOrAdmin) {
-          throw new Error('No se puede eliminar a un Super Administrador o Administrador');
         }
 
         // Cambiar estado laboral a 'Retirado'
@@ -457,68 +382,6 @@ class AdministrativoService {
     });
 
     return result;
-  }
-
-  /**
-   * Obtiene el prefijo para generar códigos basado en el rol
-   * @param {string} nombreRol - Nombre del rol
-   * @returns {string} Prefijo para el código
-   */
-  getPrefijoPorRol(nombreRol) {
-    const mapaPrefijos = {
-      'Super Administrador': 'SUPERADMIN',
-      'Administrador': 'ADMINISTRADOR',
-      'Empleado': 'EMPLEADO',
-      'Gerente': 'GERENTE',
-      'Supervisor': 'SUPERVISOR',
-      'Analista': 'ANALISTA',
-      'Asistente': 'ASISTENTE'
-    };
-
-    return mapaPrefijos[nombreRol] || 'EMPLEADO';
-  }
-
-  /**
-   * Obtiene el siguiente número secuencial para un prefijo de código
-   * @param {string} prefijo - Prefijo del código
-   * @param {Object} transaction - Transacción de Sequelize
-   * @returns {number} Siguiente número
-   */
-  async getSiguienteNumeroEmpleado(prefijo, transaction = null) {
-    try {
-      // Buscar códigos que empiecen con el prefijo
-      const administrativosExistentes = await Administrativo.findAll({
-        where: {
-          codigo_empleado: {
-            [sequelize.Sequelize.Op.like]: `${prefijo}-%`
-          }
-        },
-        attributes: ['codigo_empleado'],
-        transaction,
-        order: [['codigo_empleado', 'DESC']],
-        limit: 1
-      });
-
-      if (administrativosExistentes.length === 0) {
-        return 1;
-      }
-
-      // Extraer el número del código más alto encontrado
-      const ultimoCodigo = administrativosExistentes[0].codigo_empleado;
-      const numeroStr = ultimoCodigo.split('-')[1];
-      const numero = parseInt(numeroStr, 10);
-
-      if (isNaN(numero)) {
-        logger.warn(`Código de empleado inválido encontrado: ${ultimoCodigo}, iniciando desde 1`);
-        return 1;
-      }
-
-      return numero + 1;
-    } catch (error) {
-      logger.error('Error obteniendo siguiente número de empleado:', error);
-      // En caso de error, usar un valor por defecto único basado en timestamp
-      return Math.floor(Date.now() / 1000) % 1000 + 1;
-    }
   }
 }
 

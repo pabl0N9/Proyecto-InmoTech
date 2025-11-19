@@ -98,8 +98,7 @@ class PersonaService {
         id_persona: persona.id_persona,
         tipo_documento: persona.tipo_documento,
         numero_documento: persona.numero_documento,
-          nombre_completo: persona.nombre_completo,
-          apellido_completo: persona.apellido_completo,
+        nombre_completo: `${persona.primer_nombre} ${persona.segundo_nombre || ''} ${persona.primer_apellido} ${persona.segundo_apellido || ''}`.trim(),
         correo: persona.correo,
         telefono: persona.telefono,
         tiene_cuenta: persona.tiene_cuenta,
@@ -141,8 +140,10 @@ class PersonaService {
         id_persona: persona.id_persona,
         tipo_documento: persona.tipo_documento,
         numero_documento: persona.numero_documento,
-        nombre_completo: persona.nombre_completo,
-        apellido_completo: persona.apellido_completo,
+        primer_nombre: persona.primer_nombre,
+        segundo_nombre: persona.segundo_nombre,
+        primer_apellido: persona.primer_apellido,
+        segundo_apellido: persona.segundo_apellido,
         correo: persona.correo,
         telefono: persona.telefono,
         tiene_cuenta: persona.tiene_cuenta,
@@ -215,7 +216,7 @@ class PersonaService {
         nombre,
         correo,
         tiene_cuenta,
-        estado
+        estado = true
       } = filtros;
 
       const {
@@ -227,68 +228,52 @@ class PersonaService {
 
       const offset = (pagina - 1) * limite;
 
-      // ✅ OPTIMIZACIÓN: Filtrar por rol "Usuario" a nivel de base de datos
-      const whereClausePersona = {};
+      const whereClause = { estado };
 
-      if (estado !== undefined) whereClausePersona.estado = estado;
-      if (tipo_documento) whereClausePersona.tipo_documento = tipo_documento;
-      if (numero_documento) whereClausePersona.numero_documento = { [sequelize.Op.like]: `%${numero_documento}%` };
-      if (correo) whereClausePersona.correo = { [sequelize.Op.like]: `%${correo}%` };
-      if (tiene_cuenta !== undefined) whereClausePersona.tiene_cuenta = tiene_cuenta;
+      if (tipo_documento) whereClause.tipo_documento = tipo_documento;
+      if (numero_documento) whereClause.numero_documento = { [sequelize.Op.like]: `%${numero_documento}%` };
+      if (correo) whereClause.correo = { [sequelize.Op.like]: `%${correo}%` };
+      if (tiene_cuenta !== undefined) whereClause.tiene_cuenta = tiene_cuenta;
 
       if (nombre) {
-        whereClausePersona[sequelize.Op.or] = [
+        whereClause[sequelize.Op.or] = [
           { nombre_completo: { [sequelize.Op.like]: `%${nombre}%` } },
           { apellido_completo: { [sequelize.Op.like]: `%${nombre}%` } }
         ];
       }
 
-      // ✅ Obtener TODAS las personas con sus roles (sin paginación) y filtrar por 'Usuario' en memoria
-      // ⚠️ Esto no es eficiente para muchos registros, pero funciona para el caso actual
-      const allPersonsResult = await Persona.findAll({
-        where: whereClausePersona,
+      const { count, rows } = await Persona.findAndCountAll({
+        where: whereClause,
         include: [
           {
             model: Rol,
             as: 'roles',
             through: { attributes: [] },
-            attributes: ['id_rol', 'nombre_rol'],
-            required: false
+            attributes: ['id_rol', 'nombre_rol']
           }
         ],
-        order: [[ordenarPor, orden]],
-        distinct: false,
-        logging: false
+        limit,
+        offset,
+        order: [[ordenarPor, orden]]
       });
 
-      // Filtrar personas con rol 'Usuario' en memoria
-      const personasFiltradas = allPersonsResult.filter(persona =>
-        persona.roles && persona.roles.some(rol => rol.nombre_rol === 'Usuario')
-      );
-
-      // Aplicar paginación manual en memoria
-      const totalPersonasFiltradas = personasFiltradas.length;
-      const personasPaginadas = personasFiltradas.slice(offset, offset + limite);
-
       return {
-        personas: personasPaginadas.map(persona => ({
+        personas: rows.map(persona => ({
           id_persona: persona.id_persona,
           tipo_documento: persona.tipo_documento,
           numero_documento: persona.numero_documento,
-          nombre_completo: persona.nombre_completo,
-          apellido_completo: persona.apellido_completo,
+          nombre_completo: `${persona.primer_nombre} ${persona.segundo_nombre || ''} ${persona.primer_apellido} ${persona.segundo_apellido || ''}`.trim(),
           correo: persona.correo,
           telefono: persona.telefono,
           tiene_cuenta: persona.tiene_cuenta,
-          estado: persona.estado,
           fecha_registro: persona.fecha_registro,
           roles: persona.roles || []
         })),
         paginacion: {
-          total: totalPersonasFiltradas,
+          total: count,
           pagina,
           limite,
-          paginas_totales: Math.ceil(totalPersonasFiltradas / limite)
+          paginas_totales: Math.ceil(count / limite)
         }
       };
     } catch (error) {

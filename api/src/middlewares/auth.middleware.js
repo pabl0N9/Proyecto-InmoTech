@@ -2,13 +2,6 @@ const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
 
 /**
- * Helper function to check if user is Super Administrator
- */
-const isSuperAdministrator = (user) => {
-  return user && user.roles && user.roles.includes('Super Administrador');
-};
-
-/**
  * Middleware para verificar token JWT
  */
 const authenticateToken = (req, res, next) => {
@@ -115,10 +108,8 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-// VERSIÓN v2.1 - Control de acceso unificado con nombres de roles largos
 /**
- * Middleware NEW para verificar roles específicos
- * Usa comparación directa de nombres largos: "Super Administrador", "Administrador"
+ * Middleware para verificar roles específicos
  */
 const authorizeRoles = (allowedRoles) => {
   return (req, res, next) => {
@@ -137,18 +128,18 @@ const authorizeRoles = (allowedRoles) => {
         });
       }
 
-      // Comparar directamente los roles tal como vienen en el JWT
-      const hasRequiredRole = req.user.roles.some(role => allowedRoles.includes(role));
-
+      const userRoles = req.user.roles;
+      const hasRequiredRole = allowedRoles.some(role => userRoles.includes(role));
+      
       if (!hasRequiredRole) {
-        logger.warn(`ROL DEBUG - Usuario: ${req.user.email}, Roles usuario: [${req.user.roles.join(', ')}], Roles requeridos: [${allowedRoles.join(', ')}], Tiene acceso: ${hasRequiredRole}`);
+        logger.warn(`Acceso denegado para usuario ${req.user.email}. Roles requeridos: ${allowedRoles.join(', ')}, roles del usuario: ${userRoles.join(', ')}`);
         return res.status(403).json({
           success: false,
           message: 'No tienes permisos para realizar esta acción'
         });
       }
 
-      logger.info(`Acceso autorizado para usuario ${req.user.email} (rol: ${req.user.roles.join(', ')})`);
+      logger.info(`Acceso autorizado para usuario ${req.user.email}`);
       next();
     } catch (error) {
       logger.error('Error en autorización:', error);
@@ -197,6 +188,5 @@ const optionalAuth = (req, res, next) => {
 module.exports = {
   authenticateToken,
   authorizeRoles,
-  optionalAuth,
-  isSuperAdministrator
+  optionalAuth
 };

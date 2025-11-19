@@ -22,7 +22,6 @@ import DayListModal from './DayListModal';
 import ConfirmationDialog from '../../../../shared/components/ui/ConfirmationDialog';
 import RescheduleConfirmModal from './RescheduleConfirmModal';
 import { useToast } from '../../../../shared/hooks/use-toast';
-import { useAuth } from '../../../../shared/contexts/AuthContext';
 
 const DayCell = ({
   day,
@@ -142,7 +141,6 @@ const AppointmentCalendar = ({
   const [rescheduleConfirm, setRescheduleConfirm] = useState({ isOpen: false, appointment: null, newDate: null });
   const [tempRescheduledAppointments, setTempRescheduledAppointments] = useState({});
   const { toast } = useToast();
-  const { hasPermission } = useAuth();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -394,7 +392,7 @@ const AppointmentCalendar = ({
               const isToday = day === new Date().getDate() &&
                              currentDate.getMonth() === new Date().getMonth() &&
                              currentDate.getFullYear() === new Date().getFullYear();
-              const isActive = activeDay === day && hasPermission("gCitas", "crear"); // Solo mostrar si tiene permiso de crear
+              const isActive = activeDay === day;
 
               return (
                 <DayCell

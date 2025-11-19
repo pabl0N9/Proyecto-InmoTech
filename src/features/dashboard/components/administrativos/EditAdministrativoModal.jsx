@@ -20,6 +20,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     // Paso 2: Información Laboral
     cargo: '',
     departamento: '',
+    salario: ''
   });
   const [errors, setErrors] = useState({});
   const { toast } = useToast();
@@ -43,6 +44,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
         telefono: administrativo.persona?.telefono || '',
         cargo: administrativo.cargo || '',
         departamento: administrativo.departamento || '',
+        salario: administrativo.salario || ''
       });
       setErrors({});
       setCurrentStep(1);
@@ -95,6 +97,13 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     return '';
   };
 
+  // Función para validar salario
+  const validateSalario = (salario) => {
+    if (salario && (isNaN(salario) || parseFloat(salario) < 0)) {
+      return 'El salario debe ser un número positivo';
+    }
+    return '';
+  };
 
   const validateStep = (step) => {
     let newErrors = {};
@@ -109,6 +118,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
       case 2:
         newErrors.cargo = validateCargo(formData.cargo);
         newErrors.departamento = validateDepartamento(formData.departamento);
+        newErrors.salario = validateSalario(formData.salario);
         break;
     }
 
@@ -134,6 +144,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
         const step2Errors = {
           cargo: validateCargo(formData.cargo),
           departamento: validateDepartamento(formData.departamento),
+          salario: validateSalario(formData.salario)
         };
         return Object.keys(step2Errors).every(key => !step2Errors[key]);
       default:
@@ -171,6 +182,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     allErrors = { ...allErrors, ...{
       cargo: validateCargo(formData.cargo),
       departamento: validateDepartamento(formData.departamento),
+      salario: validateSalario(formData.salario)
     } };
     setErrors(allErrors);
     return Object.values(allErrors).every(error => !error);
@@ -190,6 +202,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
           administrativoData: {
             cargo: formData.cargo || null,
             departamento: formData.departamento || null,
+            salario: formData.salario ? parseFloat(formData.salario) : null
           }
         };
 
@@ -231,6 +244,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
       telefono: '',
       cargo: '',
       departamento: '',
+      salario: ''
     });
     setErrors({});
     onClose();
@@ -258,6 +272,9 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
         break;
       case 'departamento':
         newErrors.departamento = validateDepartamento(value);
+        break;
+      case 'salario':
+        newErrors.salario = validateSalario(value);
         break;
     }
 

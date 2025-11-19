@@ -4,7 +4,7 @@ import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
 import { Toaster } from './shared/components/ui/toaster'
 import DashboardLayout from './shared/components/dashboard/Layout/DashboardLayout'
-import ProtectedRoute, { EmployeeRoute, DashboardRoute } from './shared/components/ProtectedRoute'
+import ProtectedRoute, { EmployeeRoute } from './shared/components/ProtectedRoute'
 
 // Pages
 import HomePage from './features/properties/pages/HomePage'
@@ -26,7 +26,6 @@ import AppointmentPage from './features/dashboard/pages/appointment/AppointmentP
 import Reports from './features/dashboard/pages/reports/Reports'
 import Roles from './features/dashboard/pages/roles/Roles'
 import AdministrativosPage from './features/dashboard/pages/administrativos/AdministrativosPage'
-import UsersPage from './features/dashboard/pages/users/UsersPage'
 
 function App() {
   return (
@@ -122,101 +121,91 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <DashboardRoute>
+            <EmployeeRoute>
               <DashboardLayout>
                 <DashboardPage />
               </DashboardLayout>
-            </DashboardRoute>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/dashboard/salesManagement"
           element={
-            <DashboardRoute>
+            <EmployeeRoute>
               <DashboardLayout>
                 <SalesManagementPage />
               </DashboardLayout>
-            </DashboardRoute>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/dashboard/buyersManagement"
           element={
-            <DashboardRoute>
+            <EmployeeRoute>
               <DashboardLayout>
                 <BuyersManagementPage />
               </DashboardLayout>
-            </DashboardRoute>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/dashboard/leasesManagement"
           element={
-            <DashboardRoute>
+            <EmployeeRoute>
               <DashboardLayout>
                 <LeasesManagementPage />
               </DashboardLayout>
-            </DashboardRoute>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/dashboard/renantManagement"
           element={
-            <DashboardRoute>
+            <EmployeeRoute>
               <DashboardLayout>
                 <RenantManagementPage />
               </DashboardLayout>
-            </DashboardRoute>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/dashboard/citas"
           element={
-            <DashboardRoute>
+            <EmployeeRoute>
               <DashboardLayout>
                 <AppointmentPage />
               </DashboardLayout>
-            </DashboardRoute>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/reportes/gestion"
           element={
-            <DashboardRoute>
+            <EmployeeRoute>
               <DashboardLayout>
                 <Reports />
               </DashboardLayout>
-            </DashboardRoute>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/seguridad/roles"
           element={
-            <DashboardRoute>
+            <EmployeeRoute>
               <DashboardLayout>
                 <Roles />
               </DashboardLayout>
-            </DashboardRoute>
+            </EmployeeRoute>
           }
         />
         <Route
           path="/seguridad/administrativos"
           element={
-            <DashboardRoute>
+            <EmployeeRoute>
               <DashboardLayout>
                 <AdministrativosPage />
               </DashboardLayout>
-            </DashboardRoute>
-          }
-        />
-        <Route
-          path="/seguridad/usuarios"
-          element={
-            <DashboardRoute>
-              <DashboardLayout>
-                <UsersPage />
-              </DashboardLayout>
-            </DashboardRoute>
+            </EmployeeRoute>
           }
         />
         <Route

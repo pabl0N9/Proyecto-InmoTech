@@ -34,11 +34,6 @@ const createLimiter = rateLimit({
 });
 
 const sanitizeInput = (req, res, next) => {
-  // Permitir saltar sanitización si está marcada
-  if (req.skipSanitize) {
-    return next();
-  }
-
   const sanitize = (obj) => {
     if (typeof obj === 'string') {
       return obj.trim().replace(/[<>]/g, '');

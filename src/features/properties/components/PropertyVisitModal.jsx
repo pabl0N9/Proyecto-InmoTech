@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -15,9 +15,7 @@ import {
   DollarSign,
   Info,
   ChevronLeft,
-  ChevronRight,
-  Save,
-  Clock as ClockIcon
+  ChevronRight
 } from 'lucide-react';
 import { formatPhoneNumber } from '../../../shared/utils/phoneFormatter';
 import { useToast } from '../../../shared/hooks/use-toast';
@@ -26,127 +24,25 @@ import citaApiService from '../../../shared/services/citaApiService';
 import { apiClient } from '../../../shared/services/api.config';
 import { useAppointments } from '../../../shared/contexts/AppointmentContext';
 
-// ⚡ Hook personalizado para persistencia temporal de formularios
-const useTemporaryFormStorage = (key, defaultValue, expiryMinutes = 15) => {
-  const [data, setData] = useState(defaultValue);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const [hasStoredData, setHasStoredData] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [intervalId, setIntervalId] = useState(null);
-
-  // Cargar datos al inicializar
-  useEffect(() => {
-    if (!key) return;
-
-    try {
-      const stored = sessionStorage.getItem(key);
-      if (stored) {
-        const parsedData = JSON.parse(stored);
-        if (parsedData.timestamp && parsedData.formData) {
-          const elapsed = Date.now() - parsedData.timestamp;
-          const maxAge = expiryMinutes * 60 * 1000;
-
-          if (elapsed < maxAge) {
-            // Cargar datos válidos
-            setData(parsedData.formData);
-            setHasStoredData(true);
-
-            // Calcular tiempo restante
-            const remainingTime = maxAge - elapsed;
-            setTimeLeft(Math.max(0, Math.floor(remainingTime / 1000))); // en segundos
-
-            // Iniciar countdown
-            const countdownInterval = setInterval(() => {
-              setTimeLeft(current => {
-                const newTime = current - 1;
-                if (newTime <= 0) {
-                  clearInterval(countdownInterval);
-                  cleanup();
-                  return 0;
-                }
-                return newTime;
-              });
-            }, 1000);
-
-            setIntervalId(countdownInterval);
-          } else {
-            // Limpiar datos expirados
-            cleanup();
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('Error loading temporary form data:', error);
-      cleanup();
-    }
-    setIsDataLoaded(true);
-  }, [key, expiryMinutes]);
-
-  const saveData = useCallback((newData) => {
-    setData(newData);
-    setHasStoredData(true);
-
-    if (Object.values(newData).some(value => value && value.toString().trim())) {
-      const tempData = {
-        formData: newData,
-        timestamp: Date.now()
-      };
-      sessionStorage.setItem(key, JSON.stringify(tempData));
-
-      // Resetear tiempo si hay actividad
-      setTimeLeft(15 * 60); // 15 minutos en segundos
-    }
-  }, [key]);
-
-  const cleanup = useCallback(() => {
-    if (intervalId) {
-      clearInterval(intervalId);
-      setIntervalId(null);
-    }
-    sessionStorage.removeItem(key);
-    setHasStoredData(false);
-    setTimeLeft(0);
-  }, [key, intervalId]);
-
-  // Limpiar al salir del componente
-  useEffect(() => {
-    return cleanup;
-  }, [cleanup]);
-
-  return [data, saveData, cleanup, isDataLoaded, hasStoredData, timeLeft];
-};
-
-// Formato de tiempo para mostrar al usuario
-const formatTimeLeft = (seconds) => {
-  if (seconds <= 0) return 'Expirado';
-  const minutes = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
-};
-
 
 const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-
-  // 🔄 Hook personalizado para persistencia temporal de formularios
-  const [formData, setFormDataWithPersistence, clearStoredData, , hasStoredData, timeLeft] = useTemporaryFormStorage(
-    `property-visit-${property?.id || 'default'}`,
-    {
-      nombres: "",
-      apellidos: "",
-      tipoDocumento: '',
-      numeroDocumento: "",
-      telefono: "",
-      email: "",
-      fecha: "",
-      hora: "",
-      mensaje: "",
-    }
-  );
-
+  const [formData, setFormData] = useState({
+    nombres: "", // "Juan Carlos" o "María"
+    apellidos: "", // "Pérez González" o "García"
+    tipoDocumento: '',
+    numeroDocumento: "",
+    telefono: "",
+    email: "",
+    fecha: "",
+    hora: "",
+    mensaje: "",
+  });
   const [errors, setErrors] = useState({});
   const [prevPhone, setPrevPhone] = useState("");
+  // ⭐ AGREGADO: Estado para loading
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // ⭐ AGREGADO: Estado para búsqueda automática
   const [isSearchingPerson, setIsSearchingPerson] = useState(false);
 
   const { toast } = useToast();
@@ -474,10 +370,7 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
         title: "¡Visita agendada exitosamente!",
         variant: "default",
       });
-
-      // 🧹 Limpiar datos temporales después de envío exitoso
-      clearStoredData();
-
+  
       handleClose();
   
     } catch (error) {
@@ -493,32 +386,19 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
   };
     
   
-  // ✅ Función auxiliar para calcular hora fin (30 minutos después)
+  // ✅ Función auxiliar para calcular hora fin
   const calcularHoraFin = (horaInicio) => {
-    const [horaStr, minutosStr] = horaInicio.split(':');
-    let hora = parseInt(horaStr, 10);
-    let minutos = parseInt(minutosStr, 10);
-
-    // Sumar 30 minutos
-    minutos += 30;
-
-    // Si minutos excede 59, incrementar hora y ajustar minutos
-    if (minutos >= 60) {
-      hora += Math.floor(minutos / 60);
-      minutos = minutos % 60;
-    }
-
-    // Asegurar formato HH:MM
-    return `${hora.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
+    // Remover am/pm si existe
+    const horaLimpia = horaInicio.replace(/\s?(am|pm)/i, '');
+    const [hora, minutos] = horaLimpia.split(':');
+    const horaFin = parseInt(hora) + 1;
+    return `${horaFin.toString().padStart(2, '0')}:${minutos || '00'}`;
   };
   
   const handleClose = () => {
-    // 🧹 Limpiar datos al cerrar modal
-    clearStoredData();
-
-    setFormDataWithPersistence({
-      nombres: "",
-      apellidos: "",
+    setFormData({
+      nombres: "", // ✅ Actualizado
+      apellidos: "", // ✅ Actualizado
       tipoDocumento: "",
       numeroDocumento: "",
       telefono: "",
@@ -590,10 +470,7 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
   };
 
   const updateFormData = (field, value) => {
-    // Actualizar el estado del formulario
-    const newData = { ...formData, [field]: value };
-    // 💾 Guardar automáticamente en sessionStorage
-    setFormDataWithPersistence(newData);
+    setFormData((prev) => ({ ...prev, [field]: value }));
 
     // Validación en tiempo real
     const error = validateField(field, value);
@@ -761,7 +638,7 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
           className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 max-h-[95vh] overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0 relative">
+          <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Calendar className="w-6 h-6 text-blue-600" />
@@ -775,25 +652,6 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
                 </p>
               </div>
             </div>
-
-            {/* 📊 Indicador de persistencia temporal */}
-            {hasStoredData && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg"
-              >
-                <div className="flex items-center gap-1 text-green-700">
-                  <Save className="w-4 h-4" />
-                  <span className="text-sm font-medium">Progreso guardado</span>
-                </div>
-                <div className="flex items-center gap-1 text-green-600">
-                  <ClockIcon className="w-4 h-4" />
-                  <span className="text-sm font-mono">{formatTimeLeft(timeLeft)}</span>
-                </div>
-              </motion.div>
-            )}
-
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}

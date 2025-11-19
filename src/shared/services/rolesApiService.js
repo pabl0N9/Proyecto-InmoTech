@@ -33,10 +33,7 @@ class RolesApiService {
       this.validarDatosRol(rolData);
 
       const payload = {
-        nombre_rol: rolData.nombre_rol,
-        descripcion: rolData.descripcion || "",
-        es_rol_administrativo: rolData.es_rol_administrativo || false,
-        permisos: rolData.permisos || {}
+        nombre_rol: rolData.nombre_rol
       };
 
       const response = await apiClient.post("/roles", payload);
@@ -55,12 +52,10 @@ class RolesApiService {
     try {
       if (!id) throw new Error("ID de rol es requerido");
 
-      // Solo enviar campos según el rol
-      const esRolSistema = ['Super Administrador', 'Administrador', 'Empleado', 'Usuario', 'Propietario'].includes(rolData.nombre_rol);
-
-      const payload = esRolSistema
-        ? { estado: rolData.estado, permisos: rolData.permisos }
-        : { nombre_rol: rolData.nombre_rol, estado: rolData.estado, permisos: rolData.permisos };
+      const payload = {
+        nombre_rol: rolData.nombre_rol,
+        estado: rolData.estado
+      };
 
       const response = await apiClient.patch(`/roles/${id}`, payload);
       const rolActualizado = response.data.data || response.data;
@@ -191,21 +186,6 @@ class RolesApiService {
 
   // HELPERS - TRANSFORMACIÓN
   transformarRolDesdeAPI(rolAPI) {
-    // Transformar permisos desde el formato de BD al formato del frontend
-    const permisos = {};
-    if (rolAPI.permisos && Array.isArray(rolAPI.permisos)) {
-      rolAPI.permisos.forEach(permiso => {
-        // Solo incluir permisos válidos (con modulo y permiso no vacíos)
-        if (permiso.modulo && permiso.modulo.trim() &&
-            permiso.permiso && permiso.permiso.trim()) {
-          if (!permisos[permiso.modulo]) {
-            permisos[permiso.modulo] = {};
-          }
-          permisos[permiso.modulo][permiso.permiso] = permiso.estado;
-        }
-      });
-    }
-
     return {
       id: rolAPI.id_rol || rolAPI.id,
       id_rol: rolAPI.id_rol || rolAPI.id,
@@ -215,7 +195,7 @@ class RolesApiService {
       es_administrativo: rolAPI.es_rol_administrativo,
       es_rol_administrativo: rolAPI.es_rol_administrativo,
       fecha_creacion: rolAPI.fecha_creacion,
-      permisos: permisos
+      permisos: {}
     };
   }
 }

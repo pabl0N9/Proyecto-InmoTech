@@ -1,12 +1,11 @@
 import React, { useRef, useState, useCallback } from "react";
 import { FaTimes } from "react-icons/fa";
-import { motion } from 'framer-motion';
 
-// Lista de campos que deben ser obligatorios según la solicitud del usuario (INCLUYE ARRENDATARIO, CODEUDOR, INMUEBLE Y CONTRATO)
+// Lista de campos que deben ser obligatorios según la solicitud del usuario (INCLUYE INQUILINO, CODEUDOR, INMUEBLE Y CONTRATO)
 const requiredFields = [
-    // Arrendatario
-    "tipoDocArrendatario", "numeroDocArrendatario", "primerNombreArrendatario",
-    "primerApellidoArrendatario", "telefonoArrendatario", "correoArrendatario",
+    // Inquilino
+    "tipoDocInquilino", "numeroDocInquilino", "primerNombreInquilino",
+    "primerApellidoInquilino", "telefonoInquilino", "correoInquilino",
     // Codeudor
     "tipoDocCodeudor", "numeroDocCodeudor", "primerNombreCodeudor",
     "primerApellidoCodeudor", "telefonoCodeudor", "correoCodeudor",
@@ -19,24 +18,15 @@ const requiredFields = [
     "fechaInicio", "fechaFinal", "fechaCobro", "precio", "estado",
 ];
 
-// Opciones de documentos
-const DOCUMENT_OPTIONS = [
-    { value: "CC", label: "Cédula de Ciudadanía (CC)" },
-    { value: "CE", label: "Cédula de Extranjería (CE)" },
-    { value: "NIT", label: "NIT" },
-    { value: "PASAPORTE", label: "Pasaporte" },
-    { value: "TI", label: "Tarjeta de Identidad (TI)" },
-];
-
-export default function RentForm({ onClose, onSubmit }) {
+export default function RenantForm({ onClose, onSubmit }) {
     const [step, setStep] = useState(1);
     // Estado para manejar los errores en línea. Usa { fieldName: errorMessage }
     const [errors, setErrors] = useState({});
     const totalSteps = 4;
 
     const initial = {
-        tipoDocArrendatario: "", numeroDocArrendatario: "", primerNombreArrendatario: "", segundoNombreArrendatario: "",
-        primerApellidoArrendatario: "", segundoApellidoArrendatario: "", correoArrendatario: "", telefonoArrendatario: "",
+        tipoDocInquilino: "", numeroDocInquilino: "", primerNombreInquilino: "", segundoNombreInquilino: "",
+        primerApellidoInquilino: "", segundoApellidoInquilino: "", correoInquilino: "", telefonoInquilino: "",
 
         tipoDocCodeudor: "", numeroDocCodeudor: "", primerNombreCodeudor: "", segundoNombreCodeudor: "",
         primerApellidoCodeudor: "", segundoApellidoCodeudor: "", correoCodeudor: "", telefonoCodeudor: "",
@@ -56,7 +46,7 @@ export default function RentForm({ onClose, onSubmit }) {
     const errorFocusTimeout = useRef(null); // Usado para enfocar el primer campo con error
 
     // Constantes para los nombres de los campos de documento
-    const NUMERO_DOC_ARR = "numeroDocArrendatario";
+    const NUMERO_DOC_INQ = "numeroDocInquilino";
     const NUMERO_DOC_COD = "numeroDocCodeudor";
 
     // Lista de campos que deben ser estrictamente numéricos (solo dígitos)
@@ -70,8 +60,8 @@ export default function RentForm({ onClose, onSubmit }) {
     // Campos agrupados por paso para la validación de 'Siguiente'
     const stepFields = {
         1: [
-            "tipoDocArrendatario", NUMERO_DOC_ARR, "primerNombreArrendatario", "segundoNombreArrendatario",
-            "primerApellidoArrendatario", "segundoApellidoArrendatario", "correoArrendatario", "telefonoArrendatario",
+            "tipoDocInquilino", NUMERO_DOC_INQ, "primerNombreInquilino", "segundoNombreInquilino",
+            "primerApellidoInquilino", "segundoApellidoInquilino", "correoInquilino", "telefonoInquilino",
         ],
         2: [
             "tipoDocCodeudor", NUMERO_DOC_COD, "primerNombreCodeudor", "segundoNombreCodeudor",
@@ -85,79 +75,11 @@ export default function RentForm({ onClose, onSubmit }) {
         4: ["fechaInicio", "fechaFinal", "fechaCobro", "precio", "estado"],
     };
 
-    // Lista de campos que deben contener solo letras (y acentos/espacios)
-    const nameFields = [
-        "primerNombreArrendatario", "segundoNombreArrendatario", "primerApellidoArrendatario", "segundoApellidoArrendatario",
-        "primerNombreCodeudor", "segundoNombreCodeudor", "primerApellidoCodeudor", "segundoApellidoCodeudor",
-    ];
-
-    // Lista de campos que deben contener solo números (documentos)
-    const docFields = [
-        NUMERO_DOC_ARR, NUMERO_DOC_COD,
-    ];
-
-    // Lista de campos que deben contener solo números (teléfonos)
-    const phoneFields = [
-        "telefonoArrendatario", "telefonoCodeudor",
-    ];
-
-    // Lista de campos de email
-    const emailFields = [
-        "correoArrendatario", "correoCodeudor",
-    ];
-
-    // === VALIDACIONES MEJORADAS PARA DOCUMENTOS ===
-
-    // Función para validar documentos según el tipo
-    const validateDocument = (tipoDocumento, numeroDocumento) => {
-        const numeroLimpio = numeroDocumento.replace(/[^0-9]/g, '');
-        
-        switch (tipoDocumento) {
-            case 'CC': // Cédula de Ciudadanía
-                if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
-                    return 'La cédula de ciudadanía debe tener entre 8 y 10 dígitos';
-                }
-                break;
-                
-            case 'CE': // Cédula de Extranjería
-                if (!/^[0-9]{6,10}$/.test(numeroLimpio)) {
-                    return 'La cédula de extranjería debe tener entre 6 y 10 dígitos';
-                }
-                break;
-                
-            case 'NIT': // NIT
-                if (!/^[0-9]{9,10}$/.test(numeroLimpio)) {
-                    return 'El NIT debe tener 9 o 10 dígitos';
-                }
-                break;
-                
-            case 'PASAPORTE': // Pasaporte
-                if (numeroLimpio.length < 6 || numeroLimpio.length > 20) {
-                    return 'El pasaporte debe tener entre 6 y 20 caracteres';
-                }
-                if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) {
-                    return 'El pasaporte solo puede contener letras y números';
-                }
-                break;
-                
-            case 'TI': // Tarjeta de Identidad
-                if (!/^[0-9]{10,11}$/.test(numeroLimpio)) {
-                    return 'La tarjeta de identidad debe tener 10 u 11 dígitos';
-                }
-                break;
-                
-            default:
-                return 'Tipo de documento no válido';
-        }
-        
-        return '';
-    };
-
     const getLabel = (name) => {
         const labels = {
-            tipoDocArrendatario: "Tipo de Documento", numeroDocArrendatario: "Número de Documento", primerNombreArrendatario: "Primer Nombre",
-            segundoNombreArrendatario: "Segundo Nombre", primerApellidoArrendatario: "Primer Apellido", segundoApellidoArrendatario: "Segundo Apellido",
-            correoArrendatario: "Correo Electrónico", telefonoArrendatario: "Teléfono", tipoDocCodeudor: "Tipo de Documento Codeudor",
+            tipoDocInquilino: "Tipo de Documento", numeroDocInquilino: "Número de Documento", primerNombreInquilino: "Primer Nombre",
+            segundoNombreInquilino: "Segundo Nombre", primerApellidoInquilino: "Primer Apellido", segundoApellidoInquilino: "Segundo Apellido",
+            correoInquilino: "Correo Electrónico", telefonoInquilino: "Teléfono", tipoDocCodeudor: "Tipo de Documento Codeudor",
             numeroDocCodeudor: "Número de Documento Codeudor", primerNombreCodeudor: "Primer Nombre Codeudor",
             segundoNombreCodeudor: "Segundo Nombre Codeudor", primerApellidoCodeudor: "Primer Apellido Codeudor",
             segundoApellidoCodeudor: "Segundo Apellido Codeudor", correoCodeudor: "Correo Electrónico Codeudor",
@@ -177,12 +99,35 @@ export default function RentForm({ onClose, onSubmit }) {
         return `w-full p-3 border rounded-lg focus:outline-none transition duration-150 ${errorClass}`;
     }, [errors]);
 
-    // Formatea un número con separadores de miles
+    // Lista de campos que deben contener solo letras (y acentos/espacios)
+    const nameFields = [
+        "primerNombreInquilino", "segundoNombreInquilino", "primerApellidoInquilino", "segundoApellidoInquilino",
+        "primerNombreCodeudor", "segundoNombreCodeudor", "primerApellidoCodeudor", "segundoApellidoCodeudor",
+    ];
+
+    // Lista de campos que deben contener solo números (documentos, min 8)
+    const docFields = [
+        NUMERO_DOC_INQ, NUMERO_DOC_COD,
+    ];
+
+    // Lista de campos que deben contener solo números (teléfonos)
+    const phoneFields = [
+        "telefonoInquilino", "telefonoCodeudor",
+    ];
+
+    // Lista de campos que deben contener un @
+    const emailFields = [
+        "correoInquilino", "correoCodeudor",
+    ];
+    
+    // --- UTILITY: Formatea un número con separadores de miles ---
     const formatNumberWithThousandsSeparator = (value) => {
         if (!value) return "";
+        // 1. Limpiar el valor de cualquier separador no numérico
         const cleanValue = value.replace(/[^0-9]/g, '');
         if (cleanValue === "") return "";
         
+        // 2. Formatear con separador de miles (usando punto para Colombia)
         const formatter = new Intl.NumberFormat('es-CO', { 
             style: 'decimal',
             minimumFractionDigits: 0,
@@ -248,20 +193,21 @@ export default function RentForm({ onClose, onSubmit }) {
         }
     };
 
-    // Funciones de validación de formato
-    const isValidName = (value) => /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]*$/.test(value);
-    const isValidNumeric = (value) => /^\d*$/.test(value);
-    const isValidEmail = (value) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value);
+    // --- FUNCIONES DE VALIDACIÓN DE FORMATO ---
+    const isValidName = (value) => /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/.test(value);
+    const isValidNumeric = (value) => /^\d*$/.test(value); // Solo dígitos (0-9)
+    const isValidEmail = (value) => value.includes('@');
 
-    // Handler para verificar obligatoriedad, longitud y formato al salir del campo - MEJORADO
+    // Handler para verificar obligatoriedad, longitud y formato al salir del campo
     const handleInputBlur = (e) => {
         const { name } = e.target;
         // Tomamos el valor limpio de la ref, no del e.target.value (que podría estar formateado)
         const value = valuesRef.current[name] || ""; 
         
         let errorMessage = null;
+        const minLengthDoc = 8;
         const isRequired = requiredFields.includes(name);
-        const conflictErrorMsg = "El número de documento del Arrendatario no puede ser igual al del Codeudor.";
+        const conflictErrorMsg = "El número de documento del Inquilino no puede ser igual al del Codeudor.";
 
         setErrors(prev => {
             const newErrors = { ...prev };
@@ -271,64 +217,28 @@ export default function RentForm({ onClose, onSubmit }) {
                  errorMessage = "Este campo es obligatorio.";
             }
 
-            // 2. Validar formato y longitud (solo si no hay un error de obligatoriedad y el campo tiene valor) - MEJORADO
+            // 2. Validar formato y longitud (solo si no hay un error de obligatoriedad y el campo tiene valor)
             if (!errorMessage && value.trim()) {
-                if (nameFields.includes(name) && !isValidName(displayValuesRef.current[name])) {
-                    errorMessage = `Solo se permiten letras y espacios.`;
-                } 
-                // VALIDACIÓN MEJORADA PARA DOCUMENTOS
-                else if (docFields.includes(name)) {
-                    let tipoDocumento = "";
-                    
-                    if (name === NUMERO_DOC_ARR) {
-                        tipoDocumento = valuesRef.current.tipoDocArrendatario || "CC";
-                    } else if (name === NUMERO_DOC_COD) {
-                        tipoDocumento = valuesRef.current.tipoDocCodeudor || "CC";
+                if (nameFields.includes(name) && !isValidName(value)) {
+                    errorMessage = `Solo se permiten letras.`;
+                } else if (docFields.includes(name)) {
+                    if (!isValidNumeric(value)) {
+                        errorMessage = `Solo se permiten números.`;
+                    } else if (value.length < minLengthDoc) {
+                        errorMessage = `Debe tener un mínimo de ${minLengthDoc} números.`;
                     }
-                    
-                    // Validar formato básico primero
-                    if (!/^[A-Za-z0-9\s\-\.]*$/.test(displayValuesRef.current[name])) {
-                        errorMessage = `Solo se permiten letras, números, espacios, puntos y guiones`;
-                    } else {
-                        // Validación específica por tipo de documento
-                        errorMessage = validateDocument(tipoDocumento, value);
-                    }
-                } 
-                else if (phoneFields.includes(name) && !isValidNumeric(value)) {
+                } else if (phoneFields.includes(name) && !isValidNumeric(value)) {
                     errorMessage = `Solo se permiten números.`;
-                } 
-                else if (emailFields.includes(name) && !isValidEmail(value)) {
-                    errorMessage = `El correo electrónico debe ser válido.`;
-                } 
-                else if (strictNumericFields.includes(name) && !isValidNumeric(value)) { 
+                } else if (emailFields.includes(name) && !isValidEmail(value)) {
+                    errorMessage = `El correo electrónico debe contener un '@'.`;
+                } else if (strictNumericFields.includes(name) && !isValidNumeric(value)) { 
                     errorMessage = `Solo se permiten números enteros.`;
-                }
-                
-                // Validaciones específicas para campos numéricos
-                if (!errorMessage && strictNumericFields.includes(name)) {
-                    const numericValue = parseInt(value);
-                    
-                    if (name === "estrato" && (numericValue < 1 || numericValue > 6)) {
-                        errorMessage = `El estrato debe estar entre 1 y 6`;
-                    }
-                    
-                    if (name === "habitaciones" && (numericValue < 0 || numericValue > 20)) {
-                        errorMessage = `El número de habitaciones debe ser razonable (0-20)`;
-                    }
-                    
-                    if (name === "banos" && (numericValue < 0 || numericValue > 10)) {
-                        errorMessage = `El número de baños debe ser razonable (0-10)`;
-                    }
-                    
-                    if ((name === "precioInmueble" || name === "precio") && numericValue <= 0) {
-                        errorMessage = `Debe ser un número mayor a 0`;
-                    }
                 }
             }
 
             // 3. Validar CONFLICTO DE DOCUMENTO (solo si es un campo de documento y no tiene otro error más grave)
             if (!errorMessage && docFields.includes(name)) {
-                const otherDocName = name === NUMERO_DOC_ARR ? NUMERO_DOC_COD : NUMERO_DOC_ARR;
+                const otherDocName = name === NUMERO_DOC_INQ ? NUMERO_DOC_COD : NUMERO_DOC_INQ;
                 const otherDocValue = valuesRef.current[otherDocName] || "";
                 
                 if (value.trim() && otherDocValue.trim() && value === otherDocValue) {
@@ -353,12 +263,13 @@ export default function RentForm({ onClose, onSubmit }) {
             return newErrors;
         });
     };
-
-    // --- LÓGICA DE VALIDACIÓN CENTRAL MEJORADA ---
+    
+    // --- LÓGICA DE VALIDACIÓN CENTRAL ---
     const runValidation = (fieldsToCheck) => {
         let currentErrors = { ...errors };
         let hasError = false;
         let firstErrorField = null;
+        const minLengthDoc = 8;
         
         // 1. Iterar sobre los campos del paso actual o todos para validaciones individuales
         for (const fieldName of fieldsToCheck) {
@@ -376,52 +287,26 @@ export default function RentForm({ onClose, onSubmit }) {
             // B. Validación de Obligatoriedad y > 0 para números estrictos
             if (isRequired && strictNumericFields.includes(fieldName)) {
                  if (!value.toString().trim() || parseFloat(value) <= 0 || isNaN(parseFloat(value))) {
-                     error = "Este campo es obligatorio y debe ser mayor a 0";
+                     error = "Este campo es obligatorio";
                  }
             }
 
-            // C. Validación de Formato MEJORADA
+            // C. Validación de Formato (usa el valor limpio)
             if (!error && value.toString().trim()) {
-                if (nameFields.includes(fieldName) && !isValidName(displayValuesRef.current[fieldName])) {
+                if (nameFields.includes(fieldName) && !isValidName(value)) {
                     error = `Solo se permiten letras, espacios y acentos.`;
-                } 
-                // VALIDACIÓN MEJORADA PARA DOCUMENTOS
-                else if (docFields.includes(fieldName)) {
-                    let tipoDocumento = "";
-                    
-                    if (fieldName === NUMERO_DOC_ARR) {
-                        tipoDocumento = valuesRef.current.tipoDocArrendatario || "CC";
-                    } else if (fieldName === NUMERO_DOC_COD) {
-                        tipoDocumento = valuesRef.current.tipoDocCodeudor || "CC";
+                } else if (docFields.includes(fieldName)) {
+                    if (!isValidNumeric(value)) {
+                        error = `Solo se permiten dígitos.`;
+                    } else if (value.length < minLengthDoc) {
+                        error = `Debe tener un mínimo de ${minLengthDoc} dígitos.`;
                     }
-                    
-                    error = validateDocument(tipoDocumento, value);
-                } 
-                else if (phoneFields.includes(fieldName) && !isValidNumeric(value)) {
+                } else if (phoneFields.includes(fieldName) && !isValidNumeric(value)) {
                     error = `Solo se permiten dígitos.`;
-                } 
-                else if (emailFields.includes(fieldName) && !isValidEmail(value)) {
-                    error = `Debe ser un correo electrónico válido.`;
-                } 
-                else if (strictNumericFields.includes(fieldName) && !isValidNumeric(value)) { 
+                } else if (emailFields.includes(fieldName) && !isValidEmail(value)) {
+                    error = `Debe contener un '@' y ser válido.`;
+                } else if (strictNumericFields.includes(fieldName) && !isValidNumeric(value)) { 
                     error = `Solo se permiten números enteros.`;
-                }
-                
-                // Validaciones específicas para campos numéricos
-                if (!error && strictNumericFields.includes(fieldName)) {
-                    const numericValue = parseInt(value);
-                    
-                    if (fieldName === "estrato" && (numericValue < 1 || numericValue > 6)) {
-                        error = `El estrato debe estar entre 1 y 6`;
-                    }
-                    
-                    if (fieldName === "habitaciones" && (numericValue < 0 || numericValue > 20)) {
-                        error = `El número de habitaciones debe ser razonable (0-20)`;
-                    }
-                    
-                    if (fieldName === "banos" && (numericValue < 0 || numericValue > 10)) {
-                        error = `El número de baños debe ser razonable (0-10)`;
-                    }
                 }
             }
             
@@ -434,7 +319,7 @@ export default function RentForm({ onClose, onSubmit }) {
                 }
             } else {
                  // Limpiar el error si el campo es válido (pero no tocar el error de CONFLICTO si ya existe)
-                 const isConflictError = currentErrors[fieldName] === "El número de documento del Arrendatario no puede ser igual al del Codeudor.";
+                 const isConflictError = currentErrors[fieldName] === "El número de documento del Inquilino no puede ser igual al del Codeudor.";
                  if (!isConflictError) {
                     delete currentErrors[fieldName];
                  }
@@ -442,13 +327,13 @@ export default function RentForm({ onClose, onSubmit }) {
         }
         
         // 2. Validación de CONFLICTO DE DOCUMENTO (Cross-field validation)
-        const docArrValue = valuesRef.current[NUMERO_DOC_ARR] || "";
+        const docInqValue = valuesRef.current[NUMERO_DOC_INQ] || "";
         const docCodValue = valuesRef.current[NUMERO_DOC_COD] || "";
-        const conflictErrorMsg = "El número de documento del Arrendatario no puede ser igual al del Codeudor.";
+        const conflictErrorMsg = "El número de documento del Inquilino no puede ser igual al del Codeudor.";
 
-        if (docArrValue.trim() && docCodValue.trim() && docArrValue === docCodValue) {
+        if (docInqValue.trim() && docCodValue.trim() && docInqValue === docCodValue) {
             
-            const fieldNames = [NUMERO_DOC_ARR, NUMERO_DOC_COD];
+            const fieldNames = [NUMERO_DOC_INQ, NUMERO_DOC_COD];
 
             for (const name of fieldNames) {
                 if (fieldsToCheck.includes(name)) {
@@ -462,8 +347,8 @@ export default function RentForm({ onClose, onSubmit }) {
             
         } else {
             // Si son diferentes, limpiamos el error de conflicto de ambos campos, sin tocar otros errores (obligatorio/formato)
-            if (currentErrors[NUMERO_DOC_ARR] === conflictErrorMsg) {
-                 delete currentErrors[NUMERO_DOC_ARR];
+            if (currentErrors[NUMERO_DOC_INQ] === conflictErrorMsg) {
+                 delete currentErrors[NUMERO_DOC_INQ];
             }
             if (currentErrors[NUMERO_DOC_COD] === conflictErrorMsg) {
                  delete currentErrors[NUMERO_DOC_COD];
@@ -491,8 +376,8 @@ export default function RentForm({ onClose, onSubmit }) {
         if (step === 1 && valuesRef.current[NUMERO_DOC_COD].trim()) {
             if (!fieldsToValidate.includes(NUMERO_DOC_COD)) fieldsToValidate.push(NUMERO_DOC_COD);
         }
-        if (step === 2 && valuesRef.current[NUMERO_DOC_ARR].trim()) {
-            if (!fieldsToValidate.includes(NUMERO_DOC_ARR)) fieldsToValidate.push(NUMERO_DOC_ARR);
+        if (step === 2 && valuesRef.current[NUMERO_DOC_INQ].trim()) {
+            if (!fieldsToValidate.includes(NUMERO_DOC_INQ)) fieldsToValidate.push(NUMERO_DOC_INQ);
         }
         
         const { currentErrors, hasError, firstErrorField } = runValidation(fieldsToValidate);
@@ -525,7 +410,7 @@ export default function RentForm({ onClose, onSubmit }) {
         setErrors(currentErrors);
 
         if (hasError) {
-            // Determinar a qué paso debe volver para mostrar el error y enfocar el campo
+            // Determinar a qué paso debe volver para mostrar el error
             let targetStep = 1;
             if (stepFields[2].includes(firstErrorField)) targetStep = 2;
             else if (stepFields[3].includes(firstErrorField)) targetStep = 3;
@@ -551,7 +436,7 @@ export default function RentForm({ onClose, onSubmit }) {
         console.log("Formulario Enviado:", payload);
     };
 
-    // Field: componente auxiliar MEJORADO
+    // Field: componente auxiliar
     const Field = ({ name, as = "input", options = [], placeholder, type = "text" }) => {
         const label = getLabel(name);
         const errorMessage = errors[name];
@@ -561,7 +446,7 @@ export default function RentForm({ onClose, onSubmit }) {
         const isDocField = docFields.includes(name);
         const isPhoneField = phoneFields.includes(name);
         const isEmailField = emailFields.includes(name);
-        const isStrictNumeric = strictNumericFields.includes(name);
+        const isStrictNumeric = strictNumericFields.includes(name); // Para los nuevos campos estrictamente numéricos
         const isNameField = nameFields.includes(name);
 
         // Determinar si necesita validación en blur (incluye los requeridos para feedback inmediato)
@@ -579,15 +464,6 @@ export default function RentForm({ onClose, onSubmit }) {
             inputType = "email";
         }
 
-        // Placeholders mejorados
-        let fieldPlaceholder = placeholder;
-        if (isDocField) {
-            fieldPlaceholder = "Ej: 1234567890 (8-10 dígitos según el tipo)";
-        }
-        if (isPhoneField) {
-            fieldPlaceholder = "Ej: 3001234567 (10 dígitos mínimo)";
-        }
-
         if (type === "checkbox") {
             return (
                 <label htmlFor={name} className="col-span-3 flex items-center gap-2 text-sm font-semibold text-gray-700 mt-2">
@@ -598,7 +474,6 @@ export default function RentForm({ onClose, onSubmit }) {
                         type="checkbox"
                         defaultChecked={!!initial[name]}
                         onChange={handleInputChange}
-                        onBlur={onBlurHandler}
                         className="rounded text-blue-600 focus:ring-blue-500"
                     />
                     <span>{label} {isRequired && <span className="text-red-500 ml-1">*</span>}</span>
@@ -649,7 +524,7 @@ export default function RentForm({ onClose, onSubmit }) {
                     ref={setElRef(name)}
                     className={getFieldClass(name)}
                     type={inputType}
-                    placeholder={fieldPlaceholder}
+                    placeholder={placeholder}
                     defaultValue={(displayValuesRef.current[name] || initial[name]) ?? ""} 
                     onChange={handleInputChange}
                     onBlur={onBlurHandler}
@@ -699,7 +574,7 @@ export default function RentForm({ onClose, onSubmit }) {
                     </div>
                     <p className="text-sm text-gray-600 mt-2">
                         Paso {step} de {totalSteps}:{" "}
-                        {step === 1 ? "Datos del Arrendatario" : step === 2 ? "Datos del Codeudor" : step === 3 ? "Datos del Inmueble" : "Datos del Contrato y Pago"}
+                        {step === 1 ? "Datos del Inquilino" : step === 2 ? "Datos del Codeudor" : step === 3 ? "Datos del Inmueble" : "Datos del Contrato y Pago"}
                         {" "} (Campos obligatorios marcados con *)
                     </p>
                 </div>
@@ -711,21 +586,25 @@ export default function RentForm({ onClose, onSubmit }) {
                         {step === 1 && (
                             <div>
                                 <h3 className="text-lg font-bold text-blue-800 mb-4 pb-2 border-b border-blue-200">
-                                    Datos del Arrendatario
+                                    Datos del Inquilino
                                 </h3>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                                     <Field
-                                        name="tipoDocArrendatario"
+                                        name="tipoDocInquilino"
                                         as="select"
-                                        options={DOCUMENT_OPTIONS}
+                                        options={[
+                                            { value: "CC", label: "Cédula de Ciudadanía (CC)" },
+                                            { value: "CE", label: "Cédula de Extranjería (CE)" },
+                                            { value: "NIT", label: "NIT" },
+                                        ]}
                                     />
-                                    <Field name={NUMERO_DOC_ARR} placeholder="Ej: 1234567890 (8-10 dígitos según el tipo)" />
-                                    <Field name="primerNombreArrendatario" placeholder="Solo letras y espacios." />
-                                    <Field name="segundoNombreArrendatario" placeholder="Solo letras y espacios. (Opcional)" />
-                                    <Field name="primerApellidoArrendatario" placeholder="Solo letras y espacios." />
-                                    <Field name="segundoApellidoArrendatario" placeholder="Solo letras y espacios. (Opcional)" />
-                                    <Field name="correoArrendatario" placeholder="correo@dominio.com" type="email" />
-                                    <Field name="telefonoArrendatario" placeholder="Ej: 3001234567 (10 dígitos mínimo)" />
+                                    <Field name={NUMERO_DOC_INQ} placeholder="Mínimo 8 dígitos. Solo números." />
+                                    <Field name="primerNombreInquilino" placeholder="Solo letras y espacios." />
+                                    <Field name="segundoNombreInquilino" placeholder="Solo letras y espacios. (Opcional)" />
+                                    <Field name="primerApellidoInquilino" placeholder="Solo letras y espacios." />
+                                    <Field name="segundoApellidoInquilino" placeholder="Solo letras y espacios. (Opcional)" />
+                                    <Field name="correoInquilino" placeholder="Debe contener un @" type="email" />
+                                    <Field name="telefonoInquilino" placeholder="Solo números. Ej: 3001234567" />
                                 </div>
                             </div>
                         )}
@@ -740,15 +619,19 @@ export default function RentForm({ onClose, onSubmit }) {
                                     <Field
                                         name="tipoDocCodeudor"
                                         as="select"
-                                        options={DOCUMENT_OPTIONS}
+                                        options={[
+                                            { value: "CC", label: "Cédula de Ciudadanía (CC)" },
+                                            { value: "CE", label: "Cédula de Extranjería (CE)" },
+                                            { value: "NIT", label: "NIT" },
+                                        ]}
                                     />
-                                    <Field name={NUMERO_DOC_COD} placeholder="Ej: 1234567890 (8-10 dígitos según el tipo)" />
+                                    <Field name={NUMERO_DOC_COD} placeholder="Mínimo 8 dígitos. Solo números." />
                                     <Field name="primerNombreCodeudor" placeholder="Solo letras y espacios." />
                                     <Field name="segundoNombreCodeudor" placeholder="Solo letras y espacios. (Opcional)" />
                                     <Field name="primerApellidoCodeudor" placeholder="Solo letras y espacios." />
                                     <Field name="segundoApellidoCodeudor" placeholder="Solo letras y espacios. (Opcional)" />
-                                    <Field name="correoCodeudor" placeholder="correo@dominio.com" type="email" />
-                                    <Field name="telefonoCodeudor" placeholder="Ej: 3009876543 (10 dígitos mínimo)" />
+                                    <Field name="correoCodeudor" placeholder="Debe contener un @" type="email" />
+                                    <Field name="telefonoCodeudor" placeholder="Solo números. Ej: 3009876543" />
                                     <Field name="estabilidadLaboral" placeholder="Ej: 5 años" />
                                 </div>
                             </div>
@@ -772,15 +655,15 @@ export default function RentForm({ onClose, onSubmit }) {
                                     />
                                     <Field name="registroInmobiliario" placeholder="Ej: 12345-ABC" />
                                     <Field name="nombreInmueble" placeholder="Ej: Edificio Central" />
-                                    <Field name="area" placeholder="Área en metros cuadrados. Solo números enteros mayores a 0." />
-                                    <Field name="habitaciones" placeholder="Cantidad de habitaciones. Solo números enteros (0-20)." />
-                                    <Field name="banos" placeholder="Cantidad de baños. Solo números enteros (0-10)." />
+                                    <Field name="area" placeholder="Ej: 75. Solo números enteros mayores a 0." />
+                                    <Field name="habitaciones" placeholder="Ej: 3. Solo números enteros mayores a 0." />
+                                    <Field name="banos" placeholder="Ej: 2. Solo números enteros mayores a 0." />
                                     <Field name="departamento" placeholder="Ej: Antioquia" />
                                     <Field name="ciudad" placeholder="Ej: Medellín" />
                                     <Field name="barrio" placeholder="Ej: El Poblado" />
-                                    <Field name="estrato" placeholder="Estrato (1-6). Solo números enteros." />
+                                    <Field name="estrato" placeholder="Ej: 4. Solo números enteros mayores a 0." />
                                     <Field name="direccion" placeholder="Ej: Calle 10 # 45-20" />
-                                    <Field name="precioInmueble" placeholder="Ej: 150000000 (Solo números enteros mayores a 0)." />
+                                    <Field name="precioInmueble" placeholder="Ej: 1.500.000 (Solo números enteros mayores a 0)." />
                                     <Field name="garaje" type="checkbox" />
                                 </div>
                             </div>
@@ -796,7 +679,7 @@ export default function RentForm({ onClose, onSubmit }) {
                                     <Field name="fechaInicio" type="date" />
                                     <Field name="fechaFinal" type="date" />
                                     <Field name="fechaCobro" type="date" />
-                                    <Field name="precio" placeholder="Ej: 1500000 (Solo números enteros mayores a 0)." />
+                                    <Field name="precio" placeholder="Ej: 1.500.000 (Solo números enteros mayores a 0)." />
                                     <Field
                                         name="estado"
                                         as="select"
@@ -836,7 +719,7 @@ export default function RentForm({ onClose, onSubmit }) {
 
                         {step === totalSteps && (
                             <button 
-                                type="submit"
+                                type="submit" 
                                 className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-lg shadow-green-400/50 hover:bg-green-700 transition duration-150 transform hover:scale-[1.02] ml-auto"
                             >
                                 Crear Arriendo

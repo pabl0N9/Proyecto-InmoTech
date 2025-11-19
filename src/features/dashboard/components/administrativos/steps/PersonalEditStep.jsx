@@ -1,31 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Label } from '../../../../../shared/components/ui/label';
 import { Input } from '../../../../../shared/components/ui/input';
 import { User, Mail, Phone, FileText } from 'lucide-react';
-import { formatPhoneNumber } from '../../../../../shared/utils/phoneFormatter';
 
 const PersonalEditStep = ({ formData, errors, updateFormData, administrativo }) => {
-  const [prevPhone, setPrevPhone] = useState('');
-
-  const handlePhoneChange = (e) => {
-    const newValue = e.target.value;
-    const formatted = formatPhoneNumber(newValue, prevPhone, false);
-    setPrevPhone(formatted);
-    updateFormData('telefono', formatted);
-  };
-
-  const handlePhoneKeyDown = (e) => {
-    if (e.key === 'Backspace') {
-      const formatted = formatPhoneNumber(
-        formData.telefono.slice(0, -1),
-        formData.telefono,
-        true
-      );
-      setPrevPhone(formatted);
-      updateFormData('telefono', formatted);
-      e.preventDefault();
-    }
-  };
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -112,8 +90,7 @@ const PersonalEditStep = ({ formData, errors, updateFormData, administrativo }) 
             id="telefono"
             type="tel"
             value={formData.telefono}
-            onChange={handlePhoneChange}
-            onKeyDown={handlePhoneKeyDown}
+            onChange={(e) => updateFormData('telefono', e.target.value)}
             className={`h-10 pl-10 ${errors.telefono ? 'border-red-500' : ''}`}
             placeholder="+57 300 000 0000"
           />

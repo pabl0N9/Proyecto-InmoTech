@@ -7,7 +7,7 @@ class AdministrativosController {
    */
   async registrarAdministrativo(req, res, next) {
     try {
-      const adminData = req.body;  // ✅ Cambiar de req.validatedData
+      const adminData = req.validatedData;
       const result = await administrativoService.registrarAdministrativo(adminData);
 
       return res.status(201).json({
@@ -69,7 +69,7 @@ class AdministrativosController {
   async actualizarAdministrativo(req, res, next) {
     try {
       const { id } = req.params;
-      const updateData = req.body;  // ✅ Cambiar de req.validatedData
+      const updateData = req.validatedData;
 
       const result = await administrativoService.actualizarAdministrativo(id, updateData);
 
@@ -80,14 +80,6 @@ class AdministrativosController {
       });
     } catch (error) {
       logger.error('Error actualizando administrativo:', error);
-
-      if (error.message.includes('No se puede editar')) {
-        return res.status(403).json({
-          success: false,
-          message: error.message
-        });
-      }
-
       next(error);
     }
   }
@@ -98,7 +90,7 @@ class AdministrativosController {
   async cambiarEstadoLaboral(req, res, next) {
     try {
       const { id } = req.params;
-      const { estado_laboral, fecha_retiro } = req.body;  // ✅ Cambiar de req.validatedData
+      const { estado_laboral, fecha_retiro } = req.validatedData;
 
       const result = await administrativoService.cambiarEstadoLaboral(id, estado_laboral, fecha_retiro);
 
@@ -109,14 +101,6 @@ class AdministrativosController {
       });
     } catch (error) {
       logger.error('Error cambiando estado laboral:', error);
-
-      if (error.message.includes('No se puede cambiar')) {
-        return res.status(403).json({
-          success: false,
-          message: error.message
-        });
-      }
-
       next(error);
     }
   }
@@ -135,14 +119,6 @@ class AdministrativosController {
       });
     } catch (error) {
       logger.error('Error eliminando administrativo:', error);
-
-      if (error.message.includes('No se puede eliminar')) {
-        return res.status(403).json({
-          success: false,
-          message: error.message
-        });
-      }
-
       next(error);
     }
   }

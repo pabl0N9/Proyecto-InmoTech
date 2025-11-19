@@ -136,12 +136,7 @@ const login = async (email, password, rememberMe = false) => {
       setIsAuthenticated(true);
 
       console.log('✅ Usuario autenticado:', userData.email);
-      console.log('👤 Datos del usuario:', {
-        roles: userData.roles,
-        es_administrativo: userData.es_administrativo,
-        permisos: userData.permisos ? Object.keys(userData.permisos) : 'SIN PERMISOS'
-      });
-
+      
       // Verificación final
       console.log('🎯 Verificación FINAL:');
       console.log('   - localStorage Access Token:', !!localStorage.getItem('inmotech_access_token'));
@@ -325,128 +320,11 @@ const login = async (email, password, rememberMe = false) => {
   }, [user]);
 
   /**
-   * Verifica si el usuario tiene un permiso específico
-   */
-  const hasPermission = useCallback((modulo, permiso) => {
-    // ✅ SUPER ADMINISTRADOR TIENE TODOS LOS PERMISOS
-    if (user && user.roles && user.roles.includes('Super Administrador')) {
-      console.log(`🔍 hasPermission - Super Admin: modulo:${modulo}, permiso:${permiso} -> ✅ (acceso total)`);
-      return true;
-    }
-
-    if (!user || !user.permisos) {
-      console.log(`❌ hasPermission - Sin usuario o permisos: modulo=${modulo}, permiso=${permiso}`);
-      return false;
-    }
-
-    // 🔥 MANEJAR AMBOS FORMATOS: Array y Object
-    let hasPerm = false;
-
-    if (Array.isArray(user.permisos)) {
-      // Formato Array: buscar por objeto
-      hasPerm = user.permisos.some(p => p.modulo === modulo && p.permiso === permiso);
-    } else {
-      // Formato Object: acceder directamente
-      hasPerm = user.permisos[modulo] && user.permisos[modulo][permiso] === true;
-    }
-
-    console.log(`🔍 hasPermission - modulo:${modulo}, permiso:${permiso} -> ${hasPerm ? '✅' : '❌'}`);
-    return hasPerm;
-  }, [user]);
-
-  /**
    * Verifica si el usuario está autenticado y tiene roles específicos
    */
   const hasAccess = useCallback((allowedRoles) => {
     return isAuthenticated && hasRole(allowedRoles);
   }, [isAuthenticated, hasRole]);
-
-  /**
-   * Obtiene los módulos disponibles para el usuario basado en sus permisos
-   */
-  const getAvailableModules = useCallback(() => {
-    if (!user) {
-      console.log('❌ getAvailableModules - Sin usuario');
-      return [];
-    }
-
-    // ✅ SUPER ADMINISTRADOR TIENE ACCESO A TODOS LOS MÓDULOS
-    if (user.roles && user.roles.includes('Super Administrador')) {
-      console.log('✅ getAvailableModules - Super Admin, todos los módulos');
-      return ['propiedades', 'citas', 'reportes', 'administrativos', 'roles'];
-    }
-
-    if (!user.permisos) {
-      console.log('❌ getAvailableModules - Sin permisos');
-      return [];
-    }
-
-    console.log('🔍 getAvailableModules - Tipos de datos:', {
-      permisosType: typeof user.permisos,
-      permisosIsArray: Array.isArray(user.permisos),
-      permisosKeys: user.permisos ? (Array.isArray(user.permisos) ? user.permisos.length : Object.keys(user.permisos)) : 'null'
-    });
-
-    // 🔥 PERMISOS COMO ARRAY - Transformar a objeto si es necesario
-    let permisosObj = user.permisos;
-    if (Array.isArray(user.permisos)) {
-      permisosObj = {};
-      user.permisos.forEach(permiso => {
-        if (!permisosObj[permiso.modulo]) {
-          permisosObj[permiso.modulo] = {};
-        }
-        permisosObj[permiso.modulo][permiso.permiso] = true;
-      });
-    }
-
-    const availableModules = [];
-
-    if (permisosObj.gInmuebles) {
-      console.log('✅ Permiso gInmuebles encontrado');
-      availableModules.push('propiedades');
-    }
-    if (permisosObj.gCitas) {
-      console.log('✅ Permiso gCitas encontrado');
-      availableModules.push('citas');
-    }
-    if (permisosObj.gReporteInmuebles) {
-      console.log('✅ Permiso gReporteInmuebles encontrado');
-      availableModules.push('reportes');
-    }
-    if (permisosObj.usuarios) {
-      console.log('✅ Permiso usuarios encontrado');
-      availableModules.push('administrativos');
-    }
-    if (permisosObj.roles) {
-      console.log('✅ Permiso roles encontrado');
-      availableModules.push('roles');
-    }
-
-    // Buscar otros permisos que podrían haber
-    if (permisosObj.gArriendos) {
-      console.log('✅ Permiso gArriendos encontrado');
-      // No hay módulo para arriendos aún
-    }
-    if (permisosObj.gClientes) {
-      console.log('✅ Permiso gClientes encontrado');
-      // No hay módulo para clientes aún
-    }
-    if (permisosObj.gComprador) {
-      console.log('✅ Permiso gComprador encontrado');
-      // No hay módulo para comprador aún
-    }
-    if (permisosObj.gVentas) {
-      console.log('✅ Permiso gVentas encontrado');
-      // No hay módulo para ventas aún
-    }
-    if (permisosObj.gArrendatario) {
-      console.log('✅ Permiso gArrendatario encontrado');
-      // No hay módulo para arrendatario aún
-    }
-
-    console.log('📦 getAvailableModules - Módulos disponibles:', availableModules);
-    return availableModules;
-  }, [user]);
 
   // Cargar autenticación al montar el componente
   useEffect(() => {
@@ -469,8 +347,6 @@ const login = async (email, password, rememberMe = false) => {
     // Utilidades
     hasRole,
     hasAccess,
-    hasPermission,
-    getAvailableModules,
     clearError: () => setError(null),
   };
 

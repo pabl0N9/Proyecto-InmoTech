@@ -1,36 +1,44 @@
-export const routes = {
+// Centralizado de rutas para el proyecto inmobiliario
+// Importa rutas de módulos específicos y las exporta para uso global
+
+// Rutas públicas (de routes.js original)
+export const publicRoutes = {
   home: '/',
   about: '/nosotros',
   services: '/servicios',
   properties: '/inmuebles',
   propertyDetails: '/inmuebles/:id',
-  contact: '/contactanos',
-  login: '/login',
-  register: '/registro'
+  contact: '/contactanos'
 };
 
-export const dashboardRoutes = {
-  dashboard: '/dashboard',
-  properties: '/dashboard/salesManagement',
-  owners: '/dashboard/salesManagement',
-  clients: '/dashboard/citas',
-  appointments: '/dashboard/citas',
-  buyers: '/dashboard/buyersManagement',
-  sales: '/dashboard/salesManagement',
-  tenants: '/dashboard/leasesManagement',
-  rentals: '/dashboard/renantManagement',
-  reports: '/reportes/gestion',
-  users: '/seguridad/usuarios',
-  administrativos: '/seguridad/administrativos',
-  roles: '/seguridad/roles'
-};
-
-export const navigationLinks = [
-  { name: 'Inicio', path: routes.home },
-  { name: 'Nosotros', path: routes.about },
-  { name: 'Inmuebles', path: routes.properties },
-  { name: 'Servicios', path: routes.services },
-  { name: 'Contáctanos', path: routes.contact }
+export const publicNavigationLinks = [
+  { name: 'Inicio', path: publicRoutes.home },
+  { name: 'Nosotros', path: publicRoutes.about },
+  { name: 'Inmuebles', path: publicRoutes.properties },
+  { name: 'Servicios', path: publicRoutes.services },
+  { name: 'Contáctanos', path: publicRoutes.contact }
 ];
 
-export default routes;
+// Rutas del dashboard (de navigationData.js original)
+export const dashboardRoutes = {
+  dashboard: '/dashboard',
+  properties: '/inmuebles/gestion',
+  owners: '/inmuebles/propietarios',
+  appointments: '/dashboard/citas',
+  clients: '/dashboard/citas/clientes',
+  sales: '/dashboard/salesManagement',
+  buyers: '/dashboard/buyersManagement',
+  rentals: '/dashboard/renantManagement',
+  tenants: '/dashboard/leasesManagement',
+  reports: '/reportes/gestion',
+  security: '/seguridad',
+  users: '/seguridad/usuarios',
+  roles: '/seguridad/roles',
+  administrativos: '/seguridad/administrativos'
+};
+
+// Combinación de todas las rutas para acceso fácil
+export const allRoutes = {
+  ...publicRoutes,
+  ...dashboardRoutes
+};

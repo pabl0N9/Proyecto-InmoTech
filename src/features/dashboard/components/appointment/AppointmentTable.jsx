@@ -3,8 +3,6 @@ import { motion } from 'framer-motion';
 import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, Calendar, Clock, MapPin, Phone, Mail, Check, X } from 'lucide-react';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import StatusSelector from '../../../../shared/components/ui/StatusSelector';
-import { useAuth } from '../../../../shared/contexts/AuthContext';
-import AgentAssignmentSection from './AgentAssignmentSection';
 
 const AppointmentTable = ({
   citas,
@@ -19,7 +17,6 @@ const AppointmentTable = ({
   totalPages,
   onPageChange
 }) => {
-  const { hasPermission } = useAuth();
   const getStatusBadge = (estado) => {
     const statusConfig = {
       programada: {
@@ -468,39 +465,32 @@ const AppointmentTable = ({
         <div className="flex gap-2">
           {isSolicitada ? (
             <>
-              {/* Para citas solicitadas - TODOS LOS BOTONES APARECEN */}
               <motion.button
                 key={`mobile-view-${cita.id}`}
-                disabled={!hasPermission("gCitas", "ver")}
-                whileHover={hasPermission("gCitas", "ver") ? { scale: 1.05 } : {}}
-                whileTap={hasPermission("gCitas", "ver") ? { scale: 0.95 } : {}}
-                onClick={() => hasPermission("gCitas", "ver") ? onView(cita) : null}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasPermission("gCitas", "ver") ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
-                title={hasPermission("gCitas", "ver") ? "Ver detalles" : "No tienes permiso para ver"}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onView(cita)}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
               >
                 <Eye className="w-4 h-4" />
                 Ver
               </motion.button>
               <motion.button
                 key={`mobile-accept-${cita.id}`}
-                disabled={!hasPermission("gCitas", "editar")}
-                whileHover={hasPermission("gCitas", "editar") ? { scale: 1.05 } : {}}
-                whileTap={hasPermission("gCitas", "editar") ? { scale: 0.95 } : {}}
-                onClick={() => hasPermission("gCitas", "editar") ? onAcceptAppointment(cita) : null}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasPermission("gCitas", "editar") ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
-                title={hasPermission("gCitas", "editar") ? "Aceptar cita" : "No tienes permiso para aceptar"}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onAcceptAppointment(cita)}
+                className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
               >
                 <Check className="w-4 h-4" />
                 Aceptar
               </motion.button>
               <motion.button
                 key={`mobile-reject-${cita.id}`}
-                disabled={!hasPermission("gCitas", "eliminar")}
-                whileHover={hasPermission("gCitas", "eliminar") ? { scale: 1.05 } : {}}
-                whileTap={hasPermission("gCitas", "eliminar") ? { scale: 0.95 } : {}}
-                onClick={() => hasPermission("gCitas", "eliminar") ? onRejectAppointment(cita) : null}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasPermission("gCitas", "eliminar") ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
-                title={hasPermission("gCitas", "eliminar") ? "Cancelar cita" : "No tienes permiso para cancelar"}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onRejectAppointment(cita)}
+                className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
               >
                 <X className="w-4 h-4" />
                 Cancelar
@@ -508,39 +498,32 @@ const AppointmentTable = ({
             </>
           ) : (
             <>
-              {/* Para citas confirmadas - TODOS LOS BOTONES APARECEN */}
               <motion.button
                 key={`mobile-view-${cita.id}`}
-                disabled={!hasPermission("gCitas", "ver")}
-                whileHover={hasPermission("gCitas", "ver") ? { scale: 1.05 } : {}}
-                whileTap={hasPermission("gCitas", "ver") ? { scale: 0.95 } : {}}
-                onClick={() => hasPermission("gCitas", "ver") ? onView(cita) : null}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasPermission("gCitas", "ver") ? 'bg-slate-600 text-white hover:bg-slate-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
-                title={hasPermission("gCitas", "ver") ? "Ver detalles" : "No tienes permiso para ver"}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onView(cita)}
+                className="flex items-center gap-2 px-3 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
               >
                 <Eye className="w-4 h-4" />
                 Ver
               </motion.button>
               <motion.button
                 key={`mobile-edit-${cita.id}`}
-                disabled={!hasPermission("gCitas", "editar")}
-                whileHover={hasPermission("gCitas", "editar") ? { scale: 1.05 } : {}}
-                whileTap={hasPermission("gCitas", "editar") ? { scale: 0.95 } : {}}
-                onClick={() => hasPermission("gCitas", "editar") ? onEdit(cita) : null}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasPermission("gCitas", "editar") ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
-                title={hasPermission("gCitas", "editar") ? "Editar cita" : "No tienes permiso para editar"}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onEdit(cita)}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
               >
                 <Edit className="w-4 h-4" />
                 Editar
               </motion.button>
               <motion.button
                 key={`mobile-delete-${cita.id}`}
-                disabled={!hasPermission("gCitas", "eliminar")}
-                whileHover={hasPermission("gCitas", "eliminar") ? { scale: 1.05 } : {}}
-                whileTap={hasPermission("gCitas", "eliminar") ? { scale: 0.95 } : {}}
-                onClick={() => hasPermission("gCitas", "eliminar") ? onDelete(cita) : null}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasPermission("gCitas", "eliminar") ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
-                title={hasPermission("gCitas", "eliminar") ? "Eliminar cita" : "No tienes permiso para eliminar"}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onDelete(cita)}
+                className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
                 Eliminar
@@ -571,9 +554,6 @@ const AppointmentTable = ({
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Estado
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Agente Asignado
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Contacto
@@ -628,20 +608,6 @@ const AppointmentTable = ({
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="max-w-[200px]">
-                        <AgentAssignmentSection
-                          cita={cita}
-                          compact={true}
-                          showHistory={true}
-                          showEdit={true}
-                          onAgentAssigned={(citaActualizada) => {
-                            // Aquí puedes manejar la actualización de la cita
-                            console.log('Cita actualizada:', citaActualizada);
-                          }}
-                        />
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4 text-slate-400" />
                         <span className="text-sm text-slate-900">{formatPhoneNumber(getClientPhone(cita))}</span>
@@ -658,81 +624,73 @@ const AppointmentTable = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center gap-2">
-              {isSolicitada ? (
-                <>
-                  {/* Para citas solicitadas - TODOS LOS BOTONES APARECEN */}
-                  <motion.button
-                    key={`view-${cita.id}`}
-                    disabled={!hasPermission("gCitas", "ver")}
-                    whileHover={hasPermission("gCitas", "ver") ? { scale: 1.05 } : {}}
-                    whileTap={hasPermission("gCitas", "ver") ? { scale: 0.95 } : {}}
-                    onClick={() => hasPermission("gCitas", "ver") ? onView(cita) : null}
-                    className={`p-2 rounded-lg transition-colors ${hasPermission("gCitas", "ver") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
-                    title={hasPermission("gCitas", "ver") ? "Ver detalles" : "No tienes permiso para ver"}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </motion.button>
-                  <motion.button
-                    key={`accept-${cita.id}`}
-                    disabled={!hasPermission("gCitas", "editar")}
-                    whileHover={hasPermission("gCitas", "editar") ? { scale: 1.05 } : {}}
-                    whileTap={hasPermission("gCitas", "editar") ? { scale: 0.95 } : {}}
-                    onClick={() => hasPermission("gCitas", "editar") ? onAcceptAppointment(cita) : null}
-                    className={`p-2 rounded-lg transition-colors ${hasPermission("gCitas", "editar") ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
-                    title={hasPermission("gCitas", "editar") ? "Aceptar cita" : "No tienes permiso para aceptar"}
-                  >
-                    <Check className="w-4 h-4" />
-                  </motion.button>
-                  <motion.button
-                    key={`reject-${cita.id}`}
-                    disabled={!hasPermission("gCitas", "eliminar")}
-                    whileHover={hasPermission("gCitas", "eliminar") ? { scale: 1.05 } : {}}
-                    whileTap={hasPermission("gCitas", "eliminar") ? { scale: 0.95 } : {}}
-                    onClick={() => hasPermission("gCitas", "eliminar") ? onRejectAppointment(cita) : null}
-                    className={`p-2 rounded-lg transition-colors ${hasPermission("gCitas", "eliminar") ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
-                    title={hasPermission("gCitas", "eliminar") ? "Cancelar cita" : "No tienes permiso para cancelar"}
-                  >
-                    <X className="w-4 h-4" />
-                  </motion.button>
-                </>
-              ) : (
-                <>
-                  {/* Para citas confirmadas - TODOS LOS BOTONES APARECEN */}
-                  <motion.button
-                    key={`view-${cita.id}`}
-                    disabled={!hasPermission("gCitas", "ver")}
-                    whileHover={hasPermission("gCitas", "ver") ? { scale: 1.05 } : {}}
-                    whileTap={hasPermission("gCitas", "ver") ? { scale: 0.95 } : {}}
-                    onClick={() => hasPermission("gCitas", "ver") ? onView(cita) : null}
-                    className={`p-2 rounded-lg transition-colors ${hasPermission("gCitas", "ver") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
-                    title={hasPermission("gCitas", "ver") ? "Ver detalles" : "No tienes permiso para ver"}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </motion.button>
-                  <motion.button
-                    key={`edit-${cita.id}`}
-                    disabled={!hasPermission("gCitas", "editar")}
-                    whileHover={hasPermission("gCitas", "editar") ? { scale: 1.05 } : {}}
-                    whileTap={hasPermission("gCitas", "editar") ? { scale: 0.95 } : {}}
-                    onClick={() => hasPermission("gCitas", "editar") ? onEdit(cita) : null}
-                    className={`p-2 rounded-lg transition-colors ${hasPermission("gCitas", "editar") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
-                    title={hasPermission("gCitas", "editar") ? "Editar cita" : "No tienes permiso para editar"}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </motion.button>
-                  <motion.button
-                    key={`delete-${cita.id}`}
-                    disabled={!hasPermission("gCitas", "eliminar")}
-                    whileHover={hasPermission("gCitas", "eliminar") ? { scale: 1.05 } : {}}
-                    whileTap={hasPermission("gCitas", "eliminar") ? { scale: 0.95 } : {}}
-                    onClick={() => hasPermission("gCitas", "eliminar") ? onDelete(cita) : null}
-                    className={`p-2 rounded-lg transition-colors ${hasPermission("gCitas", "eliminar") ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
-                    title={hasPermission("gCitas", "eliminar") ? "Eliminar cita" : "No tienes permiso para eliminar"}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </motion.button>
-                </>
-              )}
+                        {isSolicitada ? (
+                          <>
+                            <motion.button
+                              key={`view-${cita.id}`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onView(cita)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Ver detalles"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              key={`accept-${cita.id}`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onAcceptAppointment(cita)}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title="Aceptar cita"
+                            >
+                              <Check className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              key={`reject-${cita.id}`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onRejectAppointment(cita)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Cancelar cita"
+                            >
+                              <X className="w-4 h-4" />
+                            </motion.button>
+                          </>
+                        ) : (
+                          <>
+                            <motion.button
+                              key={`view-${cita.id}`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onView(cita)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Ver detalles"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              key={`edit-${cita.id}`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onEdit(cita)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Editar cita"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              key={`delete-${cita.id}`}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onDelete(cita)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Eliminar cita"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </motion.button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </motion.tr>

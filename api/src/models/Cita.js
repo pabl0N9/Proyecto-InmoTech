@@ -77,19 +77,6 @@ const Cita = sequelize.define('Cita', {
     type: DataTypes.TEXT,
     allowNull: true
   },
-  // Auditoría de estados (timestamps de cambios)
-  fecha_confirmacion: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  fecha_cancelacion: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  fecha_completada: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
   fecha_creacion: {
     type: DataTypes.DATE,
     allowNull: false,
