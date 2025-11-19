@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Phone, Mail, Calendar, Clock, Home, FileText, CheckCircle, Hash } from 'lucide-react';
+import { formatTimeTo12Hour } from '../../../../../shared/utils/time';
 
 const SummaryStep = ({ formData }) => {
   const formatDate = (dateString) => {
@@ -88,7 +89,7 @@ const SummaryStep = ({ formData }) => {
     {
       icon: User,
       label: 'Cliente',
-      value: formData.cliente,
+      value: `${formData.nombre} ${formData.apellido}`.trim(),
       color: 'text-blue-600'
     },
     {
@@ -124,13 +125,13 @@ const SummaryStep = ({ formData }) => {
     {
       icon: Clock,
       label: 'Hora',
-      value: formData.hora,
+      value: formatTimeTo12Hour(formData.hora),
       color: 'text-red-600'
     },
     {
       icon: Home,
-      label: 'Propiedad',
-      value: formData.propiedad,
+      label: 'Servicio',
+      value: formData.servicio,
       color: 'text-indigo-600'
     }
   ];
