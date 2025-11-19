@@ -705,12 +705,26 @@ class CitaApiService {
         throw new Error("El motivo de reagendamiento es obligatorio y debe tener al menos 10 caracteres");
       }
 
+      const horaFinCalculada = datosReagendamiento.hora_fin || this.calcularHoraFin(datosReagendamiento.hora_inicio);
+
       const payload = {
         fecha_cita: datosReagendamiento.fecha_cita,
         hora_inicio: datosReagendamiento.hora_inicio,
-        hora_fin: this.calcularHoraFin(datosReagendamiento.hora_inicio),
+        hora_fin: horaFinCalculada,
         motivo_reagendamiento: datosReagendamiento.motivo_reagendamiento
       };
+
+      if (datosReagendamiento.id_servicio) {
+        payload.id_servicio = datosReagendamiento.id_servicio;
+      }
+
+      if (typeof datosReagendamiento.id_agente_asignado !== 'undefined') {
+        payload.id_agente_asignado = datosReagendamiento.id_agente_asignado;
+      }
+
+      if (typeof datosReagendamiento.observaciones !== 'undefined') {
+        payload.observaciones = datosReagendamiento.observaciones;
+      }
 
       console.log("ð¤ Reagendando mi cita:", { id, payload });
 

@@ -90,7 +90,7 @@ export const formatTimeTo12Hour = (timeString) => {
   const isPM = hours24 >= 12;
   const hours12 = hours24 === 0 ? 12 : (hours24 > 12 ? hours24 - 12 : hours24);
 
-  return `${hours12}:${pad(minutes)} ${isPM ? 'pm' : 'am'}`;
+  return `${pad(hours12)}:${pad(minutes)} ${isPM ? 'pm' : 'am'}`;
 };
 
 export const formatTimeTo24Hour = (timeString) => {

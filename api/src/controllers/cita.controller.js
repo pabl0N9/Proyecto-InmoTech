@@ -674,8 +674,8 @@ class CitaController {
         });
       }
 
-      const { fecha_cita, hora_inicio, hora_fin, motivo_reagendamiento } = req.validatedData;
-      console.log(`📥 [CONTROLLER] Datos recibidos: fecha=${fecha_cita}, hora=${hora_inicio}, user=${userId}`);
+      const { fecha_cita, hora_inicio, hora_fin, motivo_reagendamiento, id_servicio, observaciones } = req.validatedData;
+      console.log(`📥 [CONTROLLER] Datos recibidos: fecha=${fecha_cita}, hora=${hora_inicio}, user=${userId}, servicio=${id_servicio || 'sin cambio'}`);
 
       // Verificar que la cita pertenece al usuario
       const cita = await citaService.obtenerCitaPorId(parsedId);
@@ -698,9 +698,11 @@ class CitaController {
 
       // Usar el agente asignado actual o null si no hay
       const idAgenteFinal = cita.id_agente_asignado || null;
+      // Mantener estado 'solicitada' si la cita aún no ha avanzado en el flujo
+      const estadoFinal = cita.id_estado_cita === 1 ? 1 : 4; // 1 = solicitada, 4 = re agendada
 
       console.log(`🔄 [CONTROLLER] Llamando método atómico...`);
-      console.log(`🔄 [CONTROLLER] Datos para método atómico:`, {fecha_cita, hora_inicio, hora_fin, idAgenteFinal, userId});
+      console.log(`🔄 [CONTROLLER] Datos para método atómico:`, {fecha_cita, hora_inicio, hora_fin, idAgenteFinal, userId, id_servicio, estadoFinal});
 
       // ✅ OPERACIÓN ATÓMICA: Incrementar contador y actualizar cita en una transacción
       const citaReagendada = await citaService.incrementarContadorEdicionesActualizar(parsedId, {
@@ -708,8 +710,10 @@ class CitaController {
         hora_inicio,
         hora_fin,
         motivo_reagendamiento,
+        id_servicio,
+        observaciones,
         id_agente_asignado: idAgenteFinal,
-        id_estado_cita: 4, // Reagendada
+        id_estado_cita: estadoFinal,
         id_usuario_realizo: userId
       });
 

@@ -223,6 +223,16 @@ const reagendarCitaSchema = Joi.object({
     .integer()
     .positive()
     .allow(null)
+    .optional(),
+
+  id_servicio: Joi.number()
+    .integer()
+    .positive()
+    .optional(),
+
+  observaciones: Joi.string()
+    .max(1000)
+    .allow('', null)
     .optional()
 });
 

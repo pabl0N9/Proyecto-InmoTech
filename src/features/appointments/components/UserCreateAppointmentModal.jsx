@@ -19,7 +19,7 @@ import { useToast } from '../../../shared/hooks/use-toast';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import citaApiService from '../../../shared/services/citaApiService';
 
-const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate }) => {
+const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppointmentCreate }) => {
   const { user } = useAuth();
 
   // Si hay fecha preseleccionada, mostrar calendario en ese mes
@@ -280,6 +280,8 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate }) => {
         description: "Te contactaremos pronto para confirmar",
         variant: "default",
       });
+
+      if (onAppointmentCreate) onAppointmentCreate();
 
       onClose();
     } catch (error) {

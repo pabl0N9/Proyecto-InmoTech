@@ -4,6 +4,7 @@ const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
 const { buildPermissionsResponse } = require('../utils/permissions.helper');
+const emailService = require('./email.service');
 
 class AuthService {
   /**
@@ -85,6 +86,17 @@ class AuthService {
         throw error;
       }
     });
+
+    // Enviar email de bienvenida después de que la transacción sea exitosa
+    try {
+      await emailService.enviarEmailBienvenida({
+        email: result.user.email,
+        nombre_completo: result.user.nombre_completo
+      });
+    } catch (emailError) {
+      // Log del error pero no fallar el registro
+      logger.warn(`No se pudo enviar el email de bienvenida a ${result.user.email}:`, emailError.message);
+    }
 
     return result;
   }

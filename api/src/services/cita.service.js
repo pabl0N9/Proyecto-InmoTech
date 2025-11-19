@@ -953,7 +953,8 @@ class CitaService {
             'id_persona',
             'id_inmueble',
             'id_servicio',
-            'id_estado_cita'
+            'id_estado_cita',
+            'observaciones'
           ],
           transaction: t
         });
@@ -976,14 +977,28 @@ class CitaService {
 
         logger.info(`✅ [DEBUG] Valor actual del contador: ${valorActual}, nuevo valor: ${nuevoValor}`);
 
+        const servicioFinal = typeof nuevosDatos.id_servicio !== 'undefined'
+          ? nuevosDatos.id_servicio
+          : citaOriginal.id_servicio;
+
+        const observacionesFinal = typeof nuevosDatos.observaciones !== 'undefined'
+          ? nuevosDatos.observaciones
+          : citaOriginal.observaciones;
+
+        const estadoFinal = typeof nuevosDatos.id_estado_cita !== 'undefined'
+          ? nuevosDatos.id_estado_cita
+          : citaOriginal.id_estado_cita;
+
         // ACTUALIZACIÓN SIMULTÁNEA: Fecha/hora Y contador en una sola operación
         const datosCompletos = {
           fecha_cita: nuevosDatos.fecha_cita,
           hora_inicio: nuevosDatos.hora_inicio,
           hora_fin: nuevosDatos.hora_fin,
           motivo_reagendamiento: nuevosDatos.motivo_reagendamiento,
+          id_servicio: servicioFinal,
           id_agente_asignado: nuevosDatos.id_agente_asignado,
-          id_estado_cita: nuevosDatos.id_estado_cita,
+          id_estado_cita: estadoFinal,
+          observaciones: observacionesFinal,
           ediciones_realizadas: nuevoValor, // ✅ VALOR CALCULADO (0+1=1)
           ediciones_maximas: edicionesMaximas,
           fecha_actualizacion: new Date()
