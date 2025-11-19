@@ -1,6 +1,7 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 import { motion } from 'framer-motion';
+import { renantsApiService } from "../../../../shared/services/arrendatarioApiService";
 
 // Lista de campos que deben ser obligatorios según la solicitud del usuario (INCLUYE ARRENDATARIO, CODEUDOR, INMUEBLE Y CONTRATO)
 const requiredFields = [
@@ -24,14 +25,74 @@ const DOCUMENT_OPTIONS = [
     { value: "CC", label: "Cédula de Ciudadanía (CC)" },
     { value: "CE", label: "Cédula de Extranjería (CE)" },
     { value: "NIT", label: "NIT" },
-    { value: "PASAPORTE", label: "Pasaporte" },
+    { value: "Pasaporte", label: "Pasaporte" },
     { value: "TI", label: "Tarjeta de Identidad (TI)" },
 ];
+
+const combineNames = (first = "", second = "") => {
+    return [first, second]
+        .map((part) => (part || "").trim())
+        .filter(Boolean)
+        .join(" ");
+};
+
+const parseNumberField = (value) => {
+    if (value === undefined || value === null) return undefined;
+    const cleaned = value.toString().replace(/[^0-9]/g, "");
+    if (cleaned === "") return undefined;
+    const numeric = Number(cleaned);
+    return Number.isNaN(numeric) ? undefined : numeric;
+};
+
+const buildApiPayload = (values = {}) => ({
+    tipoDocumento: values.tipoDocArrendatario,
+    documento: values.numeroDocArrendatario,
+    primerNombre: values.primerNombreArrendatario,
+    segundoNombre: values.segundoNombreArrendatario,
+    primerApellido: values.primerApellidoArrendatario,
+    segundoApellido: values.segundoApellidoArrendatario,
+    correo: values.correoArrendatario,
+    telefono: values.telefonoArrendatario,
+    fechaInicio: values.fechaInicio,
+    fechaFin: values.fechaFinal,
+    valorMensual: parseNumberField(values.precio) ?? parseNumberField(values.precioInmueble),
+    tipoGarantia: values.tipoGarantia,
+    valorGarantia: parseNumberField(values.valorGarantia),
+    descripcionGarantia: values.descripcionGarantia,
+    contactoEmergenciaNombre: values.contactoEmergenciaNombre,
+    contactoEmergenciaTelefono: values.contactoEmergenciaTelefono,
+    contactoEmergenciaParentesco: values.contactoEmergenciaParentesco,
+    observaciones: values.observaciones,
+    estado: values.estado || "Activo"
+});
 
 export default function RentForm({ onClose, onSubmit }) {
     const [step, setStep] = useState(1);
     // Estado para manejar los errores en línea. Usa { fieldName: errorMessage }
     const [errors, setErrors] = useState({});
+    const [submissionState, setSubmissionState] = useState({
+        isSubmitting: false,
+        error: null
+    });
+    const arrendatarioAutoFillFields = useMemo(
+        () => [
+            "primerNombreArrendatario",
+            "segundoNombreArrendatario",
+            "primerApellidoArrendatario",
+            "segundoApellidoArrendatario",
+            "correoArrendatario",
+            "telefonoArrendatario"
+        ],
+        []
+    );
+    const [arrendatarioLookupState, setArrendatarioLookupState] = useState({
+        loading: false,
+        message: "",
+        error: null
+    });
+    const arrendatarioLookupTimeoutRef = useRef(null);
+    const arrendatarioLookupRequestId = useRef(0);
+    const manuallyEditedArrendatarioFieldsRef = useRef(new Set());
     const totalSteps = 4;
 
     const initial = {
@@ -214,6 +275,128 @@ export default function RentForm({ onClose, onSubmit }) {
         }
     };
 
+    const resetArrendatarioManualFields = () => {
+        manuallyEditedArrendatarioFieldsRef.current.clear();
+    };
+
+    const applyArrendatarioData = useCallback((renant) => {
+        if (!renant) return;
+
+        const replacements = {
+            primerNombreArrendatario: renant.primerNombre || "",
+            segundoNombreArrendatario: renant.segundoNombre || "",
+            primerApellidoArrendatario: renant.primerApellido || "",
+            segundoApellidoArrendatario: renant.segundoApellido || "",
+            correoArrendatario: renant.correo || "",
+            telefonoArrendatario: renant.telefono || ""
+        };
+
+        arrendatarioAutoFillFields.forEach((field) => {
+            if (manuallyEditedArrendatarioFieldsRef.current.has(field)) return;
+            const value = replacements[field] || "";
+            valuesRef.current[field] = value;
+            displayValuesRef.current[field] = value;
+            const el = elRefs.current[field];
+            if (el) {
+                el.value = value;
+            }
+        });
+
+        setErrors((prev) => {
+            const next = { ...prev };
+            arrendatarioAutoFillFields.forEach((field) => {
+                delete next[field];
+            });
+            return next;
+        });
+    }, [arrendatarioAutoFillFields]);
+
+    const cleanDocument = (value = "") => value.toString().replace(/[^0-9]/g, "").trim();
+
+    const fetchArrendatarioByDocument = useCallback(async () => {
+        const tipoDocumento = (valuesRef.current.tipoDocArrendatario || "").trim();
+        const numeroDocumento = cleanDocument(valuesRef.current.numeroDocArrendatario);
+
+        if (!tipoDocumento || !numeroDocumento) {
+            setArrendatarioLookupState({ loading: false, message: "", error: null });
+            return;
+        }
+
+        const documentError = validateDocument(tipoDocumento, numeroDocumento);
+        if (documentError) {
+            setArrendatarioLookupState({
+                loading: false,
+                message: "",
+                error: documentError
+            });
+            return;
+        }
+
+        arrendatarioLookupRequestId.current += 1;
+        const requestId = arrendatarioLookupRequestId.current;
+
+        setArrendatarioLookupState({ loading: true, message: "", error: null });
+
+        try {
+            const results = await renantsApiService.getAll({
+                tipo_documento: tipoDocumento,
+                numero_documento: numeroDocumento
+            });
+
+            if (arrendatarioLookupRequestId.current !== requestId) return;
+
+            const matchingRenant = results.find((renant) => {
+                const storedDoc = cleanDocument(renant.documento);
+                return (
+                    storedDoc === numeroDocumento &&
+                    (renant.tipoDocumento || "").toString().trim() === tipoDocumento
+                );
+            });
+
+            if (matchingRenant) {
+                applyArrendatarioData(matchingRenant);
+                setArrendatarioLookupState({
+                    loading: false,
+                    message: "Datos completados automáticamente.",
+                    error: null
+                });
+            } else {
+                setArrendatarioLookupState({
+                    loading: false,
+                    message: "",
+                    error: "No encontramos un arrendatario con ese documento."
+                });
+            }
+        } catch (error) {
+            if (arrendatarioLookupRequestId.current !== requestId) return;
+            setArrendatarioLookupState({
+                loading: false,
+                message: "",
+                error: error?.message || "No fue posible buscar el arrendatario."
+            });
+        }
+    }, [applyArrendatarioData]);
+
+    const triggerArrendatarioLookup = useCallback(
+        (delay = 400) => {
+            if (arrendatarioLookupTimeoutRef.current) {
+                clearTimeout(arrendatarioLookupTimeoutRef.current);
+            }
+            arrendatarioLookupTimeoutRef.current = setTimeout(() => {
+                fetchArrendatarioByDocument();
+            }, delay);
+        },
+        [fetchArrendatarioByDocument]
+    );
+
+    useEffect(() => {
+        return () => {
+            if (arrendatarioLookupTimeoutRef.current) {
+                clearTimeout(arrendatarioLookupTimeoutRef.current);
+            }
+        };
+    }, []);
+
     // handler que NO hace setState, solo actualiza ref (sin re-render)
     const handleInputChange = (e) => {
         let { name, type, value, checked } = e.target;
@@ -245,6 +428,18 @@ export default function RentForm({ onClose, onSubmit }) {
                 delete newErrors[name];
                 return newErrors;
             });
+        }
+        if (arrendatarioAutoFillFields.includes(name) && type !== "checkbox") {
+            manuallyEditedArrendatarioFieldsRef.current.add(name);
+        }
+
+        if (name === "tipoDocArrendatario" || name === NUMERO_DOC_ARR) {
+            resetArrendatarioManualFields();
+            setArrendatarioLookupState((prev) => {
+                if (!prev.loading && !prev.message && !prev.error) return prev;
+                return { loading: false, message: "", error: null };
+            });
+            triggerArrendatarioLookup();
         }
     };
 
@@ -515,8 +710,9 @@ export default function RentForm({ onClose, onSubmit }) {
 
     const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        if (submissionState.isSubmitting) return;
         
         // En el envío final, validamos TODOS los campos obligatorios
         const allFieldsToValidate = Object.values(stepFields).flat().filter(f => f !== 'garaje' || requiredFields.includes('garaje'));
@@ -543,12 +739,50 @@ export default function RentForm({ onClose, onSubmit }) {
             return; // Bloquea el envío
         }
 
-        // Si no hay errores, se procede con el envío
-        // El payload ya contiene los valores LIMPIOS (solo números) gracias a handleInputChange
-        const payload = { ...valuesRef.current };
-        if (onSubmit) onSubmit(payload);
-        onClose?.();
-        console.log("Formulario Enviado:", payload);
+        setSubmissionState({ isSubmitting: true, error: null });
+        const apiPayload = buildApiPayload(valuesRef.current);
+
+        try {
+            const createdRenant = await renantsApiService.create(apiPayload);
+            await onSubmit?.({
+                renant: createdRenant,
+                formData: { ...valuesRef.current }
+            });
+            setSubmissionState({ isSubmitting: false, error: null });
+            onClose?.();
+            console.log("Formulario Enviado:", createdRenant);
+        } catch (error) {
+            const duplicateMsg = "ya esta registrada como arrendatario";
+            if (error?.message?.toLowerCase().includes(duplicateMsg)) {
+                const tipoDocumento = (valuesRef.current.tipoDocArrendatario || "").trim();
+                const numeroDocumento = cleanDocument(valuesRef.current.numeroDocArrendatario);
+
+                try {
+                    const existing = await renantsApiService.getAll({
+                        tipo_documento: tipoDocumento,
+                        numero_documento: numeroDocumento
+                    });
+
+                    const matched = existing?.[0];
+                    if (matched) {
+                        await onSubmit?.({
+                            renant: matched,
+                            formData: { ...valuesRef.current }
+                        });
+                        setSubmissionState({ isSubmitting: false, error: null });
+                        onClose?.();
+                        return;
+                    }
+                } catch (innerError) {
+                    console.error("No se pudo recuperar el arrendatario existente:", innerError.message);
+                }
+            }
+
+            setSubmissionState({
+                isSubmitting: false,
+                error: error?.message || "No fue posible crear el arrendatario"
+            });
+        }
     };
 
     // Field: componente auxiliar MEJORADO
@@ -708,7 +942,7 @@ export default function RentForm({ onClose, onSubmit }) {
                     <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 space-y-6">
                         
                         {/* PASO 1 */}
-                        {step === 1 && (
+{step === 1 && (
                             <div>
                                 <h3 className="text-lg font-bold text-blue-800 mb-4 pb-2 border-b border-blue-200">
                                     Datos del Arrendatario
@@ -726,6 +960,17 @@ export default function RentForm({ onClose, onSubmit }) {
                                     <Field name="segundoApellidoArrendatario" placeholder="Solo letras y espacios. (Opcional)" />
                                     <Field name="correoArrendatario" placeholder="correo@dominio.com" type="email" />
                                     <Field name="telefonoArrendatario" placeholder="Ej: 3001234567 (10 dígitos mínimo)" />
+                                </div>
+                                <div className="mt-2 space-y-1 text-xs">
+                                    {arrendatarioLookupState.loading && (
+                                        <p className="text-slate-500">Buscando arrendatario existente...</p>
+                                    )}
+                                    {arrendatarioLookupState.message && (
+                                        <p className="text-green-600">{arrendatarioLookupState.message}</p>
+                                    )}
+                                    {arrendatarioLookupState.error && (
+                                        <p className="text-red-600">{arrendatarioLookupState.error}</p>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -802,8 +1047,8 @@ export default function RentForm({ onClose, onSubmit }) {
                                         as="select"
                                         options={[
                                             { value: "Activo", label: "Activo" },
-                                            { value: "Pendiente", label: "Pendiente de inicio" },
-                                            { value: "Finalizado", label: "Finalizado" },
+                                            { value: "Proceso", label: "Pendiente de inicio" },
+                                            { value: "Inactivo", label: "Finalizado" },
                                         ]}
                                     />
                                 </div>
@@ -837,12 +1082,18 @@ export default function RentForm({ onClose, onSubmit }) {
                         {step === totalSteps && (
                             <button 
                                 type="submit"
-                                className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-lg shadow-green-400/50 hover:bg-green-700 transition duration-150 transform hover:scale-[1.02] ml-auto"
+                                disabled={submissionState.isSubmitting}
+                                className={`px-6 py-2 rounded-lg shadow-lg shadow-green-400/50 ml-auto font-semibold transition duration-150 transform hover:scale-[1.02]
+                                    ${submissionState.isSubmitting ? "bg-green-500 opacity-80 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"}
+                                    text-white`}
                             >
-                                Crear Arriendo
+                                {submissionState.isSubmitting ? "Creando..." : "Crear Arriendo"}
                             </button>
                         )}
                     </div>
+                    {submissionState.error && (
+                        <p className="mt-3 text-sm text-red-600">{submissionState.error}</p>
+                    )}
                 </form>
             </div>
         </div>

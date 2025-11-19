@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
 import { FaUserPlus, FaEye, FaEdit, FaTrash, FaSearch, FaHome, FaCalendar, FaDollarSign } from "react-icons/fa";
@@ -7,101 +7,100 @@ import RenantForm from "../../components/leases/RenantForm";
 import EditRenantForm from "../../components/leases/EditRenantForm";
 import ViewRenant from "../../components/leases/ViewRenant"; 
 import "../../../../shared/styles/globals.css";
+import { renantsApiService } from "../../../../shared/services/arrendatarioApiService";
+
+const formatCurrency = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "";
+  return `${numeric.toLocaleString("es-CO")} $`;
+};
+
+const mapApiRenantToRow = (renant = {}, formValues = {}) => {
+  const inmueble = renant.inmueble || {};
+  const valor = renant.valorMensual || renant.valor_arriendo_mensual || "";
+  const formattedValor = formatCurrency(valor);
+  const codeudor = {
+    tipoDocCodeudor: formValues.tipoDocCodeudor || "",
+    numeroDocCodeudor: formValues.numeroDocCodeudor || "",
+    primerNombreCodeudor: formValues.primerNombreCodeudor || "",
+    segundoNombreCodeudor: formValues.segundoNombreCodeudor || "",
+    primerApellidoCodeudor: formValues.primerApellidoCodeudor || "",
+    segundoApellidoCodeudor: formValues.segundoApellidoCodeudor || "",
+    correoCodeudor: formValues.correoCodeudor || "",
+    telefonoCodeudor: formValues.telefonoCodeudor || "",
+    estabilidadLaboral: formValues.estabilidadLaboral || "",
+  };
+
+  return {
+    id: renant.id || renant.id_renant || renant.personaId || Date.now(),
+    tipoDocInquilino: renant.tipoDocumento || "",
+    numeroDocInquilino: renant.documento || "",
+    primerNombreInquilino: renant.primerNombre || "",
+    segundoNombreInquilino: renant.segundoNombre || "",
+    primerApellidoInquilino: renant.primerApellido || "",
+    segundoApellidoInquilino: renant.segundoApellido || "",
+    correoInquilino: renant.correo || "",
+    telefonoInquilino: renant.telefono || "",
+    ...codeudor,
+    tipoInmueble: inmueble.tipo || inmueble.categoria || "",
+    registroInmobiliario: inmueble.registro || "",
+    nombreInmueble: inmueble.nombre || "",
+    area: inmueble.m2 || "",
+    habitaciones: inmueble.hab || "",
+    banos: inmueble.banos || "",
+    departamento: inmueble.departamento || "",
+    ciudad: inmueble.ciudad || "",
+    barrio: inmueble.barrio || "",
+    estrato: inmueble.estrato || "",
+    direccion: inmueble.direccion || "",
+    precioInmueble: formatCurrency(inmueble.precio || valor),
+    fechaInicio: renant.fechaInicio || renant.fecha_inicio_arrendamiento || "",
+    fechaFinal: renant.fechaFinal || renant.fecha_fin_arrendamiento || "",
+    fechaCobro: renant.fechaCobro || "",
+    precio: formattedValor,
+    estado: renant.estado || "Pendiente de inicio",
+    fechaLimite: "",
+    valorMensual: formattedValor,
+  };
+};
 
 export function RenantManagementPage() {
-  const [arriendos, setArriendos] = useState([
-    {
-      id: 1,
-      tipoDocInquilino: "CC",
-      numeroDocInquilino: "1036000001",
-      primerNombreInquilino: "Juan",
-      primerApellidoInquilino: "Pérez",
-      telefonoInquilino: "3001111111",
-      correoInquilino: "juan.perez@example.com",
-      tipoDocCodeudor: "CC",
-      numeroDocCodeudor: "70000001",
-      primerNombreCodeudor: "Ana",
-      primerApellidoCodeudor: "Gómez",
-      telefonoCodeudor: "3002222222",
-      correoCodeudor: "ana.gomez@example.com",
-      estabilidadLaboral: "Empleado",
-      tipoInmueble: "Casa",
-      registroInmobiliario: "110010123456",
-      nombreInmueble: "Casa Moderna",
-      area: 120,
-      habitaciones: 3,
-      banos: 2,
-      departamento: "Antioquia",
-      ciudad: "Medellín",
-      barrio: "Poblado",
-      estrato: 5,
-      direccion: "Carrera 40 # 10-25",
-      precioInmueble: "250.000.000 $",
-      fechaInicio: "22/05/2025",
-      fechaFinal: "22/05/2026",
-      fechaCobro: 27,
-      precio: "2.500.000 $",
-      estado: "Pagado",
-      fechaLimite: "27/05/2025",
-      valorMensual: "2.500.000 $",
-    },
-    {
-      id: 2,
-      tipoDocInquilino: "CE",
-      numeroDocInquilino: "80000002",
-      primerNombreInquilino: "Carlos",
-      primerApellidoInquilino: "Vásquez",
-      telefonoInquilino: "3003333333",
-      correoInquilino: "carlos.v@example.com",
-      tipoDocCodeudor: "NIT",
-      numeroDocCodeudor: "900000000-1",
-      primerNombreCodeudor: "Empresa",
-      primerApellidoCodeudor: "XYZ",
-      telefonoCodeudor: "6045555555",
-      correoCodeudor: "info@xyz.com",
-      estabilidadLaboral: "Independiente",
-      tipoInmueble: "Apartamento",
-      registroInmobiliario: "760010789012",
-      nombreInmueble: "Apartamento Central",
-      area: 75,
-      habitaciones: 2,
-      banos: 1,
-      departamento: "Valle del Cauca",
-      ciudad: "Cali",
-      barrio: "Granada",
-      estrato: 4,
-      direccion: "Calle 10 # 5-10",
-      precioInmueble: "150.000.000 $",
-      fechaInicio: "10/10/2025",
-      fechaFinal: "10/10/2026",
-      fechaCobro: 15,
-      precio: "3.000.000 $",
-      estado: "Pendiente",
-      fechaLimite: "15/10/2025",
-      valorMensual: "3.000.000 $",
-    },
-  ]);
+  const [arriendos, setArriendos] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const idCounter = useRef(arriendos.length + 1);
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingRent, setEditingRent] = useState(null);
   const [viewingRent, setViewingRent] = useState(null);
+  const [statusMessage, setStatusMessage] = useState(null);
+  const fetchArriendos = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const renants = await renantsApiService.getAll();
+      setArriendos(renants.map(mapApiRenantToRow));
+      setStatusMessage(null);
+    } catch (error) {
+      setStatusMessage({
+        type: "error",
+        message: error?.message || "No fue posible cargar los arrendatarios"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setStatusMessage]);
+
+  useEffect(() => {
+    fetchArriendos();
+  }, [fetchArriendos]);
 
   // CREAR NUEVO
-  const handleNewRent = (newRentData) => {
-    const nuevoArriendo = {
-      id: idCounter.current++,
-      ...newRentData,
-      precioInmueble: `${Number(newRentData.precioInmueble).toLocaleString("es-CO")} $`,
-      precio: `${Number(newRentData.precio).toLocaleString("es-CO")} $`,
-      valorMensual: `${Number(newRentData.precio).toLocaleString("es-CO")} $`,
-      estado: "Pendiente de inicio",
-    };
-
+  const handleNewRent = ({ renant, formData }) => {
+    if (!renant) return;
+    const nuevoArriendo = mapApiRenantToRow(renant, formData);
     setArriendos((prev) => [...prev, nuevoArriendo]);
     setShowForm(false);
     setEditingRent(null);
+    setStatusMessage({ type: "success", message: "Arriendo sincronizado con la API" });
   };
 
   // EDITAR EXISTENTE
@@ -240,6 +239,7 @@ export function RenantManagementPage() {
             whileTap={{ scale: 0.98 }}
             onClick={() => {
               setEditingRent(null);
+              setStatusMessage(null);
               setShowForm(true);
             }}
             className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl"
@@ -248,6 +248,18 @@ export function RenantManagementPage() {
             Nuevo Arriendo
           </motion.button>
         </motion.div>
+
+        {statusMessage && (
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm mt-4 ${
+              statusMessage.type === "error"
+                ? "bg-red-50 border-red-200 text-red-700"
+                : "bg-green-50 border-green-200 text-green-700"
+            }`}
+          >
+            {statusMessage.message}
+          </div>
+        )}
 
         {/* STATS CARDS */}
         <motion.div
@@ -366,7 +378,16 @@ export function RenantManagementPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRents.length > 0 ? (
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan="7" className="px-4 py-8 text-center text-slate-500 border-b">
+                        <div className="flex flex-col items-center gap-2">
+                          <Home className="w-8 h-8 text-slate-400 animate-pulse" />
+                          <p>Cargando arriendos...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredRents.length > 0 ? (
                     filteredRents.map((r) => (
                       <tr
                         key={r.id}

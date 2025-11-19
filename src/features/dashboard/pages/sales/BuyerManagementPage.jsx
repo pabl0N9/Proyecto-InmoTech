@@ -8,6 +8,40 @@ import BuyerForm from "../../components/sales/BuyerForm";
 import BuyerViewModal from "../../components/sales/BuyerView";
 import { buyersApiService } from "../../../../shared/services/buyersApiService";
 
+const mapApiBuyerToRow = (buyer = {}, formData = {}) => {
+    const info = {
+        id: buyer.id || buyer.id_buyer || buyer.personaId || buyer.persona?.id_persona,
+        tipoDocumento: buyer.tipoDocumento || buyer.persona?.tipo_documento || "CC",
+        documento: buyer.documento || buyer.persona?.numero_documento || "",
+        primerNombre: buyer.primerNombre || buyer.persona?.nombre_completo?.split(" ")[0] || "",
+        segundoNombre: buyer.segundoNombre || "",
+        primerApellido: buyer.primerApellido || buyer.persona?.apellido_completo?.split(" ")[0] || "",
+        segundoApellido: buyer.segundoApellido || "",
+        correo: buyer.correo || buyer.persona?.correo || "",
+        telefono: buyer.telefono || buyer.persona?.telefono || "",
+        estado: buyer.estado || buyer.compra?.estado || "Activo",
+        fechaCompra: buyer.fechaCompra || buyer.compra?.fecha_compra || "",
+        valorCompra: buyer.valorCompra || buyer.compra?.valor_compra || "",
+        tipoCompra: buyer.tipoCompra || buyer.compra?.tipo_compra || "",
+        ciudadResidencia: buyer.ciudadResidencia || buyer.compra?.ciudad_residencia || "",
+        direccionAnterior: buyer.direccionAnterior || buyer.compra?.direccion_anterior || "",
+        entidadFinanciera: buyer.entidadFinanciera || buyer.compra?.entidad_financiera || "",
+        numeroCredito: buyer.numeroCredito || buyer.compra?.numero_credito || "",
+        montoFinanciado: buyer.montoFinanciado || buyer.compra?.monto_financiado || "",
+        observaciones: buyer.observaciones || buyer.compra?.observaciones || "",
+        inmueble: buyer.inmueble || buyer.compra?.inmueble || null,
+        formData: buyer.formData || formData,
+        compra: buyer.compra || null,
+        raw: buyer
+    };
+    return info;
+};
+
+const filterRealBuyers = (list = []) => {
+    if (!Array.isArray(list)) return [];
+    return list.filter(Boolean);
+};
+
 export function BuyersManagementPage() {
     const [compradores, setCompradores] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -26,12 +60,14 @@ export function BuyersManagementPage() {
         setStatusMessage({ type, message });
     };
 
+    const normalizeBuyers = (list) =>
+        list.map((buyer) => mapApiBuyerToRow(buyer));
     const fetchBuyers = useCallback(async (query = "") => {
         try {
             setIsLoading(true);
             const params = query ? { search: query } : {};
             const buyers = await buyersApiService.getAll(params);
-            setCompradores(buyers);
+            setCompradores(normalizeBuyers(filterRealBuyers(buyers)));
         } catch (error) {
             showStatus("error", error.message || "No fue posible cargar los compradores");
         } finally {
@@ -83,7 +119,8 @@ export function BuyersManagementPage() {
         try {
             setFormSubmitting(true);
             const newBuyer = await buyersApiService.create(formData);
-            setCompradores((prev) => [newBuyer, ...prev.filter((buyer) => buyer.id !== newBuyer.id)]);
+            const mapped = mapApiBuyerToRow(newBuyer, formData);
+            setCompradores((prev) => [mapped, ...prev.filter((buyer) => buyer.id !== mapped.id)]);
             showStatus("success", "Comprador registrado correctamente");
             handleCloseForm();
         } catch (error) {
@@ -105,8 +142,9 @@ export function BuyersManagementPage() {
         try {
             setFormSubmitting(true);
             const updatedBuyer = await buyersApiService.update(targetId, formData);
+            const mapped = mapApiBuyerToRow(updatedBuyer, formData);
             setCompradores((prev) =>
-                prev.map((buyer) => (buyer.id === updatedBuyer.id ? updatedBuyer : buyer))
+                prev.map((buyer) => (buyer.id === mapped.id ? mapped : buyer))
             );
             showStatus("success", "Comprador actualizado correctamente");
             handleCloseForm();
