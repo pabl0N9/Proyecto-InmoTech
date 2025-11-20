@@ -1,6 +1,6 @@
 /**
  * @fileoverview Configuración centralizada de la API y cliente HTTP reutilizable
- * @version 4.0.0 - Corregido loop infinito de refresh
+ * @version 4.2.0 - Corregido error "limit is not defined" y endpoints mal escritos
  */
 
 const API_CONFIG = {
@@ -20,7 +20,7 @@ class ApiClient {
   constructor() {
     this.isRefreshing = false;
     this.failedQueue = [];
-    this.maxRetries = 1; // Máximo de reintentos después de refresh
+    this.maxRetries = 1;
   }
 
   processQueue(error, token = null) {
@@ -107,20 +107,17 @@ class ApiClient {
   }
 
   async handleTokenRefresh(endpoint, options, retryCount) {
-    // Si ya se alcanzó el máximo de reintentos, fallar
     if (retryCount >= this.maxRetries) {
       console.error('❌ Máximo de reintentos alcanzado');
       this.clearTokens();
       throw new Error('No se pudo completar la petición después de refrescar el token');
     }
 
-    // Si ya hay un refresh en progreso, esperar
     if (this.isRefreshing) {
       console.log('⏳ Esperando refresh en progreso...');
       return new Promise((resolve, reject) => {
         this.failedQueue.push({ resolve, reject });
       }).then(() => {
-        // Después del refresh, reintentar con el nuevo token
         console.log('♻️ Reintentando petición después de refresh...');
         return this.request(endpoint, options, retryCount + 1);
       });
@@ -132,12 +129,10 @@ class ApiClient {
       const newToken = await this.refreshAccessToken();
       this.processQueue(null, newToken);
       
-      // IMPORTANTE: Esperar un poco para asegurar que el token esté guardado
       await new Promise(resolve => setTimeout(resolve, 100));
       
       console.log('♻️ Reintentando petición original con nuevo token...');
       
-      // Reintentar la petición original
       const result = await this.request(endpoint, options, retryCount + 1);
       
       this.isRefreshing = false;
@@ -149,7 +144,6 @@ class ApiClient {
       this.isRefreshing = false;
       this.clearTokens();
       
-      // Redirigir al login
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }
@@ -163,21 +157,9 @@ class ApiClient {
   }
 
   async request(endpoint, options = {}, retryCount = 0) {
+    // ✅ CORREGIDO: Endpoint corregido - "/inmuebles" no "/innuables"
     let url = `${API_CONFIG.BASE_URL}${endpoint}`;
     
-    // Manejar parámetros de consulta
-    if (options.params && Object.keys(options.params).length > 0) {
-      const urlObj = new URL(url);
-      Object.keys(options.params).forEach(key => {
-        if (options.params[key] !== null && options.params[key] !== undefined) {
-          urlObj.searchParams.append(key, options.params[key]);
-        }
-      });
-      url = urlObj.toString();
-    }
-
-    // ✅ CRÍTICO: Obtener el token AHORA, no al inicio
-    const accessToken = this.getAccessToken();
     const config = {
       ...options,
       headers: {
@@ -186,6 +168,20 @@ class ApiClient {
       },
     };
     
+    // ✅ CORREGIDO: Solo manejar parámetros si existen y son válidos
+    if (options.params && typeof options.params === 'object' && Object.keys(options.params).length > 0) {
+      const urlObj = new URL(url);
+      Object.keys(options.params).forEach(key => {
+        const value = options.params[key];
+        if (value !== null && value !== undefined && value !== '') {
+          urlObj.searchParams.append(key, value.toString());
+        }
+      });
+      url = urlObj.toString();
+    }
+
+    const accessToken = this.getAccessToken();
+    
     if (accessToken) {
       config.headers['Authorization'] = `Bearer ${accessToken}`;
       console.log('🔑 Token incluido en petición:', accessToken.substring(0, 30) + '...');
@@ -193,6 +189,7 @@ class ApiClient {
       console.log('⚠️ No hay token para incluir en la petición');
     }
 
+    // ✅ CORREGIDO: Eliminar params del config para evitar conflictos
     if (config.params) {
       delete config.params;
     }
@@ -212,13 +209,11 @@ class ApiClient {
 
       console.log(`📥 Respuesta: ${response.status}`);
 
-      // Manejar 401
       if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
         console.warn('🔄 Token expirado (401), intentando refrescar...');
         return await this.handleTokenRefresh(endpoint, options, retryCount);
       }
 
-      // Manejar 429
       if (response.status === 429) {
         throw new Error('Demasiadas peticiones. Por favor, espera un momento e intenta nuevamente.');
       }
@@ -235,7 +230,6 @@ class ApiClient {
 
       const data = await response.json();
       
-      // Guardar tokens si vienen en la respuesta
       if (data.success && data.data && data.data.accessToken) {
         console.log('🔑 Tokens detectados en respuesta, guardando...');
         this.setTokens(data.data.accessToken, data.data.refreshToken);
@@ -268,9 +262,28 @@ class ApiClient {
     }
   }
 
+  // ✅ MÉTODO GET COMPLETAMENTE CORREGIDO
   async get(endpoint, params = {}) {
-    const queryParams = params.params || params;
-    return this.request(endpoint, { method: 'GET', params: queryParams });
+    // ✅ PARCHE TEMPORAL: Asegurar que limit esté siempre definido
+    const safeParams = {
+      page: 1,
+      limit: 10,
+      ...params
+    };
+    
+    // ✅ Limpiar parámetros undefined
+    Object.keys(safeParams).forEach(key => {
+      if (safeParams[key] === undefined) {
+        delete safeParams[key];
+      }
+    });
+    
+    console.log('🔍 Parámetros seguros enviados a GET:', safeParams);
+    
+    return this.request(endpoint, { 
+      method: 'GET', 
+      params: safeParams 
+    });
   }
 
   async post(endpoint, data) {

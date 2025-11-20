@@ -32,7 +32,7 @@ class InmueblesController {
       const opciones = {
         pagina: parseInt(req.query.pagina) || 1,
         limite: parseInt(req.query.limite) || 20,
-        ordenarPor: req.query.ordenar_por || 'fecha_registro',
+        ordenarPor: req.query.ordenar_por || 'id_inmueble',
         orden: req.query.orden || 'DESC'
       };
 
@@ -163,7 +163,7 @@ class InmueblesController {
       const opciones = {
         pagina: parseInt(pagina),
         limite: parseInt(limite),
-        ordenarPor: 'fecha_registro',
+        ordenarPor: 'id_inmueble',
         orden: 'DESC'
       };
 

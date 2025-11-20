@@ -1,7 +1,24 @@
 const { Persona, Acceso, PersonasRol, Rol } = require('../models');
 const { sequelize } = require('../config/database');
+const { Op } = require('sequelize');
 const bcryptUtils = require('../utils/bcrypt');
 const logger = require('../utils/logger');
+
+const splitFullName = (value = '') => {
+  if (!value) {
+    return { first: '', second: '' };
+  }
+
+  const parts = value.trim().split(/\s+/);
+  if (parts.length === 1) {
+    return { first: parts[0], second: '' };
+  }
+
+  return {
+    first: parts.shift(),
+    second: parts.join(' ')
+  };
+};
 
 class PersonaService {
   /**
@@ -78,7 +95,7 @@ class PersonaService {
         where: {
           tipo_documento: tipoDocumento,
           numero_documento: {
-            [sequelize.Op.like]: `%${numeroDocumento}%`
+            [Op.like]: `%${numeroDocumento}%`
           },
           estado: true
         },
@@ -98,10 +115,12 @@ class PersonaService {
         id_persona: persona.id_persona,
         tipo_documento: persona.tipo_documento,
         numero_documento: persona.numero_documento,
-        nombre_completo: `${persona.primer_nombre} ${persona.segundo_nombre || ''} ${persona.primer_apellido} ${persona.segundo_apellido || ''}`.trim(),
+        nombre_completo: persona.nombre_completo,
+        apellido_completo: persona.apellido_completo,
         correo: persona.correo,
         telefono: persona.telefono,
         tiene_cuenta: persona.tiene_cuenta,
+        estado: persona.estado,
         roles: persona.roles || []
       }));
     } catch (error) {
@@ -136,17 +155,23 @@ class PersonaService {
         throw new Error('Persona no encontrada');
       }
 
+      const nombres = splitFullName(persona.nombre_completo || '');
+      const apellidos = splitFullName(persona.apellido_completo || '');
+
       return {
         id_persona: persona.id_persona,
         tipo_documento: persona.tipo_documento,
         numero_documento: persona.numero_documento,
-        primer_nombre: persona.primer_nombre,
-        segundo_nombre: persona.segundo_nombre,
-        primer_apellido: persona.primer_apellido,
-        segundo_apellido: persona.segundo_apellido,
+        primer_nombre: nombres.first,
+        segundo_nombre: nombres.second,
+        primer_apellido: apellidos.first,
+        segundo_apellido: apellidos.second,
+        nombre_completo: persona.nombre_completo,
+        apellido_completo: persona.apellido_completo,
         correo: persona.correo,
         telefono: persona.telefono,
         tiene_cuenta: persona.tiene_cuenta,
+        estado: persona.estado,
         fecha_registro: persona.fecha_registro,
         roles: persona.roles || []
       };
@@ -231,14 +256,14 @@ class PersonaService {
       const whereClause = { estado };
 
       if (tipo_documento) whereClause.tipo_documento = tipo_documento;
-      if (numero_documento) whereClause.numero_documento = { [sequelize.Op.like]: `%${numero_documento}%` };
-      if (correo) whereClause.correo = { [sequelize.Op.like]: `%${correo}%` };
+      if (numero_documento) whereClause.numero_documento = { [Op.like]: `%${numero_documento}%` };
+      if (correo) whereClause.correo = { [Op.like]: `%${correo}%` };
       if (tiene_cuenta !== undefined) whereClause.tiene_cuenta = tiene_cuenta;
 
       if (nombre) {
-        whereClause[sequelize.Op.or] = [
-          { nombre_completo: { [sequelize.Op.like]: `%${nombre}%` } },
-          { apellido_completo: { [sequelize.Op.like]: `%${nombre}%` } }
+        whereClause[Op.or] = [
+          { nombre_completo: { [Op.like]: `%${nombre}%` } },
+          { apellido_completo: { [Op.like]: `%${nombre}%` } }
         ];
       }
 
@@ -252,7 +277,7 @@ class PersonaService {
             attributes: ['id_rol', 'nombre_rol']
           }
         ],
-        limit,
+        limit: limite,
         offset,
         order: [[ordenarPor, orden]]
       });
@@ -262,10 +287,12 @@ class PersonaService {
           id_persona: persona.id_persona,
           tipo_documento: persona.tipo_documento,
           numero_documento: persona.numero_documento,
-          nombre_completo: `${persona.primer_nombre} ${persona.segundo_nombre || ''} ${persona.primer_apellido} ${persona.segundo_apellido || ''}`.trim(),
+          nombre_completo: persona.nombre_completo,
+          apellido_completo: persona.apellido_completo,
           correo: persona.correo,
           telefono: persona.telefono,
           tiene_cuenta: persona.tiene_cuenta,
+          estado: persona.estado,
           fecha_registro: persona.fecha_registro,
           roles: persona.roles || []
         })),

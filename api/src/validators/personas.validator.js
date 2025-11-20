@@ -76,6 +76,18 @@ const crearPersonaSchema = Joi.object({
 
 // Validación para actualizar persona
 const actualizarPersonaSchema = Joi.object({
+  nombre_completo: Joi.string()
+    .min(2)
+    .max(100)
+    .pattern(/^[a-zA-ZÀ-ÿ\s]+$/u)
+    .optional(),
+
+  apellido_completo: Joi.string()
+    .min(2)
+    .max(100)
+    .pattern(/^[a-zA-ZÀ-ÿ\s]+$/u)
+    .optional(),
+
   primer_nombre: Joi.string()
     .min(2)
     .max(50)

@@ -4,6 +4,9 @@ const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
 
+const normalizeEmail = (email = '') =>
+  typeof email === 'string' ? email.trim().toLowerCase() : '';
+
 class SetupController {
   /**
    * Crear super administrador inicial
@@ -51,13 +54,15 @@ class SetupController {
           // Crear roles si no existen
           await SetupController._crearRolesSiNoExisten(t);
 
+          const normalizedEmail = normalizeEmail(adminData.email);
+
           // Crear persona
           const nuevaPersona = await Persona.create({
             tipo_documento: adminData.tipo_documento || 'CC',
             numero_documento: adminData.numero_documento,
             nombre_completo: adminData.nombre_completo,
             apellido_completo: adminData.apellido_completo,
-            correo: adminData.email,
+            correo: normalizedEmail,
             telefono: adminData.telefono,
             tiene_cuenta: true,
             estado: true

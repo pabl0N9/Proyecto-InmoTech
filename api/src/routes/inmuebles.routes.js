@@ -1,57 +1,68 @@
 const express = require('express');
 const router = express.Router();
 const inmueblesController = require('../controllers/inmuebles.controller');
-
-// ✅ CORRECTO
 const { validate, validateQuery } = require('../middlewares/validate.middleware');
 const auth = require('../middlewares/auth.middleware');
-
 const {
   crearInmuebleSchema,
   actualizarInmuebleSchema,
   buscarInmueblesSchema
 } = require('../validators/inmuebles.validator');
 
-// Rutas públicas (no requieren autenticación)
+// ========================================
+// RUTAS PÚBLICAS (sin autenticación)
+// ========================================
 router.get('/buscar',
   validateQuery(buscarInmueblesSchema),
   inmueblesController.buscarInmuebles
 );
 
-// ✅ CORRECCIÓN: Cambiar auth.authenticate por auth.authenticateToken
+// ========================================
+// MIDDLEWARE DE AUTENTICACIÓN
+// ========================================
 router.use(auth.authenticateToken);
 
-// Obtener inmueble por ID (todos los usuarios autenticados)
-router.get('/:id',
-  inmueblesController.obtenerInmueble
-);
+// ========================================
+// RUTAS AUTENTICADAS (todos los usuarios)
+// ========================================
 
-// Obtener disponibilidad horaria de un inmueble (todos los usuarios autenticados)
+// ⚠️ IMPORTANTE: Rutas específicas ANTES de rutas con parámetros
 router.get('/:id/disponibilidad',
   inmueblesController.obtenerDisponibilidad
 );
 
-// Listar inmuebles con filtros (todos los usuarios autenticados)
+// Listar todos los inmuebles
 router.get('/',
   inmueblesController.listarInmuebles
 );
 
-// ✅ CORRECCIÓN: Cambiar auth.authorize por auth.authorizeRoles
-router.use(auth.authorizeRoles(['Super Admin', 'Admin', 'Empleado']));
+// Obtener un inmueble específico (debe ir DESPUÉS de rutas específicas)
+router.get('/:id',
+  inmueblesController.obtenerInmueble
+);
 
-// Crear inmueble (Empleado+)
+// ========================================
+// MIDDLEWARE DE AUTORIZACIÓN POR ROLES
+// ========================================
+router.use(auth.authorizeRoles(['Super Administrador', 'Administrador', 'Empleado']));
+
+// ========================================
+// RUTAS CON PERMISOS (Empleado+)
+// ========================================
+
+// Crear inmueble
 router.post('/',
   validate(crearInmuebleSchema),
   inmueblesController.crearInmueble
 );
 
-// Actualizar inmueble (Empleado+)
+// Actualizar inmueble
 router.patch('/:id',
   validate(actualizarInmuebleSchema),
   inmueblesController.actualizarInmueble
 );
 
-// Eliminar inmueble (Empleado+)
+// Eliminar inmueble
 router.delete('/:id',
   inmueblesController.eliminarInmueble
 );

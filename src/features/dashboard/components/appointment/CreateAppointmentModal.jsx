@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Calendar, FileText, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { User, Calendar, FileText, CheckCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import ReactDOM from 'react-dom';
 import StepIndicator from '../StepIndicator';
 import CustomerStep from './steps/CustomerStep';
 import DateTimeStep from './steps/DateTimeStep';
@@ -10,6 +10,7 @@ import SummaryStepStep from './steps/SummaryStep';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import { useAppointments } from '../../../../shared/contexts/AppointmentContext';
+import { inmueblesAPI } from '../../../../shared/services/propertyApidervice';
 
 const SERVICIO_MAP = {
   "Visita a Propiedad": 1,
@@ -31,10 +32,13 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     fecha: '',
     hora: '',
     servicio: '',
+    propiedad: '',
     notas: '',
     estado: 'programada'
   });
   const [errors, setErrors] = useState({});
+  const [properties, setProperties] = useState([]);
+  const [propertiesLoading, setPropertiesLoading] = useState(false);
   const { toast } = useToast();
   const { createAppointment } = useAppointments();
   const contentRef = useRef(null);
@@ -52,6 +56,24 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
       setFormData(prev => ({ ...prev, fecha: preselectedDate }));
     }
   }, [isOpen, preselectedDate]);
+
+  // Fetch properties when modal opens
+  useEffect(() => {
+    const fetchProperties = async () => {
+      if (isOpen) {
+        setPropertiesLoading(true);
+        try {
+          const { items } = await inmueblesAPI.getInmuebles(1, 50);
+          setProperties(items);
+        } catch (error) {
+          console.error('Error fetching properties:', error);
+        } finally {
+          setPropertiesLoading(false);
+        }
+      }
+    };
+    fetchProperties();
+  }, [isOpen]);
 
   const steps = [
     { number: 1, title: 'Cliente', icon: User },
@@ -352,6 +374,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
           hora_inicio: horaInicio24h,
           hora_fin: horaFin24h,
           id_servicio: SERVICIO_MAP[formData.servicio] || 1,
+          id_inmueble: formData.propiedad ? parseInt(formData.propiedad) : null,
           observaciones: formData.notas || null
         };
 
@@ -396,6 +419,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
       fecha: '',
       hora: '',
       servicio: '',
+      propiedad: '',
       notas: '',
       estado: 'programada'
     });
@@ -499,6 +523,8 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
             formData={formData}
             errors={errors}
             updateFormData={updateFormData}
+            properties={properties}
+            propertiesLoading={propertiesLoading}
           />
         );
       case 4:

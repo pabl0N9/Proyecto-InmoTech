@@ -1,685 +1,805 @@
-import React, { useState } from 'react';
-import { User, X, Mail, Phone, MapPin, Home, Building2, Eye } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Building2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { WizardModalLayout } from '../../Inmuebles/components/common/wizardModalLayout';
+import { AgregarInmuebleModal } from '../../Inmuebles/components/inmuebles/AgregarInmuebleModal';
 
-const OwnerForm = ({ 
-  isOpen, 
-  mode, 
-  selectedOwner, 
-  availableInmuebles, 
-  onClose, 
-  onSubmit 
-}) => {
-  const [formData, setFormData] = useState({
-    nombre: selectedOwner?.nombre || '',
-    documento: selectedOwner?.documento || '',
-    email: selectedOwner?.email || '',
-    telefono: selectedOwner?.telefono || '',
-    ciudad: selectedOwner?.ciudad || '',
-    direccion: selectedOwner?.direccion || '',
-    estado: selectedOwner?.estado || 'Activo'
-  });
+const DOCUMENT_TYPES = ['CC', 'CE', 'NIT', 'Pasaporte', 'TI'];
 
-  const [selectedInmuebles, setSelectedInmuebles] = useState(selectedOwner?.inmuebles || []);
-  const [showInmuebleModal, setShowInmuebleModal] = useState(false);
-  const [inmuebleFormMode, setInmuebleFormMode] = useState('assign');
-  const [newInmueble, setNewInmueble] = useState({
-    titulo: '',
-    tipo: 'Apartamento',
-    operacion: 'Arriendo',
-    estado: 'Disponible',
-    precio: '',
-    ciudad: '',
-    direccion: ''
-  });
+const INITIAL_FORM = {
+  tipoDocumento: 'CC',
+  numeroDocumento: '',
+  primerNombre: '',
+  segundoNombre: '',
+  primerApellido: '',
+  segundoApellido: '',
+  email: '',
+  telefono: ''
+};
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+const STEPS = ['Datos y asignación', 'Confirmación'];
 
-  const handleSubmit = () => {
-    onSubmit(formData, selectedInmuebles);
-  };
+const SectionCard = ({ title, subtitle, children }) => (
+  <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_35px_rgba(15,23,42,0.04)] space-y-3">
+    {(title || subtitle) && (
+      <div>
+        {subtitle && (
+          <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-blue-500">
+            {subtitle}
+          </p>
+        )}
+        {title && <h3 className="text-base font-semibold text-slate-900">{title}</h3>}
+      </div>
+    )}
+    {children}
+  </div>
+);
 
-  const toggleInmuebleSelection = (inmueble) => {
-    const isSelected = selectedInmuebles.some(i => i.id === inmueble.id);
-    if (isSelected) {
-      setSelectedInmuebles(selectedInmuebles.filter(i => i.id !== inmueble.id));
-    } else {
-      setSelectedInmuebles([...selectedInmuebles, inmueble]);
-    }
-  };
+const normalizeInmuebleForSelection = (inmueble = {}) => ({
+  id: inmueble.id,
+  titulo: inmueble.titulo || inmueble.direccion,
+  direccion: inmueble.direccion,
+  ciudad: inmueble.ciudad,
+  tipo: inmueble.tipo || inmueble.categoria,
+  estado: inmueble.estado,
+  operacion: inmueble.operacion
+});
 
-  const handleCreateInmueble = () => {
-    const inmuebleWithId = {
-      id: `INM-NEW-${Date.now()}`,
-      ...newInmueble
-    };
-    setSelectedInmuebles([...selectedInmuebles, inmuebleWithId]);
-    setNewInmueble({
-      titulo: '',
-      tipo: 'Apartamento',
-      operacion: 'Arriendo',
-      estado: 'Disponible',
-      precio: '',
-      ciudad: '',
-      direccion: ''
-    });
-    setShowInmuebleModal(false);
-  };
-
-  const removeInmueble = (inmuebleId) => {
-    setSelectedInmuebles(selectedInmuebles.filter(i => i.id !== inmuebleId));
-  };
-
-  if (!isOpen) return null;
+const OwnerSummary = ({ owner, inmuebles }) => {
+  const nombres =
+    owner.nombres ||
+    [owner.primerNombre, owner.segundoNombre].filter(Boolean).join(' ');
+  const apellidos =
+    owner.apellidos ||
+    [owner.primerApellido, owner.segundoApellido].filter(Boolean).join(' ');
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
-        {/* Modal Header */}
-        <div className="bg-slate-700 text-white p-4 flex items-center justify-between rounded-t-xl">
-          <div className="flex items-center gap-2">
-            <User className="w-5 h-5" />
-            <h2 className="text-lg font-semibold">
-              {mode === 'view' ? 'Detalles del Propietario' : 
-               mode === 'edit' ? 'Editar Propietario' : 
-               'Agregar Nuevo Propietario'}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-slate-600 rounded transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Modal Content */}
-        <div className="p-4">
-          {mode === 'view' ? (
-            <ViewModeContent selectedOwner={selectedOwner} />
-          ) : (
-            <EditModeContent
-              formData={formData}
-              onInputChange={handleInputChange}
-              mode={mode}
-              selectedInmuebles={selectedInmuebles}
-              onShowInmuebleModal={(mode) => {
-                setInmuebleFormMode(mode);
-                setShowInmuebleModal(true);
-              }}
-              onRemoveInmueble={removeInmueble}
-            />
-          )}
-        </div>
-
-        {/* Modal Footer */}
-        <div className="flex gap-3 p-4 border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 font-medium transition-colors text-sm"
-          >
-            {mode === 'view' ? 'Cerrar' : 'Cancelar'}
-          </button>
-          {mode !== 'view' && (
-            <button
-              onClick={handleSubmit}
-              className="flex-1 px-4 py-2 bg-slate-700 text-white rounded hover:bg-slate-800 font-medium transition-colors text-sm"
-            >
-              {mode === 'edit' ? 'Guardar Cambios' : 'Guardar Propietario'}
-            </button>
-          )}
-        </div>
+    <div className="grid gap-3 md:grid-cols-2 text-xs text-slate-600">
+      <div>
+        <p className="text-[10px] text-slate-400 mb-0.5">Documento</p>
+        <p className="font-semibold text-slate-800">
+          {owner.tipoDocumento} {owner.numeroDocumento}
+        </p>
       </div>
-
-      {/* Inmueble Modal */}
-      {showInmuebleModal && (
-        <InmuebleModal
-          mode={inmuebleFormMode}
-          availableInmuebles={availableInmuebles}
-          selectedInmuebles={selectedInmuebles}
-          newInmueble={newInmueble}
-          onNewInmuebleChange={(e) => {
-            const { name, value } = e.target;
-            setNewInmueble(prev => ({ ...prev, [name]: value }));
-          }}
-          onToggleInmuebleSelection={toggleInmuebleSelection}
-          onCreateInmueble={handleCreateInmueble}
-          onClose={() => setShowInmuebleModal(false)}
-        />
-      )}
+      <div>
+        <p className="text-[10px] text-slate-400 mb-0.5">Nombre completo</p>
+        <p className="font-semibold text-slate-800">
+          {nombres} {apellidos}
+        </p>
+      </div>
+      <div>
+        <p className="text-[10px] text-slate-400 mb-0.5">Correo</p>
+        <p>{owner.email || 'Sin correo'}</p>
+      </div>
+      <div>
+        <p className="text-[10px] text-slate-400 mb-0.5">Teléfono</p>
+        <p>{owner.telefono || 'Sin teléfono'}</p>
+      </div>
+      <div>
+        <p className="text-[10px] text-slate-400 mb-0.5">Inmuebles asignados</p>
+        <p>{inmuebles.length}</p>
+      </div>
     </div>
   );
 };
 
-// Componente para modo visualización
-const ViewModeContent = ({ selectedOwner }) => (
+const OwnerView = ({ owner, inmuebles }) => (
   <div className="space-y-4">
-    {/* Información del Propietario */}
-    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-      <h3 className="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
-        <User className="w-4 h-4" />
-        Información del Propietario
-      </h3>
-      
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div>
-          <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1">
-            Registro
-          </label>
-          <p className="text-gray-900 font-medium text-sm">{selectedOwner?.registro}</p>
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1">
-            Estado
-          </label>
-          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-            selectedOwner?.estado === 'Activo' 
-              ? 'bg-green-100 text-green-700' 
-              : 'bg-gray-100 text-gray-700'
-          }`}>
-            {selectedOwner?.estado}
-          </span>
-        </div>
-      </div>
-
-      <div className="mb-3">
-        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1">
-          Nombre Completo
-        </label>
-        <p className="text-gray-900 font-medium text-sm">{selectedOwner?.nombre}</p>
-      </div>
-
-      <div className="mb-3">
-        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1">
-          Documento de Identidad
-        </label>
-        <p className="text-gray-900 text-sm">{selectedOwner?.documento}</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div>
-          <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1 flex items-center gap-1">
-            <Mail className="w-3 h-3" /> Email
-          </label>
-          <p className="text-gray-900 text-xs">{selectedOwner?.email}</p>
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1 flex items-center gap-1">
-            <Phone className="w-3 h-3" /> Teléfono
-          </label>
-          <p className="text-gray-900 text-xs">{selectedOwner?.telefono}</p>
-        </div>
-      </div>
-
-      <div className="mb-3">
-        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1 flex items-center gap-1">
-          <MapPin className="w-3 h-3" /> Ciudad
-        </label>
-        <p className="text-gray-900 text-sm">{selectedOwner?.ciudad}</p>
-      </div>
-
-      <div>
-        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1 flex items-center gap-1">
-          <Home className="w-3 h-3" /> Dirección
-        </label>
-        <p className="text-gray-900 text-sm">{selectedOwner?.direccion}</p>
-      </div>
-    </div>
-
-    {/* Inmuebles del Propietario */}
-    <InmueblesSection selectedOwner={selectedOwner} />
-  </div>
-);
-
-// Componente para modo edición/creación
-const EditModeContent = ({
-  formData,
-  onInputChange,
-  mode,
-  selectedInmuebles,
-  onShowInmuebleModal,
-  onRemoveInmueble
-}) => (
-  <div className="space-y-3">
-    <div>
-      <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-        Nombre Completo *
-      </label>
-      <input
-        type="text"
-        name="nombre"
-        value={formData.nombre}
-        onChange={onInputChange}
-        placeholder="Ej: Juan Pérez García"
-        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-    </div>
-
-    <div>
-      <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-        Documento de Identidad *
-      </label>
-      <input
-        type="text"
-        name="documento"
-        value={formData.documento}
-        onChange={onInputChange}
-        placeholder="Ej: 1234567890"
-        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-    </div>
-
-    <div className="grid grid-cols-2 gap-3">
-      <div>
-        <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-          Email *
-        </label>
-        <input
-          type="email"
-          name="email"
-          value={formData.email}
-          onChange={onInputChange}
-          placeholder="ejemplo@email.com"
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-          Teléfono *
-        </label>
-        <input
-          type="tel"
-          name="telefono"
-          value={formData.telefono}
-          onChange={onInputChange}
-          placeholder="+57 300 123 4567"
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-    </div>
-
-    <div>
-      <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-        Estado *
-      </label>
-      <select
-        name="estado"
-        value={formData.estado}
-        onChange={onInputChange}
-        disabled={mode === 'edit' && selectedInmuebles.length > 0}
-        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-      >
-        <option>Activo</option>
-        <option>Inactivo</option>
-      </select>
-      {mode === 'edit' && selectedInmuebles.length > 0 && (
-        <p className="text-xs text-amber-600 mt-1">
-          ⚠️ No se puede cambiar a Inactivo mientras tenga inmuebles asignados
-        </p>
+    <SectionCard title="Información general" subtitle="Resumen">
+      <OwnerSummary owner={owner} inmuebles={inmuebles} />
+    </SectionCard>
+    <SectionCard title="Inmuebles asociados" subtitle="Detalle">
+      {inmuebles.length === 0 && (
+        <p className="text-xs text-slate-500">No hay inmuebles asociados.</p>
       )}
-    </div>
-
-    <div>
-      <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-        Ciudad *
-      </label>
-      <input
-        type="text"
-        name="ciudad"
-        value={formData.ciudad}
-        onChange={onInputChange}
-        placeholder="Ej: Medellín"
-        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-    </div>
-
-    <div>
-      <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-        Dirección *
-      </label>
-      <input
-        type="text"
-        name="direccion"
-        value={formData.direccion}
-        onChange={onInputChange}
-        placeholder="Ej: Carrera 70 #45-23"
-        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-    </div>
-
-    {/* Sección de Inmuebles */}
-    <div className="border-t border-gray-200 pt-3 mt-3">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide">
-          Inmuebles Asignados ({selectedInmuebles.length})
-        </label>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={() => onShowInmuebleModal('assign')}
-            className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+      <div className="divide-y divide-slate-100">
+        {inmuebles.map((inmueble) => (
+          <div
+            key={inmueble.id}
+            className="py-2 text-xs text-slate-700 flex flex-col gap-0.5"
           >
-            + Asignar Existente
-          </button>
-          <button
-            type="button"
-            onClick={() => onShowInmuebleModal('create')}
-            className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
-          >
-            + Crear Nuevo
-          </button>
-        </div>
-      </div>
-
-      {selectedInmuebles.length > 0 ? (
-        <div className="space-y-1 max-h-40 overflow-y-auto">
-          {selectedInmuebles.map((inmueble) => (
-            <div key={inmueble.id} className="bg-gray-50 border border-gray-200 rounded p-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="font-medium text-gray-900 text-xs">{inmueble.titulo}</p>
-                <p className="text-xs text-gray-600 mt-0.5">
-                  {inmueble.tipo} · {inmueble.operacion} · {inmueble.precio}
-                </p>
-                <p className="text-xs text-gray-500">{inmueble.direccion}, {inmueble.ciudad}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onRemoveInmueble(inmueble.id)}
-                className="ml-1 p-0.5 text-red-600 hover:bg-red-50 rounded"
-              >
-                <X className="w-3 h-3" />
-              </button>
+            <div className="flex items-center gap-2">
+              <Building2 className="w-3.5 h-3.5 text-blue-500" />
+              <p className="font-semibold text-slate-900">
+                {inmueble.titulo || inmueble.direccion}
+              </p>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-gray-50 border border-dashed border-gray-300 rounded p-3 text-center">
-          <Building2 className="w-6 h-6 text-gray-400 mx-auto mb-1" />
-          <p className="text-xs text-gray-600">No hay inmuebles asignados</p>
-          <p className="text-xs text-gray-500">Asigna o crea inmuebles para este propietario</p>
-        </div>
-      )}
-    </div>
-  </div>
-);
-
-// Componente para sección de inmuebles
-const InmueblesSection = ({ selectedOwner }) => (
-  <div>
-    <div className="flex items-center justify-between mb-3">
-      <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
-        <Building2 className="w-4 h-4" />
-        Inmuebles Registrados
-      </h3>
-      <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-bold">
-        {selectedOwner?.cantidadInmuebles} {selectedOwner?.cantidadInmuebles === 1 ? 'Inmueble' : 'Inmuebles'}
-      </span>
-    </div>
-
-    <div className="space-y-2">
-      {selectedOwner?.inmuebles?.map((inmueble, index) => (
-        <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between mb-2">
-            <h4 className="font-semibold text-gray-900 text-sm flex-1">{inmueble.titulo}</h4>
-            <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ml-2 ${
-              inmueble.estado === 'Disponible' 
-                ? 'bg-green-100 text-green-700' 
-                : inmueble.estado === 'Arrendado'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-yellow-100 text-yellow-700'
-            }`}>
-              {inmueble.estado}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mb-2">
-            <div className="flex items-center gap-1 text-xs">
-              <Building2 className="w-3 h-3 text-gray-500" />
-              <span className="text-gray-700">
-                <span className="font-medium">Tipo:</span> {inmueble.tipo}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 text-xs">
-              <span className="text-gray-700">
-                <span className="font-medium">Operación:</span> {inmueble.operacion}
-              </span>
-            </div>
-          </div>
-
-          <div className="mb-2">
-            <div className="flex items-center gap-1 text-xs">
-              <MapPin className="w-3 h-3 text-gray-500" />
-              <span className="text-gray-700">
-                <span className="font-medium">Ubicación:</span> {inmueble.direccion}, {inmueble.ciudad}
-              </span>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 font-semibold uppercase">Precio</span>
-              <span className="text-base font-bold text-blue-600">{inmueble.precio}</span>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-// Componente para modal de inmuebles
-const InmuebleModal = ({
-  mode,
-  availableInmuebles,
-  selectedInmuebles,
-  newInmueble,
-  onNewInmuebleChange,
-  onToggleInmuebleSelection,
-  onCreateInmueble,
-  onClose
-}) => (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-3">
-    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
-      <div className="bg-slate-700 text-white p-4 flex items-center justify-between rounded-t-xl">
-        <div className="flex items-center gap-2">
-          <Building2 className="w-5 h-5" />
-          <h2 className="text-lg font-semibold">
-            {mode === 'assign' ? 'Asignar Inmueble Existente' : 'Crear Nuevo Inmueble'}
-          </h2>
-        </div>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-slate-600 rounded transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      <div className="p-4">
-        {mode === 'assign' ? (
-          <div className="space-y-2">
-            {availableInmuebles.filter(inmueble => 
-              !selectedInmuebles.some(s => s.id === inmueble.id)
-            ).length > 0 ? (
-              availableInmuebles
-                .filter(inmueble => !selectedInmuebles.some(s => s.id === inmueble.id))
-                .map((inmueble) => (
-                  <div
-                    key={inmueble.id}
-                    onClick={() => onToggleInmuebleSelection(inmueble)}
-                    className="border border-gray-200 rounded p-3 hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-all"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 text-sm">{inmueble.titulo}</h4>
-                        <div className="grid grid-cols-2 gap-1 mt-1">
-                          <p className="text-xs text-gray-600">
-                            <span className="font-medium">Tipo:</span> {inmueble.tipo}
-                          </p>
-                          <p className="text-xs text-gray-600">
-                            <span className="font-medium">Operación:</span> {inmueble.operacion}
-                          </p>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-1">
-                          <span className="font-medium">Ubicación:</span> {inmueble.direccion}, {inmueble.ciudad}
-                        </p>
-                        <p className="text-base font-bold text-blue-600 mt-1">{inmueble.precio}</p>
-                      </div>
-                      <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ml-1 ${
-                        inmueble.estado === 'Disponible' 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {inmueble.estado}
-                      </span>
-                    </div>
-                  </div>
-                ))
-            ) : (
-              <div className="text-center py-6">
-                <Building2 className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-600 text-sm">No hay inmuebles disponibles para asignar</p>
-              </div>
+            <p>
+              {inmueble.ciudad} · {inmueble.tipo}
+            </p>
+            {inmueble.estado && (
+              <p className="text-[10px] text-slate-400">Estado: {inmueble.estado}</p>
             )}
           </div>
-        ) : (
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                Título del Inmueble *
-              </label>
-              <input
-                type="text"
-                name="titulo"
-                value={newInmueble.titulo}
-                onChange={onNewInmuebleChange}
-                placeholder="Ej: Casa moderna en El Poblado"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                  Tipo de Inmueble *
-                </label>
-                <select
-                  name="tipo"
-                  value={newInmueble.tipo}
-                  onChange={onNewInmuebleChange}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option>Apartamento</option>
-                  <option>Casa</option>
-                  <option>Oficina</option>
-                  <option>Local</option>
-                  <option>Bodega</option>
-                  <option>Consultorio</option>
-                  <option>Finca</option>
-                  <option>Lote</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                  Tipo de Operación *
-                </label>
-                <select
-                  name="operacion"
-                  value={newInmueble.operacion}
-                  onChange={onNewInmuebleChange}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option>Arriendo</option>
-                  <option>Venta</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                  Estado *
-                </label>
-                <select
-                  name="estado"
-                  value={newInmueble.estado}
-                  onChange={onNewInmuebleChange}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option>Disponible</option>
-                  <option>Arrendado</option>
-                  <option>En proceso de venta</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                  Precio *
-                </label>
-                <input
-                  type="text"
-                  name="precio"
-                  value={newInmueble.precio}
-                  onChange={onNewInmuebleChange}
-                  placeholder="Ej: $2,500,000"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                Ciudad *
-              </label>
-              <input
-                type="text"
-                name="ciudad"
-                value={newInmueble.ciudad}
-                onChange={onNewInmuebleChange}
-                placeholder="Ej: Medellín"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                Dirección *
-              </label>
-              <input
-                type="text"
-                name="direccion"
-                value={newInmueble.direccion}
-                onChange={onNewInmuebleChange}
-                placeholder="Ej: Carrera 43A #12-45"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        )}
+        ))}
       </div>
+    </SectionCard>
+  </div>
+);
 
-      <div className="flex gap-3 p-4 border-t border-gray-200">
+const OwnerForm = ({
+  isOpen,
+  mode,
+  selectedOwner,
+  availableInmuebles = [],
+  onClose,
+  onSubmit,
+  onCreateInmueble = null
+}) => {
+  const documentoBase = useMemo(() => {
+    if (!selectedOwner?.documento) return '';
+    const parts = selectedOwner.documento.split(' ');
+    return parts[parts.length - 1] || '';
+  }, [selectedOwner]);
+
+  const [formData, setFormData] = useState(INITIAL_FORM);
+  const [selectedInmuebles, setSelectedInmuebles] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [formAlert, setFormAlert] = useState({ type: '', message: '' });
+  const [activeStep, setActiveStep] = useState(0);
+  const [isPropertyModalOpen, setPropertyModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData(INITIAL_FORM);
+      setSelectedInmuebles([]);
+      setErrors({});
+      setFormAlert({ type: '', message: '' });
+      setActiveStep(0);
+      return;
+    }
+
+    if (mode === 'edit' && selectedOwner) {
+      const cleanDoc =
+        documentoBase || selectedOwner.documento?.split(' ')?.pop() || '';
+      const [primerNombre = '', segundoNombre = ''] =
+        (selectedOwner.nombres || selectedOwner.nombreCompleto || '').split(
+          ' '
+        );
+      const [primerApellido = '', segundoApellido = ''] = (
+        selectedOwner.apellidos || ''
+      ).split(' ');
+
+      setFormData({
+        tipoDocumento:
+          selectedOwner.tipoDocumento ||
+          selectedOwner?.documento?.split(' ')?.[0] ||
+          'CC',
+        numeroDocumento: cleanDoc,
+        primerNombre,
+        segundoNombre,
+        primerApellido,
+        segundoApellido,
+        email: selectedOwner.email || '',
+        telefono: selectedOwner.telefono || ''
+      });
+
+      if (selectedOwner.inmuebles) {
+        setSelectedInmuebles(selectedOwner.inmuebles);
+      }
+      setActiveStep(0);
+    } else {
+      setFormData(INITIAL_FORM);
+      setSelectedInmuebles([]);
+      setActiveStep(0);
+    }
+  }, [isOpen, mode, selectedOwner, documentoBase]);
+
+  const toggleInmuebleSelection = (inmueble) => {
+    setSelectedInmuebles((prev) => {
+      const exists = prev.some((item) => item.id === inmueble.id);
+      if (exists) {
+        return prev.filter((item) => item.id !== inmueble.id);
+      }
+      return [...prev, inmueble];
+    });
+  };
+
+  const handleOpenPropertyModal = () => {
+    if (mode === 'view') return;
+    setPropertyModalOpen(true);
+  };
+
+  const handleClosePropertyModal = () => {
+    setPropertyModalOpen(false);
+  };
+
+  const handlePropertyModalSave = async (payload) => {
+    if (!onCreateInmueble) return;
+    try {
+      const nuevoInmueble = await onCreateInmueble(payload);
+      if (nuevoInmueble) {
+        const normalized = normalizeInmuebleForSelection(nuevoInmueble);
+        setSelectedInmuebles((prev) => {
+          if (prev.some((item) => item.id === normalized.id)) {
+            return prev;
+          }
+          return [...prev, normalized];
+        });
+        setFormAlert({
+          type: 'success',
+          message: 'Inmueble creado y asignado automáticamente al propietario.'
+        });
+      }
+    } catch (error) {
+      setFormAlert({
+        type: 'error',
+        message: error.message || 'No se pudo crear el inmueble'
+      });
+      throw error;
+    }
+  };
+
+  // Validadores
+  const validators = {
+    tipoDocumento: (value) =>
+      !value ? 'Selecciona un tipo de documento' : '',
+    numeroDocumento: (value) => {
+      const v = value.trim();
+      if (!v) return 'El número de documento es obligatorio';
+      if (!/^\d{4,20}$/.test(v)) {
+        return 'Ingresa un documento válido (solo números, 4-20 dígitos)';
+      }
+      return '';
+    },
+    primerNombre: (value) => {
+      const v = value.trim();
+      if (!v) return 'El primer nombre es obligatorio';
+      if (v.length < 2) return 'Debe contener al menos 2 caracteres';
+      return '';
+    },
+    primerApellido: (value) => {
+      const v = value.trim();
+      if (!v) return 'El primer apellido es obligatorio';
+      if (v.length < 2) return 'Debe contener al menos 2 caracteres';
+      return '';
+    },
+    email: (value) => {
+      const v = value.trim();
+      if (!v) return 'El correo es obligatorio';
+      if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,}$/.test(v)) {
+        return 'Ingresa un correo válido';
+      }
+      return '';
+    },
+    telefono: (value) => {
+      const clean = value.replace(/[^\d]/g, '');
+      if (!clean) return 'El teléfono es obligatorio';
+      if (!/^3\d{9}$/.test(clean)) {
+        return 'Ingresa un celular colombiano (3XXXXXXXXX)';
+      }
+      return '';
+    }
+  };
+
+  // Paso 0: todos los campos obligatorios; paso 1: solo confirmación
+  const STEP_FIELDS = [
+    [
+      'tipoDocumento',
+      'numeroDocumento',
+      'primerNombre',
+      'primerApellido',
+      'email',
+      'telefono'
+    ],
+    []
+  ];
+
+  const validateField = (name, value) => {
+    if (validators[name]) {
+      return validators[name](value);
+    }
+    return '';
+  };
+
+  const validateStep = (step) => {
+    const fields = STEP_FIELDS[step] || [];
+    if (fields.length === 0) return true;
+
+    const newErrors = {};
+    fields.forEach((field) => {
+      newErrors[field] = validators[field](formData[field]);
+    });
+
+    setErrors((prev) => ({ ...prev, ...newErrors }));
+    const hasErrors = Object.values(newErrors).some((msg) => msg);
+    if (hasErrors) {
+      setFormAlert({
+        type: 'error',
+        message: 'Revisa la información resaltada antes de continuar.'
+      });
+    } else {
+      setFormAlert({ type: '', message: '' });
+    }
+    return !hasErrors;
+  };
+
+  const validateForm = () => {
+    const allFields = Object.keys(validators);
+    const fieldErrors = {};
+    allFields.forEach((field) => {
+      fieldErrors[field] = validators[field](formData[field]);
+    });
+    setErrors(fieldErrors);
+    const hasErrors = Object.values(fieldErrors).some((msg) => msg);
+    if (hasErrors) {
+      setFormAlert({
+        type: 'error',
+        message: 'Revisa la información resaltada antes de continuar.'
+      });
+    } else {
+      setFormAlert({ type: 'success', message: 'Todo listo para guardar.' });
+    }
+    return !hasErrors;
+  };
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    let newValue = value;
+
+    // Solo números para documento y teléfono
+    if (name === 'numeroDocumento' || name === 'telefono') {
+      newValue = value.replace(/[^\d]/g, '');
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: newValue }));
+    setErrors((prev) => ({ ...prev, [name]: validateField(name, newValue) }));
+  };
+
+  const handleSubmit = () => {
+    if (mode === 'view') return onClose();
+    if (!validateForm()) return;
+
+    const payload = {
+      tipoDocumento: formData.tipoDocumento,
+      numeroDocumento: formData.numeroDocumento.trim(),
+      nombres: [formData.primerNombre, formData.segundoNombre]
+        .filter(Boolean)
+        .join(' ')
+        .trim(),
+      apellidos: [formData.primerApellido, formData.segundoApellido]
+        .filter(Boolean)
+        .join(' ')
+        .trim(),
+      email: formData.email.trim(),
+      telefono: formData.telefono.trim(),
+      estado: selectedOwner?.estado || 'Activo'
+    };
+
+    try {
+      onSubmit(payload, selectedInmuebles);
+    } catch (error) {
+      setFormAlert({
+        type: 'error',
+        message:
+          error.message || 'No se pudo guardar la información. Intenta de nuevo.'
+      });
+    }
+  };
+
+  const handleNext = () => {
+    if (!validateStep(activeStep)) return;
+    if (activeStep < STEPS.length - 1) {
+      setActiveStep((s) => s + 1);
+      setFormAlert({ type: '', message: '' });
+    }
+  };
+
+  const handleBack = () => {
+    if (activeStep > 0) {
+      setActiveStep((s) => s - 1);
+      setFormAlert({ type: '', message: '' });
+    }
+  };
+
+  const footer =
+    mode === 'view' ? (
+      <div className="flex justify-end">
         <button
+          type="button"
           onClick={onClose}
-          className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 font-medium transition-colors text-sm"
+          className="rounded-xl border border-slate-200 px-4 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+        >
+          Cerrar
+        </button>
+      </div>
+    ) : (
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-xl border border-slate-200 px-4 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
         >
           Cancelar
         </button>
-        {mode === 'create' && (
+        <div className="flex gap-2">
+          {activeStep > 0 && (
+            <button
+              type="button"
+              onClick={handleBack}
+              className="rounded-xl border border-slate-200 px-4 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Atrás
+            </button>
+          )}
           <button
-            onClick={onCreateInmueble}
-            disabled={!newInmueble.titulo || !newInmueble.precio || !newInmueble.ciudad || !newInmueble.direccion}
-            className="flex-1 px-4 py-2 bg-slate-700 text-white rounded hover:bg-slate-800 font-medium transition-colors text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+            type="button"
+            onClick={
+              activeStep === STEPS.length - 1 ? handleSubmit : handleNext
+            }
+            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
           >
-            Crear y Asignar
+            {activeStep === STEPS.length - 1
+              ? 'Guardar propietario'
+              : 'Siguiente'}
           </button>
-        )}
+        </div>
       </div>
-    </div>
-  </div>
-);
+    );
+
+  const renderStepContent = () => {
+    if (mode === 'view') {
+      return (
+        <OwnerView
+          owner={selectedOwner || formData}
+          inmuebles={selectedInmuebles}
+        />
+      );
+    }
+
+    // PASO 0: agregar información + asignar/crear inmueble (todo en un solo paso)
+    if (activeStep === 0) {
+      return (
+        <SectionCard
+          title="Datos del propietario y asignación"
+          subtitle="Completa la información en un paso"
+        >
+          {formAlert.message && (
+            <div
+              className={`mb-3 rounded-xl px-3 py-2 text-xs flex items-center gap-2 border ${
+                formAlert.type === 'error'
+                  ? 'bg-red-50 text-red-700 border-red-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}
+            >
+              {formAlert.message}
+            </div>
+          )}
+
+          <div className="grid gap-3 md:grid-cols-2">
+            {/* Tipo de documento */}
+            <div>
+              <label className="text-xs text-slate-600 flex justify-between">
+                Tipo de documento
+                {errors.tipoDocumento && (
+                  <span className="text-[10px] text-red-500">
+                    {errors.tipoDocumento}
+                  </span>
+                )}
+              </label>
+              <select
+                name="tipoDocumento"
+                value={formData.tipoDocumento}
+                onChange={handleInputChange}
+                className={`mt-1 w-full rounded-xl border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 ${
+                  errors.tipoDocumento
+                    ? 'border-red-300 focus:ring-red-500'
+                    : 'border-slate-200 focus:ring-blue-500'
+                }`}
+              >
+                {DOCUMENT_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Número de documento */}
+            <div>
+              <label className="text-xs text-slate-600 flex justify-between">
+                Número de documento
+                {errors.numeroDocumento && (
+                  <span className="text-[10px] text-red-500">
+                    {errors.numeroDocumento}
+                  </span>
+                )}
+              </label>
+              <input
+                type="tel"
+                inputMode="numeric"
+                name="numeroDocumento"
+                value={formData.numeroDocumento}
+                onChange={handleInputChange}
+                className={`mt-1 w-full rounded-xl border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 ${
+                  errors.numeroDocumento
+                    ? 'border-red-300 focus:ring-red-500'
+                    : 'border-slate-200 focus:ring-blue-500'
+                }`}
+              />
+              {!errors.numeroDocumento && (
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Solo números (4-20 dígitos).
+                </p>
+              )}
+            </div>
+
+            {/* Primer nombre */}
+            <div>
+              <label className="text-xs text-slate-600 flex justify-between">
+                Primer nombre
+                {errors.primerNombre && (
+                  <span className="text-[10px] text-red-500">
+                    {errors.primerNombre}
+                  </span>
+                )}
+              </label>
+              <input
+                name="primerNombre"
+                value={formData.primerNombre}
+                onChange={handleInputChange}
+                className={`mt-1 w-full rounded-xl border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 ${
+                  errors.primerNombre
+                    ? 'border-red-300 focus:ring-red-500'
+                    : 'border-slate-200 focus:ring-blue-500'
+                }`}
+              />
+            </div>
+
+            {/* Segundo nombre */}
+            <div>
+              <label className="text-xs text-slate-600">Segundo nombre</label>
+              <input
+                name="segundoNombre"
+                value={formData.segundoNombre}
+                onChange={handleInputChange}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Primer apellido */}
+            <div>
+              <label className="text-xs text-slate-600 flex justify-between">
+                Primer apellido
+                {errors.primerApellido && (
+                  <span className="text-[10px] text-red-500">
+                    {errors.primerApellido}
+                  </span>
+                )}
+              </label>
+              <input
+                name="primerApellido"
+                value={formData.primerApellido}
+                onChange={handleInputChange}
+                className={`mt-1 w-full rounded-xl border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 ${
+                  errors.primerApellido
+                    ? 'border-red-300 focus:ring-red-500'
+                    : 'border-slate-200 focus:ring-blue-500'
+                }`}
+              />
+            </div>
+
+            {/* Segundo apellido */}
+            <div>
+              <label className="text-xs text-slate-600">Segundo apellido</label>
+              <input
+                name="segundoApellido"
+                value={formData.segundoApellido}
+                onChange={handleInputChange}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Correo */}
+            <div>
+              <label className="text-xs text-slate-600 flex justify-between">
+                Correo electrónico
+                {errors.email && (
+                  <span className="text-[10px] text-red-500">
+                    {errors.email}
+                  </span>
+                )}
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className={`mt-1 w-full rounded-xl border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 ${
+                  errors.email
+                    ? 'border-red-300 focus:ring-red-500'
+                    : 'border-slate-200 focus:ring-blue-500'
+                }`}
+              />
+            </div>
+
+            {/* Teléfono */}
+            <div>
+              <label className="text-xs text-slate-600 flex justify-between">
+                Teléfono
+                {errors.telefono && (
+                  <span className="text-[10px] text-red-500">
+                    {errors.telefono}
+                  </span>
+                )}
+              </label>
+              <input
+                type="tel"
+                inputMode="numeric"
+                name="telefono"
+                value={formData.telefono}
+                onChange={handleInputChange}
+                placeholder="3XXXXXXXXX"
+                className={`mt-1 w-full rounded-xl border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 ${
+                  errors.telefono
+                    ? 'border-red-300 focus:ring-red-500'
+                    : 'border-slate-200 focus:ring-blue-500'
+                }`}
+              />
+              {!errors.telefono && (
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Número celular colombiano (3XXXXXXXXX).
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Asignar inmuebles (opcional) en el mismo paso */}
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-slate-800">
+                Asignar inmuebles (opcional)
+              </h4>
+              <button
+                type="button"
+                onClick={handleOpenPropertyModal}
+                disabled={!onCreateInmueble}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 px-2.5 py-1 text-[11px] font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                Crear inmueble
+              </button>
+            </div>
+            <div className="max-h-44 overflow-y-auto rounded-2xl border border-slate-100 bg-white divide-y divide-slate-100">
+              {availableInmuebles.length === 0 && (
+                <p className="px-3 py-2 text-xs text-slate-500">
+                  No hay inmuebles disponibles.
+                </p>
+              )}
+              {availableInmuebles.map((inmueble) => {
+                const isSelected = selectedInmuebles.some(
+                  (item) => item.id === inmueble.id
+                );
+                return (
+                  <label
+                    key={inmueble.id}
+                    className={`flex items-center justify-between px-3 py-2 text-xs cursor-pointer transition-colors ${
+                      isSelected ? 'bg-blue-50' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-800">
+                        {inmueble.titulo || inmueble.direccion}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        {inmueble.ciudad} · {inmueble.tipo}
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleInmuebleSelection(inmueble)}
+                      className="text-blue-600 focus:ring-blue-500 rounded"
+                    />
+                  </label>
+                );
+              })}
+            </div>
+            {selectedInmuebles.length > 0 && (
+              <div className="rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                Inmuebles seleccionados: {selectedInmuebles.length}
+              </div>
+            )}
+          </div>
+        </SectionCard>
+      );
+    }
+
+    // PASO 1: Confirmación SOLO LECTURA
+    return (
+      <SectionCard
+        title="Confirmación"
+        subtitle="Revisa la información antes de guardar"
+      >
+        {formAlert.message && (
+          <div
+            className={`mb-3 rounded-xl px-3 py-2 text-xs flex items-center gap-2 border ${
+              formAlert.type === 'error'
+                ? 'bg-red-50 text-red-700 border-red-200'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            }`}
+          >
+            {formAlert.message}
+          </div>
+        )}
+
+        {/* Datos del propietario */}
+        <OwnerSummary owner={formData} inmuebles={selectedInmuebles} />
+
+        {/* Inmuebles en modo solo lectura */}
+        <div className="mt-4">
+          <h4 className="text-xs font-semibold text-slate-800 mb-1.5">
+            Inmuebles asociados
+          </h4>
+          {selectedInmuebles.length === 0 && (
+            <p className="text-xs text-slate-500">
+              No se han asignado inmuebles.
+            </p>
+          )}
+          <div className="divide-y divide-slate-100 rounded-2xl border border-slate-100 bg-white">
+            {selectedInmuebles.map((inmueble) => (
+              <div
+                key={inmueble.id}
+                className="px-3 py-2 text-xs text-slate-700 flex flex-col gap-0.5"
+              >
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                  <p className="font-semibold text-slate-900">
+                    {inmueble.titulo || inmueble.direccion}
+                  </p>
+                </div>
+                <p>
+                  {inmueble.ciudad} · {inmueble.tipo}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] text-slate-400">
+            Si necesitas cambiar algo, usa el botón “Atrás”. En esta vista no se
+            puede editar.
+          </p>
+        </div>
+      </SectionCard>
+    );
+  };
+
+  const stepsForLayout = mode === 'view' ? [] : STEPS;
+  const activeStepForLayout = mode === 'view' ? 0 : activeStep;
+
+  return (
+    <>
+      <WizardModalLayout
+        isOpen={isOpen}
+        onClose={onClose}
+        title={
+          mode === 'view'
+            ? 'Resumen de Propietario'
+            : mode === 'edit'
+            ? 'Editar Propietario'
+            : 'Nuevo Propietario'
+        }
+        subtitle={
+          mode === 'view'
+            ? 'Consulta la informaci�n registrada'
+            : 'Completa la informaci�n y conf�rmala'
+        }
+        steps={stepsForLayout}
+        activeStep={activeStepForLayout}
+        footer={footer}
+      >
+        {renderStepContent()}
+      </WizardModalLayout>
+
+      {mode !== 'view' && onCreateInmueble && (
+        <AgregarInmuebleModal
+          isOpen={isPropertyModalOpen}
+          onClose={handleClosePropertyModal}
+          onSave={handlePropertyModalSave}
+          inmuebleEditar={null}
+        />
+      )}
+    </>
+  );
+};
 
 export default OwnerForm;

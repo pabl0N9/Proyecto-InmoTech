@@ -26,6 +26,8 @@ import AppointmentPage from './features/dashboard/pages/appointment/AppointmentP
 import Reports from './features/dashboard/pages/reports/Reports'
 import Roles from './features/dashboard/pages/roles/Roles'
 import AdministrativosPage from './features/dashboard/pages/administrativos/AdministrativosPage'
+import OwnerDashboardPage from './features/dashboard/pages/propertyOwner/OwnerDashboardPage'
+import InmueblesDashboardPage from './features/dashboard/pages/Inmuebles/InmueblesDashboardPage'
 
 function App() {
   return (
@@ -204,6 +206,26 @@ function App() {
             <EmployeeRoute>
               <DashboardLayout>
                 <AdministrativosPage />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/dashboard/propietarios"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <OwnerDashboardPage />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/dashboard/inmuebles"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <InmueblesDashboardPage />
               </DashboardLayout>
             </EmployeeRoute>
           }

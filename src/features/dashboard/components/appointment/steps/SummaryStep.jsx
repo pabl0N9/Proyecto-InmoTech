@@ -88,7 +88,7 @@ const SummaryStep = ({ formData }) => {
     {
       icon: User,
       label: 'Cliente',
-      value: formData.cliente,
+      value: `${formData.nombre} ${formData.apellido}`,
       color: 'text-blue-600'
     },
     {
@@ -129,8 +129,8 @@ const SummaryStep = ({ formData }) => {
     },
     {
       icon: Home,
-      label: 'Propiedad',
-      value: formData.propiedad,
+      label: 'Servicio',
+      value: formData.servicio,
       color: 'text-indigo-600'
     }
   ];

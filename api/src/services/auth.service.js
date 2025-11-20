@@ -1,8 +1,14 @@
-const { Persona, Acceso, PersonasRol, Rol, Administrativo } = require('../models');
+﻿const { Persona, Acceso, PersonasRol, Rol, Administrativo } = require('../models');
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
+
+const normalizeEmail = (email = '') =>
+  typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+const buildEmailCondition = (email) =>
+  sequelize.where(sequelize.fn('LOWER', sequelize.col('correo')), email);
 
 class AuthService {
   /**
@@ -13,16 +19,17 @@ class AuthService {
   async registrarUsuario(userData) {
     const result = await sequelize.transaction(async (t) => {
       try {
-        const { email, password, ...personaData } = userData;
+        const { email, password } = userData;
+        const normalizedEmail = normalizeEmail(email);
 
         // Verificar si el email ya existe
         const personaExistente = await Persona.findOne({
-          where: { correo: email },
+          where: buildEmailCondition(normalizedEmail),
           transaction: t
         });
 
         if (personaExistente) {
-          throw new Error('El correo electrónico ya está registrado');
+          throw new Error('El correo electrÃ³nico ya estÃ¡ registrado');
         }
 
         // Crear persona
@@ -31,7 +38,7 @@ class AuthService {
           numero_documento: userData.numero_documento,
           nombre_completo: userData.nombre_completo,
           apellido_completo: userData.apellido_completo,
-          correo: email,
+          correo: normalizedEmail,
           telefono: userData.telefono,
           tiene_cuenta: true,
           estado: true
@@ -58,12 +65,13 @@ class AuthService {
         }
 
         logger.info(`Usuario registrado: ${email}`);
+        const userRoles = rolUsuario ? [rolUsuario.nombre_rol] : [];
 
         // Generar tokens
         const payload = {
           id: nuevaPersona.id_persona,
           email: nuevaPersona.correo,
-          roles: rolUsuario ? [rolUsuario.nombre_rol] : []
+          roles: userRoles
         };
 
         const tokens = jwtUtils.generateTokens(payload);
@@ -89,16 +97,21 @@ class AuthService {
   }
 
   /**
-   * Inicia sesión de usuario
-   * @param {string} email - Correo electrónico
-   * @param {string} password - Contraseña
+   * Inicia sesiÃ³n de usuario
+   * @param {string} email - Correo electrÃ³nico
+   * @param {string} password - contraseña
    * @returns {Promise<Object>} Usuario autenticado con tokens
    */
   async iniciarSesion(email, password) {
     try {
+      const normalizedEmail = normalizeEmail(email);
+      if (!normalizedEmail) {
+        throw new Error('Credenciales inv\u00e1lidas');
+      }
+
       // Buscar persona por email
       const persona = await Persona.findOne({
-        where: { correo: email },
+        where: buildEmailCondition(normalizedEmail),
         include: [
           {
             model: Acceso,
@@ -121,17 +134,21 @@ class AuthService {
       });
 
       if (!persona) {
-        throw new Error('Credenciales inválidas');
+        const error = new Error('Credenciales inválidas');
+        error.status = 401;
+        throw error;
       }
 
       // Verificar contraseña
       const isValidPassword = await bcryptUtils.verifyPassword(password, persona.acceso.contrasena);
 
       if (!isValidPassword) {
-        throw new Error('Credenciales inválidas');
+        const error = new Error('Credenciales inválidas');
+        error.status = 401;
+        throw error;
       }
 
-      // Actualizar último acceso
+      // Actualizar Ãºltimo acceso
       await Acceso.update(
         { ultimo_acceso: new Date() },
         { where: { id_persona: persona.id_persona } }
@@ -153,7 +170,7 @@ class AuthService {
 
       const tokens = jwtUtils.generateTokens(payload);
 
-      logger.info(`Usuario inició sesión: ${email} (Administrativo: ${es_administrativo})`);
+      logger.info(`Usuario iniciÃ³ sesiÃ³n: ${email} (Administrativo: ${es_administrativo})`);
 
       return {
         user: {
@@ -168,7 +185,7 @@ class AuthService {
       };
 
     } catch (error) {
-      logger.error('Error en inicio de sesión:', error);
+      logger.error('Error en inicio de sesiÃ³n:', error);
       throw error;
     }
   }
@@ -203,66 +220,24 @@ class AuthService {
       });
 
       if (!persona) {
-        throw new Error('Usuario no encontrado');
+        const error = new Error('Credenciales invǭlidas');
+        error.status = 401;
+        throw error;
       }
 
-      const roles = persona.roles ? persona.roles.map(rol => rol.nombre_rol) : [];
-      const es_administrativo = persona.roles ?
-        persona.roles.some(rol => rol.es_rol_administrativo) && persona.administrativo !== null :
-        false;
-
-      // Generar nuevos tokens
-      const payload = {
-        id: persona.id_persona,
-        email: persona.correo,
-        roles: roles,
-        es_administrativo: es_administrativo
-      };
-
-      const tokens = jwtUtils.generateTokens(payload);
-
-      logger.info(`Token refrescado para usuario: ${persona.correo} (Administrativo: ${es_administrativo})`);
-
-      return tokens;
-
-    } catch (error) {
-      logger.error('Error refrescando token:', error);
-      throw new Error('Token de refresco inválido');
-    }
-  }
-
-  /**
-   * Cambia la contraseña de un usuario
-   * @param {number} userId - ID del usuario
-   * @param {string} currentPassword - Contraseña actual
-   * @param {string} newPassword - Nueva contraseña
-   * @returns {Promise<boolean>} True si se cambió exitosamente
-   */
-  async cambiarContrasena(userId, currentPassword, newPassword) {
-    try {
-      // Buscar acceso del usuario
-      const acceso = await Acceso.findOne({
-        where: { id_persona: userId }
-      });
-
-      if (!acceso) {
-        throw new Error('Usuario no encontrado');
-      }
-
-      // Verificar contraseña actual
-      const isValidPassword = await bcryptUtils.verifyPassword(currentPassword, acceso.contrasena);
+      // Verificar contraseña
+      const isValidPassword = await bcryptUtils.verifyPassword(password, persona.acceso.contrasena);
 
       if (!isValidPassword) {
-        throw new Error('Contraseña actual incorrecta');
+        const error = new Error('Credenciales invǭlidas');
+        error.status = 401;
+        throw error;
       }
-
-      // Hashear nueva contraseña
-      const hashedNewPassword = await bcryptUtils.hashPassword(newPassword);
 
       // Actualizar contraseña
       await acceso.update({ contrasena: hashedNewPassword });
 
-      logger.info(`Contraseña cambiada para usuario ID: ${userId}`);
+      logger.info(`contraseña cambiada para usuario ID: ${userId}`);
 
       return true;
 
@@ -315,3 +290,6 @@ class AuthService {
 }
 
 module.exports = new AuthService();
+
+
+
