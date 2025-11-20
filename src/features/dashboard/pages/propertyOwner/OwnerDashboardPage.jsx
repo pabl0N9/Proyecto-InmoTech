@@ -37,6 +37,7 @@ const PropertyOwnersManagement = () => {
   const [modalMode, setModalMode] = useState('view');
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [ownerSubmitting, setOwnerSubmitting] = useState(false);
   const itemsPerPage = 5;
   const isLoading = ownersLoading || inmueblesLoading;
   const errorMessage = ownersError || inmueblesError;
@@ -188,6 +189,10 @@ const PropertyOwnersManagement = () => {
   };
 
   const handleSubmitOwner = async (formData, selectedInmuebles) => {
+    if (ownerSubmitting) {
+      return;
+    }
+    setOwnerSubmitting(true);
     try {
       if (modalMode === 'create') {
         const created = await ownersApiService.createOwner(formData);
@@ -206,6 +211,8 @@ const PropertyOwnersManagement = () => {
     } catch (error) {
       console.error('Error guardando propietario:', error);
       showAlert('error', error.message || 'No se pudo completar la operación');
+    } finally {
+      setOwnerSubmitting(false);
     }
   };
   return (
@@ -454,6 +461,7 @@ const PropertyOwnersManagement = () => {
           availableInmuebles={availableInmuebles}
           onClose={closeModal}
           onSubmit={handleSubmitOwner}
+          isSubmitting={ownerSubmitting}
           onCreateInmueble={crearInmueble}
         />
       )}

@@ -124,7 +124,8 @@ const OwnerForm = ({
   availableInmuebles = [],
   onClose,
   onSubmit,
-  onCreateInmueble = null
+  onCreateInmueble = null,
+  isSubmitting = false
 }) => {
   const documentoBase = useMemo(() => {
     if (!selectedOwner?.documento) return '';
@@ -427,8 +428,12 @@ const OwnerForm = ({
             onClick={
               activeStep === STEPS.length - 1 ? handleSubmit : handleNext
             }
-            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+            disabled={isSubmitting}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
+            {isSubmitting && (
+              <span className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            )}
             {activeStep === STEPS.length - 1
               ? 'Guardar propietario'
               : 'Siguiente'}

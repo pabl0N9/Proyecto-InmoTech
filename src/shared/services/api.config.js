@@ -21,6 +21,12 @@ class ApiClient {
     this.isRefreshing = false;
     this.failedQueue = [];
     this.maxRetries = 1;
+    this.pendingRequests = new Map();
+    this.concurrentLimit = 1;
+    this.activeRequests = 0;
+    this.waitQueue = [];
+    this.minIntervalMs = 400;
+    this.nextRequestTime = 0;
   }
 
   processQueue(error, token = null) {
@@ -156,10 +162,35 @@ class ApiClient {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  async acquireSlot() {
+    while (this.activeRequests >= this.concurrentLimit) {
+      await new Promise((resolve) => {
+        this.waitQueue.push(resolve);
+      });
+    }
+
+    const now = Date.now();
+    if (now < this.nextRequestTime) {
+      await this.delay(this.nextRequestTime - now);
+    }
+
+    this.nextRequestTime = Date.now() + this.minIntervalMs;
+    this.activeRequests += 1;
+  }
+
+  releaseSlot() {
+    if (this.activeRequests > 0) {
+      this.activeRequests -= 1;
+    }
+
+    if (this.waitQueue.length > 0) {
+      const resolve = this.waitQueue.shift();
+      resolve();
+    }
+  }
+
   async request(endpoint, options = {}, retryCount = 0) {
-    // ✅ CORREGIDO: Endpoint corregido - "/inmuebles" no "/innuables"
     let url = `${API_CONFIG.BASE_URL}${endpoint}`;
-    
     const config = {
       ...options,
       headers: {
@@ -167,11 +198,10 @@ class ApiClient {
         ...options.headers,
       },
     };
-    
-    // ✅ CORREGIDO: Solo manejar parámetros si existen y son válidos
+
     if (options.params && typeof options.params === 'object' && Object.keys(options.params).length > 0) {
       const urlObj = new URL(url);
-      Object.keys(options.params).forEach(key => {
+      Object.keys(options.params).forEach((key) => {
         const value = options.params[key];
         if (value !== null && value !== undefined && value !== '') {
           urlObj.searchParams.append(key, value.toString());
@@ -181,88 +211,112 @@ class ApiClient {
     }
 
     const accessToken = this.getAccessToken();
-    
+
     if (accessToken) {
       config.headers['Authorization'] = `Bearer ${accessToken}`;
-      console.log('🔑 Token incluido en petición:', accessToken.substring(0, 30) + '...');
+      console.log('Token incluido en peticion:', accessToken.substring(0, 30) + '...');
     } else {
-      console.log('⚠️ No hay token para incluir en la petición');
+      console.log('No hay token para incluir en la peticion');
     }
 
-    // ✅ CORREGIDO: Eliminar params del config para evitar conflictos
     if (config.params) {
       delete config.params;
     }
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-      
-      console.log(`📤 ${options.method || 'GET'} ${url}`);
-      
-      const response = await fetch(url, {
-        ...config,
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
+    const paramsKey = options.params ? JSON.stringify(options.params) : '';
+    const bodyKey = config.body || '';
+    const requestKey = `${options.method || 'GET'}:${url}:${bodyKey}:${paramsKey}`;
 
-      console.log(`📥 Respuesta: ${response.status}`);
+    if (this.pendingRequests.has(requestKey)) {
+      console.log('Peticion duplicada detectada, esperando resultado:', endpoint);
+      return this.pendingRequests.get(requestKey);
+    }
 
-      if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
-        console.warn('🔄 Token expirado (401), intentando refrescar...');
-        return await this.handleTokenRefresh(endpoint, options, retryCount);
-      }
+    const execution = (async () => {
+      await this.acquireSlot();
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
 
-      if (response.status === 429) {
-        throw new Error('Demasiadas peticiones. Por favor, espera un momento e intenta nuevamente.');
-      }
+        console.log(`${options.method || 'GET'} ${url}`);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          message: response.statusText
-        }));
-        const error = new Error(errorData.message || `Error ${response.status}`);
-        error.status = response.status;
-        error.data = errorData;
-        throw error;
-      }
+        const response = await fetch(url, {
+          ...config,
+          signal: controller.signal,
+        });
 
-      const data = await response.json();
-      
-      if (data.success && data.data && data.data.accessToken) {
-        console.log('🔑 Tokens detectados en respuesta, guardando...');
-        this.setTokens(data.data.accessToken, data.data.refreshToken);
-      }
-      
-      return data;
-      
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        const timeoutError = new Error('La petición tardó demasiado tiempo.');
-        timeoutError.code = 'TIMEOUT';
-        
-        if (retryCount < API_CONFIG.RETRY_ATTEMPTS) {
-          console.warn(`⏳ Timeout. Reintentando... (${retryCount + 1}/${API_CONFIG.RETRY_ATTEMPTS})`);
-          await this.delay(API_CONFIG.RETRY_DELAY);
-          return this.request(endpoint, options, retryCount + 1);
+        clearTimeout(timeoutId);
+
+        console.log(`Respuesta: ${response.status}`);
+
+        if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
+          console.warn('Token expirado (401), intentando refrescar...');
+          return await this.handleTokenRefresh(endpoint, options, retryCount);
         }
-        
-        throw timeoutError;
-      }
 
-      if (error.message === 'Failed to fetch') {
-        const networkError = new Error('No se pudo conectar con el servidor.');
-        networkError.code = 'NETWORK_ERROR';
-        throw networkError;
-      }
+        if (response.status === 429) {
+          console.warn('429 detectado, aplicando espera controlada...', retryCount);
+          if (retryCount < API_CONFIG.RETRY_ATTEMPTS + 2) {
+            const waitTime = API_CONFIG.RETRY_DELAY * (retryCount + 1);
+            await this.delay(waitTime);
+            return this.request(endpoint, options, retryCount + 1);
+          }
+          throw new Error('Demasiadas peticiones. Por favor, espera un momento e intenta nuevamente.');
+        }
 
-      console.error(`❌ API Error [${endpoint}]:`, error.message);
-      throw error;
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({
+            message: response.statusText,
+          }));
+          const error = new Error(errorData.message || `Error ${response.status}`);
+          error.status = response.status;
+          error.data = errorData;
+          throw error;
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.data && data.data.accessToken) {
+          console.log('Tokens detectados en respuesta, guardando...');
+          this.setTokens(data.data.accessToken, data.data.refreshToken);
+        }
+
+        return data;
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          const timeoutError = new Error('La peticion tardo demasiado tiempo.');
+          timeoutError.code = 'TIMEOUT';
+
+          if (retryCount < API_CONFIG.RETRY_ATTEMPTS) {
+            console.warn(`Timeout. Reintentando... (${retryCount + 1}/${API_CONFIG.RETRY_ATTEMPTS})`);
+            await this.delay(API_CONFIG.RETRY_DELAY);
+            return this.request(endpoint, options, retryCount + 1);
+          }
+
+          throw timeoutError;
+        }
+
+        if (error.message === 'Failed to fetch') {
+          const networkError = new Error('No se pudo conectar con el servidor.');
+          networkError.code = 'NETWORK_ERROR';
+          throw networkError;
+        }
+
+        console.error(`API Error [${endpoint}]:`, error.message);
+        throw error;
+      } finally {
+        this.releaseSlot();
+      }
+    })();
+
+    this.pendingRequests.set(requestKey, execution);
+    try {
+      return await execution;
+    } finally {
+      this.pendingRequests.delete(requestKey);
     }
   }
 
-  // ✅ MÉTODO GET COMPLETAMENTE CORREGIDO
   async get(endpoint, params = {}) {
     // ✅ PARCHE TEMPORAL: Asegurar que limit esté siempre definido
     const safeParams = {
