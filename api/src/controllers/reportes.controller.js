@@ -190,6 +190,33 @@ class ReportesController {
       next(error);
     }
   }
+
+  /**
+   * Obtener estadísticas para el dashboard
+   */
+  async obtenerEstadisticasDashboard(req, res, next) {
+    try {
+      const { range = '30d' } = req.query;
+      const requester = req.user || {};
+
+      const userContext = {
+        id: requester.id,
+        roles: requester.roles || [],
+        permisos: requester.permisos || null
+      };
+
+      const estadisticas = await reportesService.obtenerEstadisticasDashboard(userContext, range);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Estadísticas del dashboard obtenidas exitosamente',
+        data: estadisticas
+      });
+    } catch (error) {
+      logger.error('Error obteniendo estadísticas del dashboard:', error);
+      next(error);
+    }
+  }
 }
 
 module.exports = new ReportesController();

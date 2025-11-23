@@ -91,14 +91,21 @@ class CitaService {
         { association: 'inmueble' },
         { association: 'servicio' },
         { association: 'estado' },
-        { association: 'agente', required: false }
+        { association: 'agente', required: false },
+        { association: 'creador', required: false, attributes: ['id_persona', 'nombre_completo', 'apellido_completo'] }
       ],
       transaction
     });
 
     if (!cita) throw new Error('Cita no encontrada');
 
-    return cita;
+    // ✅ FORZAR VALORES POR DEFECTO PARA CAMPOS NULLABLE
+    // ⚠️ IMPORTANTE: Usar ?? (nullish coalescing) para NO sobrescribir valores válidos (como 0)
+    const citaData = cita.toJSON();
+    citaData.ediciones_realizadas = citaData.ediciones_realizadas ?? 0;
+    citaData.ediciones_maximas = citaData.ediciones_maximas ?? 2;
+
+    return citaData;
   }
 
   async obtenerTodasLasCitas(filtros = {}) {
@@ -125,6 +132,11 @@ class CitaService {
         },
         {
           association: 'agente',
+          required: false,
+          attributes: ['id_persona', 'nombre_completo', 'apellido_completo']
+        },
+        {
+          association: 'creador',
           required: false,
           attributes: ['id_persona', 'nombre_completo', 'apellido_completo']
         }
@@ -200,6 +212,12 @@ class CitaService {
           id_persona: cita.agente.id_persona,
           nombre_completo: cita.agente.nombre_completo,
           apellido_completo: cita.agente.apellido_completo
+        } : null,
+
+        creador: cita.creador ? {
+          id_persona: cita.creador.id_persona,
+          nombre_completo: cita.creador.nombre_completo,
+          apellido_completo: cita.creador.apellido_completo
         } : null
       }));
 
@@ -285,23 +303,56 @@ class CitaService {
   }
 
   async reagendarCita(id, nuevosDatos) {
-    try {
-      const cita = await this.obtenerCitaPorId(id);
+    const result = await sequelize.transaction(async (t) => {
+      try {
+        logger.info(`🔄 Reagendando cita ${id} con datos: ${JSON.stringify(nuevosDatos)}`);
 
-      if (!cita) {
-        throw new Error('Cita no encontrada');
+        const cita = await this.obtenerCitaPorId(id, t);
+
+        if (!cita) {
+          throw new Error('Cita no encontrada');
+        }
+
+        // Guardar ID del agente anterior para historial
+        const idAgenteAnterior = cita.id_agente_asignado;
+
+        // Actualizar la cita con los nuevos datos
+        const datosActualizados = {
+          fecha_cita: nuevosDatos.fecha_cita,
+          hora_inicio: nuevosDatos.hora_inicio,
+          hora_fin: nuevosDatos.hora_fin,
+          motivo_reagendamiento: nuevosDatos.motivo_reagendamiento,
+          id_agente_asignado: nuevosDatos.id_agente_asignado,
+          id_estado_cita: 4, // Reagendada
+          fecha_actualizacion: new Date()
+        };
+
+        await cita.update(datosActualizados, { transaction: t });
+
+        // Si se cambió el agente, registrar en historial de asignaciones
+        if (idAgenteAnterior !== nuevosDatos.id_agente_asignado) {
+          const { HistorialAsignacionAgente } = require('../models');
+          await HistorialAsignacionAgente.create({
+            id_cita: id,
+            id_agente_anterior: idAgenteAnterior,
+            id_agente_nuevo: nuevosDatos.id_agente_asignado,
+            comentario: `Reagendamiento de cita - ${nuevosDatos.motivo_reagendamiento}`,
+            estado_asignacion: idAgenteAnterior ? 'Reasignada' : 'Activa',
+            id_usuario_realizo: nuevosDatos.id_usuario_realizo,
+            fecha_asignacion: new Date()
+          }, { transaction: t });
+        }
+
+        logger.info(`✅ Cita ${id} reagendada exitosamente`);
+        return await this.obtenerCitaPorId(id, t);
+
+      } catch (error) {
+        logger.error(`❌ Error reagendando cita ${id}: ${error.message}`);
+        throw error;
       }
+    });
 
-      await cita.update({
-        ...nuevosDatos,
-        id_estado_cita: 4, // Reagendada
-        fecha_actualizacion: new Date()
-      });
-
-      return cita;
-    } catch (error) {
-      throw error;
-    }
+    return result;
   }
 
   async completarCita(id) {

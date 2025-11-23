@@ -3,6 +3,7 @@ const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
+const sseService = require('./sse.service');
 
 class AdministrativoService {
   /**
@@ -324,6 +325,26 @@ class AdministrativoService {
           await administrativo.update(administrativoData, { transaction: t });
         }
 
+        // Actualizar rol si se proporciona
+        if (rolId) {
+          const personaId = administrativo.persona.id_persona;
+          const rolActual = await PersonasRol.findOne({
+            where: { id_persona: personaId },
+            transaction: t
+          });
+
+          if (rolActual) {
+            if (rolActual.id_rol !== rolId) {
+              await rolActual.update({ id_rol: rolId }, { transaction: t });
+            }
+          } else {
+            await PersonasRol.create({
+              id_persona: personaId,
+              id_rol: rolId
+            }, { transaction: t });
+          }
+        }
+
         logger.info(`Administrativo actualizado: ID ${id}`);
 
         return administrativo;
@@ -386,6 +407,12 @@ class AdministrativoService {
 
       await administrativo.update(updateData);
 
+      // ✅ SSE: Notificar al usuario que su acceso administrativo ha sido revocado
+      if (estadoLaboral === 'Retirado' || estadoLaboral === 'Inactivo') {
+        sseService.notifyAdminAccessRevoked(administrativo.persona.id_persona);
+        logger.info(`📡 SSE: Notificación enviada - Acceso administrativo revocado para usuario ${administrativo.persona.id_persona}`);
+      }
+
       logger.info(`Estado laboral actualizado para administrativo ID ${id}: ${estadoLaboral}`);
 
       return administrativo;
@@ -447,6 +474,10 @@ class AdministrativoService {
         await administrativo.persona.update({
           estado: false
         }, { transaction: t });
+
+        // ✅ SSE: Notificar al usuario que su cuenta ha sido deshabilitada
+        sseService.notifyUserDisabled(administrativo.persona.id_persona);
+        logger.info(`📡 SSE: Notificación enviada - Usuario deshabilitado ${administrativo.persona.id_persona}`);
 
         logger.info(`Administrativo eliminado: ID ${id}`);
 

@@ -1,7 +1,6 @@
-// Importa rutas centralizadas desde el archivo index
+// Centraliza las rutas para el menú del dashboard
 import { dashboardRoutes } from '../../routes/index';
 
-// Importa íconos de react-icons
 import {
   MdDashboard,
   MdHome,
@@ -74,12 +73,12 @@ export const navigationItems = [
     subItems: [
       {
         id: 'gestion-inmuebles',
-        title: 'Gestión de Inmuebles',
+        title: 'Gestion de Inmuebles',
         path: dashboardRoutes.properties
       },
       {
         id: 'gestion-propietarios',
-        title: 'Gestión de Propietarios',
+        title: 'Gestion de Propietarios',
         path: dashboardRoutes.owners
       }
     ]
@@ -91,13 +90,8 @@ export const navigationItems = [
     isExpandable: true,
     subItems: [
       {
-        id: 'gestion-clientes',
-        title: 'Gestión de Clientes',
-        path: dashboardRoutes.clients || '/citas/clientes',
-      },
-      {
         id: 'gestion-citas',
-        title: 'Gestión de Citas',
+        title: 'Gestion de Citas',
         path: dashboardRoutes.appointments || '/citas/gestion',
       },
     ],
@@ -110,12 +104,12 @@ export const navigationItems = [
     subItems: [
       {
         id: 'gestion-comprador',
-        title: 'Gestión de Comprador',
+        title: 'Gestion de Comprador',
         path: dashboardRoutes.buyers || '/dashboard/buyersManagement',
       },
       {
         id: 'gestion-ventas',
-        title: 'Gestión de Ventas',
+        title: 'Gestion de Ventas',
         path: dashboardRoutes.sales || '/dashboard/salesManagement',
       },
     ],
@@ -128,12 +122,12 @@ export const navigationItems = [
     subItems: [
       {
         id: 'gestion-arrendatario',
-        title: 'Gestión de Arrendatario',
+        title: 'Gestion de Arrendatario',
         path: dashboardRoutes.tenants || '/dashboard/leasesManagement',
       },
       {
         id: 'gestion-arriendos',
-        title: 'Gestión de Arriendos',
+        title: 'Gestion de Arriendos',
         path: dashboardRoutes.rentals || '/dashboard/renantManagement',
       },
     ],
@@ -146,7 +140,7 @@ export const navigationItems = [
     subItems: [
       {
         id: 'gestion-reportes',
-        title: 'Gestión de Reportes',
+        title: 'Gestion de Reportes',
         path: dashboardRoutes.reports || '/reportes/gestion',
       },
     ],
@@ -167,7 +161,6 @@ export const navigationItems = [
         title: 'Administrativos',
         path: dashboardRoutes.administrativos || '/seguridad/administrativos',
       },
-
       {
         id: 'roles',
         title: 'Roles',
@@ -177,16 +170,14 @@ export const navigationItems = [
   },
 ];
 
-// Elemento para cerrar sesión
 export const logoutItem = {
   id: 'logout',
-  title: 'Cerrar Sesión',
+  title: 'Cerrar Sesion',
   icon: MdLogout,
   action: 'logout',
   isExpandable: false,
 };
 
-// Elemento para ir al sitio público
 export const goToSiteItem = {
   id: 'go-to-site',
   title: 'Ir al Sitio',

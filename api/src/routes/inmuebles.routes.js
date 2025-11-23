@@ -18,41 +18,46 @@ router.get('/buscar',
   inmueblesController.buscarInmuebles
 );
 
-// ✅ CORRECCIÓN: Cambiar auth.authenticate por auth.authenticateToken
-router.use(auth.authenticateToken);
+const { authenticateToken, authorizePermissions } = auth;
 
-// Obtener inmueble por ID (todos los usuarios autenticados)
+// After public routes, apply authentication to the rest
+router.use(authenticateToken);
+
+// Obtener inmueble por ID (requires 'ver' permission)
 router.get('/:id',
+  authorizePermissions('inmuebles', 'ver'),
   inmueblesController.obtenerInmueble
 );
 
-// Obtener disponibilidad horaria de un inmueble (todos los usuarios autenticados)
+// Obtener disponibilidad horaria de un inmueble (requires 'ver' permission)
 router.get('/:id/disponibilidad',
+  authorizePermissions('inmuebles', 'ver'),
   inmueblesController.obtenerDisponibilidad
 );
 
-// Listar inmuebles con filtros (todos los usuarios autenticados)
+// Listar inmuebles con filtros (requires 'ver' permission)
 router.get('/',
+  authorizePermissions('inmuebles', 'ver'),
   inmueblesController.listarInmuebles
 );
 
-// ✅ CORRECCIÓN: Cambiar auth.authorize por auth.authorizeRoles
-router.use(auth.authorizeRoles(['Super Admin', 'Admin', 'Empleado']));
-
-// Crear inmueble (Empleado+)
+// Crear inmueble (requires 'crear' permission)
 router.post('/',
+  authorizePermissions('inmuebles', 'crear'),
   validate(crearInmuebleSchema),
   inmueblesController.crearInmueble
 );
 
-// Actualizar inmueble (Empleado+)
+// Actualizar inmueble (requires 'editar' permission)
 router.patch('/:id',
+  authorizePermissions('inmuebles', 'editar'),
   validate(actualizarInmuebleSchema),
   inmueblesController.actualizarInmueble
 );
 
-// Eliminar inmueble (Empleado+)
+// Eliminar inmueble (requires 'eliminar' permission)
 router.delete('/:id',
+  authorizePermissions('inmuebles', 'eliminar'),
   inmueblesController.eliminarInmueble
 );
 

@@ -25,6 +25,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import citaApiService from '../../../shared/services/citaApiService';
 import { apiClient } from '../../../shared/services/api.config';
 import { useAppointments } from '../../../shared/contexts/AppointmentContext';
+import { useAuth } from '../../../shared/contexts/AuthContext';
 
 // ⚡ Hook personalizado para persistencia temporal de formularios
 const useTemporaryFormStorage = (key, defaultValue, expiryMinutes = 15) => {
@@ -151,6 +152,48 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
 
   const { toast } = useToast();
   const { addExistingAppointment } = useAppointments();
+
+  // ✅ AUTO-COMPLETAR DATOS CUANDO EL USUARIO ESTÁ AUTENTICADO
+  useEffect(() => {
+    if (isOpen && isAuthenticated && user) {
+      console.log('🔐 Usuario autenticado detectado:', user.correo);
+      console.log('📋 Datos completos del user:', {
+        tipo_documento: user.tipo_documento,
+        numero_documento: user.numero_documento,
+        nombre_completo: user.nombre_completo,
+        apellido_completo: user.apellido_completo,
+        telefono: user.telefono,
+        correo: user.correo
+      });
+
+      // Separar el nombre completo en nombres y apellidos
+      const nombreCompleto = user.nombre_completo || "";
+      const apellidoCompleto = user.apellido_completo || "";
+
+      // Auto-completar el formulario
+      const nuevosDatos = {
+        nombres: nombreCompleto,
+        apellidos: apellidoCompleto,
+        tipoDocumento: user.tipo_documento || '',
+        numeroDocumento: user.numero_documento || '',
+        telefono: user.telefono || '',
+        email: user.correo || user.email || ''
+      };
+
+      setFormData(prev => ({
+        ...prev,
+        ...nuevosDatos
+      }));
+
+      // Actualizar prevPhone para el formateo del teléfono
+      if (user.telefono) {
+        setPrevPhone(user.telefono);
+      }
+
+      console.log('✅ Formulario auto-completado con datos del usuario');
+      console.log('📝 Nuevos datos del formulario:', nuevosDatos);
+    }
+  }, [isOpen, isAuthenticated, user]);
 
   const months = [
     "Enero",
@@ -398,16 +441,20 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    // ✅ Validar nombres y apellidos
-    newErrors.nombres = validateNombres(formData.nombres);
-    newErrors.apellidos = validateApellidos(formData.apellidos);
-    newErrors.telefono = validateTelefono(formData.telefono);
-    newErrors.email = validateEmail(formData.email);
-    newErrors.tipoDocumento = validateTipoDocumento(formData.tipoDocumento);
-    newErrors.numeroDocumento = validateNumeroDocumento(
-      formData.numeroDocumento,
-      formData.tipoDocumento
-    );
+    // ✅ Si NO está autenticado, validar todos los campos personales
+    if (!isAuthenticated || !user) {
+      newErrors.nombres = validateNombres(formData.nombres);
+      newErrors.apellidos = validateApellidos(formData.apellidos);
+      newErrors.telefono = validateTelefono(formData.telefono);
+      newErrors.email = validateEmail(formData.email);
+      newErrors.tipoDocumento = validateTipoDocumento(formData.tipoDocumento);
+      newErrors.numeroDocumento = validateNumeroDocumento(
+        formData.numeroDocumento,
+        formData.tipoDocumento
+      );
+    }
+
+    // Siempre validar fecha y hora indistintamente del estado de autenticación
     newErrors.fecha = validateFecha(formData.fecha);
     newErrors.hora = validateHora(formData.hora);
 
@@ -528,21 +575,27 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
       mensaje: "",
     });
     setErrors({});
+    setPrevPhone("");
     onClose();
   };
 
   // Función para verificar si se puede proceder (similar a canProceedToNextStep del dashboard)
   const canSubmit = () => {
-    const requiredFields = [
-      "nombres",
-      "apellidos",
-      "telefono",
-      "email",
-      "tipoDocumento",
-      "numeroDocumento",
-      "fecha",
-      "hora",
-    ];
+    // Campos requeridos dependen del estado de autenticación
+    let requiredFields = ["fecha", "hora"];
+
+    // Solo si NO está autenticado, agregar campos personales
+    if (!isAuthenticated || !user) {
+      requiredFields = requiredFields.concat([
+        "nombres",
+        "apellidos",
+        "telefono",
+        "email",
+        "tipoDocumento",
+        "numeroDocumento"
+      ]);
+    }
+
     const hasAllRequired = requiredFields.every(
       (field) => formData[field].trim() !== ""
     );
@@ -550,15 +603,21 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
     if (!hasAllRequired) return false;
 
     const newErrors = {};
-    newErrors.nombres = validateNombres(formData.nombres);
-    newErrors.apellidos = validateApellidos(formData.apellidos);
-    newErrors.telefono = validateTelefono(formData.telefono);
-    newErrors.email = validateEmail(formData.email);
-    newErrors.tipoDocumento = validateTipoDocumento(formData.tipoDocumento);
-    newErrors.numeroDocumento = validateNumeroDocumento(
-      formData.numeroDocumento,
-      formData.tipoDocumento
-    );
+
+    // Solo si NO está autenticado, validar campos personales
+    if (!isAuthenticated || !user) {
+      newErrors.nombres = validateNombres(formData.nombres);
+      newErrors.apellidos = validateApellidos(formData.apellidos);
+      newErrors.telefono = validateTelefono(formData.telefono);
+      newErrors.email = validateEmail(formData.email);
+      newErrors.tipoDocumento = validateTipoDocumento(formData.tipoDocumento);
+      newErrors.numeroDocumento = validateNumeroDocumento(
+        formData.numeroDocumento,
+        formData.tipoDocumento
+      );
+    }
+
+    // Siempre validar fecha y hora
     newErrors.fecha = validateFecha(formData.fecha);
     newErrors.hora = validateHora(formData.hora);
 
@@ -658,23 +717,33 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
         correo: persona.correo
       });
 
-      // Actualizar formulario
+      // ✨ ORGANIZACIÓN DEL AUTOCOMPLETADO: Actualizar formulario usando el hook personalizado
+      const nuevosDatos = {};
+
       if (nombresCompletos.trim()) {
-        setFormData(prev => ({ ...prev, nombres: nombresCompletos }));
+        nuevosDatos.nombres = nombresCompletos.trim();
       }
 
       if (apellidosCompletos.trim()) {
-        setFormData(prev => ({ ...prev, apellidos: apellidosCompletos }));
+        nuevosDatos.apellidos = apellidosCompletos.trim();
       }
 
       if (telefonoFormateado) {
-        setFormData(prev => ({ ...prev, telefono: telefonoFormateado }));
+        nuevosDatos.telefono = telefonoFormateado;
         // ⭐ También actualizar prevPhone para que funcione el formateo manual
         setPrevPhone(telefonoFormateado);
       }
 
       if (persona.correo) {
-        setFormData(prev => ({ ...prev, email: persona.correo }));
+        nuevosDatos.email = persona.correo.trim();
+      }
+
+      // Actualizar todo el formulario a la vez
+      if (Object.keys(nuevosDatos).length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          ...nuevosDatos
+        }));
       }
 
       toast({
@@ -858,204 +927,255 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
             {/* Form */}
             <div className="lg:w-2/3 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 min-h-0">
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Personal Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                    <User className="w-5 h-5 text-blue-600" />
-                    Información Personal
-                  </h3>
+                {/* Personal Information - Solo mostrar si NO está autenticado */}
+                {!isAuthenticated ? (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                      <User className="w-5 h-5 text-blue-600" />
+                      Información Personal
+                    </h3>
 
-{/* Tipo de Documento y Número */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  {/* TIPO DE DOCUMENTO */}
-  <div>
-    <label className="block text-sm font-medium text-slate-700 mb-2">
-      Tipo de Documento <span className="text-red-500">*</span>
-    </label>
-    <Select 
-      value={formData.tipoDocumento} 
-      onValueChange={(value) => {
-        updateFormData('tipoDocumento', value);
-        
-        // Si ya hay un número de documento válido, buscar automáticamente
-        if (formData.numeroDocumento.trim().length >= 5) {
-          // Limpiar timeout anterior
-          if (window.searchTimeout) {
-            clearTimeout(window.searchTimeout);
-          }
-          
-          // Buscar después de 300ms
-          window.searchTimeout = setTimeout(() => {
-            buscarPersonaAutomaticamente(value, formData.numeroDocumento);
-          }, 300);
-        }
-      }}
-    >
-      <SelectTrigger className={`w-full ${errors.tipoDocumento ? 'border-red-500' : ''}`}>
-        <SelectValue placeholder="Seleccionar tipo de documento" />
-      </SelectTrigger>
-      <SelectContent>
-        {tiposDocumento.map(tipo => (
-          <SelectItem key={tipo.value} value={tipo.value}>
-            {tipo.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-    {errors.tipoDocumento && (
-      <p className="text-red-500 text-sm mt-1">{errors.tipoDocumento}</p>
-    )}
-  </div>
+                    {/* Tipo de Documento y Número */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* TIPO DE DOCUMENTO */}
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Tipo de Documento <span className="text-red-500">*</span>
+                        </label>
+                        <Select
+                          value={formData.tipoDocumento}
+                          onValueChange={(value) => {
+                            updateFormData('tipoDocumento', value);
 
-  {/* NÚMERO DE DOCUMENTO */}
-  <div>
-    <label className="block text-sm font-medium text-slate-700 mb-2">
-      Número de Documento <span className="text-red-500">*</span>
-    </label>
-    <input
-      type="text"
-      value={formData.numeroDocumento}
-      onChange={(e) => {
-        // 1. Filtrar solo caracteres válidos
-        const value = e.target.value;
-        const filteredValue = value.replace(/[^0-9\s\.\-]/g, '');
-        
-        // 2. Actualizar el estado
-        updateFormData('numeroDocumento', filteredValue);
+                            // Si ya hay un número de documento válido, buscar automáticamente
+                            if (formData.numeroDocumento.trim().length >= 5) {
+                              // Limpiar timeout anterior
+                              if (window.searchTimeout) {
+                                clearTimeout(window.searchTimeout);
+                              }
 
-        // 3. Limpiar búsqueda anterior
-        if (window.searchTimeout) {
-          clearTimeout(window.searchTimeout);
-        }
+                              // Buscar después de 300ms
+                              window.searchTimeout = setTimeout(() => {
+                                buscarPersonaAutomaticamente(value, formData.numeroDocumento);
+                              }, 300);
+                            }
+                          }}
+                        >
+                          <SelectTrigger className={`w-full ${errors.tipoDocumento ? 'border-red-500' : ''}`}>
+                            <SelectValue placeholder="Seleccionar tipo de documento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {tiposDocumento.map(tipo => (
+                              <SelectItem key={tipo.value} value={tipo.value}>
+                                {tipo.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.tipoDocumento && (
+                          <p className="text-red-500 text-sm mt-1">{errors.tipoDocumento}</p>
+                        )}
+                      </div>
 
-        // 4. Buscar automáticamente con debounce
-        if (formData.tipoDocumento && filteredValue.trim().length >= 5) {
-          window.searchTimeout = setTimeout(() => {
-            buscarPersonaAutomaticamente(formData.tipoDocumento, filteredValue);
-          }, 500);
-        }
-      }}
-      onKeyDown={(e) => {
-        // Prevenir entrada de letras
-        if (/^[a-zA-Z]$/.test(e.key) && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-        }
-      }}
-      onBlur={() => {
-        // Buscar inmediatamente al salir del campo
-        if (formData.tipoDocumento && formData.numeroDocumento.trim().length >= 5) {
-          buscarPersonaAutomaticamente(formData.tipoDocumento, formData.numeroDocumento);
-        }
-      }}
-      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-        errors.numeroDocumento ? 'border-red-500' : 'border-slate-300'
-      } ${isSearchingPerson ? 'bg-blue-50' : ''}`}
-      placeholder="Número de documento"
-      disabled={!formData.tipoDocumento}
-    />
-    {errors.numeroDocumento && (
-      <p className="text-red-500 text-sm mt-1">{errors.numeroDocumento}</p>
-    )}
-    {isSearchingPerson && (
-      <div className="text-blue-500 text-sm mt-1 flex items-center gap-2">
-        <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        Buscando información...
-      </div>
-    )}
-  </div>
-</div>
+                      {/* NÚMERO DE DOCUMENTO */}
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Número de Documento <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.numeroDocumento}
+                          onChange={(e) => {
+                            // 1. Filtrar solo caracteres válidos
+                            const value = e.target.value;
+                            const filteredValue = value.replace(/[^0-9\s\.\-]/g, '');
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Nombres *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.nombres}
-                        onChange={(e) =>
-                          updateFormData("nombres", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                          errors.nombres ? "border-red-500" : "border-slate-300"
-                        }`}
-                        placeholder="Ej: Juan Carlos"
-                      />
-                      {errors.nombres && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.nombres}
-                        </p>
-                      )}
+                            // 2. Actualizar el estado
+                            updateFormData('numeroDocumento', filteredValue);
+
+                            // 3. Limpiar búsqueda anterior
+                            if (window.searchTimeout) {
+                              clearTimeout(window.searchTimeout);
+                            }
+
+                            // 4. Buscar automáticamente con debounce
+                            if (formData.tipoDocumento && filteredValue.trim().length >= 5) {
+                              window.searchTimeout = setTimeout(() => {
+                                buscarPersonaAutomaticamente(formData.tipoDocumento, filteredValue);
+                              }, 500);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            // Prevenir entrada de letras
+                            if (/^[a-zA-Z]$/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+                              e.preventDefault();
+                            }
+                          }}
+                          onBlur={() => {
+                            // Buscar inmediatamente al salir del campo
+                            if (formData.tipoDocumento && formData.numeroDocumento.trim().length >= 5) {
+                              buscarPersonaAutomaticamente(formData.tipoDocumento, formData.numeroDocumento);
+                            }
+                          }}
+                          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                            errors.numeroDocumento ? 'border-red-500' : 'border-slate-300'
+                          } ${isSearchingPerson ? 'bg-blue-50' : ''}`}
+                          placeholder="Número de documento"
+                          disabled={!formData.tipoDocumento}
+                        />
+                        {errors.numeroDocumento && (
+                          <p className="text-red-500 text-sm mt-1">{errors.numeroDocumento}</p>
+                        )}
+                        {isSearchingPerson && (
+                          <div className="text-blue-500 text-sm mt-1 flex items-center gap-2">
+                            <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            Buscando información...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Nombres <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.nombres}
+                          onChange={(e) =>
+                            updateFormData("nombres", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                            errors.nombres ? "border-red-500" : "border-slate-300"
+                          }`}
+                          placeholder="Ej: Juan Carlos"
+                        />
+                        {errors.nombres && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.nombres}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Apellidos <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.apellidos}
+                          onChange={(e) =>
+                            updateFormData("apellidos", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                            errors.apellidos
+                              ? "border-red-500"
+                              : "border-slate-300"
+                          }`}
+                          placeholder="Ej: Pérez González"
+                        />
+                        {errors.apellidos && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.apellidos}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Teléfono <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="tel"
+                          value={formData.telefono}
+                          onChange={handlePhoneChange}
+                          onKeyDown={handlePhoneKeyDown}
+                          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                            errors.telefono
+                              ? "border-red-500"
+                              : "border-slate-300"
+                          }`}
+                          placeholder="+57 300 123 4567"
+                        />
+                        {errors.telefono && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.telefono}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Apellidos *
+                        Correo Electrónico <span className="text-red-500">*</span>
                       </label>
                       <input
-                        type="text"
-                        value={formData.apellidos}
-                        onChange={(e) =>
-                          updateFormData("apellidos", e.target.value)
-                        }
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => updateFormData("email", e.target.value)}
                         className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                          errors.apellidos
-                            ? "border-red-500"
-                            : "border-slate-300"
+                          errors.email ? "border-red-500" : "border-slate-300"
                         }`}
-                        placeholder="Ej: Pérez González"
+                        placeholder="tu@email.com"
                       />
-                      {errors.apellidos && (
+                      {errors.email && (
                         <p className="text-red-500 text-sm mt-1">
-                          {errors.apellidos}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Teléfono *
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.telefono}
-                        onChange={handlePhoneChange}
-                        onKeyDown={handlePhoneKeyDown}
-                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                          errors.telefono
-                            ? "border-red-500"
-                            : "border-slate-300"
-                        }`}
-                        placeholder="+57 300 123 4567"
-                      />
-                      {errors.telefono && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.telefono}
+                          {errors.email}
                         </p>
                       )}
                     </div>
                   </div>
+                ) : (
+                  // 🔐 USUARIO AUTENTICADO - Mostrar información solo para confirmación
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <User className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-800">
+                          Información del Usuario
+                        </h3>
+                        <p className="text-slate-600 text-sm">
+                          Datos completados automáticamente desde tu cuenta
+                        </p>
+                      </div>
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Correo Electrónico *
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => updateFormData("email", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                        errors.email ? "border-red-500" : "border-slate-300"
-                      }`}
-                      placeholder="tu@email.com"
-                    />
-                    {errors.email && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.email}
-                      </p>
-                    )}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium text-slate-600">Nombre:</span>
+                          <p className="text-slate-800 font-medium">{user?.nombre_completo || formData.nombres}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-600">Apellidos:</span>
+                          <p className="text-slate-800 font-medium">{user?.apellido_completo || formData.apellidos}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-600">Documento:</span>
+                          <p className="text-slate-800 font-medium">
+                            {user?.tipo_documento} {user?.numero_documento}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-600">Teléfono:</span>
+                          <p className="text-slate-800 font-medium">{user?.telefono || formData.telefono}</p>
+                        </div>
+                        <div className="md:col-span-2">
+                          <span className="font-medium text-slate-600">Email:</span>
+                          <p className="text-slate-800 font-medium">{user?.correo || formData.email}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-2 bg-green-100 rounded border border-green-200">
+                        <p className="text-green-700 text-xs">
+                          ✅ Información completada automáticamente. Solo necesitas seleccionar fecha, hora y agregar un mensaje.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Date and Time Selection */}
                 <div className="space-y-4">

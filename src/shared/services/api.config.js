@@ -1,6 +1,6 @@
 /**
- * @fileoverview Configuración centralizada de la API y cliente HTTP reutilizable
- * @version 4.0.0 - Corregido loop infinito de refresh
+ * @fileoverview Configuración centralizada de la API con cookies httpOnly
+ * @version 5.0.0 - Usando cookies httpOnly para tokens JWT (más seguro)
  */
 
 const API_CONFIG = {
@@ -12,9 +12,6 @@ const API_CONFIG = {
     'Content-Type': 'application/json',
   }
 };
-
-const ACCESS_TOKEN_KEY = 'inmotech_access_token';
-const REFRESH_TOKEN_KEY = 'inmotech_refresh_token';
 
 class ApiClient {
   constructor() {
@@ -35,31 +32,23 @@ class ApiClient {
   }
 
   getAccessToken() {
-    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
-    console.log('📖 Leyendo Access Token:', token ? '✅ Existe' : '❌ No existe');
-    return token;
+    console.log('🛡️ Tokens ahora almacenados en cookies httpOnly - no accesibles desde frontend');
+    return null; // Los tokens están en cookies httpOnly
   }
 
   getRefreshToken() {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+    console.log('🛡️ Refresh token también en cookies httpOnly');
+    return null; // Los tokens están en cookies httpOnly
   }
 
   setTokens(accessToken, refreshToken) {
-    console.log('💾 Guardando tokens...');
-    if (accessToken) {
-      localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-      console.log('   ✅ Access Token guardado');
-    }
-    if (refreshToken) {
-      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-      console.log('   ✅ Refresh Token guardado');
-    }
+    console.log('🛡️ Tokens enviados como cookies httpOnly por el backend');
+    // Los tokens se envían como cookies httpOnly por el backend
   }
 
   clearTokens() {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    console.log('🗑️ Tokens eliminados del localStorage');
+    console.log('🛡️ Tokens limpiados mediante endpoint /auth/logout');
+    // Los tokens se limpian via backend (cookies.clearCookie)
   }
 
   async refreshAccessToken() {
@@ -164,7 +153,7 @@ class ApiClient {
 
   async request(endpoint, options = {}, retryCount = 0) {
     let url = `${API_CONFIG.BASE_URL}${endpoint}`;
-    
+
     // Manejar parámetros de consulta
     if (options.params && Object.keys(options.params).length > 0) {
       const urlObj = new URL(url);
@@ -176,22 +165,18 @@ class ApiClient {
       url = urlObj.toString();
     }
 
-    // ✅ CRÍTICO: Obtener el token AHORA, no al inicio
-    const accessToken = this.getAccessToken();
     const config = {
       ...options,
       headers: {
         ...API_CONFIG.HEADERS,
         ...options.headers,
       },
+      // Habilitar envío de cookies automáticamente
+      credentials: 'include',
     };
-    
-    if (accessToken) {
-      config.headers['Authorization'] = `Bearer ${accessToken}`;
-      console.log('🔑 Token incluido en petición:', accessToken.substring(0, 30) + '...');
-    } else {
-      console.log('⚠️ No hay token para incluir en la petición');
-    }
+
+    // No necesitamos Authorization headers - el navegador envía cookies automáticamente
+    console.log('🍪 Cookies httpOnly serán enviadas automáticamente por el navegador');
 
     if (config.params) {
       delete config.params;
@@ -200,19 +185,55 @@ class ApiClient {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-      
+
       console.log(`📤 ${options.method || 'GET'} ${url}`);
-      
+
       const response = await fetch(url, {
         ...config,
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
 
       console.log(`📥 Respuesta: ${response.status}`);
 
-      // Manejar 401
+      // ⚠️ INTERCEPTOR DE SEGURIDAD: Verificar respuesta antes de procesar
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          message: response.statusText
+        }));
+
+        // 🚨 DETECTAR LOGOUT FORZADO
+        if (errorData.forceLogout === true) {
+          console.log('🚨 Respuesta con logout forzado detectado:', errorData);
+
+          try {
+            // Emitir evento SSE para logout forzado
+            const sseService = (await import('./sseService.js')).default;
+            sseService.emit('user_disabled', {
+              message: errorData.message,
+              action: 'logout',
+              reason: errorData.reason || 'security_required',
+              timestamp: new Date().toISOString()
+            });
+
+            // Esperar un poco para que el evento SSE sea procesado
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (sseError) {
+            console.warn('⚠️ Error enviando evento SSE de logout forzado:', sseError.message);
+          }
+
+          // No lanzar error, el SSE se encargará del logout
+          return errorData;
+        }
+
+        const error = new Error(errorData.message || `Error ${response.status}`);
+        error.status = response.status;
+        error.data = errorData;
+        throw error;
+      }
+
+      // ✅ Respuesta OK: continuar normalmente
       if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
         console.warn('🔄 Token expirado (401), intentando refrescar...');
         return await this.handleTokenRefresh(endpoint, options, retryCount);
@@ -223,37 +244,27 @@ class ApiClient {
         throw new Error('Demasiadas peticiones. Por favor, espera un momento e intenta nuevamente.');
       }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          message: response.statusText
-        }));
-        const error = new Error(errorData.message || `Error ${response.status}`);
-        error.status = response.status;
-        error.data = errorData;
-        throw error;
-      }
-
       const data = await response.json();
-      
+
       // Guardar tokens si vienen en la respuesta
       if (data.success && data.data && data.data.accessToken) {
         console.log('🔑 Tokens detectados en respuesta, guardando...');
         this.setTokens(data.data.accessToken, data.data.refreshToken);
       }
-      
+
       return data;
-      
+
     } catch (error) {
       if (error.name === 'AbortError') {
         const timeoutError = new Error('La petición tardó demasiado tiempo.');
         timeoutError.code = 'TIMEOUT';
-        
+
         if (retryCount < API_CONFIG.RETRY_ATTEMPTS) {
           console.warn(`⏳ Timeout. Reintentando... (${retryCount + 1}/${API_CONFIG.RETRY_ATTEMPTS})`);
           await this.delay(API_CONFIG.RETRY_DELAY);
           return this.request(endpoint, options, retryCount + 1);
         }
-        
+
         throw timeoutError;
       }
 

@@ -7,7 +7,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [rememberMe, setRememberMe] = useState(false)
+
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -26,7 +26,7 @@ export default function LoginPage() {
     try {
       console.log('🔐 Intentando iniciar sesión con:', email)
 
-      const userData = await login(email, password, rememberMe)
+      const userData = await login(email, password)
 
       // Determinar la ruta de redirección basada en si es administrativo
       let redirectPath = "/"
@@ -115,7 +115,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8 min-h-[830px] flex flex-col justify-center">
           {/* Logo móvil */}
           <div className="lg:hidden text-center">
-            <img src="/images/logo-matriz-sin-fondo-negro.png" alt="Matriz Inmobiliaria" className="mx-auto w-[180px] h-[60px] object-contain" />
+            <img
+              src="/images/logo-matriz-sin-fondo-negro.png"
+              alt="Matriz Inmobiliaria"
+              className="mx-auto w-[380px] h-[200px] object-contain"
+            />
           </div>
 
           {/* Header */}
@@ -194,20 +198,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Recordar sesión */}
-            <div className="flex items-center space-x-2">
-              <input
-                id="remember"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-5 w-5 border-2 border-gray-300 text-[#00457B] rounded-md"
-                disabled={isLoading}
-              />
-              <label htmlFor="remember" className="text-gray-600 font-medium">
-                Recordar sesión
-              </label>
-            </div>
+
 
             {/* Botón */}
             <button

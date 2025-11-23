@@ -1,9 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '../../../../../shared/components/ui/label';
 import { Input } from '../../../../../shared/components/ui/input';
-import { Briefcase, Building, DollarSign } from 'lucide-react';
+import { Briefcase, Building, DollarSign, Shield } from 'lucide-react';
+import rolesApiService from '../../../../../shared/services/rolesApiService';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../../shared/components/ui/select';
 
 const LaboralEditStep = ({ formData, errors, updateFormData, administrativo }) => {
+  const [roles, setRoles] = useState([]);
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const data = await rolesApiService.obtenerRoles();
+        setRoles(data.map(rol => ({ value: rol.id, label: rol.nombre })));
+      } catch (error) {
+        console.error("Error al cargar los roles:", error);
+      }
+    };
+    fetchRoles();
+  }, []);
+
+  const selectedRolLabel = roles.find(rol => rol.value === formData.rol)?.label;
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">

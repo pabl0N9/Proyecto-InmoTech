@@ -96,6 +96,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
   };
 
 
+
   const validateStep = (step) => {
     let newErrors = {};
 

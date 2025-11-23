@@ -8,12 +8,13 @@
 
 import { apiClient } from "./api.config";
 import axios from 'axios';
+import { formatTimeTo12Hour, formatTimeTo24Hour } from "../utils/time";
 
 const SERVICIO_MAP = {
   "Visita a Propiedad": 1,
-  "Avalúos": 2,
-  "Gestión de Alquileres": 3,
-  "Asesoría Legal": 4,
+  "AvalÃºos": 2,
+  "GestiÃ³n de Alquileres": 3,
+  "AsesorÃ­a Legal": 4,
 };
 
 const ESTADO_TO_ID_MAP = {
@@ -50,12 +51,12 @@ class CitaApiService {
       const citas = Array.isArray(response.data) ? response.data : response.data.data;
 
       if (!citas || !Array.isArray(citas)) {
-        throw new Error("Formato de respuesta inválido del servidor");
+        throw new Error("Formato de respuesta invÃ¡lido del servidor");
       }
 
       return citas.map(cita => this.transformarCitaDesdeAPI(cita));
     } catch (error) {
-      console.error("❌ Error al obtener citas:", error);
+      console.error("â Error al obtener citas:", error);
       throw new Error(error.message || "Error al cargar las citas desde el servidor");
     }
   }
@@ -80,17 +81,17 @@ class CitaApiService {
         id_usuario_creador: userId // ✅ Agregado: ID del usuario que crea la cita
       };
 
-      console.log("📤 Enviando nueva cita al backend:", payload);
+      console.log("ð¤ Enviando nueva cita al backend:", payload);
 
       const response = await apiClient.post("/citas", payload);
       
-      console.log("📥 Respuesta del backend al crear:", response.data);
+      console.log("ð¥ Respuesta del backend al crear:", response.data);
 
       // Manejar estructura: { success, message, data: {...} }
       const citaCreada = response.data.data || response.data;
       return this.transformarCitaDesdeAPI(citaCreada);
     } catch (error) {
-      console.error("❌ Error al crear cita:", error);
+      console.error("â Error al crear cita:", error);
       throw new Error(error.message || "Error al crear la cita");
     }
   }
@@ -115,25 +116,25 @@ class CitaApiService {
         id_estado_cita: this.mapEstadoToId(citaData.estado) || citaData.id_estado_cita || 1
       };
 
-      console.log("📤 Enviando actualización al backend:", { id, payload });
+      console.log("ð¤ Enviando actualizaciÃ³n al backend:", { id, payload });
 
       const response = await apiClient.put(`/citas/${id}`, payload);
       
-      console.log("📥 Respuesta del backend:", response.data);
+      console.log("ð¥ Respuesta del backend:", response.data);
 
       // Estructura: { success, message, data: {...} }
       const citaActualizada = response.data.data || response.data;
       
-      // ✅ CORRECCIÓN CRÍTICA: usar id_cita en lugar de id
+      // â CORRECCIÃN CRÃTICA: usar id_cita en lugar de id
       if (!citaActualizada || (!citaActualizada.id_cita && !citaActualizada.id)) {
-        console.error("❌ Respuesta inválida del backend:", response.data);
-        throw new Error("El servidor no retornó datos válidos de la cita actualizada");
+        console.error("â Respuesta invÃ¡lida del backend:", response.data);
+        throw new Error("El servidor no retornÃ³ datos vÃ¡lidos de la cita actualizada");
       }
 
-      console.log("✅ Cita actualizada correctamente:", citaActualizada);
+      console.log("â Cita actualizada correctamente:", citaActualizada);
       return this.transformarCitaDesdeAPI(citaActualizada);
     } catch (error) {
-      console.error("❌ Error en actualizarCita:", error);
+      console.error("â Error en actualizarCita:", error);
       throw new Error(error.message || "Error al actualizar la cita");
     }
   }
@@ -147,7 +148,7 @@ class CitaApiService {
       await apiClient.delete(`/citas/${id}`);
       return true;
     } catch (error) {
-      console.error("❌ Error al eliminar cita:", error);
+      console.error("â Error al eliminar cita:", error);
       throw new Error(error.message || "Error al eliminar la cita");
     }
   }
@@ -181,8 +182,8 @@ class CitaApiService {
     const camposRequeridos = {
       nombre_completo: "Nombre completo",
       apellido_completo: "Apellido completo",
-      numero_documento: "Número de documento",
-      telefono: "Teléfono",
+      numero_documento: "NÃºmero de documento",
+      telefono: "TelÃ©fono",
       fecha_cita: "Fecha de la cita",
       hora_inicio: "Hora de inicio"
     };
@@ -194,18 +195,36 @@ class CitaApiService {
     }
 
     if (citaData.numero_documento && !/^[0-9]+$/.test(citaData.numero_documento)) {
-      throw new Error("El número de documento debe contener solo números");
+      throw new Error("El nÃºmero de documento debe contener solo nÃºmeros");
     }
 
     if (citaData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(citaData.email)) {
-      throw new Error("El formato del correo electrónico es inválido");
+      throw new Error("El formato del correo electrÃ³nico es invÃ¡lido");
     }
 
     if (citaData.telefono) {
       const telefonoLimpio = citaData.telefono.replace(/\D/g, "");
       if (telefonoLimpio.length < 10) {
-        throw new Error("El teléfono debe tener al menos 10 dígitos");
+        throw new Error("El telÃ©fono debe tener al menos 10 dÃ­gitos");
       }
+    }
+  }
+
+  validarDatosReagendamiento(datosReagendamiento) {
+    if (!datosReagendamiento.fecha_cita) {
+      throw new Error("La fecha de la cita es obligatoria");
+    }
+
+    if (!datosReagendamiento.hora_inicio) {
+      throw new Error("La hora de inicio es obligatoria");
+    }
+
+    if (!datosReagendamiento.motivo_reagendamiento || datosReagendamiento.motivo_reagendamiento.trim().length < 10) {
+      throw new Error("El motivo de reagendamiento es obligatorio y debe tener al menos 10 caracteres");
+    }
+
+    if (!datosReagendamiento.id_agente_asignado) {
+      throw new Error("El agente asignado es obligatorio");
     }
   }
 
@@ -227,8 +246,8 @@ class CitaApiService {
 
   mapTipoDocumentoToShort(tipo) {
     const map = {
-      "Cédula de Ciudadanía": "CC",
-      "Cédula de Extranjería": "CE",
+      "CÃ©dula de CiudadanÃ­a": "CC",
+      "CÃ©dula de ExtranjerÃ­a": "CE",
       "NIT": "NIT",
       "Pasaporte": "Pasaporte",
       "Tarjeta de Identidad": "TI",
@@ -237,7 +256,7 @@ class CitaApiService {
   }
 
   // ==========================================
-  // HELPERS - TELÉFONO
+  // HELPERS - TELÃFONO
   // ==========================================
 
   limpiarTelefono(telefono) {
@@ -281,12 +300,20 @@ class CitaApiService {
 
   calcularHoraFin(horaInicio) {
     const [horas, minutos] = horaInicio.split(":").map(Number);
-    const horaFin = horas + 1;
-    return `${String(horaFin).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`;
+    let horaFin = horas;
+    let minutosFin = minutos + 30; // â Citas de 30 minutos
+
+    if (minutosFin >= 60) {
+      horaFin += 1;
+      minutosFin = 0;
+    }
+
+    return `${String(horaFin).padStart(2, "0")}:${String(minutosFin).padStart(2, "0")}`;
   }
 
   /**
-   * ✅ CORREGIDO: Maneja formato ISO completo del backend (1970-01-01T06:00:00.000Z)
+   * ✅ CORREGIDO: Función para zona horaria Colombia (UTC-5)
+   * Los TIME fields de SQL Server son interpretados por Sequelize como UTC
    */
   formatHoraDesdeAPI(hora) {
     if (!hora || typeof hora !== 'string') {
@@ -295,53 +322,46 @@ class CitaApiService {
 
     try {
       const horaLimpia = hora.trim();
+      console.log("🔍 Formateando hora:", horaLimpia);
 
-      // Si viene en formato ISO completo (1970-01-01T06:00:00.000Z)
       if (horaLimpia.includes('T')) {
         const fecha = new Date(horaLimpia);
+
         if (isNaN(fecha.getTime())) {
+          console.warn("⚠️ Hora ISO inválida:", horaLimpia);
           return '9:00 am';
         }
 
-        // Extraer solo las horas y minutos UTC
-        const horas = fecha.getUTCHours();
-        const minutos = fecha.getUTCMinutes();
-        const isPM = horas >= 12;
-        let horas12 = horas === 0 ? 12 : (horas > 12 ? horas - 12 : horas);
-        return `${horas12}:${String(minutos).padStart(2, '0')} ${isPM ? 'pm' : 'am'}`;
+        const colombia24 = formatTimeTo24Hour(horaLimpia);
+        if (colombia24) {
+          const [horasColombia, minutosColombia] = colombia24
+            .split(':')
+            .map((value) => parseInt(value, 10));
+          console.log(`🔄 Hora UTC: ${fecha.getUTCHours()}:${fecha.getUTCMinutes()} → Hora Colombia: ${horasColombia}:${minutosColombia}`);
+        }
       }
 
-      // Si viene en formato HH:MM o HH:MM:SS
-      const match = horaLimpia.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-      if (!match) {
-        return '9:00 am';
+      const horaFormateada = formatTimeTo12Hour(horaLimpia);
+      if (horaFormateada) {
+        return horaFormateada;
       }
 
-      const horas = parseInt(match[1], 10);
-      const minutos = parseInt(match[2], 10);
-
-      if (isNaN(horas) || isNaN(minutos) || horas < 0 || horas > 23 || minutos < 0 || minutos > 59) {
-        return '9:00 am';
-      }
-
-      const isPM = horas >= 12;
-      let horas12 = horas === 0 ? 12 : (horas > 12 ? horas - 12 : horas);
-
-      return `${horas12}:${String(minutos).padStart(2, '0')} ${isPM ? 'pm' : 'am'}`;
+      console.warn("⚠️ Formato de hora no reconocido:", horaLimpia);
+      return '9:00 am';
     } catch (error) {
-      console.error("❌ Error al formatear hora:", error);
+      console.error("❌ Error crítico al formatear hora:", error, "Hora original:", hora);
       return '9:00 am';
     }
   }
 
   /**
-   * ✅ CORRECCIÓN CRÍTICA: Transformar correctamente la estructura del backend
+   * â CORRECCIÃN CRÃTICA: Transformar correctamente la estructura del backend
    * Backend usa: id_cita, id_persona, id_inmueble, etc.
    * Frontend necesita: id como alias de id_cita
    */
   transformarCitaDesdeAPI(citaAPI) {
     return {
-      // ✅ Usar id_cita del backend, pero también crear alias 'id' para el frontend
+      // â Usar id_cita del backend, pero tambiÃ©n crear alias 'id' para el frontend
       id: citaAPI.id_cita || citaAPI.id,
       id_cita: citaAPI.id_cita || citaAPI.id,
       
@@ -364,15 +384,20 @@ class CitaApiService {
       observaciones: citaAPI.observaciones,
       motivo_cancelacion: citaAPI.motivo_cancelacion,
       
-      // Fechas de auditoría
+      // Fechas de auditorÃ­a
       fecha_creacion: citaAPI.fecha_creacion,
       fecha_actualizacion: citaAPI.fecha_actualizacion,
       
+      // Contador de ediciones
+      ediciones_realizadas: citaAPI.ediciones_realizadas || 0,
+      ediciones_maximas: citaAPI.ediciones_maximas || 2,
+
       // Objetos relacionados
       cliente: citaAPI.cliente,
       inmueble: citaAPI.inmueble,
       servicio: citaAPI.servicio,
       agente: citaAPI.agente,
+      creador: citaAPI.creador,
       estado_detalle: citaAPI.estado
     };
   }
@@ -487,29 +512,30 @@ const citaApiService = new CitaApiService();
 export default citaApiService;
 
 /**
- * ✅ CORREGIDO: Función optimizada para cambiar solo el estado
+ * â CORREGIDO: FunciÃ³n optimizada para cambiar solo el estado
  */
 export const actualizarEstadoCita = async (idCita, idEstadoCita) => {
   try {
-    console.log(`🔄 Actualizando estado de cita ${idCita} a estado ${idEstadoCita} (endpoint optimizado)`);
+    console.log(`ð Actualizando estado de cita ${idCita} a estado ${idEstadoCita} (endpoint optimizado)`);
     
     const response = await apiClient.patch(`/citas/${idCita}/estado`, {
       id_estado_cita: idEstadoCita
     });
 
-    console.log("📥 Respuesta del servidor:", response.data);
+    console.log("ð¥ Respuesta del servidor:", response.data);
 
     // Estructura: { success, message, data: {...} }
     const citaActualizada = response.data.data || response.data;
     
     if (!citaActualizada || (!citaActualizada.id_cita && !citaActualizada.id)) {
-      throw new Error("El servidor no retornó datos válidos de la cita actualizada");
+      throw new Error("El servidor no retornÃ³ datos vÃ¡lidos de la cita actualizada");
     }
 
-    console.log("✅ Estado actualizado correctamente");
+    console.log("â Estado actualizado correctamente");
     return citaApiService.transformarCitaDesdeAPI(citaActualizada);
   } catch (error) {
-    console.error("❌ Error en actualizarEstadoCita:", error);
+    console.error("â Error en actualizarEstadoCita:", error);
     throw error;
   }
 };
+

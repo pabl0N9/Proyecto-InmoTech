@@ -146,7 +146,6 @@ GO
 -- =====================================================================================================================
 -- PASO 3: TABLA DE ADMINISTRATIVOS (PERSONAL INTERNO)
 -- =====================================================================================================================
-
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Administrativos]') AND type = 'U')
 BEGIN
     CREATE TABLE Administrativos (

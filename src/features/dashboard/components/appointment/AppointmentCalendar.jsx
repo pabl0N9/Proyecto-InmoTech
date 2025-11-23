@@ -18,6 +18,7 @@ import {
 import { Calendar, ChevronLeft, ChevronRight, Clock, User, MapPin, Plus } from 'lucide-react';
 import AppointmentCard from './AppointmentCard';
 import ActionsPopover from './ActionsPopover';
+import UserActionsPopover from '../../../../features/appointments/components/UserActionsPopover';
 import DayListModal from './DayListModal';
 import ConfirmationDialog from '../../../../shared/components/ui/ConfirmationDialog';
 import RescheduleConfirmModal from './RescheduleConfirmModal';
@@ -59,7 +60,7 @@ const DayCell = ({
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       className={`
-        day-cell min-h-[120px] p-2 border border-slate-200 rounded-lg transition-all duration-200 relative
+        day-cell min-h-[100px] max-h-[120px] p-1.5 border border-slate-200 rounded-lg transition-all duration-200 relative
         ${day ? 'hover:shadow-md cursor-pointer' : ''}
         ${isToday ? 'bg-blue-50 border-blue-300' : 'bg-white hover:bg-slate-50'}
         ${isOver ? 'ring-2 ring-blue-400 ring-opacity-50 bg-blue-25' : ''}
@@ -132,7 +133,9 @@ const AppointmentCalendar = ({
   onRescheduleAppointment,
   onCreateAppointment,
   onAcceptAppointment,
-  onRejectAppointment
+  onRejectAppointment,
+  onOpenRescheduleModal,
+  userMode = false
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeAppointment, setActiveAppointment] = useState(null);
@@ -141,6 +144,7 @@ const AppointmentCalendar = ({
   const [dayListModal, setDayListModal] = useState({ isOpen: false, date: null, appointments: [] });
   const [rescheduleConfirm, setRescheduleConfirm] = useState({ isOpen: false, appointment: null, newDate: null });
   const [tempRescheduledAppointments, setTempRescheduledAppointments] = useState({});
+  const [isNavigating, setIsNavigating] = useState(false);
   const { toast } = useToast();
   const { hasPermission } = useAuth();
 
@@ -238,24 +242,24 @@ const AppointmentCalendar = ({
   const handleDragEnd = (event) => {
     const { active, over } = event;
     setActiveAppointment(null);
-  
+
     if (!over) return;
-  
+
     // ✅ CORREGIDO: Buscar por id_cita o id
     const appointment = active.data.current?.appointment ||
-      (active.id && citas.find(cita => 
+      (active.id && citas.find(cita =>
         `appointment-${cita.id_cita}` === active.id || `appointment-${cita.id}` === active.id
       ));
-  
+
     const targetDay = over.data.current?.day;
     const targetDate = over.data.current?.date;
-  
+
     if (!appointment || !targetDate) return;
-  
+
     // ✅ CORREGIDO: Comparar con fecha_cita
     const appointmentDate = appointment.fecha_cita || appointment.fecha;
     if (appointmentDate === targetDate) return;
-  
+
     // Validate date is not in the past
     const today = new Date().toISOString().split('T')[0];
     if (targetDate < today) {
@@ -266,30 +270,88 @@ const AppointmentCalendar = ({
       });
       return;
     }
-  
+
+    const maxEdits = appointment.ediciones_maximas ?? 2;
+    const usedEdits = appointment.ediciones_realizadas ?? 0;
+
+    if (userMode && usedEdits >= maxEdits) {
+      toast({
+        title: "Límite de ediciones alcanzado",
+        description: "No puedes mover esta cita nuevamente.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // ✅ CORREGIDO: Usar id_cita o id
     const appointmentId = appointment.id_cita || appointment.id;
-    
+
     // Temporarily update appointment date for visual feedback
     setTempRescheduledAppointments(prev => ({
       ...prev,
       [appointmentId]: targetDate
     }));
-  
-    // Show confirmation modal
-    setRescheduleConfirm({
-      isOpen: true,
-      appointment,
-      newDate: targetDate
+
+    // Show confirmation modal - use custom modal for user mode or default modal
+    if (userMode && onOpenRescheduleModal) {
+      onOpenRescheduleModal(appointment, targetDate);
+      // Clean up temp state since we'll handle it in the parent component
+      setTempRescheduledAppointments(prev => {
+        const copy = { ...prev };
+        delete copy[appointmentId];
+        return copy;
+      });
+    } else {
+      setRescheduleConfirm({
+        isOpen: true,
+        appointment,
+        newDate: targetDate
+      });
+    }
+  };
+
+  // Función para manejar navegación automática durante drag
+  const handleNavigate = (direction) => {
+    if (isNavigating) return; // Evitar navegación múltiple
+
+    setIsNavigating(true);
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() + direction);
+      return newDate;
     });
+
+    // Reset navigation flag after a short delay
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 300);
+  };
+
+  // Nueva función para manejar navegación automática durante drag
+  const handleDragOver = (event) => {
+    const { active, over } = event;
+
+    if (!active || !over) return;
+
+    // Solo procesar si estamos arrastrando una cita
+    const appointment = active.data.current?.appointment;
+    if (!appointment) return;
+
+    // Detectar si estamos sobre un área especial de navegación
+    if (over.id === 'nav-prev-month' || over.id === 'nav-next-month') {
+      const direction = over.id === 'nav-prev-month' ? -1 : 1;
+      handleNavigate(direction);
+    }
   };
       
-  const handleRescheduleConfirm = () => {
-    if (rescheduleConfirm.appointment && rescheduleConfirm.newDate) {
+  const handleRescheduleConfirm = (reagendamientoData) => {
+    if (rescheduleConfirm.appointment && reagendamientoData) {
       // ✅ CORREGIDO: Usar id_cita o id
       const appointmentId = rescheduleConfirm.appointment.id_cita || rescheduleConfirm.appointment.id;
-      onRescheduleAppointment(appointmentId, rescheduleConfirm.newDate);
-      
+
+      // Pasar todos los datos de reagendamiento (incluyendo motivo y nueva hora)
+      onRescheduleAppointment(appointmentId, reagendamientoData);
+
       setTempRescheduledAppointments(prev => {
         const copy = { ...prev };
         delete copy[appointmentId];
@@ -348,8 +410,30 @@ const AppointmentCalendar = ({
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
       >
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 p-6">
+        {/* Zonas invisibles para navegación automática durante drag */}
+        <div className="fixed inset-0 pointer-events-none z-10">
+          {/* Zona izquierda para mes anterior */}
+          <div className="absolute left-0 top-0 w-20 h-full">
+            <NavigationZone
+              id="nav-prev-month"
+              direction={-1}
+              onNavigate={handleNavigate}
+            />
+          </div>
+
+          {/* Zona derecha para mes siguiente */}
+          <div className="absolute right-0 top-0 w-20 h-full">
+            <NavigationZone
+              id="nav-next-month"
+              direction={1}
+              onNavigate={handleNavigate}
+            />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 p-6 relative">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
@@ -459,19 +543,31 @@ const AppointmentCalendar = ({
       </DndContext>
 
       {/* Actions Popover */}
-      <ActionsPopover
-        isOpen={popoverState.isOpen}
-        onClose={closePopover}
-        referenceElement={popoverState.referenceElement}
-        appointment={popoverState.appointment}
-        date={popoverState.date}
-        onView={onViewAppointment}
-        onEdit={onEditAppointment}
-        onDelete={onDeleteAppointment}
-        onCreate={onCreateAppointment}
-        onAccept={onAcceptAppointment}
-        onReject={onRejectAppointment}
-      />
+      {userMode ? (
+        <UserActionsPopover
+          isOpen={popoverState.isOpen}
+          onClose={closePopover}
+          referenceElement={popoverState.referenceElement}
+          appointment={popoverState.appointment}
+          onView={onViewAppointment}
+          onEdit={onEditAppointment}
+          onCancel={onDeleteAppointment}
+        />
+      ) : (
+        <ActionsPopover
+          isOpen={popoverState.isOpen}
+          onClose={closePopover}
+          referenceElement={popoverState.referenceElement}
+          appointment={popoverState.appointment}
+          date={popoverState.date}
+          onView={onViewAppointment}
+          onEdit={onEditAppointment}
+          onDelete={onDeleteAppointment}
+          onCreate={onCreateAppointment}
+          onAccept={onAcceptAppointment}
+          onReject={onRejectAppointment}
+        />
+      )}
 
       {/* Day List Modal */}
       <DayListModal

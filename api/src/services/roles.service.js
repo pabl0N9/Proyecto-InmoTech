@@ -2,6 +2,7 @@ const { Rol, Persona, PersonasRol, Permiso } = require('../models');
 const { sequelize } = require('../config/database');
 const { Op } = require('sequelize'); // ✅ AGREGADO: Importar Op
 const logger = require('../utils/logger');
+const { buildPermissionsPayload, normalizePermissionsStructure } = require('../utils/permissions.helper');
 
 class RolesService {
   

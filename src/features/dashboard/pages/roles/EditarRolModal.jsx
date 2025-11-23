@@ -59,7 +59,7 @@ const modulesData = [
     key: "gVentas",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: DollarSign,
-    color: "bg-green-50 border-green-200",
+    color: "bg-slate-50 border-slate-200",
     description: "Control de procesos de venta y transacciones"
   },
   {
@@ -75,12 +75,12 @@ const modulesData = [
     key: "gArriendos",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Key,
-    color: "bg-indigo-50 border-indigo-200",
+    color: "bg-slate-50 border-slate-200",
     description: "Control de propiedades en arriendo y pagos"
   },
   {
     name: "Reportes Inmobiliarios",
-    key: "gReporteInmuebles",
+    key: "reportes",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: BarChart3,
     color: "bg-cyan-50 border-cyan-200",

@@ -43,6 +43,11 @@ const Persona = sequelize.define('Personas', {
     type: DataTypes.STRING(15),
     allowNull: true
   },
+  correo_verificado: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   tiene_cuenta: {
     type: DataTypes.BOOLEAN,
     allowNull: false,

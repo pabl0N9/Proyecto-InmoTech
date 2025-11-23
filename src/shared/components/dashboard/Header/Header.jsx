@@ -6,9 +6,11 @@ import ViewAppointmentModal from '../../../../features/dashboard/components/appo
 import ConfirmationDialog from '../../../components/ui/ConfirmationDialog';
 import { useAppointments } from '../../../contexts/AppointmentContext';
 import { useToast } from '../../../hooks/use-toast';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const Header = () => {
   const { appointments, updateAppointmentStatus } = useAppointments();
+  const { user } = useAuth();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
@@ -91,6 +93,41 @@ const Header = () => {
     setIsNotificationOpen(false);
   };
 
+  // Función para obtener el nombre completo del usuario
+  const getUserFullName = () => {
+    if (!user) return 'Usuario';
+
+    // Intentar diferentes campos para el nombre
+    const firstName = user.nombre_completo || user.primer_nombre || user.nombres || '';
+    const lastName = user.apellido_completo || user.primer_apellido || user.apellidos || '';
+
+    const fullName = `${firstName} ${lastName}`.trim();
+    return fullName || user.email || 'Usuario';
+  };
+
+  // Función para obtener el rol principal del usuario
+  const getUserRole = () => {
+    if (!user || !user.roles) return 'Usuario';
+
+    // Extraer nombres de roles (manejar tanto objetos como strings)
+    const roleNames = user.roles.map(rol =>
+      typeof rol === 'object' ? rol.nombre_rol : rol
+    ).filter(Boolean);
+
+    // Si es Super Administrador, mostrar eso
+    if (roleNames.includes('Super Administrador')) {
+      return 'Super Administrador';
+    }
+
+    // Si es Administrador
+    if (roleNames.includes('Administrador')) {
+      return 'Administrador';
+    }
+
+    // Mostrar el primer rol disponible
+    return roleNames[0] || 'Usuario';
+  };
+
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -99,7 +136,9 @@ const Header = () => {
       className="h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm flex items-center justify-between px-6 relative"
     >
       <div className="flex items-center space-x-4">
-        <h2 className="text-xl font-semibold text-slate-800">Dashboard Principal</h2>
+        <h2 className="text-xl font-semibold text-slate-800">
+          Bienvenido, {getUserFullName()}
+        </h2>
       </div>
 
       <div className="flex items-center space-x-4">
@@ -148,8 +187,8 @@ const Header = () => {
         >
           <MdAccountCircle className="text-slate-600" size={24} />
           <div className="text-sm">
-            <p className="font-medium text-slate-800">Juan Pérez</p>
-            <p className="text-slate-500">Administrador</p>
+            <p className="font-medium text-slate-800">{getUserFullName()}</p>
+            <p className="text-slate-500">{getUserRole()}</p>
           </div>
         </motion.div>
       </div>

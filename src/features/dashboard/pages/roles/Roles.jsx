@@ -9,6 +9,7 @@ import ConfirmationDialog from "../../../../shared/components/ui/ConfirmationDia
 import rolesApiService from "../../../../shared/services/rolesApiService";
 import { useAuth } from "../../../../shared/contexts/AuthContext";
 import { useToast } from "../../../../shared/hooks/use-toast";
+import EmptyState from "../../../../shared/components/ui/EmptyState";
 import "./Switch.css";
 
 const RolesContent = () => {
@@ -289,13 +290,11 @@ const RolesContent = () => {
     }
 
     if (roles.length === 0) {
-      return (
-        <div className="px-6 py-8 text-center">
-          <Shield className="w-12 h-12 mx-auto text-slate-400 mb-4" />
-          <p className="text-slate-600 font-medium mb-2">No hay roles disponibles</p>
-          <p className="text-slate-500">No se encontraron roles en el sistema.</p>
-        </div>
-      );
+      return <EmptyState message="No se encontraron roles en el sistema." />;
+    }
+
+    if (rolesFiltrados.length === 0) {
+      return <EmptyState message="No hay roles que coincidan con los filtros aplicados." />;
     }
 
     return (

@@ -182,8 +182,12 @@ const AdministrativosTable = ({
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
-      {/* Desktop Table */}
-      <div className="hidden md:block">
+      {!administrativos || administrativos.length === 0 ? (
+        <EmptyState message="No hay personal administrativo para mostrar." />
+      ) : (
+        <>
+          {/* Desktop Table */}
+          <div className="hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -359,6 +363,8 @@ const AdministrativosTable = ({
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

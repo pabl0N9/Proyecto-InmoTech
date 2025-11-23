@@ -54,6 +54,19 @@ Persona.belongsToMany(Rol, {
   as: 'roles'
 });
 
+// Asociaciones de Permiso
+Permiso.belongsTo(Rol, {
+  foreignKey: 'id_rol',
+  as: 'rol'
+});
+
+Rol.hasMany(Permiso, {
+  foreignKey: 'id_rol',
+  as: 'permisos'
+});
+
+// FIN ASOCIACIONES DE PERMISOS
+
 Rol.belongsToMany(Persona, {
   through: PersonasRol,
   foreignKey: 'id_rol',

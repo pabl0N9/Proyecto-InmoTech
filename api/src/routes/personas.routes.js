@@ -18,6 +18,16 @@ router.get('/buscar',
   personasController.buscarPorDocumento
 );
 
+// Verificar si existe un correo electrónico (para validaciones en tiempo real)
+router.get('/verificar-correo/:email',
+  personasController.verificarCorreo
+);
+
+// Verificar si existe un número de documento (para validaciones en tiempo real)
+router.get('/verificar-documento/:tipo/:numero',
+  personasController.verificarDocumento
+);
+
 // Obtener perfil de la persona autenticada (solo el propio usuario)
 router.get('/me',
   personasController.obtenerPerfil
@@ -43,12 +53,17 @@ router.post('/',
   personasController.crearPersona
 );
 
+// Cambiar estado de persona (solo administradores) - RUTA ESPECÍFICA PRIMERO
+router.patch('/:id/estado',
+  personasController.cambiarEstado
+);
+
 // Obtener persona por ID (solo administradores)
 router.get('/:id',
   personasController.obtenerPorId
 );
 
-// Actualizar persona (solo administradores)
+// Actualizar persona (solo administradores) - RUTA GENÉRICA AL FINAL
 router.patch('/:id',
   validate(actualizarPersonaSchema),
   personasController.actualizarPersona

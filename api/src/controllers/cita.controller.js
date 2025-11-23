@@ -162,7 +162,10 @@ class CitaController {
       const cita = await citaService.reagendarCita(parsedId, {
         fecha_cita,
         hora_inicio,
-        hora_fin
+        hora_fin,
+        motivo_reagendamiento,
+        id_agente_asignado: idAgenteFinal,
+        id_usuario_realizo: req.user.id_persona
       });
 
       return res.status(200).json({
