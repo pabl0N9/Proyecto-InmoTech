@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Loader2, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
-import PasswordValidator from '../../../../shared/components/ui/PasswordValidator';
+import { X, User, Loader2 } from 'lucide-react';
 
 const EditUserModal = ({ isOpen, onClose, onSubmit, user }) => {
   const [formData, setFormData] = useState({
@@ -11,13 +10,9 @@ const EditUserModal = ({ isOpen, onClose, onSubmit, user }) => {
     correo: '',
     telefono: '',
     tipo_documento: 'CC',
-    numero_documento: '',
-    password: '',
-    confirmPassword: ''
+    numero_documento: ''
   });
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -27,9 +22,7 @@ const EditUserModal = ({ isOpen, onClose, onSubmit, user }) => {
         correo: user.correo || '',
         telefono: user.telefono || '',
         tipo_documento: user.tipo_documento || 'CC',
-        numero_documento: user.numero_documento || '',
-        password: '',
-        confirmPassword: ''
+        numero_documento: user.numero_documento || ''
       });
     }
   }, [user]);
@@ -37,16 +30,8 @@ const EditUserModal = ({ isOpen, onClose, onSubmit, user }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // Para editar, generalmente no se incluye contraseña a menos que se cambie
-      const dataToSubmit = { ...formData };
-      if (!dataToSubmit.password) {
-        delete dataToSubmit.password;
-        delete dataToSubmit.confirmPassword;
-      }
-
-      await onSubmit(dataToSubmit);
+      await onSubmit(formData);
     } finally {
       setLoading(false);
     }
@@ -96,174 +81,90 @@ const EditUserModal = ({ isOpen, onClose, onSubmit, user }) => {
             </motion.button>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
-            <div className="space-y-6">
-              {/* Información Personal */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Nombre Completo
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.nombre_completo}
-                    onChange={(e) => handleChange('nombre_completo', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                    placeholder="Ej: Juan Carlos"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Apellido Completo
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.apellido_completo}
-                    onChange={(e) => handleChange('apellido_completo', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                    placeholder="Ej: Pérez González"
-                  />
-                </div>
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Nombre Completo
+                </label>
+                <input
+                  type="text"
+                  value={formData.nombre_completo}
+                  onChange={(e) => handleChange('nombre_completo', e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                  placeholder="Ej: Juan Carlos"
+                />
               </div>
-
-              {/* Documento */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Tipo Documento
-                  </label>
-                  <select
-                    value={formData.tipo_documento}
-                    onChange={(e) => handleChange('tipo_documento', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="CC">CC</option>
-                    <option value="CE">CE</option>
-                    <option value="NIT">NIT</option>
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Número Documento
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.numero_documento}
-                    onChange={(e) => handleChange('numero_documento', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Apellido Completo
+                </label>
+                <input
+                  type="text"
+                  value={formData.apellido_completo}
+                  onChange={(e) => handleChange('apellido_completo', e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                  placeholder="Ej: Pérez González"
+                />
               </div>
+            </div>
 
-              {/* Contacto */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Correo Electrónico
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.correo}
-                    onChange={(e) => handleChange('correo', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Teléfono
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.telefono}
-                    onChange={(e) => handleChange('telefono', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Tipo Documento
+                </label>
+                <select
+                  value={formData.tipo_documento}
+                  onChange={(e) => handleChange('tipo_documento', e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="CC">CC</option>
+                  <option value="CE">CE</option>
+                  <option value="NIT">NIT</option>
+                  <option value="PAS">PAS</option>
+                  <option value="TI">TI</option>
+                </select>
               </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Número Documento
+                </label>
+                <input
+                  type="text"
+                  value={formData.numero_documento}
+                  onChange={(e) => handleChange('numero_documento', e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+            </div>
 
-              {/* Contraseña - Optional en edición */}
-              <div className="space-y-4">
-                <p className="text-sm text-slate-600">
-                  Deja los campos de contraseña vacíos si no quieres cambiarla
-                </p>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Nueva Contraseña (opcional)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) => handleChange('password', e.target.value)}
-                      className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                      placeholder="Nueva contraseña"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Indicador de fortaleza de contraseña */}
-                {formData.password && (
-                  <PasswordValidator password={formData.password} />
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Confirmar Nueva Contraseña
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={formData.confirmPassword}
-                      onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                      className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                      placeholder="Confirmar nueva contraseña"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Indicador de coincidencia de contraseñas - solo si hay contraseña */}
-                  {formData.password && formData.confirmPassword && (
-                    <div className="flex items-center mt-2">
-                      {formData.password === formData.confirmPassword ? (
-                        <>
-                          <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
-                          <span className="text-sm text-green-600">Las contraseñas coinciden</span>
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="h-4 w-4 text-red-500 mr-1" />
-                          <span className="text-sm text-red-600">Las contraseñas no coinciden</span>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Correo Electrónico
+                </label>
+                <input
+                  type="email"
+                  value={formData.correo}
+                  onChange={(e) => handleChange('correo', e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Teléfono
+                </label>
+                <input
+                  type="tel"
+                  value={formData.telefono}
+                  onChange={(e) => handleChange('telefono', e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
             </div>
           </form>
@@ -279,7 +180,7 @@ const EditUserModal = ({ isOpen, onClose, onSubmit, user }) => {
             <button
               type="submit"
               onClick={handleSubmit}
-              disabled={loading || (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword)}
+              disabled={loading}
               className="flex items-center gap-2 px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}

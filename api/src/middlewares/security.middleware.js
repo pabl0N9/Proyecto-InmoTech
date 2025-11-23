@@ -33,6 +33,29 @@ const createLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Limita intentos de login y operaciones sensibles de invitaciones
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: {
+    success: false,
+    message: 'Demasiados intentos. Intenta de nuevo en unos minutos.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const invitationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 15,
+  message: {
+    success: false,
+    message: 'Demasiadas solicitudes. Intenta nuevamente más tarde.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 const sanitizeInput = (req, res, next) => {
   // Permitir saltar sanitización si está marcada
   if (req.skipSanitize) {
@@ -68,5 +91,7 @@ module.exports = {
   generalLimiter,
   strictLimiter,
   createLimiter,
+  loginLimiter,
+  invitationLimiter,
   sanitizeInput
 };

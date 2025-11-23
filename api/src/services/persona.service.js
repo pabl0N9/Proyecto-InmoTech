@@ -352,10 +352,11 @@ class PersonaService {
       // Filtrar elementos undefined/null
       const validPersons = allPersonsResult.filter(p => p != null);
 
-      // Filtrar personas con rol 'Usuario' en memoria
-      const personasFiltradas = validPersons.filter(persona =>
-        persona.roles && persona.roles.some(rol => rol.nombre_rol === 'Usuario')
-      );
+      // Filtrar personas con rol 'Usuario' o sin rol (para mostrar invitaciones pendientes)
+      const personasFiltradas = validPersons.filter(persona => {
+        if (!persona.roles || persona.roles.length === 0) return true;
+        return persona.roles.some(rol => rol.nombre_rol === 'Usuario');
+      });
 
       // Aplicar paginación manual en memoria
       const totalPersonasFiltradas = personasFiltradas.length;
@@ -371,6 +372,7 @@ class PersonaService {
           correo: persona.correo,
           telefono: persona.telefono,
           tiene_cuenta: persona.tiene_cuenta,
+          correo_verificado: persona.correo_verificado,
           estado: persona.estado,
           fecha_registro: persona.fecha_registro,
           roles: persona.roles || []
@@ -401,39 +403,46 @@ class PersonaService {
         const datosPersona = {
           ...personaData,
           tiene_cuenta: !!password, // Si hay password, tiene cuenta
-          estado: personaData.estado ?? true
+          estado: personaData.estado ?? true,
+          correo_verificado: !!password
         };
 
         // Crear persona
         const persona = await this.crearOActualizar(datosPersona, t);
 
-        // Si se proporciona password, crear acceso y asignar rol Usuario
+        // Asignar rol Usuario siempre que se cree desde admin
+        const rolUsuario = await Rol.findOne({
+          where: { nombre_rol: 'Usuario' },
+          transaction: t
+        });
+
+        if (rolUsuario) {
+          const yaTieneRol = await PersonasRol.findOne({
+            where: { id_persona: persona.id_persona, id_rol: rolUsuario.id_rol },
+            transaction: t
+          });
+
+          if (!yaTieneRol) {
+            await PersonasRol.create({
+              id_persona: persona.id_persona,
+              id_rol: rolUsuario.id_rol
+            }, { transaction: t });
+          }
+        }
+
+        // Si se proporciona password, crear acceso
         if (password) {
           const hashedPassword = await bcryptUtils.hashPassword(password);
 
-          // Crear acceso
           await Acceso.create({
             id_persona: persona.id_persona,
             contrasena: hashedPassword,
             ultimo_cambio_password: new Date()
           }, { transaction: t });
 
-          // Asignar rol Usuario
-          const rolUsuario = await Rol.findOne({
-            where: { nombre_rol: 'Usuario' },
-            transaction: t
-          });
-
-          if (rolUsuario) {
-            await PersonasRol.create({
-              id_persona: persona.id_persona,
-              id_rol: rolUsuario.id_rol
-            }, { transaction: t });
-          }
-
-          logger.info(`Usuario administrativo creado: ${persona.correo || persona.nombre_completo}`);
+          logger.info(`Usuario administrativo creado con acceso: ${persona.correo || persona.nombre_completo}`);
         } else {
-          logger.info(`Persona administrativa creada (sin cuenta): ${persona.nombre_completo}`);
+          logger.info(`Persona administrativa creada (sin cuenta, con rol Usuario): ${persona.nombre_completo}`);
         }
 
         return persona;

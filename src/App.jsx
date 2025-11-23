@@ -16,6 +16,8 @@ import ServicesPage from './features/services/pages/ServicesPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
 import UserAppointmentsPage from './features/appointments/pages/UserAppointmentsPage'
+import ActivateAccountPage from './features/auth/pages/ActivateAccountPage'
+import VerifyEmailPage from './features/auth/pages/VerifyEmailPage'
 
 // Dashboard pages
 import DashboardPage from './features/dashboard/DashboardPage'
@@ -117,6 +119,14 @@ function App() {
               <Footer />
             </>
           }
+        />
+        <Route
+          path="/activar"
+          element={<ActivateAccountPage />}
+        />
+        <Route
+          path="/verificar-correo"
+          element={<VerifyEmailPage />}
         />
 
         {/* Authenticated user routes with navbar/footer */}

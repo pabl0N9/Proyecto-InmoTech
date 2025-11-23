@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import usersApiService from '../services/usersApiService';
+import invitacionApiService from '../services/invitacionApiService';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from './AuthContext';
 
@@ -17,8 +18,9 @@ export const UsersProvider = ({ children }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [loadingInvites, setLoadingInvites] = useState(new Set());
   const { toast } = useToast();
-  const { isAuthenticated, user, hasPermission, hasRole } = useAuth();
+  const { isAuthenticated, hasRole } = useAuth();
 
   // Cargar usuarios
   const loadUsers = useCallback(async (params = {}) => {
@@ -47,16 +49,15 @@ export const UsersProvider = ({ children }) => {
   // Actualizar usuario
   const updateUser = useCallback((userActualizado) => {
     if (!userActualizado || !userActualizado.id_persona) {
-      console.error('updateUser: userActualizado inválido', userActualizado);
+      console.error('updateUser: userActualizado invalido', userActualizado);
       return;
     }
     setUsers(prev =>
       prev.map(userItem =>
-        // ✅ Protección: verificar que userItem exista y tenga id_persona
         userItem?.id_persona === userActualizado.id_persona
           ? userActualizado
           : userItem
-      ).filter(Boolean) // ✅ Eliminar elementos undefined/null
+      ).filter(Boolean)
     );
   }, []);
 
@@ -73,14 +74,12 @@ export const UsersProvider = ({ children }) => {
       const estadoData = { estado: nuevoEstado };
       await usersApiService.changeUserStatus(id, estadoData);
 
-      // Actualizar el estado local
       setUsers(prev =>
         prev.map(userItem =>
-          // ✅ Protección: verificar que userItem exista y tenga id_persona
           userItem?.id_persona === id
             ? { ...userItem, estado: nuevoEstado }
             : userItem
-        ).filter(Boolean) // ✅ Eliminar elementos undefined/null
+        ).filter(Boolean)
       );
 
       return true;
@@ -90,12 +89,11 @@ export const UsersProvider = ({ children }) => {
     }
   }, []);
 
-  // Crear usuario (ahora usa /auth/register que retorna diferente estructura)
+  // Crear usuario
   const createUser = useCallback(async (userData) => {
     try {
       console.log('👤 USERS CONTEXT: Creando usuario con datos:', userData);
 
-      // ✅ VALIDACIÓN CRÍTICA: Asegurar que los campos requeridos estén presentes
       const sanitizedUserData = {
         ...userData,
         nombre_completo: userData.nombre_completo?.trim() || '',
@@ -109,19 +107,28 @@ export const UsersProvider = ({ children }) => {
       console.log('👤 USERS CONTEXT: Datos sanitizados antes de enviar:', sanitizedUserData);
 
       const response = await usersApiService.createUser(sanitizedUserData);
-
-      // ✅ La respuesta del registro tiene estructura diferente: { success, data: { user, accessToken, refreshToken } }
       const userFromResponse = response.data?.user || response.data;
 
       console.log('👤 USERS CONTEXT: Usuario creado en BD:', userFromResponse);
 
-      // Agregar a la lista local ( asegurar que tenga estado activado y nombres correctos )
-      // ✅ PROTECCIÓN ADICIONAL: Filtrar valores 'undefined'
+      const hasPassword = Boolean((sanitizedUserData.password || '').trim());
+      const tieneCuenta = userFromResponse.tiene_cuenta !== undefined ? userFromResponse.tiene_cuenta : hasPassword;
+      const correoVerificado = userFromResponse.correo_verificado !== undefined ? userFromResponse.correo_verificado : hasPassword;
+
+      const invitacionEstado = userFromResponse.estado === false
+        ? 'Cuenta deshabilitada'
+        : correoVerificado === false
+          ? 'Verificacion de correo pendiente'
+          : tieneCuenta === false
+            ? 'Pendiente de activacion (sin contrasena)'
+            : 'Cuenta activa';
+
       const userWithEstado = {
         id_persona: userFromResponse.id_persona,
-        estado: true,  // Usuarios registrados están activos por defecto
-        // Asegurar que tenga los nombres de campos que espera UserTable
-        // Filtrar 'undefined' convirtiéndolo a cadena vacía
+        estado: true,
+        tiene_cuenta: tieneCuenta,
+        correo_verificado: correoVerificado,
+        invitacion_estado: invitacionEstado,
         nombre_completo: (userFromResponse.nombre_completo !== 'undefined' ? userFromResponse.nombre_completo : '') || sanitizedUserData.nombre_completo,
         apellido_completo: (userFromResponse.apellido_completo !== 'undefined' ? userFromResponse.apellido_completo : '') || sanitizedUserData.apellido_completo,
         correo: userFromResponse.correo || userFromResponse.email || sanitizedUserData.correo,
@@ -135,7 +142,7 @@ export const UsersProvider = ({ children }) => {
       addUser(userWithEstado);
 
       toast({
-        title: "¡Éxito!",
+        title: "✅ Éxito!",
         description: "Usuario creado correctamente",
         variant: "default"
       });
@@ -144,13 +151,11 @@ export const UsersProvider = ({ children }) => {
     } catch (error) {
       console.error('Error creando usuario:', error);
 
-      // Extraer mensaje específico del error
       let errorMessage = "Error al crear usuario";
 
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
-        // Si hay errores de validación específicos
         errorMessage = error.response.data.errors.map(err => err.message).join(', ');
       } else if (error.message) {
         errorMessage = error.message;
@@ -165,7 +170,6 @@ export const UsersProvider = ({ children }) => {
     }
   }, [addUser, toast]);
 
-  // Actualizar usuario
   const updateUserComplete = useCallback(async (id, userData) => {
     try {
       const response = await usersApiService.updateUser(id, userData);
@@ -174,17 +178,15 @@ export const UsersProvider = ({ children }) => {
       console.log('updateUserComplete: response.data', response.data);
       console.log('updateUserComplete: userActualizado', userActualizado);
 
-      // Actualizar en la lista local
       if (userActualizado && userActualizado.id_persona) {
         updateUser(userActualizado);
       } else {
-        // Si no se pudo obtener el usuario actualizado, recargar la lista
-        console.warn('Usuario actualizado no válido, recargando lista...');
+        console.warn('Usuario actualizado no valido, recargando lista...');
         loadUsers();
       }
 
       toast({
-        title: "¡Éxito!",
+        title: "✅ Éxito!",
         description: "Usuario actualizado correctamente",
         variant: "default"
       });
@@ -201,16 +203,13 @@ export const UsersProvider = ({ children }) => {
     }
   }, [updateUser, loadUsers, toast]);
 
-  // Eliminar usuario
   const removeUser = useCallback(async (id) => {
     try {
       await usersApiService.deleteUser(id);
-
-      // Remover de la lista local
       deleteUser(id);
 
       toast({
-        title: "¡Éxito!",
+        title: "✅ Éxito!",
         description: "Usuario eliminado correctamente",
         variant: "default"
       });
@@ -227,7 +226,6 @@ export const UsersProvider = ({ children }) => {
     }
   }, [deleteUser, toast]);
 
-  // Obtener usuario por ID
   const getUserById = useCallback(async (id) => {
     try {
       const response = await usersApiService.getUserById(id);
@@ -238,7 +236,50 @@ export const UsersProvider = ({ children }) => {
     }
   }, []);
 
-  // Cargar datos iniciales solo si hay autenticación Y el usuario tiene permisos
+  // Reenviar invitacion/activacion
+  const resendInvitation = useCallback(async (user) => {
+    if (!user?.id_persona) return false;
+    setLoadingInvites(prev => {
+      const next = new Set(prev);
+      next.add(user.id_persona);
+      return next;
+    });
+    try {
+      await invitacionApiService.crearInvitacion(user.id_persona);
+      setUsers(prev => prev.map(u => {
+        if (u?.id_persona === user.id_persona) {
+          return {
+            ...u,
+            invitacion_estado: 'Verificacion de correo pendiente',
+            correo_verificado: u.correo_verificado ?? false,
+            tiene_cuenta: u.tiene_cuenta ?? false
+          };
+        }
+        return u;
+      }));
+      toast({
+        title: 'Invitacion reenviada',
+        description: `Se envio un nuevo correo a ${user.correo || 'el usuario'}.`,
+        variant: 'default'
+      });
+      return true;
+    } catch (error) {
+      console.error('Error reenviando invitacion:', error);
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || error.message || 'No se pudo reenviar la invitacion',
+        variant: 'destructive'
+      });
+      return false;
+    } finally {
+      setLoadingInvites(prev => {
+        const next = new Set(prev);
+        next.delete(user.id_persona);
+        return next;
+      });
+    }
+  }, [toast]);
+
   useEffect(() => {
     const isAdminRole = hasRole(['Super Administrador', 'Administrador']);
     const canReadUsers = isAdminRole;
@@ -258,6 +299,7 @@ export const UsersProvider = ({ children }) => {
     users,
     loading,
     error,
+    loadingInvites,
     loadUsers,
     addUser,
     updateUser,
@@ -266,7 +308,8 @@ export const UsersProvider = ({ children }) => {
     createUser,
     updateUserComplete,
     removeUser,
-    getUserById
+    getUserById,
+    resendInvitation
   };
 
   return (

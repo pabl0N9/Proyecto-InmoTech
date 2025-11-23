@@ -47,8 +47,8 @@ const HIGHLIGHT_THEMES = {
 const formatNumber = (value = 0) => value.toLocaleString('es-CO');
 const formatPercentage = (value = 0) => `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
 
-const RangeSelector = ({ value, onChange, onRefresh, loading }) => (
-  <div className="flex items-center gap-2">
+const RangeSelector = ({ value, onChange, onRefresh, loading, className = '' }) => (
+  <div className={`flex flex-wrap items-center gap-2 ${className}`}>
     {RANGE_OPTIONS.map((option) => (
       <button
         key={option.value}
@@ -290,12 +290,20 @@ const DashboardPage = () => {
   return (
     <div className="space-y-8 w-full min-w-0">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800">Bienvenido, {user?.nombre_completo?.split(' ')[0] || 'equipo'}</h1>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 w-full min-w-0">
+          <div className="min-w-0 text-center md:text-left">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-800 truncate">
+              Bienvenido, {user?.nombre_completo || 'equipo'}
+            </h1>
             <p className="text-slate-500 text-base mt-1">Panel inteligente con datos actualizados en tiempo real.</p>
           </div>
-          <RangeSelector value={range} onChange={setRange} onRefresh={handleRefresh} loading={loading} />
+          <RangeSelector
+            value={range}
+            onChange={setRange}
+            onRefresh={handleRefresh}
+            loading={loading}
+            className="justify-center md:justify-end"
+          />
         </div>
       </motion.div>
 

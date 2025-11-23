@@ -166,10 +166,19 @@ const refreshTokenSchema = Joi.object({
     })
 });
 
+const verifyEmailSchema = Joi.object({
+  token: Joi.string()
+    .required()
+    .messages({
+      'any.required': 'El token es obligatorio'
+    })
+});
+
 module.exports = {
   registroSchema,
   loginSchema,
   cambiarContrasenaSchema,
   actualizarPerfilSchema,
-  refreshTokenSchema
+  refreshTokenSchema,
+  verifyEmailSchema
 };

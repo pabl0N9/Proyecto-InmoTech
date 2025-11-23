@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Eye, Edit, ChevronLeft, ChevronRight, User, Mail, Phone, Calendar, Check, X } from 'lucide-react';
+import { Eye, Edit, ChevronLeft, ChevronRight, User, Mail, Phone, Calendar, Check, X, ShieldCheck, RefreshCcw } from 'lucide-react';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import usersApiService from '../../../../shared/services/usersApiService';
 import UserStatusSelector from '../../../../shared/components/ui/UserStatusSelector';
@@ -13,6 +13,8 @@ const UserTable = ({
   onDelete,
   onStatusChange,
   loadingStatusChanges,
+  onResendInvitation,
+  loadingResend = new Set(),
   currentPage,
   totalPages,
   onPageChange
@@ -41,6 +43,38 @@ const UserTable = ({
       </span>
     );
   }
+
+  const renderInvitationStatus = (user) => {
+    const isDisabled = user.estado === false;
+    const isVerified = user.correo_verificado === true || user.tiene_cuenta === true;
+    const rawText = (user.invitacion_estado || '').toLowerCase();
+
+    let shortLabel = 'Cuenta activa';
+    let variant = { bg: 'bg-green-100/60', text: 'text-green-800', border: 'border border-green-200' };
+
+    if (isDisabled) {
+      shortLabel = 'Cuenta deshabilitada';
+      variant = { bg: 'bg-red-100/70', text: 'text-red-800', border: 'border border-red-200' };
+    } else if (isVerified) {
+      shortLabel = 'Cuenta activa';
+      variant = { bg: 'bg-green-100/60', text: 'text-green-800', border: 'border border-green-200' };
+    } else if (rawText.includes('verificacion')) {
+      shortLabel = 'Verificacion pendiente';
+      variant = { bg: 'bg-amber-100/60', text: 'text-amber-800', border: 'border border-amber-200' };
+    } else if (rawText.includes('activacion') || rawText.includes('pendiente')) {
+      shortLabel = 'Activacion pendiente';
+      variant = { bg: 'bg-blue-100/60', text: 'text-blue-800', border: 'border border-blue-200' };
+    }
+
+    return (
+      <span
+        className={`inline-flex w-[150px] min-w-0 items-center justify-center px-2 py-1 rounded-md text-xs font-semibold truncate whitespace-nowrap ${variant.bg} ${variant.text} ${variant.border}`}
+        title={user.invitacion_estado || shortLabel}
+      >
+        {shortLabel}
+      </span>
+    );
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -82,6 +116,10 @@ const UserTable = ({
     return fecha ? formatDate(fecha) : '-';
   };
 
+  const shouldShowResend = (user) => {
+    return user && user.estado !== false && user.correo_verificado !== true;
+  };
+
   // Componente para vista móvil
   const MobileUserCard = ({ user }) => {
     const isDisabled = user.estado === false;
@@ -114,6 +152,10 @@ const UserTable = ({
             <Phone className="w-4 h-4" />
             <span>{formatPhoneNumber(getPhone(user))}</span>
           </div>
+          <div className="flex items-center gap-2 text-xs">
+            <ShieldCheck className="w-4 h-4 text-blue-600" />
+            {renderInvitationStatus(user)}
+          </div>
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Calendar className="w-4 h-4" />
             <span>Registro: {getRegistrationDate(user)}</span>
@@ -141,6 +183,19 @@ const UserTable = ({
             <Edit className="w-4 h-4" />
             Editar
           </motion.button>
+          {shouldShowResend(user) && (
+            <motion.button
+              key={`mobile-resend-${user.id_persona}`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onResendInvitation && onResendInvitation(user)}
+              disabled={loadingResend.has(user.id_persona)}
+              className="flex items-center gap-2 px-3 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors disabled:opacity-60"
+            >
+              <RefreshCcw className="w-4 h-4" />
+              {loadingResend.has(user.id_persona) ? 'Enviando...' : 'Reenviar'}
+            </motion.button>
+          )}
         </div>
       </motion.div>
     );
@@ -166,6 +221,9 @@ const UserTable = ({
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Contacto
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Acceso
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Estado
@@ -215,6 +273,9 @@ const UserTable = ({
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      {renderInvitationStatus(user)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <UserStatusSelector
                         value={user.estado}
                         onChange={(newStatus) => onStatusChange(user, newStatus)}
@@ -250,6 +311,26 @@ const UserTable = ({
                         >
                           <Edit className="w-4 h-4" />
                         </motion.button>
+                        {shouldShowResend(user) && (
+                          <motion.button
+                            key={`resend-${user.id_persona}`}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => onResendInvitation && onResendInvitation(user)}
+                            disabled={loadingResend.has(user.id_persona)}
+                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-60"
+                            title="Reenviar invitacion"
+                          >
+                            {loadingResend.has(user.id_persona) ? (
+                              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.25" />
+                                <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
+                              </svg>
+                            ) : (
+                              <RefreshCcw className="w-4 h-4" />
+                            )}
+                          </motion.button>
+                        )}
                       </div>
                     </td>
                   </motion.tr>
@@ -326,3 +407,7 @@ const UserTable = ({
 };
 
 export default UserTable;
+
+
+
+

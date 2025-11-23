@@ -21,7 +21,8 @@ const UsersPage = () => {
     createUser,
     updateUserComplete,
     removeUser,
-    changeUserStatus
+    changeUserStatus,
+    resendInvitation
   } = useUsers();
   const { user, hasRole } = useAuth();
 
@@ -45,6 +46,7 @@ const UsersPage = () => {
   const [loadingStatusChanges, setLoadingStatusChanges] = useState(new Set());
   const [serverErrors, setServerErrors] = useState({});
   const { toast } = useToast();
+  const [loadingResend, setLoadingResend] = useState(new Set());
 
   // Funciones auxiliares para filtrado por fecha
   const getDateRange = (filter) => {
@@ -242,6 +244,24 @@ const UsersPage = () => {
           variant: "destructive"
         });
       }
+    }
+  };
+
+  const handleResendInvitation = async (user) => {
+    if (!user) return;
+    setLoadingResend(prev => {
+      const next = new Set(prev);
+      next.add(user.id_persona);
+      return next;
+    });
+    try {
+      await resendInvitation(user);
+    } finally {
+      setLoadingResend(prev => {
+        const next = new Set(prev);
+        next.delete(user.id_persona);
+        return next;
+      });
     }
   };
 
@@ -444,6 +464,8 @@ const UsersPage = () => {
           onDelete={handleDeleteClick}
           onStatusChange={handleStatusChangeRequest}
           loadingStatusChanges={loadingStatusChanges}
+          loadingResend={loadingResend}
+          onResendInvitation={handleResendInvitation}
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}

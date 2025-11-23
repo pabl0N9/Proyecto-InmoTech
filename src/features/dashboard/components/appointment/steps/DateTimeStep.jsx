@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import citaApiService from '../../../../../shared/services/citaApiService';
+import { formatTimeTo12Hour } from '../../../../../shared/utils/time';
 
 const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -353,7 +354,7 @@ const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => 
                     }
                   `}
                 >
-                  {hour}
+                  {formatTimeTo12Hour(hour)}
                 </motion.button>
               ))}
             </div>

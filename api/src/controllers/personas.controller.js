@@ -1,4 +1,5 @@
 const personasService = require('../services/persona.service');
+const invitacionService = require('../services/invitacion.service');
 const logger = require('../utils/logger');
 
 class PersonasController {
@@ -158,6 +159,19 @@ class PersonasController {
       const { password, confirmPassword, ...personaDataSinPassword } = personaData;
 
       const persona = await personasService.crearPersonaAdmin(personaDataSinPassword, password);
+
+      // Si no se proporcionó contraseña, generar invitación administrativa para que cree su acceso
+      if (!password) {
+        try {
+          await invitacionService.crearInvitacion({
+            id_persona: persona.id_persona,
+            creado_por: req.user?.id || null,
+            tipo: 'admin_invite'
+          });
+        } catch (inviteError) {
+          logger.warn('No se pudo enviar invitación al crear persona:', inviteError.message);
+        }
+      }
 
       return res.status(201).json({
         success: true,

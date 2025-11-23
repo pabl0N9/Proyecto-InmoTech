@@ -1,40 +1,23 @@
 const authService = require('../services/auth.service');
-const { validarNoEsAdmin } = require('../middlewares/admin.middleware');
 const logger = require('../utils/logger');
 
+const buildCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const secureCookies = process.env.COOKIE_SECURE === 'true' || isProduction;
+  const sameSite = process.env.COOKIE_SAMESITE || 'lax';
+  return { secureCookies, sameSite };
+};
+
 class AuthController {
-  /**
-   * Registra un nuevo usuario
-   */
   async registrarUsuario(req, res, next) {
     try {
       const userData = req.validatedData;
       const result = await authService.registrarUsuario(userData);
 
-      // Enviar tokens como cookies httpOnly para registro
-      const { accessToken, refreshToken } = result;
-      const isProduction = process.env.NODE_ENV === 'production';
-
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        secure: isProduction, // Solo HTTPS en producción
-        sameSite: 'strict',
-        maxAge: 1 * 60 * 60 * 1000 // 1 hora
-      });
-
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
-      });
-
       return res.status(201).json({
         success: true,
-        message: 'Usuario registrado exitosamente',
-        data: {
-          user: result.user
-        }
+        message: 'Registro recibido. Revisa tu correo y confirma tu cuenta en las proximas 24 horas.',
+        data: { user: result.user }
       });
     } catch (error) {
       logger.error('Error en registro de usuario:', error);
@@ -42,68 +25,56 @@ class AuthController {
     }
   }
 
-  /**
-   * Inicia sesión de usuario
-   */
   async iniciarSesion(req, res, next) {
     try {
       const { email, password } = req.validatedData;
       const result = await authService.iniciarSesion(email, password);
-
-      // Enviar tokens como cookies httpOnly para login
       const { accessToken, refreshToken } = result;
-      const isProduction = process.env.NODE_ENV === 'production';
+      const { secureCookies, sameSite } = buildCookieOptions();
 
       res.cookie('accessToken', accessToken, {
         httpOnly: true,
-        secure: isProduction, // Solo HTTPS en producción
-        sameSite: 'strict',
-        maxAge: 1 * 60 * 60 * 1000 // 1 hora
+        secure: secureCookies,
+        sameSite,
+        maxAge: 60 * 60 * 1000 // 1h
       });
 
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+        secure: secureCookies,
+        sameSite,
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7d
       });
 
       return res.status(200).json({
         success: true,
-        message: 'Inicio de sesión exitoso',
-        data: {
-          user: result.user
-        }
+        message: 'Inicio de sesion exitoso',
+        data: { user: result.user }
       });
     } catch (error) {
-      logger.error('Error en inicio de sesión:', error);
+      logger.error('Error en inicio de sesion:', error);
       next(error);
     }
   }
 
-  /**
-   * Refresca el token de acceso
-   */
   async refrescarToken(req, res, next) {
     try {
       const { refreshToken } = req.validatedData;
       const tokens = await authService.refrescarToken(refreshToken);
-
-      // Enviar tokens refrescados como cookies httpOnly
-      const isProduction = process.env.NODE_ENV === 'production';
+      const { secureCookies, sameSite } = buildCookieOptions();
 
       res.cookie('accessToken', tokens.accessToken, {
         httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict',
-        maxAge: 1 * 60 * 60 * 1000 // 1 hora
+        secure: secureCookies,
+        sameSite,
+        maxAge: 60 * 60 * 1000
       });
 
       res.cookie('refreshToken', tokens.refreshToken, {
         httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+        secure: secureCookies,
+        sameSite,
+        maxAge: 7 * 24 * 60 * 60 * 1000
       });
 
       return res.status(200).json({
@@ -117,9 +88,24 @@ class AuthController {
     }
   }
 
-  /**
-   * Obtiene el perfil del usuario autenticado
-   */
+  async verificarCorreo(req, res, next) {
+    try {
+      const { token } = req.validatedQuery;
+      const data = await authService.verificarCorreo(token, { ip: req.ip, userAgent: req.get('user-agent') });
+      return res.status(200).json({
+        success: true,
+        message: 'Correo verificado exitosamente',
+        data
+      });
+    } catch (error) {
+      logger.warn('Verificacion de correo fallida:', error.message);
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
   async obtenerPerfil(req, res, next) {
     try {
       const userId = req.user.id;
@@ -133,23 +119,21 @@ class AuthController {
     } catch (error) {
       logger.error('Error obteniendo perfil:', error);
 
-      // ⚠️ MANEJAR ERROR PERSONALIZADO: Usuario deshabilitado
       if (error.message.includes('Usuario inactivo') || error.message.includes('deshabilitado')) {
-        logger.warn(`🚫 Logout forzado para usuario ${req.user.id}: ${error.message}`);
+        logger.warn(`Logout forzado para usuario ${req.user.id}: ${error.message}`);
         return res.status(423).json({
           success: false,
-          message: 'Tu cuenta ha sido deshabilitada por un administrador. Sesión terminada.',
+          message: 'Tu cuenta ha sido deshabilitada por un administrador. Sesion terminada.',
           forceLogout: true,
           reason: 'user_disabled'
         });
       }
 
-      // ⚠️ MANEJAR ERROR PERSONALIZADO: Acceso administrativo revocado
       if (error.message.includes('Acceso administrativo revocado')) {
-        logger.warn(`🚫 Logout forzado para usuario administrativo ${req.user.id}: ${error.message}`);
+        logger.warn(`Logout forzado para usuario administrativo ${req.user.id}: ${error.message}`);
         return res.status(403).json({
           success: false,
-          message: 'Tu acceso administrativo ha sido revocado. Sesión terminada.',
+          message: 'Tu acceso administrativo ha sido revocado. Sesion terminada.',
           forceLogout: true,
           reason: 'admin_access_revoked'
         });
@@ -159,19 +143,14 @@ class AuthController {
     }
   }
 
-  /**
-   * Actualiza el perfil del usuario autenticado
-   */
   async actualizarPerfil(req, res, next) {
     try {
       const userId = req.user.id;
       const updateData = req.validatedData;
 
-      // Aquí necesitaríamos un método en el servicio para actualizar perfil
-      // Por ahora, devolveremos un mensaje de que la funcionalidad está pendiente
       return res.status(200).json({
         success: true,
-        message: 'Funcionalidad de actualización de perfil pendiente de implementación',
+        message: 'Funcionalidad de actualizacion de perfil pendiente de implementacion',
         data: { userId, updateData }
       });
     } catch (error) {
@@ -180,9 +159,6 @@ class AuthController {
     }
   }
 
-  /**
-   * Cambia la contraseña del usuario autenticado
-   */
   async cambiarContrasena(req, res, next) {
     try {
       const userId = req.user.id;
@@ -192,47 +168,40 @@ class AuthController {
 
       return res.status(200).json({
         success: true,
-        message: 'Contraseña cambiada exitosamente'
+        message: 'Contrasena cambiada exitosamente'
       });
     } catch (error) {
-      logger.error('Error cambiando contraseña:', error);
+      logger.error('Error cambiando contrasena:', error);
       next(error);
     }
   }
 
-  /**
-   * Cierra la sesión del usuario (limpia cookies)
-   */
   async cerrarSesion(req, res, next) {
     try {
-      // Limpiar cookies de tokens
-      const isProduction = process.env.NODE_ENV === 'production';
+      const { secureCookies, sameSite } = buildCookieOptions();
 
       res.clearCookie('accessToken', {
         httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict'
+        secure: secureCookies,
+        sameSite
       });
 
       res.clearCookie('refreshToken', {
         httpOnly: true,
-        secure: isProduction,
-        sameSite: 'strict'
+        secure: secureCookies,
+        sameSite
       });
 
       return res.status(200).json({
         success: true,
-        message: 'Sesión cerrada exitosamente'
+        message: 'Sesion cerrada exitosamente'
       });
     } catch (error) {
-      logger.error('Error cerrando sesión:', error);
+      logger.error('Error cerrando sesion:', error);
       next(error);
     }
   }
 
-  /**
-   * Obtiene el timestamp del último cambio de contraseña
-   */
   async obtenerUltimoCambioPassword(req, res, next) {
     try {
       const userId = req.user.id;
@@ -240,11 +209,11 @@ class AuthController {
 
       return res.status(200).json({
         success: true,
-        message: 'Último cambio de contraseña obtenido exitosamente',
+        message: 'Ultimo cambio de contrasena obtenido exitosamente',
         data: { ultimo_cambio_password: ultimoCambio }
       });
     } catch (error) {
-      logger.error('Error obteniendo último cambio de contraseña:', error);
+      logger.error('Error obteniendo ultimo cambio de contrasena:', error);
       next(error);
     }
   }

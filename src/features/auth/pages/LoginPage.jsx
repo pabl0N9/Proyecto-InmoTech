@@ -115,7 +115,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8 min-h-[830px] flex flex-col justify-center">
           {/* Logo móvil */}
           <div className="lg:hidden text-center">
-            <img src="/images/logo-matriz-sin-fondo-negro.png" alt="Matriz Inmobiliaria" className="mx-auto w-[180px] h-[60px] object-contain" />
+            <img
+              src="/images/logo-matriz-sin-fondo-negro.png"
+              alt="Matriz Inmobiliaria"
+              className="mx-auto w-[380px] h-[200px] object-contain"
+            />
           </div>
 
           {/* Header */}

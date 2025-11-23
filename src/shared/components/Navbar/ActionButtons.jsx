@@ -179,17 +179,17 @@ const ActionButtons = ({ className = '', onButtonClick }) => {
   ];
 
   return (
-    <div className={`hidden md:flex items-center space-x-4 ${className}`}>
+    <div className={`hidden md:flex flex-nowrap items-center gap-2 lg:gap-3 ${className}`}>
       {buttons.map((button) => {
         const Icon = button.icon;
         return (
           <Link
             key={button.to}
             to={button.to}
-            className="flex items-center space-x-2 px-4 py-2 border border-white text-white bg-transparent rounded-full hover:bg-white hover:text-[#00457B] transition-all duration-300"
+            className="flex items-center gap-2 px-3 lg:px-4 py-2 border border-white text-white bg-transparent rounded-full hover:bg-white hover:text-[#00457B] transition-all duration-300 whitespace-nowrap min-w-[120px] justify-center"
             onClick={onButtonClick}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-4 w-4 flex-shrink-0" />
             <span className="text-sm font-medium">{button.label}</span>
           </Link>
         );

@@ -323,13 +323,12 @@ export default function RegistroPage() {
 
       await register(userData);
 
-      console.log('✅ Registro exitoso, redirigiendo a la página principal...');
       toast({
-        title: "¡Registro exitoso!",
-        description: "Tu cuenta ha sido creada correctamente. Bienvenido a Matriz Inmobiliaria.",
+        title: "Verifica tu correo",
+        description: "Te enviamos un enlace para confirmar tu correo en las proximas 24 horas.",
         variant: "success",
       });
-      navigate("/");
+      navigate("/login");
 
     } catch (error) {
       console.error('❌ Error en registro:', error);
@@ -427,7 +426,7 @@ export default function RegistroPage() {
       <div className="w-full max-w-md space-y-8 min-h-[830px] flex flex-col justify-center">
           {/* Logo móvil */}
           <div className="lg:hidden text-center">
-            <img src="/images/logo-matriz-sin-fondo-negro.png" alt="Matriz Inmobiliaria" width={160} height={50} className="mx-auto" />
+            <img src="/images/logo-matriz-sin-fondo-negro.png" alt="Matriz Inmobiliaria" width={210} height={50} className="mx-auto" />
           </div>
 
           {/* Header */}
@@ -833,3 +832,5 @@ export default function RegistroPage() {
     </div>
   );
 }
+
+

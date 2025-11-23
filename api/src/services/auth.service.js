@@ -1,21 +1,25 @@
-const { Persona, Acceso, PersonasRol, Rol, Administrativo } = require('../models');
+const { Persona, Acceso, PersonasRol, Rol, Administrativo, Invitacion } = require('../models');
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
 const { buildPermissionsResponse } = require('../utils/permissions.helper');
 const emailService = require('./email.service');
+const invitacionService = require('./invitacion.service');
+
+const VERIFY_INVITE_TYPE = 'signup_verify';
+const INVITE_MAX_REENVIOS = Number(process.env.INVITATION_MAX_REENVIOS || 3);
 
 class AuthService {
   /**
-   * Registra un nuevo usuario
+   * Registra un nuevo usuario (requiere verificación de correo)
    * @param {Object} userData - Datos del usuario
-   * @returns {Promise<Object>} Usuario creado con tokens
+   * @returns {Promise<Object>} Usuario creado
    */
   async registrarUsuario(userData) {
     const result = await sequelize.transaction(async (t) => {
       try {
-        const { email, password, ...personaData } = userData;
+        const { email, password } = userData;
 
         // Verificar si el email ya existe
         const personaExistente = await Persona.findOne({
@@ -36,7 +40,8 @@ class AuthService {
           correo: email,
           telefono: userData.telefono,
           tiene_cuenta: true,
-          estado: true
+          estado: true,
+          correo_verificado: false
         }, { transaction: t });
 
         // Crear acceso
@@ -61,24 +66,14 @@ class AuthService {
 
         logger.info(`Usuario registrado: ${email}`);
 
-        // Generar tokens
-        const payload = {
-          id: nuevaPersona.id_persona,
-          email: nuevaPersona.correo,
-          roles: rolUsuario ? [rolUsuario.nombre_rol] : []
-        };
-
-        const tokens = jwtUtils.generateTokens(payload);
-
         return {
           user: {
             id: nuevaPersona.id_persona,
             email: nuevaPersona.correo,
             nombre_completo: nuevaPersona.nombre_completo,
             apellido_completo: nuevaPersona.apellido_completo,
-            roles: payload.roles
-          },
-          ...tokens
+            roles: rolUsuario ? [rolUsuario.nombre_rol] : []
+          }
         };
 
       } catch (error) {
@@ -87,15 +82,15 @@ class AuthService {
       }
     });
 
-    // Enviar email de bienvenida después de que la transacción sea exitosa
+    // Enviar invitación de verificación de correo
     try {
-      await emailService.enviarEmailBienvenida({
-        email: result.user.email,
-        nombre_completo: result.user.nombre_completo
+      await invitacionService.crearInvitacion({
+        id_persona: result.user.id,
+        tipo: VERIFY_INVITE_TYPE,
+        creado_por: null
       });
     } catch (emailError) {
-      // Log del error pero no fallar el registro
-      logger.warn(`No se pudo enviar el email de bienvenida a ${result.user.email}:`, emailError.message);
+      logger.warn(`No se pudo enviar el email de verificación a ${result.user.email}:`, emailError.message);
     }
 
     return result;
@@ -113,7 +108,7 @@ class AuthService {
       const persona = await Persona.findOne({
         where: {
           correo: email,
-          estado: true // ✅ VALIDACIÓN: Solo usuarios activos pueden iniciar sesión
+          estado: true
         },
         include: [
           {
@@ -139,7 +134,7 @@ class AuthService {
             model: Administrativo,
             as: 'administrativo',
             required: false,
-            where: { estado_laboral: 'Activo' } // ✅ VALIDACIÓN: Solo administrativos activos
+            where: { estado_laboral: 'Activo' }
           }
         ]
       });
@@ -150,12 +145,11 @@ class AuthService {
 
       // Verificar contraseña
       const isValidPassword = await bcryptUtils.verifyPassword(password, persona.acceso.contrasena);
-
       if (!isValidPassword) {
         throw new Error('Credenciales inválidas');
       }
 
-      // ✅ VALIDACIÓN ADICIONAL: Si es administrativo (no super admin) y no está activo, denegar acceso
+      // Validación adicional administrativa
       const es_super_admin_login = persona.roles ?
         persona.roles.some(rol => rol.nombre_rol === 'Super Administrador') : false;
 
@@ -171,6 +165,26 @@ class AuthService {
 
       // Preparar roles y determinar si es administrativo
       const roles = persona.roles ? persona.roles.map(rol => rol.nombre_rol) : [];
+      const esAdminBase = roles.includes('Super Administrador') || roles.includes('Administrador');
+
+      // Bloquear verificación de correo solo a usuarios no administrativos
+      if (!esAdminBase && !persona.correo_verificado) {
+        const ultimaInvitacion = await Invitacion.findOne({
+          where: { id_persona: persona.id_persona, tipo: VERIFY_INVITE_TYPE },
+          order: [['creado_en', 'DESC']]
+        });
+
+        if (ultimaInvitacion && new Date() > ultimaInvitacion.expira_en) {
+          await Persona.update(
+            { estado: false },
+            { where: { id_persona: persona.id_persona } }
+          );
+          throw new Error('Tu cuenta fue deshabilitada por no verificar el correo en 24h. Solicita un reenvío.');
+        }
+
+        throw new Error('Debes verificar tu correo electrónico para iniciar sesión');
+      }
+
       const tiene_rol_administrativo = persona.roles ?
         persona.roles.some(rol => rol.es_rol_administrativo) : false;
 
@@ -237,24 +251,15 @@ class AuthService {
       // Verificar token de refresco
       const decoded = jwtUtils.verifyRefreshToken(refreshToken);
 
-      // Buscar usuario y roles - ✅ VERIFICAR ESTADO: Solo usuarios activos pueden refrescar tokens
+      // Buscar usuario y roles - Validar estado
       const persona = await Persona.findOne({
-        where: {
-          id_persona: decoded.id,
-          estado: true // ✅ Usuarios deshabilitados pierden sesión inmediatamente
-        },
+        where: { id_persona: decoded.id, estado: true },
         include: [
           {
             model: Rol,
             as: 'roles',
             through: { attributes: [] },
             attributes: ['id_rol', 'nombre_rol', 'es_rol_administrativo']
-          },
-          {
-            model: Administrativo,
-            as: 'administrativo',
-            required: false,
-            where: { estado_laboral: 'Activo' }
           }
         ]
       });
@@ -264,32 +269,29 @@ class AuthService {
       }
 
       const roles = persona.roles ? persona.roles.map(rol => rol.nombre_rol) : [];
-      const tiene_rol_administrativo = persona.roles ?
-        persona.roles.some(rol => rol.es_rol_administrativo) : false;
-
-      const es_super_admin = persona.roles ?
-        persona.roles.some(rol => rol.nombre_rol === 'Super Administrador') : false;
-
-      const es_administrativo = es_super_admin || (tiene_rol_administrativo && persona.administrativo !== null);
+      const permisos = buildPermissionsResponse({});
 
       // Generar nuevos tokens
       const payload = {
         id: persona.id_persona,
         email: persona.correo,
-        roles: roles,
-        es_administrativo: es_administrativo
+        roles: roles
       };
 
       const tokens = jwtUtils.generateTokens(payload);
 
-      logger.info(`Token refrescado para usuario: ${persona.correo} (Administrativo: ${es_administrativo})`);
-
-      return tokens;
-
+      return { ...tokens, roles, permisos };
     } catch (error) {
       logger.error('Error refrescando token:', error);
-      throw new Error('Token de refresco inválido');
+      throw error;
     }
+  }
+
+  /**
+   * Verifica correo electrónico usando el token de invitación
+   */
+  async verificarCorreo(token, meta = {}) {
+    return invitacionService.verificarCorreo(token, meta);
   }
 
   /**
@@ -336,12 +338,10 @@ class AuthService {
         throw new Error('Usuario no encontrado');
       }
 
-      // ✅ VERIFICACIÓN DE SEGURIDAD: Usuario debe estar activo
       if (!persona.estado) {
         throw new Error('Usuario inactivo - sesión terminada por seguridad');
       }
 
-      // Verificar si es administrativo y está activo
       const tiene_rol_administrativo = persona.roles ?
         persona.roles.some(rol => rol.es_rol_administrativo) : false;
 
@@ -350,12 +350,10 @@ class AuthService {
 
       const es_administrativo = es_super_admin || (tiene_rol_administrativo && persona.administrativo !== null);
 
-      // ✅ VERIFICACIÓN DE SEGURIDAD: Si es administrativo y no está activo laboralmente
       if (tiene_rol_administrativo && !es_super_admin && !persona.administrativo) {
         throw new Error('Acceso administrativo revocado - sesión terminada por seguridad');
       }
 
-      // Consolidar permisos de todos los roles del usuario
       const permisosConsolidados = persona.roles?.reduce((acc, rol) => {
         rol.permisos?.forEach(p => {
           if (!acc[p.modulo]) {
@@ -377,10 +375,11 @@ class AuthService {
         telefono: persona.telefono,
         fecha_registro: persona.fecha_registro,
         estado: persona.estado,
+        correo_verificado: persona.correo_verificado,
         roles: persona.roles ? persona.roles.map(rol => rol.nombre_rol) : [],
         es_administrativo: es_administrativo,
         permisos: permisos,
-        ultimo_cambio_password: persona.acceso.ultimo_cambio_password
+        ultimo_cambio_password: persona.acceso?.ultimo_cambio_password
       };
 
     } catch (error) {

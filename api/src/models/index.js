@@ -12,6 +12,7 @@ const Acceso = require('./Acceso');
 const PersonasRol = require('./PersonasRol');
 const PropiedadInmueble = require('./PropiedadInmueble');
 const Reporte = require('./Reporte');
+const Invitacion = require('./Invitacion');
 
 // Asociaciones de Cita
 Cita.belongsTo(Persona, {
@@ -112,6 +113,17 @@ Acceso.belongsTo(Persona, {
 Persona.hasOne(Acceso, {
   foreignKey: 'id_persona',
   as: 'acceso'
+});
+
+// Asociaciones de Invitacion
+Invitacion.belongsTo(Persona, {
+  foreignKey: 'id_persona',
+  as: 'persona'
+});
+
+Persona.hasMany(Invitacion, {
+  foreignKey: 'id_persona',
+  as: 'invitaciones'
 });
 
 // Asociaciones de PersonasRol
@@ -236,5 +248,6 @@ module.exports = {
   Acceso,
   PersonasRol,
   PropiedadInmueble,
-  Reporte
+  Reporte,
+  Invitacion
 };

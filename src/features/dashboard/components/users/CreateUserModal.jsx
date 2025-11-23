@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, UserCheck, Loader2, Eye, EyeOff, CheckCircle2, XCircle, User, Mail, Phone, Lock, AlertCircle } from 'lucide-react';
-import PasswordValidator from '../../../../shared/components/ui/PasswordValidator';
+import { X, UserCheck, Loader2, CheckCircle2, XCircle, User, Mail, Phone, AlertCircle } from 'lucide-react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../shared/components/ui/select';
 import { Input } from '../../../../shared/components/ui/input';
 import usersApiService from '../../../../shared/services/usersApiService';
@@ -16,14 +15,10 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
     correo: '',
     telefono: '',
     tipo_documento: '',
-    numero_documento: '',
-    password: '',
-    confirmPassword: ''
+    numero_documento: ''
   });
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Estados para validaciones en tiempo real
   const [checkingEmail, setCheckingEmail] = useState(false);
@@ -61,10 +56,10 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
     }
   };
 
-  // Funciones de validación (exactamente igual que RegisterPage.jsx)
+  // Validaciones
   const validateTipoDocumento = (tipo) => {
     if (!tipo) return 'El tipo de documento es obligatorio';
-    const tiposValidos = ['CC', 'CE', 'NIT', 'PASAPORTE', 'TI'];
+    const tiposValidos = ['CC', 'CE', 'NIT', 'PASAPORTE', 'TI', 'PAS'];
     if (!tiposValidos.includes(tipo)) return 'Tipo de documento inválido';
     return '';
   };
@@ -75,32 +70,21 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
 
     switch (tipo) {
       case 'CC':
-        if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
-          return 'La cédula debe tener entre 8 y 10 dígitos numéricos';
-        }
+        if (!/^[0-9]{8,10}$/.test(numeroLimpio)) return 'La cédula debe tener entre 8 y 10 dígitos numéricos';
         break;
       case 'CE':
-        if (!/^[0-9]{6,10}$/.test(numeroLimpio)) {
-          return 'La cédula de extranjería debe tener entre 6 y 10 dígitos numéricos';
-        }
+        if (!/^[0-9]{6,10}$/.test(numeroLimpio)) return 'La cédula de extranjería debe tener entre 6 y 10 dígitos numéricos';
         break;
       case 'NIT':
-        if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
-          return 'El NIT debe tener entre 8 y 10 dígitos numéricos';
-        }
+        if (!/^[0-9]{8,10}$/.test(numeroLimpio)) return 'El NIT debe tener entre 8 y 10 dígitos numéricos';
         break;
+      case 'PAS':
       case 'PASAPORTE':
-        if (numeroLimpio.length < 6 || numeroLimpio.length > 20) {
-          return 'El pasaporte debe tener entre 6 y 20 caracteres alfanuméricos';
-        }
-        if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) {
-          return 'El pasaporte solo puede contener letras y números';
-        }
+        if (numeroLimpio.length < 6 || numeroLimpio.length > 20) return 'El pasaporte debe tener entre 6 y 20 caracteres alfanuméricos';
+        if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) return 'El pasaporte solo puede contener letras y números';
         break;
       case 'TI':
-        if (!/^[0-9]{10,11}$/.test(numeroLimpio)) {
-          return 'La tarjeta de identidad debe tener 10 u 11 dígitos numéricos';
-        }
+        if (!/^[0-9]{10,11}$/.test(numeroLimpio)) return 'La tarjeta de identidad debe tener 10 u 11 dígitos numéricos';
         break;
       default:
         return 'Primero selecciona un tipo de documento';
@@ -110,23 +94,19 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
 
   const validateNombreCompleto = (nombre) => {
     if (!nombre || !nombre.trim()) return 'El nombre completo es obligatorio';
-    const nombreTrim = nombre.trim();
-    if (nombreTrim.length < 2) return 'El nombre debe tener al menos 2 caracteres';
-    if (nombreTrim.length > 50) return 'El nombre no puede tener más de 50 caracteres';
-    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(nombreTrim)) {
-      return 'El nombre solo puede contener letras y espacios';
-    }
+    const t = nombre.trim();
+    if (t.length < 2) return 'El nombre debe tener al menos 2 caracteres';
+    if (t.length > 50) return 'El nombre no puede tener más de 50 caracteres';
+    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(t)) return 'El nombre solo puede contener letras y espacios';
     return '';
   };
 
   const validateApellidoCompleto = (apellido) => {
     if (!apellido || !apellido.trim()) return 'El apellido completo es obligatorio';
-    const apellidoTrim = apellido.trim();
-    if (apellidoTrim.length < 2) return 'El apellido debe tener al menos 2 caracteres';
-    if (apellidoTrim.length > 50) return 'El apellido no puede tener más de 50 caracteres';
-    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(apellidoTrim)) {
-      return 'El apellido solo puede contener letras y espacios';
-    }
+    const t = apellido.trim();
+    if (t.length < 2) return 'El apellido debe tener al menos 2 caracteres';
+    if (t.length > 50) return 'El apellido no puede tener más de 50 caracteres';
+    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(t)) return 'El apellido solo puede contener letras y espacios';
     return '';
   };
 
@@ -140,32 +120,22 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
 
   const validateTelefono = (telefono) => {
     if (!telefono || !telefono.trim()) return 'El teléfono es obligatorio';
-
     const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, '');
     const digitosNumericos = telefonoLimpio.replace(/\D/g, '');
-
-    // Formato colombiano:
-    // - Sin +57: exactamente 10 dígitos, comenzando con 3 (ej: 3001234567)
-    // - Con +57: exactamente 12 dígitos totales, comenzando con +57 seguido de número que empiece con 3 (ej: +573001234567)
-
     if (telefonoLimpio.startsWith('+57')) {
-      // Con prefijo internacional: debe tener exactamente 12 dígitos (+57 + 10 dígitos)
       if (digitosNumericos.length !== 12 || !/^573\d{9}$/.test(digitosNumericos)) {
         return 'Con prefijo +57 debe tener formato +573XXXXXXXXX (12 dígitos totales)';
       }
     } else {
-      // Sin prefijo internacional: debe tener exactamente 10 dígitos comenzando con 3
       if (digitosNumericos.length !== 10 || !/^3\d{9}$/.test(digitosNumericos)) {
-        return 'Sin prefijo internacional debe tener 10 dígitos comenzando con 3 (ej: 3001234567)';
+        return 'Sin prefijo debe tener 10 dígitos comenzando con 3 (ej: 3001234567)';
       }
     }
-
     return '';
   };
 
   const validateField = (field, value) => {
-    let error = "";
-
+    let error = '';
     switch (field) {
       case 'nombre_completo':
         error = validateNombreCompleto(value);
@@ -185,51 +155,43 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
       case 'tipo_documento':
         error = validateTipoDocumento(value);
         break;
+      default:
+        break;
     }
 
     setValidationErrors(prev => {
       const newErrors = { ...prev };
-      if (error) {
-        newErrors[field] = error;
-      } else {
-        delete newErrors[field];
-      }
+      if (error) newErrors[field] = error; else delete newErrors[field];
       return newErrors;
     });
   };
 
-  // Función para verificar email con debouncing
   const checkEmailAvailability = useCallback(async (email) => {
     if (!email || !validateEmail(email)) {
       setEmailAvailable(null);
       return;
     }
-
     try {
       setCheckingEmail(true);
       const response = await usersApiService.verificarCorreoExistente(email);
-      setEmailAvailable(!response.data.existe); // true si no existe (disponible)
+      setEmailAvailable(!response.data.existe);
     } catch (error) {
-      console.error('Error verificando email:', error);
       setEmailAvailable(null);
     } finally {
       setCheckingEmail(false);
     }
   }, []);
 
-  // Función para verificar documento con debouncing
   const checkDocumentAvailability = useCallback(async (tipo, numero) => {
     if (!tipo || !numero || !validateNumeroDocumento(numero, tipo)) {
       setDocumentAvailable(null);
       return;
     }
-
     try {
       setCheckingDocument(true);
       const response = await usersApiService.verificarDocumentoExistente(tipo, numero);
-      setDocumentAvailable(!response.data.existe); // true si no existe (disponible)
+      setDocumentAvailable(!response.data.existe);
     } catch (error) {
-      console.error('Error verificando documento:', error);
       setDocumentAvailable(null);
     } finally {
       setCheckingDocument(false);
@@ -239,73 +201,40 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
 
-    // Validaciones en tiempo real con debouncing para campos específicos
     if (field === 'correo') {
-      // Limpiar timeout anterior
-      if (emailTimeoutRef.current) {
-        clearTimeout(emailTimeoutRef.current);
-      }
-
-      // Resetear estado
+      if (emailTimeoutRef.current) clearTimeout(emailTimeoutRef.current);
       setEmailAvailable(null);
-
-      // Si el email tiene contenido, verificar formato y disponibilidad después de 500ms
       if (value && value.trim()) {
         emailTimeoutRef.current = setTimeout(() => {
           const emailError = validateEmail(value);
-          if (!emailError) {
-            // Email válido, verificar disponibilidad
-            checkEmailAvailability(value);
-          } else {
-            // Email inválido, mostrar error de formato
-            setEmailAvailable(false); // Esto activará el mensaje de error
-          }
+          if (!emailError) checkEmailAvailability(value);
+          else setEmailAvailable(false);
         }, 500);
       }
     }
 
     if (field === 'numero_documento' || field === 'tipo_documento') {
-      // Limpiar timeout anterior
-      if (documentTimeoutRef.current) {
-        clearTimeout(documentTimeoutRef.current);
-      }
-
-      // Resetear estado
+      if (documentTimeoutRef.current) clearTimeout(documentTimeoutRef.current);
       setDocumentAvailable(null);
-
-      // Si hay contenido en número de documento, verificar después de 500ms
       const numero = field === 'numero_documento' ? value : formData.numero_documento;
       const tipo = field === 'tipo_documento' ? value : formData.tipo_documento;
-
       if (numero && numero.trim() && tipo) {
         documentTimeoutRef.current = setTimeout(() => {
           const docError = validateNumeroDocumento(numero, tipo);
-          if (!docError) {
-            // Documento válido, verificar disponibilidad
-            checkDocumentAvailability(tipo, numero);
-          } else {
-            // Documento inválido, mostrar error de formato
-            setDocumentAvailable(false); // Esto activará el mensaje de error
-          }
+          if (!docError) checkDocumentAvailability(tipo, numero);
+          else setDocumentAvailable(false);
         }, 500);
       }
     }
   };
 
-  // Validación inmediata cuando el usuario sale del campo (onBlur)
-  const handleBlur = (field) => {
-    validateField(field, formData[field]);
-  };
+  const handleBlur = (field) => validateField(field, formData[field]);
 
   const handleSelectChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     validateField(field, value);
-
-    // Para tipo de documento, verificar documento si ya hay número
     if (field === 'tipo_documento' && formData.numero_documento && !validateNumeroDocumento(formData.numero_documento, value)) {
-      if (documentTimeoutRef.current) {
-        clearTimeout(documentTimeoutRef.current);
-      }
+      if (documentTimeoutRef.current) clearTimeout(documentTimeoutRef.current);
       setDocumentAvailable(null);
       documentTimeoutRef.current = setTimeout(() => {
         checkDocumentAvailability(value, formData.numero_documento);
@@ -352,7 +281,6 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
-            {/* Mostrar error general si existe */}
             {serverErrors.general && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <div className="flex items-center text-red-600">
@@ -363,7 +291,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
             )}
 
             <div className="space-y-6">
-              {/* Campos de documento */}
+              {/* Documento */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-slate-700 font-medium flex items-center">
@@ -418,10 +346,9 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                       placeholder="Tu número de documento"
                       inputMode="numeric"
                       pattern="[0-9]*"
-                      maxLength={formData.tipo_documento === 'PASAPORTE' ? 20 : formData.tipo_documento === 'TI' ? 11 : 10}
+                      maxLength={formData.tipo_documento === 'PAS' ? 20 : formData.tipo_documento === 'TI' ? 11 : 10}
                     />
                     <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                    {/* Indicador de verificación */}
                     {checkingDocument && (
                       <Loader2 className="absolute right-4 top-3.5 h-5 w-5 text-blue-500 animate-spin" />
                     )}
@@ -454,7 +381,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                 </div>
               </div>
 
-              {/* Campos de nombre y apellido */}
+              {/* Nombre y apellido */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-slate-700 font-medium flex items-center">
@@ -528,7 +455,6 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                       maxLength={254}
                     />
                     <Mail className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                    {/* Indicador de verificación */}
                     {checkingEmail && (
                       <Loader2 className="absolute right-4 top-3.5 h-5 w-5 text-blue-500 animate-spin" />
                     )}
@@ -590,81 +516,6 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                   )}
                 </div>
               </div>
-
-              {/* Contraseña */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-slate-700 font-medium flex items-center">
-                    <Lock className="h-4 w-4 mr-2 text-[#00457B]" />
-                    Contraseña
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) => handleChange('password', e.target.value)}
-                      className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
-                      required
-                      placeholder="••••••••"
-                    />
-                    <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Indicador de fortaleza de contraseña */}
-                {formData.password && (
-                  <PasswordValidator password={formData.password} />
-                )}
-
-                <div className="space-y-2">
-                  <label className="text-slate-700 font-medium flex items-center">
-                    <Lock className="h-4 w-4 mr-2 text-[#00457B]" />
-                    Confirmar contraseña
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={formData.confirmPassword}
-                      onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                      className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
-                      required
-                      placeholder="••••••••"
-                    />
-                    <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-
-                  {/* Indicador de coincidencia de contraseñas */}
-                  {formData.password && formData.confirmPassword && (
-                    <div className="flex items-center mt-2">
-                      {formData.password === formData.confirmPassword ? (
-                        <>
-                          <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
-                          <span className="text-sm text-green-600">Las contraseñas coinciden</span>
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="h-4 w-4 text-red-500 mr-1" />
-                          <span className="text-sm text-red-600">Las contraseñas no coinciden</span>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           </form>
 
@@ -679,7 +530,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
             <button
               type="submit"
               onClick={handleSubmit}
-              disabled={loading || (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword) || Object.keys(validationErrors).length > 0 || !formData.nombre_completo || !formData.apellido_completo || !formData.correo || !formData.tipo_documento || !formData.numero_documento || !formData.password || !formData.confirmPassword}
+              disabled={loading || Object.keys(validationErrors).length > 0 || !formData.nombre_completo || !formData.apellido_completo || !formData.correo || !formData.tipo_documento || !formData.numero_documento}
               className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}

@@ -7,12 +7,12 @@ import CustomerStep from './steps/CustomerStep';
 import DateTimeStep from './steps/DateTimeStep';
 import DetailsStepStep from './steps/DetailsStep';
 import SummaryStepStep from './steps/SummaryStep';
-import ConfirmationModal from './ConfirmationModal';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import { useAppointments } from '../../../../shared/contexts/AppointmentContext';
 import { useAuth } from '../../../../shared/contexts/AuthContext';
 import { apiClient } from '../../../../shared/services/api.config';
+import citaApiService from '../../../../shared/services/citaApiService';
 
 const SERVICIO_MAP = {
   "Visita a Propiedad": 1,
@@ -46,8 +46,6 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
   const [errors, setErrors] = useState({});
   // ⭐ AGREGADO: Estado para búsqueda automática
   const [isSearchingPerson, setIsSearchingPerson] = useState(false);
-  // ✅ NUEVO: Estado para el modal de confirmación
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [isCreatingAppointment, setIsCreatingAppointment] = useState(false);
   const { toast } = useToast();
   const { createAppointment } = useAppointments();
@@ -436,10 +434,10 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
     return `${String(horaFin).padStart(2, "0")}:${String(minutosFin).padStart(2, "0")}`;
   };
 
-  // ✅ MODIFICADO: Ahora abre el modal de confirmación en lugar de crear directamente
+  // ✅ MODIFICADO: Crear la cita directamente sin modal de confirmación
   const handleSubmit = () => {
     if (validateAllSteps()) {
-      setShowConfirmationModal(true);
+      handleConfirmAppointment();
     } else {
       toast({
         title: "Campos requeridos",
@@ -485,8 +483,7 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
             variant: "destructive"
           });
 
-          // Cerrar modal de confirmación y regresar al paso de fecha/hora
-          setShowConfirmationModal(false);
+          // Regresar al paso de fecha/hora
           setCurrentStep(2);
           return;
         }
@@ -549,8 +546,7 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
         variant: "default"
       });
 
-      // Cerrar ambos modales
-      setShowConfirmationModal(false);
+      // Cerrar el modal
       handleClose();
     } catch (error) {
       console.error("Error al crear cita:", error);
@@ -826,14 +822,7 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
           </div>
         </motion.div>
 
-        {/* ✅ NUEVO: Modal de Confirmación */}
-        <ConfirmationModal
-          isOpen={showConfirmationModal}
-          onClose={handleCloseConfirmation}
-          onConfirm={handleConfirmAppointment}
-          formData={formData}
-          isLoading={isCreatingAppointment}
-        />
+
       </div>
     </AnimatePresence>,
     document.body

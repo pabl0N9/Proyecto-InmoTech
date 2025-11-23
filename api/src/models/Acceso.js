@@ -20,6 +20,11 @@ const Acceso = sequelize.define('Acceso', {
     type: DataTypes.STRING(255),
     allowNull: false
   },
+  password_change_required: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   fecha_creacion: {
     type: DataTypes.DATE,
     allowNull: false,
