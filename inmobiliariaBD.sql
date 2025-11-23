@@ -449,86 +449,166 @@ END
 ELSE
 BEGIN
     PRINT 'ℹ️ Tabla Compradores ya existe - verificando estructura...';
-    IF EXISTS (
-        SELECT 1 FROM sys.columns 
-        WHERE object_id = OBJECT_ID(N'Compradores')
-          AND name = 'id_inmueble'
-          AND is_nullable = 0
-    )
-    BEGIN
-        ALTER TABLE Compradores ALTER COLUMN id_inmueble INT NULL;
-    END
-
-    IF EXISTS (
-        SELECT 1 FROM sys.columns 
-        WHERE object_id = OBJECT_ID(N'Compradores')
-          AND name = 'fecha_compra'
-          AND is_nullable = 0
-    )
-    BEGIN
-        ALTER TABLE Compradores ALTER COLUMN fecha_compra DATE NULL;
-    END
-
-    IF EXISTS (
-        SELECT 1 FROM sys.columns 
-        WHERE object_id = OBJECT_ID(N'Compradores')
-          AND name = 'valor_compra'
-          AND is_nullable = 0
-    )
-    BEGIN
-        ALTER TABLE Compradores ALTER COLUMN valor_compra DECIMAL(15,2) NULL;
-    END
-
-    DECLARE @DefaultTipoCompra NVARCHAR(128);
-    SELECT @DefaultTipoCompra = dc.name
-    FROM sys.default_constraints dc
-    INNER JOIN sys.columns c ON dc.parent_object_id = c.object_id 
-        AND dc.parent_column_id = c.column_id
-    WHERE dc.parent_object_id = OBJECT_ID('Compradores')
-      AND c.name = 'tipo_compra';
-
-    IF @DefaultTipoCompra IS NOT NULL
-    BEGIN
-        EXEC('ALTER TABLE Compradores DROP CONSTRAINT ' + QUOTENAME(@DefaultTipoCompra));
-    END
-
-    IF NOT EXISTS (
-        SELECT 1 FROM sys.default_constraints 
-        WHERE parent_object_id = OBJECT_ID('Compradores')
-          AND name = 'DF_Compradores_TipoCompra'
-    )
-    BEGIN
-        ALTER TABLE Compradores 
-        ADD CONSTRAINT DF_Compradores_TipoCompra DEFAULT 'Pendiente' FOR tipo_compra;
-    END
-
-    DECLARE @CheckTipoCompra NVARCHAR(128);
-    SELECT @CheckTipoCompra = cc.name
-    FROM sys.check_constraints cc
-    INNER JOIN sys.columns c ON cc.parent_object_id = c.object_id 
-        AND cc.parent_column_id = c.column_id
-    WHERE cc.parent_object_id = OBJECT_ID('Compradores')
-      AND c.name = 'tipo_compra';
-
-    IF @CheckTipoCompra IS NOT NULL
-    BEGIN
-        EXEC('ALTER TABLE Compradores DROP CONSTRAINT ' + QUOTENAME(@CheckTipoCompra));
-    END
-
-    ALTER TABLE Compradores 
-    ADD CONSTRAINT CHK_Compradores_TipoCompra CHECK (tipo_compra IN ('Pendiente', 'Directa', 'Financiada', 'Mixta'));
-
-    IF EXISTS (
-        SELECT 1 FROM sys.check_constraints 
-        WHERE parent_object_id = OBJECT_ID('Compradores')
-          AND name = 'CHK_Compradores_ValorCompra'
-    )
-    BEGIN
-        ALTER TABLE Compradores DROP CONSTRAINT CHK_Compradores_ValorCompra;
-    END
-
-    ALTER TABLE Compradores 
-    ADD CONSTRAINT CHK_Compradores_ValorCompra CHECK (valor_compra IS NULL OR valor_compra > 0);
+    IF EXISTS (
+
+        SELECT 1 FROM sys.columns 
+
+        WHERE object_id = OBJECT_ID(N'Compradores')
+
+          AND name = 'id_inmueble'
+
+          AND is_nullable = 0
+
+    )
+
+    BEGIN
+
+        ALTER TABLE Compradores ALTER COLUMN id_inmueble INT NULL;
+
+    END
+
+
+
+    IF EXISTS (
+
+        SELECT 1 FROM sys.columns 
+
+        WHERE object_id = OBJECT_ID(N'Compradores')
+
+          AND name = 'fecha_compra'
+
+          AND is_nullable = 0
+
+    )
+
+    BEGIN
+
+        ALTER TABLE Compradores ALTER COLUMN fecha_compra DATE NULL;
+
+    END
+
+
+
+    IF EXISTS (
+
+        SELECT 1 FROM sys.columns 
+
+        WHERE object_id = OBJECT_ID(N'Compradores')
+
+          AND name = 'valor_compra'
+
+          AND is_nullable = 0
+
+    )
+
+    BEGIN
+
+        ALTER TABLE Compradores ALTER COLUMN valor_compra DECIMAL(15,2) NULL;
+
+    END
+
+
+
+    DECLARE @DefaultTipoCompra NVARCHAR(128);
+
+    SELECT @DefaultTipoCompra = dc.name
+
+    FROM sys.default_constraints dc
+
+    INNER JOIN sys.columns c ON dc.parent_object_id = c.object_id 
+
+        AND dc.parent_column_id = c.column_id
+
+    WHERE dc.parent_object_id = OBJECT_ID('Compradores')
+
+      AND c.name = 'tipo_compra';
+
+
+
+    IF @DefaultTipoCompra IS NOT NULL
+
+    BEGIN
+
+        EXEC('ALTER TABLE Compradores DROP CONSTRAINT ' + QUOTENAME(@DefaultTipoCompra));
+
+    END
+
+
+
+    IF NOT EXISTS (
+
+        SELECT 1 FROM sys.default_constraints 
+
+        WHERE parent_object_id = OBJECT_ID('Compradores')
+
+          AND name = 'DF_Compradores_TipoCompra'
+
+    )
+
+    BEGIN
+
+        ALTER TABLE Compradores 
+
+        ADD CONSTRAINT DF_Compradores_TipoCompra DEFAULT 'Pendiente' FOR tipo_compra;
+
+    END
+
+
+
+    DECLARE @CheckTipoCompra NVARCHAR(128);
+
+    SELECT @CheckTipoCompra = cc.name
+
+    FROM sys.check_constraints cc
+
+    INNER JOIN sys.columns c ON cc.parent_object_id = c.object_id 
+
+        AND cc.parent_column_id = c.column_id
+
+    WHERE cc.parent_object_id = OBJECT_ID('Compradores')
+
+      AND c.name = 'tipo_compra';
+
+
+
+    IF @CheckTipoCompra IS NOT NULL
+
+    BEGIN
+
+        EXEC('ALTER TABLE Compradores DROP CONSTRAINT ' + QUOTENAME(@CheckTipoCompra));
+
+    END
+
+
+
+    ALTER TABLE Compradores 
+
+    ADD CONSTRAINT CHK_Compradores_TipoCompra CHECK (tipo_compra IN ('Pendiente', 'Directa', 'Financiada', 'Mixta'));
+
+
+
+    IF EXISTS (
+
+        SELECT 1 FROM sys.check_constraints 
+
+        WHERE parent_object_id = OBJECT_ID('Compradores')
+
+          AND name = 'CHK_Compradores_ValorCompra'
+
+    )
+
+    BEGIN
+
+        ALTER TABLE Compradores DROP CONSTRAINT CHK_Compradores_ValorCompra;
+
+    END
+
+
+
+    ALTER TABLE Compradores 
+
+    ADD CONSTRAINT CHK_Compradores_ValorCompra CHECK (valor_compra IS NULL OR valor_compra > 0);
+
 END
 GO
 
