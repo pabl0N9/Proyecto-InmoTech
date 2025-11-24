@@ -40,7 +40,8 @@ const Persona = sequelize.define('Personas', {
     }
   },
   telefono: {
-    type: DataTypes.STRING(15),
+    // La columna en BD es VARCHAR(20); ampliar para evitar truncamiento en teléfonos con prefijos/espacios
+    type: DataTypes.STRING(20),
     allowNull: true
   },
   correo_verificado: {

@@ -1,7 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 const Persona = require('./Persona');
-const Inmueble = require('./Inmueble');
 
 const Renant = sequelize.define('Renant', {
   id_arrendatario: {
@@ -19,20 +18,6 @@ const Renant = sequelize.define('Renant', {
       key: 'id_persona'
     }
   },
-  id_inmueble: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    field: 'id_inmueble',
-    references: {
-      model: 'Inmuebles',
-      key: 'id_inmueble'
-    }
-  },
-  id_arrendamiento: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    field: 'id_arrendamiento'
-  },
   registro_arrendatario: {
     type: DataTypes.STRING(20),
     allowNull: false,
@@ -45,38 +30,24 @@ const Renant = sequelize.define('Renant', {
     defaultValue: sequelize.literal('GETDATE()'),
     field: 'fecha_registro_arrendatario'
   },
-  fecha_inicio_arrendamiento: {
-    type: DataTypes.DATEONLY,
-    allowNull: true,
-    field: 'fecha_inicio_arrendamiento'
-  },
-  fecha_fin_arrendamiento: {
-    type: DataTypes.DATEONLY,
-    allowNull: true,
-    field: 'fecha_fin_arrendamiento'
-  },
-  valor_arriendo_mensual: {
-    type: DataTypes.DECIMAL(15, 2),
-    allowNull: true,
-    field: 'valor_arriendo_mensual'
-  },
-  tipo_garantia: {
+  tipo_arrendatario: {
     type: DataTypes.STRING(50),
-    allowNull: true,
-    field: 'tipo_garantia',
+    allowNull: false,
+    defaultValue: 'Potencial',
+    field: 'tipo_arrendatario',
     validate: {
-      isIn: [['Deposito', 'Fiador', 'Seguro', 'Mixta']]
+      isIn: [['Potencial', 'En Proceso', 'Activo', 'Inactivo']]
     }
   },
-  valor_garantia: {
-    type: DataTypes.DECIMAL(15, 2),
+  ciudad_residencia: {
+    type: DataTypes.STRING(50),
     allowNull: true,
-    field: 'valor_garantia'
+    field: 'ciudad_residencia'
   },
-  descripcion_garantia: {
-    type: DataTypes.STRING(200),
+  direccion_anterior: {
+    type: DataTypes.STRING(100),
     allowNull: true,
-    field: 'descripcion_garantia'
+    field: 'direccion_anterior'
   },
   contacto_emergencia_nombre: {
     type: DataTypes.STRING(100),
@@ -130,8 +101,5 @@ const Renant = sequelize.define('Renant', {
 
 Renant.belongsTo(Persona, { foreignKey: 'id_persona', as: 'persona' });
 Persona.hasOne(Renant, { foreignKey: 'id_persona', as: 'renant' });
-
-Renant.belongsTo(Inmueble, { foreignKey: 'id_inmueble', as: 'inmueble' });
-Inmueble.hasMany(Renant, { foreignKey: 'id_inmueble', as: 'arrendatarios' });
 
 module.exports = Renant;

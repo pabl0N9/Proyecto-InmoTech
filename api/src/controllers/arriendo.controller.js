@@ -1,4 +1,4 @@
-const { Arriendo, Inmueble, Persona } = require('../models');
+﻿const { Arriendo, Inmueble, Persona, Renant } = require('../models');
 
 const arriendoController = {
     
@@ -7,13 +7,13 @@ const arriendoController = {
         try {
             const arriendo = await Arriendo.create({
                 ...req.body,
-                estado: 'disponible'
+                estado: req.body.estado || 'Activo'
             });
 
             // Actualizar estado del inmueble a "en_arriendo"
             await Inmueble.update(
                 { estado: 'en_arriendo' }, 
-                { where: { id: req.body.inmueble_id } }
+                { where: { id_inmueble: req.body.id_inmueble } }
             );
 
             res.status(201).json({
@@ -41,9 +41,12 @@ const arriendoController = {
             const arriendos = await Arriendo.findAll({
                 where,
                 include: [
-                    { model: Inmueble },
-                    { model: Persona, as: 'Arrendador' },
-                    { model: Persona, as: 'Arrendatario' }
+                    { model: Inmueble, as: 'Inmueble' },
+                    { 
+                        model: Renant, 
+                        as: 'Arrendatario',
+                        include: [{ model: Persona, as: 'persona' }]
+                    }
                 ],
                 order: [['fecha_inicio', 'DESC']]
             });
@@ -53,6 +56,7 @@ const arriendoController = {
                 data: arriendos
             });
         } catch (error) {
+            console.error('Error en obtenerArriendos:', error.message);
             res.status(500).json({
                 success: false,
                 message: 'Error al obtener arriendos',
@@ -65,7 +69,7 @@ const arriendoController = {
     async reservarArriendo(req, res) {
         try {
             const { id } = req.params;
-            const { arrendatario_id } = req.body;
+            const { id_arrendatario } = req.body;
 
             const arriendo = await Arriendo.findByPk(id);
 
@@ -76,7 +80,7 @@ const arriendoController = {
                 });
             }
 
-            if (arriendo.estado !== 'disponible') {
+            if (arriendo.estado !== 'Pendiente' && arriendo.estado !== 'Activo') {
                 return res.status(400).json({
                     success: false,
                     message: 'El arriendo no está disponible para reserva'
@@ -84,8 +88,8 @@ const arriendoController = {
             }
 
             await arriendo.update({
-                arrendatario_id,
-                estado: 'reservado'
+                id_arrendatario,
+                estado: 'Pendiente'
             });
 
             res.json({
@@ -115,19 +119,19 @@ const arriendoController = {
                 });
             }
 
-            if (arriendo.estado !== 'reservado') {
+            if (arriendo.estado !== 'Pendiente') {
                 return res.status(400).json({
                     success: false,
                     message: 'Solo se pueden activar arriendos reservados'
                 });
             }
 
-            await arriendo.update({ estado: 'activo' });
+            await arriendo.update({ estado: 'Activo' });
 
             // Actualizar estado del inmueble
             await Inmueble.update(
-                { estado: 'arrendado' }, 
-                { where: { id: arriendo.inmueble_id } }
+                { estado: 'Arrendado' }, 
+                { where: { id_inmueble: arriendo.id_inmueble } }
             );
 
             res.json({
@@ -157,12 +161,12 @@ const arriendoController = {
                 });
             }
 
-            await arriendo.update({ estado: 'finalizado' });
+            await arriendo.update({ estado: 'Finalizado' });
 
             // Liberar el inmueble
             await Inmueble.update(
-                { estado: 'disponible' }, 
-                { where: { id: arriendo.inmueble_id } }
+                { estado: 'Disponible' }, 
+                { where: { id_inmueble: arriendo.id_inmueble } }
             );
 
             res.json({
@@ -179,20 +183,20 @@ const arriendoController = {
         }
     },
 
-    // Obtener estadísticas de arriendos
+    // Obtener estadÃ­sticas de arriendos
     async obtenerEstadisticas(req, res) {
         try {
             const totalArriendos = await Arriendo.count();
             const arriendosActivos = await Arriendo.count({ 
-                where: { estado: 'activo' } 
+                where: { estado: 'Activo' } 
             });
             const arriendosDisponibles = await Arriendo.count({
-                where: { estado: 'disponible' }
+                where: { estado: 'Pendiente' }
             });
 
             // Ingresos mensuales estimados
-            const ingresosMensuales = await Arriendo.sum('valor_arriendo', {
-                where: { estado: 'activo' }
+            const ingresosMensuales = await Arriendo.sum('valor_mensual', {
+                where: { estado: 'Activo' }
             });
 
             res.json({
@@ -207,7 +211,7 @@ const arriendoController = {
         } catch (error) {
             res.status(500).json({
                 success: false,
-                message: 'Error al obtener estadísticas',
+                message: 'Error al obtener estadÃ­sticas',
                 error: error.message
             });
         }
@@ -215,3 +219,6 @@ const arriendoController = {
 };
 
 module.exports = arriendoController;
+
+
+

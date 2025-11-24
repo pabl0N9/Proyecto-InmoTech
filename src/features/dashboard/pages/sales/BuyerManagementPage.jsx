@@ -10,7 +10,9 @@ import { buyersApiService } from "../../../../shared/services/buyersApiService";
 
 const mapApiBuyerToRow = (buyer = {}, formData = {}) => {
     const info = {
-        id: buyer.id || buyer.id_buyer || buyer.personaId || buyer.persona?.id_persona,
+        // id debe ser el id del comprador (id_comprador) para que las operaciones de actualización funcionen
+        id: buyer.buyerId || buyer.id_buyer || buyer.id_comprador || buyer.id || buyer.personaId || buyer.persona?.id_persona,
+        personaId: buyer.personaId || buyer.id_persona || buyer.persona?.id_persona,
         tipoDocumento: buyer.tipoDocumento || buyer.persona?.tipo_documento || "CC",
         documento: buyer.documento || buyer.persona?.numero_documento || "",
         primerNombre: buyer.primerNombre || buyer.persona?.nombre_completo?.split(" ")[0] || "",
@@ -39,7 +41,18 @@ const mapApiBuyerToRow = (buyer = {}, formData = {}) => {
 
 const filterRealBuyers = (list = []) => {
     if (!Array.isArray(list)) return [];
-    return list.filter(Boolean);
+    return list.filter((buyer) => {
+        if (!buyer) return false;
+        return Boolean(
+            buyer.buyerId ||
+            buyer.id_buyer ||
+            buyer.id_comprador ||
+            buyer.registroComprador ||
+            buyer.raw?.id_buyer ||
+            buyer.raw?.id_comprador ||
+            buyer.raw?.registro_comprador
+        );
+    });
 };
 
 export function BuyersManagementPage() {
@@ -133,7 +146,12 @@ export function BuyersManagementPage() {
 
     const handleUpdateBuyer = async (formData) => {
         if (!buyerToEdit) return;
-        const targetId = buyerToEdit.id || buyerToEdit.personaId;
+        const targetId =
+            buyerToEdit.id ||
+            buyerToEdit.buyerId ||
+            buyerToEdit.id_buyer ||
+            buyerToEdit.id_comprador ||
+            buyerToEdit.personaId;
         if (!targetId) {
             showStatus("error", "No se pudo determinar el identificador del comprador a actualizar.");
             return;

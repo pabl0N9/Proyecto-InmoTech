@@ -133,11 +133,11 @@ function App() {
         <Route
           path="/mis-citas"
           element={
-            <AuthenticatedRoute>
+            <ProtectedRoute>
               <Navbar />
               <UserAppointmentsPage />
               <Footer />
-            </AuthenticatedRoute>
+            </ProtectedRoute>
           }
         />
 

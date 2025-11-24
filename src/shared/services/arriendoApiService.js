@@ -18,7 +18,7 @@ class ArriendoApiService {
     try {
       console.log('🏠 Creando nuevo arriendo...');
 
-      const response = await apiClient.post('/arriendos', arriendoData);
+      const response = await apiClient.post('/leases', arriendoData);
 
       console.log('✅ Arriendo creado exitosamente');
       return response;
@@ -37,7 +37,7 @@ class ArriendoApiService {
     try {
       console.log('📋 Obteniendo arriendos...');
 
-      const response = await apiClient.get('/arriendos', { params });
+      const response = await apiClient.get('/leases', { params });
 
       console.log('✅ Arriendos obtenidos');
       return response;
@@ -55,7 +55,7 @@ class ArriendoApiService {
     try {
       console.log('📊 Obteniendo estadísticas de arriendos...');
 
-      const response = await apiClient.get('/arriendos/estadisticas');
+      const response = await apiClient.get('/leases/dashboard/statistics');
 
       console.log('✅ Estadísticas obtenidas');
       return response;
@@ -75,7 +75,7 @@ class ArriendoApiService {
     try {
       console.log(`📅 Reservando arriendo con ID: ${id}`);
 
-      const response = await apiClient.patch(`/arriendos/${id}/reservar`, reservaData);
+      const response = await apiClient.patch(`/leases/${id}/reservar`, reservaData);
 
       console.log('✅ Arriendo reservado');
       return response;
@@ -94,7 +94,7 @@ class ArriendoApiService {
     try {
       console.log(`▶️ Activando arriendo con ID: ${id}`);
 
-      const response = await apiClient.patch(`/arriendos/${id}/activar`);
+      const response = await apiClient.patch(`/leases/${id}/activar`);
 
       console.log('✅ Arriendo activado');
       return response;
@@ -113,7 +113,7 @@ class ArriendoApiService {
     try {
       console.log(`⏹️ Finalizando arriendo con ID: ${id}`);
 
-      const response = await apiClient.patch(`/arriendos/${id}/finalizar`);
+      const response = await apiClient.patch(`/leases/${id}/finalizar`);
 
       console.log('✅ Arriendo finalizado');
       return response;

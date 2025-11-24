@@ -45,6 +45,7 @@ const parseNumberField = (value) => {
 };
 
 const buildApiPayload = (values = {}) => ({
+    // Persona
     tipoDocumento: values.tipoDocArrendatario,
     documento: values.numeroDocArrendatario,
     primerNombre: values.primerNombreArrendatario,
@@ -53,6 +54,8 @@ const buildApiPayload = (values = {}) => ({
     segundoApellido: values.segundoApellidoArrendatario,
     correo: values.correoArrendatario,
     telefono: values.telefonoArrendatario,
+    // Inmueble y contrato (lo que requiere la API /leases/renants para crear el arriendo)
+    idInmueble: values.idInmueble || values.registroInmobiliario || values.nombreInmueble || undefined,
     fechaInicio: values.fechaInicio,
     fechaFin: values.fechaFinal,
     valorMensual: parseNumberField(values.precio) ?? parseNumberField(values.precioInmueble),

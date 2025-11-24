@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
-import { propertiesApiService } from "../../../../shared/services/propertiesApiService";
 import { X, User, Phone, Mail, FileText, CheckCircle } from 'lucide-react';
 
 const defaultFormData = {
@@ -13,11 +12,10 @@ const defaultFormData = {
   segundoApellido: "",
   correo: "",
   telefono: "",
-  idInmueble: "",
   observaciones: ""
 };
 
-const requiredFields = ["documento", "primerNombre", "primerApellido", "correo", "telefono", "idInmueble"];
+const requiredFields = ["documento", "primerNombre", "primerApellido", "correo", "telefono"];
 
 // Opciones de documentos
 const DOCUMENT_OPTIONS = [
@@ -37,9 +35,6 @@ export default function BuyerForm({
 }) {
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState(null);
-  const [properties, setProperties] = useState([]);
-  const [propertiesLoading, setPropertiesLoading] = useState(true);
-  const [propertyError, setPropertyError] = useState(null);
   
   // Refs para manejo eficiente de estado
   const valuesRef = useRef({ ...defaultFormData, id: nextId });
@@ -69,33 +64,6 @@ export default function BuyerForm({
     setErrors({});
     setSubmitError(null);
   }, [initialData, nextId]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchProperties = async () => {
-      try {
-        setPropertiesLoading(true);
-        const list = await propertiesApiService.getAll();
-        if (!isMounted) return;
-        setProperties(list);
-        if (!valuesRef.current.idInmueble && list.length) {
-          valuesRef.current.idInmueble = list[0].id;
-          displayValuesRef.current.idInmueble = list[0].id;
-        }
-        setPropertyError(null);
-      } catch (error) {
-        if (!isMounted) return;
-        setPropertyError(error?.message || "No fue posible cargar los inmuebles");
-      } finally {
-        if (isMounted) setPropertiesLoading(false);
-      }
-    };
-
-    fetchProperties();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   // === SISTEMA DE VALIDACIONES MEJORADO ===
 
@@ -466,19 +434,10 @@ export default function BuyerForm({
       segundoApellido: "Segundo Apellido",
       correo: "Correo Electrónico",
       telefono: "Teléfono",
-      observaciones: "Observaciones",
-      idInmueble: "Propiedad"
+      observaciones: "Observaciones"
     };
     return labels[name] ?? name;
   };
-
-  const propertyOptions = properties.map((prop) => ({
-    value: prop.id,
-    label:
-      [prop.registro, prop.label, prop.nombre]
-        .filter(Boolean)
-        .join(" · ") || `Propiedad #${prop.id}`
-  }));
 
   const isButtonDisabled =
     isSubmitting ||
@@ -550,21 +509,6 @@ export default function BuyerForm({
                     icon={FileText}
                     className="md:col-span-2"
                   />
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                  <Field
-                    name="idInmueble"
-                    as="select"
-                    options={propertyOptions}
-                    className=""
-                    disabled={propertiesLoading}
-                  />
-                  {propertiesLoading && (
-                    <p className="text-xs text-slate-500">Cargando inmuebles disponibles...</p>
-                  )}
-                  {propertyError && (
-                    <p className="text-xs text-red-500">{propertyError}</p>
-                  )}
                 </div>
 
                 {/* Nombres y Apellidos */}

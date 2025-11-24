@@ -7,65 +7,67 @@ const Persona = require('./Persona');
 const Cita = require('./Cita');
 
 const Lease = sequelize.define('Lease', {
-  id: {
+  id_arrendamiento: {
     type: DataTypes.INTEGER,
     primaryKey: true,
-    autoIncrement: true
+    autoIncrement: true,
+    field: 'id_arrendamiento'
   },
-  inmueble_id: {
+  id_inmueble: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Inmueble',
-      key: 'id'
-    }
+    field: 'id_inmueble'
   },
-  arrendador_id: {
+  // En la BD la columna es id_arrendatario; el servicio la maneja como id_cliente
+  id_cliente: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'Persona',
-      key: 'id'
-    }
-  },
-  arrendatario_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'Persona',
-      key: 'id'
-    }
-  },
-  cita_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'Cita',
-      key: 'id'
-    }
-  },
-  precio_arriendo: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false
+    field: 'id_arrendatario'
   },
   fecha_inicio: {
     type: DataTypes.DATE,
-    allowNull: false
+    allowNull: false,
+    field: 'fecha_inicio'
   },
-  fecha_fin: {
+  fecha_finalizacion: {
     type: DataTypes.DATE,
-    allowNull: false
+    allowNull: false,
+    field: 'fecha_finalizacion'
   },
-  deposito: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true
+  valor_mensual: {
+    type: DataTypes.DECIMAL(15, 2),
+    allowNull: false,
+    field: 'valor_mensual'
+  },
+  tipo_garantia: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    field: 'tipo_garantia'
+  },
+  valor_garantia: {
+    type: DataTypes.DECIMAL(15, 2),
+    allowNull: true,
+    field: 'valor_garantia'
+  },
+  descripcion_garantia: {
+    type: DataTypes.STRING(200),
+    allowNull: true,
+    field: 'descripcion_garantia'
   },
   estado: {
     type: DataTypes.STRING(50),
-    defaultValue: 'activo'
+    allowNull: false,
+    defaultValue: 'Activo',
+    field: 'estado'
+  },
+  fecha_creacion: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
+    field: 'fecha_creacion'
   }
 }, {
-  tableName: 'arriendos',
+  tableName: 'Arrendamientos',
   timestamps: false,
   freezeTableName: true
 });

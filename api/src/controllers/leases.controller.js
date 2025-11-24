@@ -93,6 +93,20 @@ class LeasesController {
     }
   }
 
+  async deleteLease(req, res, next) {
+    try {
+      const { id } = req.params;
+      const deleted = await leaseService.deleteLease(parseInt(id, 10));
+      return res.status(200).json({
+        success: true,
+        message: 'Arrendamiento eliminado definitivamente',
+        data: deleted
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getPayments(req, res, next) {
     try {
       const { id } = req.params;

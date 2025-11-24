@@ -1,9 +1,5 @@
 const { Op } = require("sequelize");
-const { Sale } = require('../models');
-const { Inmueble } = require('../models');
-const { Persona } = require('../models');
-const { SeguimientoVenta } = require('../models');
-const { EstadosVenta } = require('../models');
+const { Sale, Buyer, Inmueble, Persona, SeguimientoVenta, EstadosVenta } = require('../models');
 const { sequelize } = require('../config/database');
 const logger = require('../utils/logger');
 
@@ -17,15 +13,16 @@ class SaleService {
           throw new Error('Inmueble no encontrado');
         }
 
-        // 2. Validar que el comprador existe
-        const comprador = await Persona.findByPk(saleData.id_persona, { transaction: t });
+        // 2. Validar que el comprador existe (tabla Compradores)
+        const compradorId = saleData.id_comprador || saleData.id_persona;
+        const comprador = await Buyer.findByPk(compradorId, { transaction: t, include: ['persona'] });
         if (!comprador) {
           throw new Error('Comprador no encontrado');
         }
 
         // 3. Crear la venta
         const newSale = await Sale.create({
-          id_persona: saleData.id_persona,
+          id_comprador: compradorId,
           id_inmueble: saleData.id_inmueble,
           fecha_venta: saleData.fecha_venta,
           valor_venta: saleData.valor_venta,
@@ -79,13 +76,20 @@ class SaleService {
         },
         {
           association: 'comprador',
-          attributes: ['id_persona', 'nombre_completo', 'apellido_completo', 'correo', 'telefono']
+          attributes: ['id_comprador', 'registro_comprador'],
+          include: [
+            {
+              association: 'persona',
+              attributes: ['id_persona', 'nombre_completo', 'apellido_completo', 'correo', 'telefono']
+            }
+          ]
         }
       ];
 
       const whereClause = {};
       if (filters.estado) whereClause.estado = filters.estado;
-      if (filters.id_persona) whereClause.id_persona = filters.id_persona;
+      if (filters.id_persona) whereClause.id_comprador = filters.id_persona;
+      if (filters.id_comprador) whereClause.id_comprador = filters.id_comprador;
       if (filters.fecha_inicio && filters.fecha_fin) {
         whereClause.fecha_venta = {
           [Op.between]: [filters.fecha_inicio, filters.fecha_fin]
@@ -117,17 +121,22 @@ class SaleService {
           categoria: sale.inmueble.categoria
         } : null,
         comprador: sale.comprador ? {
-          id_persona: sale.comprador.id_persona,
-          nombre_completo: sale.comprador.nombre_completo,
-          apellido_completo: sale.comprador.apellido_completo,
-          correo: sale.comprador.correo,
-          telefono: sale.comprador.telefono
+          id_comprador: sale.comprador.id_comprador,
+          registro_comprador: sale.comprador.registro_comprador,
+          id_persona: sale.comprador.persona?.id_persona,
+          nombre_completo: sale.comprador.persona?.nombre_completo,
+          apellido_completo: sale.comprador.persona?.apellido_completo,
+          correo: sale.comprador.persona?.correo,
+          telefono: sale.comprador.persona?.telefono
         } : null
       }));
 
     } catch (error) {
-      logger.error(`❌ Error en getAllSales: ${error.message}`);
-      throw error;
+      const dbMsg = error.original?.message || error.message || 'Error consultando ventas';
+      logger.error(`❌ Error en getAllSales: ${dbMsg}`);
+      const err = new Error(dbMsg);
+      err.status = 500;
+      throw err;
     }
   }
 

@@ -13,7 +13,7 @@ const arrendatarioController = {
                     as: 'arriendosComoArrendatario',
                     include: [{
                         model: Inmueble,
-                        as: 'inmueble'
+                        as: 'Inmueble'
                     }]
                 }],
                 where: {
@@ -46,7 +46,7 @@ const arrendatarioController = {
                     where: { estado: 'activo' },
                     include: [{
                         model: Inmueble,
-                        as: 'inmueble'
+                        as: 'Inmueble'
                     }]
                 }],
                 where: {
@@ -78,7 +78,7 @@ const arrendatarioController = {
                     as: 'arriendosComoArrendatario',
                     include: [{
                         model: Inmueble,
-                        as: 'inmueble'
+                        as: 'Inmueble'
                     }]
                 }]
             });
@@ -109,10 +109,10 @@ const arrendatarioController = {
             const { id } = req.params;
             
             const arriendos = await Arriendo.findAll({
-                where: { arrendatario_id: id },
+                where: { id_arrendatario: id },
                 include: [{
                     model: Inmueble,
-                    as: 'inmueble'
+                    as: 'Inmueble'
                 }],
                 order: [['fecha_inicio', 'DESC']]
             });
@@ -182,10 +182,10 @@ const arrendatarioController = {
 // Función auxiliar para obtener IDs de arrendatarios
 async function getIdsArrendatarios() {
     const arriendos = await Arriendo.findAll({
-        attributes: ['arrendatario_id'],
-        group: ['arrendatario_id']
+        attributes: ['id_arrendatario'],
+        group: ['id_arrendatario']
     });
-    return arriendos.map(a => a.arrendatario_id);
+    return arriendos.map(a => a.id_arrendatario);
 }
 
 module.exports = arrendatarioController;

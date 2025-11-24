@@ -49,6 +49,8 @@ router.patch('/:id/cancel', strictLimiter, leasesController.cancelLease);
 
 // PATCH /api/v1/leases/:id/finalize - Finalizar arrendamiento
 router.patch('/:id/finalize', strictLimiter, leasesController.finalizeLease);
+// DELETE /api/v1/leases/:id - Eliminar arrendamiento definitivamente
+router.delete('/:id', strictLimiter, leasesController.deleteLease);
 
 // GET /api/v1/leases/:id/payments - Obtener cobros del arrendamiento
 router.get('/:id/payments', leasesController.getPayments);

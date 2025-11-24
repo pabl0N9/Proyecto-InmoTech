@@ -2,83 +2,68 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
 const Arriendo = sequelize.define('Arriendo', {
-  id_arriendo: {
+  id_arrendamiento: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true,
-    field: 'id_arriendo'
+    field: 'id_arrendamiento'
   },
-  inmueble_id: {
+  id_arrendatario: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'inmueble_id'
+    field: 'id_arrendatario'
   },
-  arrendador_id: {
+  id_inmueble: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'arrendador_id'
-  },
-  arrendatario_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'arrendatario_id'
-  },
-  valor_arriendo: {
-    type: DataTypes.DECIMAL(15, 2),
-    allowNull: false,
-    field: 'valor_arriendo'
-  },
-  garantia: {
-    type: DataTypes.DECIMAL(15, 2),
-    allowNull: true,
-    field: 'garantia'
-  },
-  comision: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    field: 'comision'
+    field: 'id_inmueble'
   },
   fecha_inicio: {
     type: DataTypes.DATE,
     allowNull: false,
     field: 'fecha_inicio'
   },
-  fecha_fin: {
+  fecha_finalizacion: {
     type: DataTypes.DATE,
     allowNull: false,
-    field: 'fecha_fin'
+    field: 'fecha_finalizacion'
   },
-  duracion_meses: {
-    type: DataTypes.INTEGER,
+  valor_mensual: {
+    type: DataTypes.DECIMAL(15, 2),
     allowNull: false,
-    field: 'duracion_meses'
+    field: 'valor_mensual'
+  },
+  tipo_garantia: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    field: 'tipo_garantia'
+  },
+  valor_garantia: {
+    type: DataTypes.DECIMAL(15, 2),
+    allowNull: true,
+    field: 'valor_garantia'
+  },
+  descripcion_garantia: {
+    type: DataTypes.STRING(200),
+    allowNull: true,
+    field: 'descripcion_garantia'
   },
   estado: {
-    type: DataTypes.STRING(20),
+    type: DataTypes.STRING(50),
     allowNull: false,
-    field: 'estado',
-    defaultValue: 'disponible'
+    defaultValue: 'Activo',
+    field: 'estado'
   },
-  detalles_contrato: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-    field: 'detalles_contrato'
-  },
-  incluye_servicios: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-    field: 'incluye_servicios'
-  },
-  cita_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    field: 'cita_id'
+  fecha_creacion: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
+    field: 'fecha_creacion'
   }
 }, {
-  tableName: 'Arriendos',
-  timestamps: true,
-  createdAt: 'fecha_creacion',
-  updatedAt: 'fecha_actualizacion'
+  tableName: 'Arrendamientos',
+  timestamps: false,
+  freezeTableName: true
 });
 
 module.exports = Arriendo;

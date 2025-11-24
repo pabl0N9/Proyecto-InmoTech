@@ -14,6 +14,16 @@ export default function BuyerView({ buyer, onClose }) {
     .join(" ");
 
   const inmueble = buyer.inmueble || null;
+  const hasOperacion = Boolean(
+    buyer.fechaCompra ||
+      buyer.valorCompra ||
+      buyer.entidadFinanciera ||
+      buyer.numeroCredito ||
+      buyer.montoFinanciado ||
+      buyer.observaciones ||
+      (buyer.tipoCompra &&
+        `${buyer.tipoCompra}`.trim().toLowerCase() !== "directa")
+  );
 
   return (
     <div
@@ -25,9 +35,9 @@ export default function BuyerView({ buyer, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-6 pr-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">Información del comprador</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">Informacion del comprador</h2>
           <p className="text-gray-600 text-sm">
-            Detalles completos del comprador, el inmueble y la operación realizada.
+            Detalles completos del comprador, el inmueble y la operacion realizada.
           </p>
         </div>
 
@@ -47,7 +57,7 @@ export default function BuyerView({ buyer, onClose }) {
         <div className="space-y-6 max-h-[65vh] overflow-y-auto pr-2">
           <section className="bg-blue-50 rounded-lg p-4 border border-blue-200">
             <h3 className="text-lg font-bold text-blue-800 mb-3 pb-2 border-b border-blue-200">
-              Información personal
+              Informacion personal
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
@@ -57,11 +67,11 @@ export default function BuyerView({ buyer, onClose }) {
               <div>
                 <p className="font-semibold text-gray-700">Documento:</p>
                 <p className="text-gray-900">
-                  {buyer.tipoDocumento} · {buyer.documento}
+                  {buyer.tipoDocumento} - {buyer.documento}
                 </p>
               </div>
               <div>
-                <p className="font-semibold text-gray-700">Correo electrónico:</p>
+                <p className="font-semibold text-gray-700">Correo electronico:</p>
                 {buyer.correo ? (
                   <a href={`mailto:${buyer.correo}`} className="text-blue-600 hover:text-blue-800 underline">
                     {buyer.correo}
@@ -71,7 +81,7 @@ export default function BuyerView({ buyer, onClose }) {
                 )}
               </div>
               <div>
-                <p className="font-semibold text-gray-700">Teléfono:</p>
+                <p className="font-semibold text-gray-700">Telefono:</p>
                 <p className="text-gray-900">{buyer.telefono || "-"}</p>
               </div>
               <div>
@@ -79,7 +89,7 @@ export default function BuyerView({ buyer, onClose }) {
                 <p className="text-gray-900">{buyer.ciudadResidencia || "-"}</p>
               </div>
               <div>
-                <p className="font-semibold text-gray-700">Dirección anterior:</p>
+                <p className="font-semibold text-gray-700">Direccion anterior:</p>
                 <p className="text-gray-900">{buyer.direccionAnterior || "-"}</p>
               </div>
             </div>
@@ -88,59 +98,68 @@ export default function BuyerView({ buyer, onClose }) {
           <section className="bg-green-50 rounded-lg p-4 border border-green-200">
             <h3 className="text-lg font-bold text-green-800 mb-3 pb-2 border-b border-green-200 flex items-center gap-2">
               <FaMoneyBillWave className="text-green-600" />
-              Datos de la operación
+              Datos de la operacion
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="font-semibold text-gray-700">Fecha de compra:</p>
-                <p className="text-gray-900">
-                  {buyer.fechaCompra ? new Date(buyer.fechaCompra).toLocaleDateString() : "-"}
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Tipo de compra:</p>
-                <p className="text-gray-900">{buyer.tipoCompra}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Valor de compra:</p>
-                <p className="text-gray-900 font-semibold">
-                  {buyer.valorCompra ? Intl.NumberFormat("es-CO", {
-                    style: "currency",
-                    currency: "COP",
-                    maximumFractionDigits: 0
-                  }).format(Number(buyer.valorCompra)) : "-"}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
-              <div>
-                <p className="font-semibold text-gray-700">Entidad financiera:</p>
-                <p className="text-gray-900">{buyer.entidadFinanciera || "-"}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Número de crédito:</p>
-                <p className="text-gray-900">{buyer.numeroCredito || "-"}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Monto financiado:</p>
-                <p className="text-gray-900">
-                  {buyer.montoFinanciado
-                    ? Intl.NumberFormat("es-CO", {
+            {hasOperacion ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="font-semibold text-gray-700">Fecha de compra:</p>
+                    <p className="text-gray-900">
+                      {buyer.fechaCompra ? new Date(buyer.fechaCompra).toLocaleDateString() : "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-700">Tipo de compra:</p>
+                    <p className="text-gray-900">{buyer.tipoCompra || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-700">Valor de compra:</p>
+                    <p className="text-gray-900 font-semibold">
+                      {buyer.valorCompra ? Intl.NumberFormat("es-CO", {
                         style: "currency",
                         currency: "COP",
                         maximumFractionDigits: 0
-                      }).format(Number(buyer.montoFinanciado))
-                    : "-"}
-                </p>
-              </div>
-            </div>
+                      }).format(Number(buyer.valorCompra)) : "-"}
+                    </p>
+                  </div>
+                </div>
 
-            {buyer.observaciones && (
-              <div className="mt-4 text-sm">
-                <p className="font-semibold text-gray-700 mb-1">Observaciones:</p>
-                <p className="text-gray-900 bg-white rounded-lg p-3 border border-gray-200">{buyer.observaciones}</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
+                  <div>
+                    <p className="font-semibold text-gray-700">Entidad financiera:</p>
+                    <p className="text-gray-900">{buyer.entidadFinanciera || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-700">Numero de credito:</p>
+                    <p className="text-gray-900">{buyer.numeroCredito || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-700">Monto financiado:</p>
+                    <p className="text-gray-900">
+                      {buyer.montoFinanciado
+                        ? Intl.NumberFormat("es-CO", {
+                            style: "currency",
+                            currency: "COP",
+                            maximumFractionDigits: 0
+                          }).format(Number(buyer.montoFinanciado))
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+
+                {buyer.observaciones && (
+                  <div className="mt-4 text-sm">
+                    <p className="font-semibold text-gray-700 mb-1">Observaciones:</p>
+                    <p className="text-gray-900 bg-white rounded-lg p-3 border border-gray-200">{buyer.observaciones}</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-6">
+                <FaImage size={40} className="mx-auto text-gray-300 mb-2" />
+                <p className="text-gray-500 italic">Aun no se ha registrado una operacion de compra para este comprador.</p>
               </div>
             )}
           </section>
@@ -162,15 +181,15 @@ export default function BuyerView({ buyer, onClose }) {
                     <p className="text-gray-900">{inmueble.registro || "-"}</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-700">Categoría:</p>
+                    <p className="font-semibold text-gray-700">Categoria:</p>
                     <p className="text-gray-900">{inmueble.categoria || "-"}</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-700">Dirección:</p>
+                    <p className="font-semibold text-gray-700">Direccion:</p>
                     <p className="text-gray-900">{inmueble.direccion || "-"}</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-700">Ubicación:</p>
+                    <p className="font-semibold text-gray-700">Ubicacion:</p>
                     <p className="text-gray-900">
                       {[inmueble.ciudad, inmueble.departamento].filter(Boolean).join(", ") || "-"}
                     </p>
@@ -192,7 +211,7 @@ export default function BuyerView({ buyer, onClose }) {
             ) : (
               <div className="text-center py-6">
                 <FaImage size={40} className="mx-auto text-gray-300 mb-2" />
-                <p className="text-gray-500 italic">Aún no se ha vinculado un inmueble a este comprador.</p>
+                <p className="text-gray-500 italic">Aun no se ha vinculado un inmueble a este comprador.</p>
               </div>
             )}
           </section>

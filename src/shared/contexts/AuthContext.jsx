@@ -1,6 +1,6 @@
-/**
- * @fileoverview Context de React para gestión global de autenticación JWT
- * @version 2.1.0 - Manejo de verificación de correo y registro sin login automático
+﻿/**
+ * @fileoverview Context de React para gestiÃ³n global de autenticaciÃ³n JWT
+ * @version 2.1.0 - Manejo de verificaciÃ³n de correo y registro sin login automÃ¡tico
  */
 
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   /**
-   * Carga la información de autenticación desde cookies
+   * Carga la informaciÃ³n de autenticaciÃ³n desde cookies
    */
   const loadAuthFromStorage = useCallback(async () => {
     try {
@@ -34,24 +34,24 @@ export const AuthProvider = ({ children }) => {
         const userData = response.data;
         setUser(userData);
         setIsAuthenticated(true);
-        console.log('Sesión restaurada desde cookies:', userData.correo);
+        console.log('SesiÃ³n restaurada desde cookies:', userData.correo);
       } else {
         setUser(null);
         setIsAuthenticated(false);
-        console.log('No hay sesión activa en cookies');
+        console.log('No hay sesiÃ³n activa en cookies');
       }
     } catch (err) {
-      console.error('Error verificando sesión:', err);
+      console.error('Error verificando sesiÃ³n:', err);
       setUser(null);
       setIsAuthenticated(false);
-      console.log('Sesión expirada o inválida');
+      console.log('SesiÃ³n expirada o invÃ¡lida');
     } finally {
       setLoading(false);
     }
   }, []);
 
   /**
-   * Guarda la información de autenticación
+   * Guarda la informaciÃ³n de autenticaciÃ³n
    */
   const saveAuthToStorage = useCallback((userData, accessToken, refreshToken) => {
     try {
@@ -59,14 +59,14 @@ export const AuthProvider = ({ children }) => {
 
       const userDataString = JSON.stringify(userData);
       sessionStorage.setItem(USER_KEY, userDataString);
-      console.log('Sesión guardada');
+      console.log('SesiÃ³n guardada');
     } catch (err) {
-      console.error('Error guardando autenticación:', err);
+      console.error('Error guardando autenticaciÃ³n:', err);
     }
   }, []);
 
   /**
-   * Limpia toda la información de autenticación
+   * Limpia toda la informaciÃ³n de autenticaciÃ³n
    */
   const clearAuthData = useCallback(() => {
     localStorage.removeItem(USER_KEY);
@@ -74,57 +74,59 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setError(null);
-    console.log('Datos de autenticación limpiados');
+    console.log('Datos de autenticaciÃ³n limpiados');
   }, []);
 
   /**
-   * Inicia sesión del usuario
+   * Inicia sesiÃ³n del usuario
+   */
+    /**
+   * Inicia sesiÃ³n del usuario
    */
   const login = async (email, password) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Intentando iniciar sesión:', email);
+      console.log('Intentando iniciar sesiÃ³n:', email);
 
       const response = await authService.login(email, password);
 
-      if (response.success && response.data) {
-        const userData = response.data.user;
-
-        sseService.resetForcedDisconnect();
-
-        setUser(userData);
-        setIsAuthenticated(true);
-
-        console.log('Usuario autenticado:', userData.correo);
-        return userData;
-      } else {
-        throw new Error(response.message || 'Error en la autenticación');
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Error en la autenticaciÃ³n');
       }
-      
+
+      const userData = response.data.user;
+
+      sseService.resetForcedDisconnect();
       setUser(userData);
       setIsAuthenticated(true);
 
-      console.log('✅ Usuario autenticado:', userData.email);
-      console.log('👤 Datos del usuario:', {
+      console.log('Usuario autenticado:', userData.correo);
+      console.log('âœ… Datos del usuario:', {
         roles: userData.roles,
         es_administrativo: userData.es_administrativo,
         permisos: userData.permisos ? Object.keys(userData.permisos) : 'SIN PERMISOS'
       });
 
-      // Verificación final
-      console.log('🎯 Verificación FINAL:');
-      console.log('   - localStorage Access Token:', !!localStorage.getItem('inmotech_access_token'));
-      console.log('   - localStorage Refresh Token:', !!localStorage.getItem('inmotech_refresh_token'));
-      
+      console.log('ðŸ”Ž VerificaciÃ³n FINAL:', {
+        accessToken: !!localStorage.getItem('inmotech_access_token'),
+        refreshToken: !!localStorage.getItem('inmotech_refresh_token')
+      });
+
       return userData;
-    } else {
-      throw new Error(response.message || 'Error en la autenticación');
+    } catch (err) {
+      console.error('Error en login:', err);
+      setError(err.message || 'Error en la autenticaciÃ³n');
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
+
+
   /**
-   * Registra un nuevo usuario (no inicia sesión; requiere verificación de correo)
+   * Registra un nuevo usuario (no inicia sesiÃ³n; requiere verificaciÃ³n de correo)
    */
   const register = async (userData) => {
     try {
@@ -135,7 +137,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.register(userData);
 
       if (response.success && response.data) {
-        // No se establece sesión hasta que verifique el correo
+        // No se establece sesiÃ³n hasta que verifique el correo
         return response.data;
       } else {
         throw new Error(response.message || 'Error en el registro');
@@ -150,7 +152,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Cierra la sesión del usuario
+   * Cierra la sesiÃ³n del usuario
    */
   const logout = useCallback(async () => {
     try {
@@ -163,7 +165,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       clearAuthData();
-      console.log('Sesión cerrada exitosamente');
+      console.log('SesiÃ³n cerrada exitosamente');
     } catch (err) {
       console.error('Error en logout:', err);
       clearAuthData();
@@ -240,25 +242,25 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Cambia la contraseña del usuario
+   * Cambia la contraseÃ±a del usuario
    */
   const changePassword = async (currentPassword, newPassword) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Cambiando contraseña...');
+      console.log('Cambiando contraseÃ±a...');
 
       const response = await authService.changePassword(currentPassword, newPassword);
 
       if (response.success) {
-        console.log('Contraseña cambiada exitosamente');
+        console.log('ContraseÃ±a cambiada exitosamente');
         return true;
       } else {
-        throw new Error(response.message || 'Error al cambiar contraseña');
+        throw new Error(response.message || 'Error al cambiar contraseÃ±a');
       }
     } catch (err) {
-      console.error('Error cambiando contraseña:', err);
-      setError(err.message || 'Error al cambiar contraseña');
+      console.error('Error cambiando contraseÃ±a:', err);
+      setError(err.message || 'Error al cambiar contraseÃ±a');
       throw err;
     } finally {
       setLoading(false);
@@ -281,21 +283,21 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   /**
-   * Verifica si el usuario tiene un permiso específico
+   * Verifica si el usuario tiene un permiso especÃ­fico
    */
   const hasPermission = useCallback((modulo, permiso) => {
-    // ✅ SUPER ADMINISTRADOR TIENE TODOS LOS PERMISOS
+    // âœ… SUPER ADMINISTRADOR TIENE TODOS LOS PERMISOS
     if (user && user.roles && user.roles.includes('Super Administrador')) {
-      console.log(`🔍 hasPermission - Super Admin: modulo:${modulo}, permiso:${permiso} -> ✅ (acceso total)`);
+      console.log(`ðŸ” hasPermission - Super Admin: modulo:${modulo}, permiso:${permiso} -> âœ… (acceso total)`);
       return true;
     }
 
     if (!user || !user.permisos) {
-      console.log(`❌ hasPermission - Sin usuario o permisos: modulo=${modulo}, permiso=${permiso}`);
+      console.log(`âŒ hasPermission - Sin usuario o permisos: modulo=${modulo}, permiso=${permiso}`);
       return false;
     }
 
-    // 🔥 MANEJAR AMBOS FORMATOS: Array y Object
+    // ðŸ”¥ MANEJAR AMBOS FORMATOS: Array y Object
     let hasPerm = false;
 
     if (Array.isArray(user.permisos)) {
@@ -306,44 +308,44 @@ export const AuthProvider = ({ children }) => {
       hasPerm = user.permisos[modulo] && user.permisos[modulo][permiso] === true;
     }
 
-    console.log(`🔍 hasPermission - modulo:${modulo}, permiso:${permiso} -> ${hasPerm ? '✅' : '❌'}`);
+    console.log(`ðŸ” hasPermission - modulo:${modulo}, permiso:${permiso} -> ${hasPerm ? 'âœ…' : 'âŒ'}`);
     return hasPerm;
   }, [user]);
 
   /**
-   * Verifica si el usuario está autenticado y tiene roles específicos
+   * Verifica si el usuario estÃ¡ autenticado y tiene roles especÃ­ficos
    */
   const hasAccess = useCallback((allowedRoles) => {
     return isAuthenticated && hasRole(allowedRoles);
   }, [isAuthenticated, hasRole]);
 
   /**
-   * Obtiene los módulos disponibles para el usuario basado en sus permisos
+   * Obtiene los mÃ³dulos disponibles para el usuario basado en sus permisos
    */
   const getAvailableModules = useCallback(() => {
     if (!user) {
-      console.log('❌ getAvailableModules - Sin usuario');
+      console.log('âŒ getAvailableModules - Sin usuario');
       return [];
     }
 
-    // ✅ SUPER ADMINISTRADOR TIENE ACCESO A TODOS LOS MÓDULOS
+    // âœ… SUPER ADMINISTRADOR TIENE ACCESO A TODOS LOS MÃ“DULOS
     if (user.roles && user.roles.includes('Super Administrador')) {
-      console.log('✅ getAvailableModules - Super Admin, todos los módulos');
+      console.log('âœ… getAvailableModules - Super Admin, todos los mÃ³dulos');
       return ['propiedades', 'citas', 'reportes', 'administrativos', 'roles'];
     }
 
     if (!user.permisos) {
-      console.log('❌ getAvailableModules - Sin permisos');
+      console.log('âŒ getAvailableModules - Sin permisos');
       return [];
     }
 
-    console.log('🔍 getAvailableModules - Tipos de datos:', {
+    console.log('ðŸ” getAvailableModules - Tipos de datos:', {
       permisosType: typeof user.permisos,
       permisosIsArray: Array.isArray(user.permisos),
       permisosKeys: user.permisos ? (Array.isArray(user.permisos) ? user.permisos.length : Object.keys(user.permisos)) : 'null'
     });
 
-    // 🔥 PERMISOS COMO ARRAY - Transformar a objeto si es necesario
+    // ðŸ”¥ PERMISOS COMO ARRAY - Transformar a objeto si es necesario
     let permisosObj = user.permisos;
     if (Array.isArray(user.permisos)) {
       permisosObj = {};
@@ -358,53 +360,92 @@ export const AuthProvider = ({ children }) => {
     const availableModules = [];
 
     if (permisosObj.gInmuebles) {
-      console.log('✅ Permiso gInmuebles encontrado');
+      console.log('âœ… Permiso gInmuebles encontrado');
       availableModules.push('propiedades');
     }
     if (permisosObj.gCitas) {
-      console.log('✅ Permiso gCitas encontrado');
+      console.log('âœ… Permiso gCitas encontrado');
       availableModules.push('citas');
     }
     if (permisosObj.gReporteInmuebles) {
-      console.log('✅ Permiso gReporteInmuebles encontrado');
+      console.log('âœ… Permiso gReporteInmuebles encontrado');
       availableModules.push('reportes');
     }
     if (permisosObj.usuarios) {
-      console.log('✅ Permiso usuarios encontrado');
+      console.log('âœ… Permiso usuarios encontrado');
       availableModules.push('administrativos');
     }
     if (permisosObj.roles) {
-      console.log('✅ Permiso roles encontrado');
+      console.log('âœ… Permiso roles encontrado');
       availableModules.push('roles');
     }
 
-    // Buscar otros permisos que podrían haber
+    // Buscar otros permisos que podrÃ­an haber
     if (permisosObj.gArriendos) {
-      console.log('✅ Permiso gArriendos encontrado');
-      // No hay módulo para arriendos aún
+      console.log('âœ… Permiso gArriendos encontrado');
+      // No hay mÃ³dulo para arriendos aÃºn
     }
     if (permisosObj.gClientes) {
-      console.log('✅ Permiso gClientes encontrado');
-      // No hay módulo para clientes aún
+      console.log('âœ… Permiso gClientes encontrado');
+      // No hay mÃ³dulo para clientes aÃºn
     }
     if (permisosObj.gComprador) {
-      console.log('✅ Permiso gComprador encontrado');
-      // No hay módulo para comprador aún
+      console.log('âœ… Permiso gComprador encontrado');
+      // No hay mÃ³dulo para comprador aÃºn
     }
     if (permisosObj.gVentas) {
-      console.log('✅ Permiso gVentas encontrado');
-      // No hay módulo para ventas aún
+      console.log('âœ… Permiso gVentas encontrado');
+      // No hay mÃ³dulo para ventas aÃºn
     }
     if (permisosObj.gArrendatario) {
-      console.log('✅ Permiso gArrendatario encontrado');
-      // No hay módulo para arrendatario aún
+      console.log('âœ… Permiso gArrendatario encontrado');
+      // No hay mÃ³dulo para arrendatario aÃºn
     }
 
-    console.log('📦 getAvailableModules - Módulos disponibles:', availableModules);
+    console.log('ðŸ“¦ getAvailableModules - MÃ³dulos disponibles:', availableModules);
     return availableModules;
   }, [user]);
 
-  // Cargar autenticación al montar el componente
+  // Control de la conexión SSE para eventos de seguridad
+  const connectSSE = useCallback(() => {
+    if (!isAuthenticated || !user) return;
+    try {
+      sseService.resetForcedDisconnect();
+      if (!sseService.isConnected) {
+        sseService.connect();
+      }
+    } catch (err) {
+      console.error('Error conectando SSE:', err);
+    }
+  }, [isAuthenticated, user]);
+
+  const disconnectSSE = useCallback(() => {
+    try {
+      sseService.setForcedDisconnect();
+      sseService.disconnect();
+    } catch (err) {
+      console.error('Error desconectando SSE:', err);
+    }
+  }, []);
+
+  // Logout forzado por eventos SSE
+  const handleForcedLogout = useCallback((data) => {
+    try {
+      console.warn('Logout forzado por SSE', data);
+      disconnectSSE();
+      clearAuthData();
+      toast({
+        title: 'Sesión finalizada',
+        description: data?.message || 'Tu sesión fue cerrada por seguridad',
+        variant: 'destructive'
+      });
+      navigate('/login');
+    } catch (err) {
+      console.error('Error manejando logout forzado:', err);
+    }
+  }, [clearAuthData, disconnectSSE, navigate, toast]);
+
+  // Cargar autenticaciÃ³n al montar el componente
   useEffect(() => {
     loadAuthFromStorage();
   }, [loadAuthFromStorage]);
@@ -468,3 +509,5 @@ export const useAuth = () => {
 };
 
 export default AuthContext;
+
+

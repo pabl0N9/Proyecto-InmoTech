@@ -1,9 +1,5 @@
-// models/Buyer.js - CORREGIDO
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-const Persona = require('./Persona');
-const Inmueble = require('./Inmueble');
-const Sale = require('./Sale'); // USAR Sale en lugar de Venta
 
 const Buyer = sequelize.define('Buyer', {
   id_comprador: {
@@ -21,24 +17,6 @@ const Buyer = sequelize.define('Buyer', {
       key: 'id_persona'
     }
   },
-  id_inmueble: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    field: 'id_inmueble',
-    references: {
-      model: 'Inmuebles',
-      key: 'id_inmueble'
-    }
-  },
-  id_venta: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    field: 'id_venta',
-    references: {
-      model: 'Ventas', // La tabla se llama Ventas
-      key: 'id_venta'
-    }
-  },
   registro_comprador: {
     type: DataTypes.STRING(20),
     allowNull: false,
@@ -51,23 +29,13 @@ const Buyer = sequelize.define('Buyer', {
     defaultValue: DataTypes.NOW,
     field: 'fecha_registro_comprador'
   },
-  fecha_compra: {
-    type: DataTypes.DATEONLY,
-    allowNull: true,
-    field: 'fecha_compra'
-  },
-  valor_compra: {
-    type: DataTypes.DECIMAL(15, 2),
-    allowNull: true,
-    field: 'valor_compra'
-  },
-  tipo_compra: {
+  tipo_comprador: {
     type: DataTypes.STRING(50),
     allowNull: false,
-    defaultValue: 'Pendiente',
-    field: 'tipo_compra',
+    defaultValue: 'Potencial',
+    field: 'tipo_comprador',
     validate: {
-      isIn: [['Pendiente', 'Directa', 'Financiada', 'Mixta']]
+      isIn: [['Potencial', 'En Proceso', 'Finalizado']]
     }
   },
   ciudad_residencia: {
@@ -79,21 +47,6 @@ const Buyer = sequelize.define('Buyer', {
     type: DataTypes.STRING(100),
     allowNull: true,
     field: 'direccion_anterior'
-  },
-  entidad_financiera: {
-    type: DataTypes.STRING(100),
-    allowNull: true,
-    field: 'entidad_financiera'
-  },
-  numero_credito: {
-    type: DataTypes.STRING(50),
-    allowNull: true,
-    field: 'numero_credito'
-  },
-  monto_financiado: {
-    type: DataTypes.DECIMAL(15, 2),
-    allowNull: true,
-    field: 'monto_financiado'
   },
   estado: {
     type: DataTypes.STRING(20),
@@ -130,5 +83,4 @@ const Buyer = sequelize.define('Buyer', {
   }
 });
 
-// RELACIONES CORREGIDAS - Usar Sale en lugar de Venta
 module.exports = Buyer;

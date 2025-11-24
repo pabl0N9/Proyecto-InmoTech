@@ -12,10 +12,14 @@ class BuyersController {
         data: newBuyer 
       });
     } catch (error) {
-      if (error.message.includes('ya está registrado')) {
-        return res.status(400).json({ 
-          success: false, 
-          message: error.message 
+      const status =
+        error.status ||
+        (error.message && error.message.includes('ya está registrado') ? 400 : null);
+
+      if (status) {
+        return res.status(status).json({
+          success: false,
+          message: error.message
         });
       }
       next(error);

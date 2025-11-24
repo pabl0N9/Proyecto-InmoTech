@@ -1,131 +1,89 @@
 const { Op } = require('sequelize');
-const { Renant, Persona, Inmueble } = require('../models');
+const { Renant, Persona, Arriendo, Inmueble } = require('../models');
 const { sequelize } = require('../config/database');
 const logger = require('../utils/logger');
 
-const PERSONA_ATTRIBUTES = [
+const PERSONA_ATTRS = [
   'id_persona',
   'nombre_completo',
   'apellido_completo',
   'tipo_documento',
   'numero_documento',
   'correo',
-  'telefono'
-];
-
-const INMUEBLE_ATTRIBUTES = [
-  'id_inmueble',
-  'registro_inmobiliario',
-  'direccion',
-  'ciudad',
-  'departamento',
+  'telefono',
+  'fecha_registro',
   'estado'
 ];
 
+const RENANT_ATTRS = [
+  'id_arrendatario',
+  'id_persona',
+  'registro_arrendatario',
+  'fecha_registro_arrendatario',
+  'tipo_arrendatario',
+  'ciudad_residencia',
+  'direccion_anterior',
+  'contacto_emergencia_nombre',
+  'contacto_emergencia_telefono',
+  'contacto_emergencia_parentesco',
+  'estado',
+  'observaciones',
+  'fecha_creacion',
+  'fecha_actualizacion'
+];
+
 class RenantService {
-  buildInclude(personaWhere = {}) {
-    const personaInclude = {
-      association: 'persona',
-      attributes: PERSONA_ATTRIBUTES
-    };
-
-    if (personaWhere && Object.keys(personaWhere).length) {
-      personaInclude.where = personaWhere;
-      personaInclude.required = true;
-    }
-
-    return [
-      personaInclude,
-      {
-        association: 'inmueble',
-        attributes: INMUEBLE_ATTRIBUTES
-      }
-    ];
-  }
-
-  normalizeRenant(renantInstance) {
-    if (!renantInstance) return null;
-
-    const persona = renantInstance.persona
-      ? {
-          id_persona: renantInstance.persona.id_persona,
-          nombre_completo: renantInstance.persona.nombre_completo,
-          apellido_completo: renantInstance.persona.apellido_completo,
-          tipo_documento: renantInstance.persona.tipo_documento,
-          numero_documento: renantInstance.persona.numero_documento,
-          correo: renantInstance.persona.correo,
-          telefono: renantInstance.persona.telefono
-        }
-      : null;
-
-    const inmueble = renantInstance.inmueble
-      ? {
-          id_inmueble: renantInstance.inmueble.id_inmueble,
-          registro_inmobiliario: renantInstance.inmueble.registro_inmobiliario,
-          direccion: renantInstance.inmueble.direccion,
-          ciudad: renantInstance.inmueble.ciudad,
-          departamento: renantInstance.inmueble.departamento,
-          estado: renantInstance.inmueble.estado
-        }
-      : null;
-
-    return {
-      id_renant: renantInstance.id_arrendatario,
-      id_persona: renantInstance.id_persona,
-      id_inmueble: renantInstance.id_inmueble,
-      id_arrendamiento: renantInstance.id_arrendamiento,
-      registro_arrendatario: renantInstance.registro_arrendatario,
-      estado: renantInstance.estado,
-      status: renantInstance.estado,
-      fecha_inicio_arrendamiento: renantInstance.fecha_inicio_arrendamiento,
-      fecha_fin_arrendamiento: renantInstance.fecha_fin_arrendamiento,
-      valor_arriendo_mensual: renantInstance.valor_arriendo_mensual,
-      tipo_garantia: renantInstance.tipo_garantia,
-      valor_garantia: renantInstance.valor_garantia,
-      descripcion_garantia: renantInstance.descripcion_garantia,
-      contacto_emergencia: {
-        nombre: renantInstance.contacto_emergencia_nombre,
-        telefono: renantInstance.contacto_emergencia_telefono,
-        parentesco: renantInstance.contacto_emergencia_parentesco
-      },
-      observaciones: renantInstance.observaciones,
-      fecha_registro_arrendatario: renantInstance.fecha_registro_arrendatario,
-      fecha_creacion: renantInstance.fecha_creacion,
-      fecha_actualizacion: renantInstance.fecha_actualizacion,
-      persona,
-      inmueble
-    };
-  }
-
   async generateRenantCode(transaction) {
     const total = await Renant.count({ transaction });
     return `ARREN-${String(total + 1).padStart(4, '0')}`;
   }
 
-  async ensureInmuebleExists(idInmueble, transaction) {
-    const inmueble = await Inmueble.findByPk(idInmueble, { transaction });
-    if (!inmueble) {
-      throw new Error('Inmueble no encontrado');
-    }
-    return inmueble;
+  personaQuery(where = {}) {
+    return {
+      where,
+      attributes: PERSONA_ATTRS,
+      include: [
+        {
+          association: 'renant',
+          attributes: RENANT_ATTRS,
+          required: false
+        }
+      ]
+    };
   }
 
-  async ensurePlaceholderInmueble(transaction) {
-    const [inmueble] = await Inmueble.findOrCreate({
-      where: { registro_inmobiliario: 'SIN-ASIGNAR' },
-      defaults: {
-        registro_inmobiliario: 'SIN-ASIGNAR',
-        pais: 'Colombia',
-        departamento: 'Pendiente',
-        ciudad: 'Pendiente',
-        barrio: 'Pendiente',
-        direccion: 'Pendiente por definir',
-        categoria: 'Temporal',
-        estado: true
-      },
-      transaction
-    });
-    return inmueble;
+  normalizeRenant(renantInstance) {
+    if (!renantInstance) return null;
+    const persona = renantInstance.persona || renantInstance;
+    const renant = renantInstance.renant || renantInstance;
+
+    return {
+      id_arrendatario: renant?.id_arrendatario || null,
+      id_persona: persona.id_persona,
+      registro_arrendatario: renant?.registro_arrendatario || null,
+      fecha_registro_arrendatario: renant?.fecha_registro_arrendatario || persona.fecha_registro,
+      tipo_arrendatario: renant?.tipo_arrendatario || null,
+      ciudad_residencia: renant?.ciudad_residencia || null,
+      direccion_anterior: renant?.direccion_anterior || null,
+      estado: renant?.estado || (persona.estado ? 'Activo' : 'Inactivo'),
+      contacto_emergencia: renant
+        ? {
+            nombre: renant.contacto_emergencia_nombre,
+            telefono: renant.contacto_emergencia_telefono,
+            parentesco: renant.contacto_emergencia_parentesco
+          }
+        : null,
+      observaciones: renant?.observaciones || null,
+      persona: {
+        id_persona: persona.id_persona,
+        nombre_completo: persona.nombre_completo,
+        apellido_completo: persona.apellido_completo,
+        tipo_documento: persona.tipo_documento,
+        numero_documento: persona.numero_documento,
+        correo: persona.correo,
+        telefono: persona.telefono
+      }
+    };
   }
 
   async upsertPersona(personaData, transaction) {
@@ -162,138 +120,129 @@ class RenantService {
     return persona;
   }
 
-  async getRenantInstanceById(id, transaction = null) {
-    return Renant.findByPk(id, {
-      include: this.buildInclude(),
-      transaction
-    });
+  buildRenantPayload(data, existing) {
+    return {
+      registro_arrendatario:
+        data.registro_arrendatario || existing?.registro_arrendatario || undefined,
+      fecha_registro_arrendatario:
+        data.fecha_registro_arrendatario || existing?.fecha_registro_arrendatario || undefined,
+      tipo_arrendatario: data.tipo_arrendatario || existing?.tipo_arrendatario || 'Potencial',
+      ciudad_residencia: data.ciudad_residencia ?? existing?.ciudad_residencia ?? null,
+      direccion_anterior: data.direccion_anterior ?? existing?.direccion_anterior ?? null,
+      contacto_emergencia_nombre:
+        data.contacto_emergencia_nombre ?? existing?.contacto_emergencia_nombre ?? null,
+      contacto_emergencia_telefono:
+        data.contacto_emergencia_telefono ?? existing?.contacto_emergencia_telefono ?? null,
+      contacto_emergencia_parentesco:
+        data.contacto_emergencia_parentesco ?? existing?.contacto_emergencia_parentesco ?? null,
+      observaciones: data.observaciones ?? existing?.observaciones ?? null,
+      estado: data.estado || existing?.estado || 'Activo'
+    };
   }
 
   async createRenant(renantData) {
     const transaction = await sequelize.transaction();
     try {
       const persona = await this.upsertPersona(renantData, transaction);
-      let inmuebleId = null;
-      if (renantData.id_inmueble) {
-        const inmueble = await this.ensureInmuebleExists(renantData.id_inmueble, transaction);
-        inmuebleId = inmueble.id_inmueble;
-      } else {
-        const placeholder = await this.ensurePlaceholderInmueble(transaction);
-        inmuebleId = placeholder.id_inmueble;
-      }
 
-      const existingRenant = await Renant.findOne({
+      const existing = await Renant.findOne({
         where: { id_persona: persona.id_persona },
         transaction
       });
 
-      if (existingRenant) {
-        throw new Error('Esta persona ya esta registrada como arrendatario');
+      const payload = this.buildRenantPayload(renantData, existing);
+      if (!payload.registro_arrendatario) {
+        payload.registro_arrendatario = await this.generateRenantCode(transaction);
+      }
+      payload.id_persona = persona.id_persona;
+
+      let renant;
+      if (existing) {
+        await existing.update(payload, { transaction });
+        renant = existing;
+      } else {
+        renant = await Renant.create(payload, { transaction });
       }
 
-      const registro =
-        renantData.registro_arrendatario || (await this.generateRenantCode(transaction));
+      // Crear contrato de arrendamiento si llega la información necesaria
+      const hasLeaseData =
+        renantData.id_inmueble &&
+        renantData.fecha_inicio_arrendamiento &&
+        renantData.fecha_fin_arrendamiento &&
+        renantData.valor_arriendo_mensual;
 
-      const fallbackFechaInicio = renantData.fecha_inicio_arrendamiento
-        ? renantData.fecha_inicio_arrendamiento
-        : new Date().toISOString().slice(0, 10);
+      if (hasLeaseData) {
+        // Validar que el inmueble exista antes de asociarlo
+        const inmueble = await Inmueble.findByPk(renantData.id_inmueble, { transaction });
+        if (!inmueble) {
+          throw new Error('Inmueble no encontrado para crear el arrendamiento');
+        }
 
-      const parsedValorMensual = Number(renantData.valor_arriendo_mensual);
-      const fallbackValorMensual =
-        Number.isFinite(parsedValorMensual) && parsedValorMensual > 0
-          ? parsedValorMensual
-          : 1;
+        await Arriendo.create(
+          {
+            id_arrendatario: renant.id_arrendatario,
+            id_inmueble: renantData.id_inmueble,
+            fecha_inicio: renantData.fecha_inicio_arrendamiento,
+            fecha_finalizacion: renantData.fecha_fin_arrendamiento,
+            valor_mensual: renantData.valor_arriendo_mensual,
+            tipo_garantia: renantData.tipo_garantia || null,
+            valor_garantia: renantData.valor_garantia || null,
+            descripcion_garantia: renantData.descripcion_garantia || null,
+            estado: renantData.estado || 'Activo'
+          },
+          { transaction }
+        );
 
-      const newRenant = await Renant.create(
-        {
-          id_persona: persona.id_persona,
-          id_inmueble: inmuebleId,
-          id_arrendamiento: renantData.id_arrendamiento ?? null,
-          registro_arrendatario: registro,
-          fecha_inicio_arrendamiento: fallbackFechaInicio,
-          fecha_fin_arrendamiento: renantData.fecha_fin_arrendamiento ?? null,
-          valor_arriendo_mensual: fallbackValorMensual,
-          tipo_garantia: renantData.tipo_garantia ?? null,
-          valor_garantia: renantData.valor_garantia ?? null,
-          descripcion_garantia: renantData.descripcion_garantia ?? null,
-          contacto_emergencia_nombre: renantData.contacto_emergencia_nombre ?? null,
-          contacto_emergencia_telefono: renantData.contacto_emergencia_telefono ?? null,
-          contacto_emergencia_parentesco: renantData.contacto_emergencia_parentesco ?? null,
-          observaciones: renantData.observaciones ?? null,
-          estado: renantData.estado || 'Activo'
-        },
-        { transaction }
-      );
+        // Marcar el inmueble como arrendado
+        await inmueble.update(
+          { estado: 'Arrendado' },
+          { transaction }
+        );
+      }
 
       await transaction.commit();
-      const renantInstance = await this.getRenantInstanceById(newRenant.id_arrendatario);
-      return this.normalizeRenant(renantInstance);
+      const refreshed = await this.getRenantById(renant.id_arrendatario);
+      return refreshed;
     } catch (error) {
       await transaction.rollback();
+      logger.error('Error creando arrendatario', { error: error.message });
       throw error;
     }
   }
 
   async getRenantById(id) {
-    const renant = await this.getRenantInstanceById(id);
-    if (!renant) {
-      throw new Error('Arrendatario no encontrado');
-    }
+    const renant = await Renant.findOne({
+      where: { id_arrendatario: id },
+      attributes: RENANT_ATTRS,
+      include: [{ association: 'persona', attributes: PERSONA_ATTRS }]
+    });
     return this.normalizeRenant(renant);
   }
 
   async getAllRenants(filters = {}) {
-    try {
-      logger.info(`Consultando arrendatarios con filtros: ${JSON.stringify(filters)}`);
+    const renantWhere = {};
+    if (filters.status) renantWhere.estado = filters.status;
+    if (filters.tipo_arrendatario) renantWhere.tipo_arrendatario = filters.tipo_arrendatario;
 
-      const whereClause = {};
-      if (filters.status) whereClause.estado = filters.status;
-      if (filters.tipo_garantia) whereClause.tipo_garantia = filters.tipo_garantia;
-      if (filters.id_inmueble) whereClause.id_inmueble = filters.id_inmueble;
-      if (filters.fecha_inicio && filters.fecha_fin) {
-        whereClause.fecha_inicio_arrendamiento = {
-          [Op.between]: [filters.fecha_inicio, filters.fecha_fin]
-        };
-      }
+    const renants = await Renant.findAll({
+      where: Object.keys(renantWhere).length ? renantWhere : undefined,
+      attributes: RENANT_ATTRS,
+      include: [{ association: 'persona', attributes: PERSONA_ATTRS }]
+    });
 
-      const personaWhere = {};
-      if (filters.tipo_documento) personaWhere.tipo_documento = filters.tipo_documento;
-      if (filters.numero_documento) personaWhere.numero_documento = filters.numero_documento;
-
-      const renants = await Renant.findAll({
-        where: whereClause,
-        include: this.buildInclude(personaWhere),
-        order: [['fecha_creacion', 'DESC']],
-        logging: false
-      });
-
-      logger.info(`${renants.length} arrendatarios obtenidos exitosamente`);
-      return renants.map((renant) => this.normalizeRenant(renant));
-    } catch (error) {
-      logger.error(`Error en getAllRenants: ${error.message}`);
-      throw error;
-    }
+    return renants.map((r) => this.normalizeRenant(r));
   }
 
   async updateRenant(id, updateData) {
     const transaction = await sequelize.transaction();
     try {
-      const renant = await this.getRenantInstanceById(id, transaction);
+      const renant = await Renant.findByPk(id, {
+        include: [{ association: 'persona' }],
+        transaction
+      });
+      if (!renant) throw new Error('Arrendatario no encontrado');
 
-      if (!renant) {
-        throw new Error('Arrendatario no encontrado');
-      }
-
-      if (updateData.id_inmueble) {
-        await this.ensureInmuebleExists(updateData.id_inmueble, transaction);
-      }
-
-      if (renant.persona && (
-        updateData.nombre_completo ||
-        updateData.apellido_completo ||
-        updateData.correo ||
-        updateData.telefono
-      )) {
+      if (renant.persona) {
         await renant.persona.update(
           {
             nombre_completo: updateData.nombre_completo ?? renant.persona.nombre_completo,
@@ -305,105 +254,69 @@ class RenantService {
         );
       }
 
-      const renantFields = [
-        'id_inmueble',
-        'id_arrendamiento',
-        'fecha_inicio_arrendamiento',
-        'fecha_fin_arrendamiento',
-        'valor_arriendo_mensual',
-        'tipo_garantia',
-        'valor_garantia',
-        'descripcion_garantia',
-        'contacto_emergencia_nombre',
-        'contacto_emergencia_telefono',
-        'contacto_emergencia_parentesco',
-        'observaciones',
-        'estado'
-      ];
-
-      const payload = {};
-      renantFields.forEach((field) => {
-        if (Object.prototype.hasOwnProperty.call(updateData, field)) {
-          payload[field] = updateData[field];
-        }
-      });
-
-      if (Object.keys(payload).length) {
-        await renant.update(payload, { transaction });
-      }
+      const payload = this.buildRenantPayload(updateData, renant);
+      await renant.update(payload, { transaction });
 
       await transaction.commit();
       return this.getRenantById(id);
     } catch (error) {
       await transaction.rollback();
+      logger.error('Error actualizando arrendatario', { error: error.message });
       throw error;
     }
   }
 
   async deactivateRenant(id) {
-    return this.updateRenant(id, { estado: 'Inactivo' });
+    const renant = await Renant.findByPk(id);
+    if (!renant) throw new Error('Arrendatario no encontrado');
+    await renant.update({ estado: 'Inactivo' });
+    return this.getRenantById(id);
   }
 
   async deleteRenant(id) {
     const transaction = await sequelize.transaction();
     try {
-      const renant = await this.getRenantInstanceById(id, transaction);
-
-      if (!renant) {
-        throw new Error('Arrendatario no encontrado');
-      }
-
-      const snapshot = this.normalizeRenant(renant);
+      const renant = await Renant.findByPk(id, { transaction });
+      if (!renant) throw new Error('Arrendatario no encontrado');
       const personaId = renant.id_persona;
-
       await renant.destroy({ transaction });
-
-      if (personaId) {
-        await Persona.destroy({
-          where: { id_persona: personaId },
-          transaction
-        });
-      }
-
       await transaction.commit();
-      return snapshot;
+      return { id_arrendatario: id, id_persona: personaId };
     } catch (error) {
       await transaction.rollback();
-      if (error?.name === 'SequelizeForeignKeyConstraintError') {
-        throw new Error(
-          'No es posible eliminar este arrendatario porque tiene información relacionada (arrendamientos, pagos, etc.). Intente desactivarlo.'
-        );
-      }
+      logger.error('Error eliminando arrendatario', { error: error.message });
       throw error;
     }
   }
 
   async searchRenants(criteria = {}) {
-    try {
-      const whereClause = {};
-      if (criteria.status) whereClause.estado = criteria.status;
-      if (criteria.tipo_garantia) whereClause.tipo_garantia = criteria.tipo_garantia;
-      if (criteria.id_inmueble) whereClause.id_inmueble = criteria.id_inmueble;
+    const personaWhere = {};
+    const renantWhere = {};
 
-      const personaWhere = {};
-      if (criteria.tipo_documento) personaWhere.tipo_documento = criteria.tipo_documento;
-      if (criteria.numero_documento) personaWhere.numero_documento = criteria.numero_documento;
-      if (criteria.nombre) {
-        personaWhere.nombre_completo = { [Op.like]: `%${criteria.nombre}%` };
-      }
-
-      const renants = await Renant.findAll({
-        where: whereClause,
-        include: this.buildInclude(personaWhere),
-        order: [['fecha_creacion', 'DESC']],
-        logging: false
-      });
-
-      return renants.map((renant) => this.normalizeRenant(renant));
-    } catch (error) {
-      logger.error(`Error en searchRenants: ${error.message}`);
-      throw error;
+    if (criteria.tipo_documento) personaWhere.tipo_documento = criteria.tipo_documento;
+    if (criteria.numero_documento) personaWhere.numero_documento = criteria.numero_documento;
+    if (criteria.nombre) {
+      personaWhere[Op.or] = [
+        { nombre_completo: { [Op.like]: `%${criteria.nombre}%` } },
+        { apellido_completo: { [Op.like]: `%${criteria.nombre}%` } }
+      ];
     }
+    if (criteria.status) renantWhere.estado = criteria.status;
+    if (criteria.tipo_arrendatario) renantWhere.tipo_arrendatario = criteria.tipo_arrendatario;
+
+    const renants = await Renant.findAll({
+      where: Object.keys(renantWhere).length ? renantWhere : undefined,
+      attributes: RENANT_ATTRS,
+      include: [
+        {
+          association: 'persona',
+          attributes: PERSONA_ATTRS,
+          where: Object.keys(personaWhere).length ? personaWhere : undefined
+        }
+      ]
+    });
+
+    return renants.map((r) => this.normalizeRenant(r));
   }
 }
 

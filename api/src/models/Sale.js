@@ -8,10 +8,10 @@ const Sale = sequelize.define('Sale', {
     autoIncrement: true,
     field: 'id_venta'
   },
-  id_persona: {
+  id_comprador: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'id_persona'
+    field: 'id_comprador'
   },
   id_inmueble: {
     type: DataTypes.INTEGER,

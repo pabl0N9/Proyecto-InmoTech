@@ -202,21 +202,6 @@ class AuthService {
       }, {}) || {};
       const permisos = buildPermissionsResponse(permisosConsolidados);
 
-      // Consolidar permisos de todos los roles del usuario
-      const permisos = {};
-      if (persona.roles) {
-        persona.roles.forEach(rol => {
-          if (rol.permisos) {
-            rol.permisos.forEach(permiso => {
-              if (!permisos[permiso.modulo]) {
-                permisos[permiso.modulo] = {};
-              }
-              permisos[permiso.modulo][permiso.permiso] = true;
-            });
-          }
-        });
-      }
-
       // Generar tokens
       const payload = {
         id: persona.id_persona,

@@ -1,4 +1,4 @@
-const { Persona, Administrativo, Acceso, PersonasRol, Rol } = require('../models');
+﻿const { Persona, Administrativo, Acceso, PersonasRol, Rol } = require('../models');
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
@@ -13,19 +13,19 @@ class SetupController {
     try {
       const { setupKey, adminData } = req.validatedData;
 
-      // Verificar clave secreta de configuración
+      // Verificar clave secreta de configuraciÃ³n
       const expectedKey = process.env.SETUP_SECRET_KEY;
       if (!expectedKey) {
         return res.status(500).json({
           success: false,
-          message: 'Configuración incompleta: SETUP_SECRET_KEY no definida'
+          message: 'ConfiguraciÃ³n incompleta: SETUP_SECRET_KEY no definida'
         });
       }
 
       if (setupKey !== expectedKey) {
         return res.status(403).json({
           success: false,
-          message: 'Clave de configuración inválida'
+          message: 'Clave de configuraciÃ³n invÃ¡lida'
         });
       }
 
@@ -45,7 +45,7 @@ class SetupController {
         });
       }
 
-      // Crear super administrador usando transacción
+      // Crear super administrador usando transacciÃ³n
       const result = await sequelize.transaction(async (t) => {
         try {
           // Crear roles si no existen
@@ -76,7 +76,7 @@ class SetupController {
             codigo_empleado: adminData.codigo_empleado,
             fecha_ingreso: adminData.fecha_ingreso || new Date(),
             cargo: 'Super Administrador',
-            departamento: adminData.departamento || 'Tecnología',
+            departamento: adminData.departamento || 'TecnologÃ­a',
             estado_laboral: 'Activo'
           }, { transaction: t });
 
@@ -134,7 +134,7 @@ class SetupController {
       });
 
     } catch (error) {
-      logger.error('Error en creación de super admin:', error);
+      logger.error('Error en creaciÃ³n de super admin:', error);
       next(error);
     }
   }
@@ -145,7 +145,7 @@ class SetupController {
   static async _crearRolesSiNoExisten(transaction) {
     const roles = [
       { nombre_rol: 'Super Administrador', descripcion: 'Acceso total al sistema con todos los permisos', es_rol_administrativo: true },
-      { nombre_rol: 'Administrador', descripcion: 'Gestión administrativa y configuración del sistema', es_rol_administrativo: true },
+      { nombre_rol: 'Administrador', descripcion: 'GestiÃ³n administrativa y configuraciÃ³n del sistema', es_rol_administrativo: true },
       { nombre_rol: 'Empleado', descripcion: 'Agentes inmobiliarios y empleados de la empresa', es_rol_administrativo: true },
       { nombre_rol: 'Usuario', descripcion: 'Rol por defecto al registrarse en el sistema', es_rol_administrativo: false },
       { nombre_rol: 'Propietario', descripcion: 'Usuarios que tienen inmuebles registrados a su nombre', es_rol_administrativo: false }
@@ -166,3 +166,5 @@ class SetupController {
 }
 
 module.exports = new SetupController();
+
+

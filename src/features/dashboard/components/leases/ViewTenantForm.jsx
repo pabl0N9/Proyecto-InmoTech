@@ -23,6 +23,20 @@ export default function ViewTenantModal({ tenant, onClose }) {
     .join(" ");
 
   const inmueble = tenant.inmueble || null;
+  const hasLeaseInfo = Boolean(
+    tenant.fechaInicio ||
+      tenant.fechaFin ||
+      tenant.valorMensual ||
+      tenant.tipoGarantia ||
+      tenant.valorGarantia ||
+      tenant.descripcionGarantia ||
+      (tenant.estado && `${tenant.estado}`.trim().toLowerCase() !== "activo")
+  );
+  const hasEmergencyContact = Boolean(
+    tenant.contactoEmergenciaNombre ||
+      tenant.contactoEmergenciaTelefono ||
+      tenant.contactoEmergenciaParentesco
+  );
 
   return (
     <div
@@ -34,7 +48,7 @@ export default function ViewTenantModal({ tenant, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-6 pr-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">Información del arrendatario</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">Informacion del arrendatario</h2>
           <p className="text-gray-600 text-sm">
             Resumen del arrendatario, su contrato y el inmueble asociado.
           </p>
@@ -56,7 +70,7 @@ export default function ViewTenantModal({ tenant, onClose }) {
         <div className="space-y-6 max-h-[65vh] overflow-y-auto pr-2">
           <section className="bg-blue-50 rounded-lg p-4 border border-blue-200">
             <h3 className="text-lg font-bold text-blue-800 mb-3 pb-2 border-b border-blue-200">
-              Información personal
+              Informacion personal
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
@@ -66,11 +80,11 @@ export default function ViewTenantModal({ tenant, onClose }) {
               <div>
                 <p className="font-semibold text-gray-700">Documento:</p>
                 <p className="text-gray-900">
-                  {tenant.tipoDocumento} · {tenant.documento}
+                  {tenant.tipoDocumento} - {tenant.documento}
                 </p>
               </div>
               <div>
-                <p className="font-semibold text-gray-700">Correo electrónico:</p>
+                <p className="font-semibold text-gray-700">Correo electronico:</p>
                 {tenant.correo ? (
                   <a href={`mailto:${tenant.correo}`} className="text-blue-600 hover:text-blue-800 underline">
                     {tenant.correo}
@@ -82,7 +96,7 @@ export default function ViewTenantModal({ tenant, onClose }) {
               <div className="flex items-center gap-2">
                 <FaPhoneAlt className="text-gray-500" />
                 <div>
-                  <p className="font-semibold text-gray-700">Teléfono:</p>
+                  <p className="font-semibold text-gray-700">Telefono:</p>
                   <p className="text-gray-900">{tenant.telefono || "-"}</p>
                 </div>
               </div>
@@ -107,51 +121,60 @@ export default function ViewTenantModal({ tenant, onClose }) {
             <h3 className="text-lg font-bold text-green-800 mb-3 pb-2 border-b border-green-200">
               Datos del arrendamiento
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="font-semibold text-gray-700">Fecha inicio:</p>
-                <p className="text-gray-900">
-                  {tenant.fechaInicio ? new Date(tenant.fechaInicio).toLocaleDateString() : "-"}
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Fecha fin:</p>
-                <p className="text-gray-900">
-                  {tenant.fechaFin ? new Date(tenant.fechaFin).toLocaleDateString() : "No definida"}
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Canon mensual:</p>
-                <p className="text-gray-900 font-semibold">
-                  {formatCurrency(tenant.valorMensual)}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
-              <div className="flex items-center gap-2">
-                <FaShieldAlt className="text-gray-500" />
-                <div>
-                  <p className="font-semibold text-gray-700">Tipo de garantía:</p>
-                  <p className="text-gray-900">{tenant.tipoGarantia || "-"}</p>
+            {hasLeaseInfo ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="font-semibold text-gray-700">Fecha inicio:</p>
+                    <p className="text-gray-900">
+                      {tenant.fechaInicio ? new Date(tenant.fechaInicio).toLocaleDateString() : "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-700">Fecha fin:</p>
+                    <p className="text-gray-900">
+                      {tenant.fechaFin ? new Date(tenant.fechaFin).toLocaleDateString() : "No definida"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-700">Canon mensual:</p>
+                    <p className="text-gray-900 font-semibold">
+                      {formatCurrency(tenant.valorMensual)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Valor garantía:</p>
-                <p className="text-gray-900">{tenant.valorGarantia ? formatCurrency(tenant.valorGarantia) : "-"}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Estado del contrato:</p>
-                <p className="text-gray-900">{tenant.estado || "-"}</p>
-              </div>
-            </div>
 
-            {tenant.descripcionGarantia && (
-              <div className="mt-4 text-sm">
-                <p className="font-semibold text-gray-700 mb-1">Descripción de la garantía:</p>
-                <p className="text-gray-900 bg-white rounded-lg p-3 border border-gray-200">
-                  {tenant.descripcionGarantia}
-                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
+                  <div className="flex items-center gap-2">
+                    <FaShieldAlt className="text-gray-500" />
+                    <div>
+                      <p className="font-semibold text-gray-700">Tipo de garantia:</p>
+                      <p className="text-gray-900">{tenant.tipoGarantia || "-"}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-700">Valor garantia:</p>
+                    <p className="text-gray-900">{tenant.valorGarantia ? formatCurrency(tenant.valorGarantia) : "-"}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-700">Estado del contrato:</p>
+                    <p className="text-gray-900">{tenant.estado || "-"}</p>
+                  </div>
+                </div>
+
+                {tenant.descripcionGarantia && (
+                  <div className="mt-4 text-sm">
+                    <p className="font-semibold text-gray-700 mb-1">Descripcion de la garantia:</p>
+                    <p className="text-gray-900 bg-white rounded-lg p-3 border border-gray-200">
+                      {tenant.descripcionGarantia}
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-6">
+                <FaImage size={40} className="mx-auto text-gray-300 mb-2" />
+                <p className="text-gray-500 italic">Aun no se ha registrado un contrato de arrendamiento para este arrendatario.</p>
               </div>
             )}
           </section>
@@ -160,20 +183,27 @@ export default function ViewTenantModal({ tenant, onClose }) {
             <h3 className="text-lg font-bold text-gray-800 mb-3 pb-2 border-b border-gray-100">
               Contacto de emergencia
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="font-semibold text-gray-700">Nombre:</p>
-                <p className="text-gray-900">{tenant.contactoEmergenciaNombre || "-"}</p>
+            {hasEmergencyContact ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="font-semibold text-gray-700">Nombre:</p>
+                  <p className="text-gray-900">{tenant.contactoEmergenciaNombre || "-"}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700">Telefono:</p>
+                  <p className="text-gray-900">{tenant.contactoEmergenciaTelefono || "-"}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700">Parentesco:</p>
+                  <p className="text-gray-900">{tenant.contactoEmergenciaParentesco || "-"}</p>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-gray-700">Teléfono:</p>
-                <p className="text-gray-900">{tenant.contactoEmergenciaTelefono || "-"}</p>
+            ) : (
+              <div className="text-center py-6">
+                <FaImage size={40} className="mx-auto text-gray-300 mb-2" />
+                <p className="text-gray-500 italic">Aun no se ha agregado un contacto de emergencia para este arrendatario.</p>
               </div>
-              <div>
-                <p className="font-semibold text-gray-700">Parentesco:</p>
-                <p className="text-gray-900">{tenant.contactoEmergenciaParentesco || "-"}</p>
-              </div>
-            </div>
+            )}
           </section>
 
           <section className="bg-white rounded-lg p-4 border border-gray-200">
@@ -192,15 +222,15 @@ export default function ViewTenantModal({ tenant, onClose }) {
                     <p className="text-gray-900">{inmueble.registro || "-"}</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-700">Categoría:</p>
+                    <p className="font-semibold text-gray-700">Categoria:</p>
                     <p className="text-gray-900">{inmueble.categoria || "-"}</p>
                   </div>
                   <div className="md:col-span-2">
-                    <p className="font-semibold text-gray-700">Dirección:</p>
+                    <p className="font-semibold text-gray-700">Direccion:</p>
                     <p className="text-gray-900">{inmueble.direccion || "-"}</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-700">Ubicación:</p>
+                    <p className="font-semibold text-gray-700">Ubicacion:</p>
                     <p className="text-gray-900">
                       {[inmueble.ciudad, inmueble.departamento].filter(Boolean).join(", ") || "-"}
                     </p>
@@ -222,7 +252,7 @@ export default function ViewTenantModal({ tenant, onClose }) {
             ) : (
               <div className="text-center py-6">
                 <FaImage size={40} className="mx-auto text-gray-300 mb-2" />
-                <p className="text-gray-500 italic">Aún no se ha vinculado un inmueble a este arrendatario.</p>
+                <p className="text-gray-500 italic">Aun no se ha vinculado un inmueble a este arrendatario.</p>
               </div>
             )}
           </section>

@@ -247,6 +247,50 @@ class LeaseService {
     }
   }
 
+  async deleteLease(id) {
+    const transaction = await sequelize.transaction();
+    try {
+      const lease = await Lease.findByPk(id, { include: ['inmueble'], transaction });
+      if (!lease) {
+        throw new Error('Arrendamiento no encontrado');
+      }
+
+      // Borrar recibos asociados a los cobros de este arrendamiento
+      const payments = await Payment.findAll({
+        where: { id_arrendamiento: id },
+        transaction
+      });
+      const paymentIds = payments.map((p) => p.id_cobro);
+      if (paymentIds.length) {
+        await Receipt.destroy({
+          where: { id_cobro: paymentIds },
+          transaction
+        });
+      }
+
+      // Borrar cobros
+      await Payment.destroy({
+        where: { id_arrendamiento: id },
+        transaction
+      });
+
+      // Liberar el inmueble
+      if (lease.inmueble) {
+        await lease.inmueble.update({ estado: 'Disponible' }, { transaction });
+      }
+
+      // Borrar el arrendamiento
+      await lease.destroy({ transaction });
+
+      await transaction.commit();
+      return { id_arrendamiento: id };
+    } catch (error) {
+      await transaction.rollback();
+      logger.error(`Error eliminando arrendamiento ${id}: ${error.message}`);
+      throw error;
+    }
+  }
+
   async getPayments(leaseId) {
     try {
       const payments = await Payment.findAll({

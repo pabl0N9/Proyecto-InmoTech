@@ -19,6 +19,7 @@ const Renant = require('./Renant');
 const Reporte = require('./Reporte');
 const Sale = require('./Sale');
 const Lease = require('./Lease');
+const Arriendo = require('./Arriendo');
 
 // =============================================================================
 // ASOCIACIONES PRINCIPALES - PERSONA
@@ -194,28 +195,7 @@ Persona.hasOne(Buyer, {
   as: 'buyer'
 });
 
-// Buyer - Inmueble (Many-to-One)
-Buyer.belongsTo(Inmueble, {
-  foreignKey: 'id_inmueble',
-  as: 'inmueble'
-});
-
-Inmueble.hasMany(Buyer, {
-  foreignKey: 'id_inmueble',
-  as: 'compradores'
-});
-
 // Buyer - Sale (One-to-One) - ¡RELACIÓN CLAVE CORREGIDA!
-Buyer.belongsTo(Sale, {
-  foreignKey: 'id_venta',
-  as: 'venta'
-});
-
-Sale.hasOne(Buyer, {
-  foreignKey: 'id_venta',
-  as: 'buyerRecord'
-});
-
 // =============================================================================
 // ASOCIACIONES DE VENTAS (SALE)
 // =============================================================================
@@ -231,63 +211,64 @@ Inmueble.hasMany(Sale, {
   as: 'ventas'
 });
 
-// Sale - Persona (Comprador)
-Sale.belongsTo(Persona, {
-  foreignKey: 'id_persona',
+// Sale - Buyer (Comprador)
+Sale.belongsTo(Buyer, {
+  foreignKey: 'id_comprador',
   as: 'comprador'
 });
 
-Persona.hasMany(Sale, {
-  foreignKey: 'id_persona',
-  as: 'ventasComoComprador'
+Buyer.hasMany(Sale, {
+  foreignKey: 'id_comprador',
+  as: 'ventas'
 });
 
 // =============================================================================
 // ASOCIACIONES DE ARRIENDOS (LEASE)
 // =============================================================================
 
-// Lease - Inmueble
+// Lease - Inmueble (Arrendamientos)
 Lease.belongsTo(Inmueble, {
-  foreignKey: 'inmueble_id',
+  foreignKey: 'id_inmueble',
   as: 'inmueble'
 });
 
 Inmueble.hasMany(Lease, {
-  foreignKey: 'inmueble_id',
+  foreignKey: 'id_inmueble',
   as: 'arriendos'
 });
 
-// Lease - Persona (Arrendador)
+// Lease - Persona (Arrendatario) usando id_cliente (columna id_arrendatario)
 Lease.belongsTo(Persona, {
-  foreignKey: 'arrendador_id',
-  as: 'arrendador'
-});
-
-Persona.hasMany(Lease, {
-  foreignKey: 'arrendador_id',
-  as: 'arriendosComoArrendador'
-});
-
-// Lease - Persona (Arrendatario)
-Lease.belongsTo(Persona, {
-  foreignKey: 'arrendatario_id',
+  foreignKey: 'id_cliente',
   as: 'arrendatario'
 });
 
 Persona.hasMany(Lease, {
-  foreignKey: 'arrendatario_id',
+  foreignKey: 'id_cliente',
   as: 'arriendosComoArrendatario'
 });
 
-// Lease - Cita
-Lease.belongsTo(Cita, {
-  foreignKey: 'cita_id',
-  as: 'cita'
+// =============================================================================
+// ASOCIACIONES DE ARRIENDOS (Arriendo - tabla Arriendos)
+// =============================================================================
+Arriendo.belongsTo(Inmueble, {
+  foreignKey: 'id_inmueble',
+  as: 'Inmueble'
 });
 
-Cita.hasOne(Lease, {
-  foreignKey: 'cita_id',
-  as: 'arriendo'
+Inmueble.hasMany(Arriendo, {
+  foreignKey: 'id_inmueble',
+  as: 'arriendosContrato'
+});
+
+Arriendo.belongsTo(Renant, {
+  foreignKey: 'id_arrendatario',
+  as: 'Arrendatario'
+});
+
+Renant.hasMany(Arriendo, {
+  foreignKey: 'id_arrendatario',
+  as: 'arriendos'
 });
 
 // =============================================================================
@@ -324,21 +305,6 @@ Persona.hasMany(Notificacion, {
   as: 'notificaciones'
 });
 
-// =============================================================================
-// ASOCIACIONES DE PERMISOS
-// =============================================================================
-
-Permiso.belongsTo(Rol, {
-  foreignKey: 'id_rol',
-  as: 'rol'
-});
-
-Rol.hasMany(Permiso, {
-  foreignKey: 'id_rol',
-  as: 'permisos'
-});
-
-// =============================================================================
 // ASOCIACIONES DE REPORTES
 // =============================================================================
 
@@ -404,5 +370,7 @@ module.exports = {
   Buyer,
   Renant,
   Sale,
-  Lease
+  Lease,
+  Arriendo
 };
+

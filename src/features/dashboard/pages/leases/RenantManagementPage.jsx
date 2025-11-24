@@ -7,7 +7,7 @@ import RenantForm from "../../components/leases/RenantForm";
 import EditRenantForm from "../../components/leases/EditRenantForm";
 import ViewRenant from "../../components/leases/ViewRenant"; 
 import "../../../../shared/styles/globals.css";
-import { renantsApiService } from "../../../../shared/services/arrendatarioApiService";
+import arriendoApiService from "../../../../shared/services/arriendoApiService";
 
 const formatCurrency = (value) => {
   const numeric = Number(value);
@@ -15,52 +15,49 @@ const formatCurrency = (value) => {
   return `${numeric.toLocaleString("es-CO")} $`;
 };
 
-const mapApiRenantToRow = (renant = {}, formValues = {}) => {
-  const inmueble = renant.inmueble || {};
-  const valor = renant.valorMensual || renant.valor_arriendo_mensual || "";
-  const formattedValor = formatCurrency(valor);
-  const codeudor = {
-    tipoDocCodeudor: formValues.tipoDocCodeudor || "",
-    numeroDocCodeudor: formValues.numeroDocCodeudor || "",
-    primerNombreCodeudor: formValues.primerNombreCodeudor || "",
-    segundoNombreCodeudor: formValues.segundoNombreCodeudor || "",
-    primerApellidoCodeudor: formValues.primerApellidoCodeudor || "",
-    segundoApellidoCodeudor: formValues.segundoApellidoCodeudor || "",
-    correoCodeudor: formValues.correoCodeudor || "",
-    telefonoCodeudor: formValues.telefonoCodeudor || "",
-    estabilidadLaboral: formValues.estabilidadLaboral || "",
-  };
+const mapApiArriendoToRow = (arriendo = {}) => {
+  const inmueble = arriendo.Inmueble || arriendo.inmueble || {};
+  const arrendatario = arriendo.Arrendatario || arriendo.arrendatario || {};
+  const persona = arrendatario.persona || arrendatario.Persona || arrendatario || {};
+
+  const nombreCompleto = persona.nombre_completo || "";
+  const [primerNombre = "", segundoNombre = ""] = nombreCompleto.split(" ");
+  const apellidos = persona.apellido_completo || "";
+  const [primerApellido = "", segundoApellido = ""] = apellidos.split(" ");
+
+  const valor = arriendo.valor_mensual || arriendo.valor_arriendo || arriendo.valor_arriendo_mensual || 0;
+  const fechaInicio = arriendo.fecha_inicio || "";
+  const fechaFin = arriendo.fecha_finalizacion || arriendo.fecha_fin || "";
 
   return {
-    id: renant.id || renant.id_renant || renant.personaId || Date.now(),
-    tipoDocInquilino: renant.tipoDocumento || "",
-    numeroDocInquilino: renant.documento || "",
-    primerNombreInquilino: renant.primerNombre || "",
-    segundoNombreInquilino: renant.segundoNombre || "",
-    primerApellidoInquilino: renant.primerApellido || "",
-    segundoApellidoInquilino: renant.segundoApellido || "",
-    correoInquilino: renant.correo || "",
-    telefonoInquilino: renant.telefono || "",
-    ...codeudor,
-    tipoInmueble: inmueble.tipo || inmueble.categoria || "",
-    registroInmobiliario: inmueble.registro || "",
-    nombreInmueble: inmueble.nombre || "",
-    area: inmueble.m2 || "",
-    habitaciones: inmueble.hab || "",
+    id: arriendo.id_arrendamiento || arriendo.id_arriendo || arriendo.id || Date.now(),
+    tipoDocInquilino: persona.tipo_documento || "",
+    numeroDocInquilino: persona.numero_documento || "",
+    primerNombreInquilino: primerNombre,
+    segundoNombreInquilino: segundoNombre,
+    primerApellidoInquilino: primerApellido,
+    segundoApellidoInquilino: segundoApellido,
+    correoInquilino: persona.correo || "",
+    telefonoInquilino: persona.telefono || "",
+    tipoInmueble: inmueble.categoria || inmueble.tipo || "",
+    registroInmobiliario: inmueble.registro_inmobiliario || inmueble.registro || "",
+    nombreInmueble: inmueble.nombre || inmueble.titulo || "",
+    area: inmueble.area_construida || inmueble.m2 || "",
+    habitaciones: inmueble.habitaciones || "",
     banos: inmueble.banos || "",
     departamento: inmueble.departamento || "",
     ciudad: inmueble.ciudad || "",
     barrio: inmueble.barrio || "",
     estrato: inmueble.estrato || "",
     direccion: inmueble.direccion || "",
-    precioInmueble: formatCurrency(inmueble.precio || valor),
-    fechaInicio: renant.fechaInicio || renant.fecha_inicio_arrendamiento || "",
-    fechaFinal: renant.fechaFinal || renant.fecha_fin_arrendamiento || "",
-    fechaCobro: renant.fechaCobro || "",
-    precio: formattedValor,
-    estado: renant.estado || "Pendiente de inicio",
+    precioInmueble: formatCurrency(inmueble.precio_arriendo || inmueble.precio || valor),
+    fechaInicio: fechaInicio ? String(fechaInicio).slice(0, 10) : "",
+    fechaFinal: fechaFin ? String(fechaFin).slice(0, 10) : "",
+    fechaCobro: "",
+    precio: formatCurrency(valor),
+    estado: arriendo.estado || "Pendiente",
     fechaLimite: "",
-    valorMensual: formattedValor,
+    valorMensual: formatCurrency(valor),
   };
 };
 
@@ -76,8 +73,9 @@ export function RenantManagementPage() {
   const fetchArriendos = useCallback(async () => {
     setIsLoading(true);
     try {
-      const renants = await renantsApiService.getAll();
-      setArriendos(renants.map(mapApiRenantToRow));
+      const response = await arriendoApiService.obtenerArriendos();
+      const list = response?.data?.data || response?.data || [];
+      setArriendos(list.map(mapApiArriendoToRow));
       setStatusMessage(null);
     } catch (error) {
       setStatusMessage({
@@ -95,9 +93,8 @@ export function RenantManagementPage() {
 
   // CREAR NUEVO
   const handleNewRent = ({ renant, formData }) => {
-    if (!renant) return;
-    const nuevoArriendo = mapApiRenantToRow(renant, formData);
-    setArriendos((prev) => [...prev, nuevoArriendo]);
+    // Solo refrescamos desde API; crear arrendatario no debe agregar a la lista de arriendos
+    fetchArriendos();
     setShowForm(false);
     setEditingRent(null);
     setStatusMessage({ type: "success", message: "Arriendo sincronizado con la API" });
@@ -105,16 +102,8 @@ export function RenantManagementPage() {
 
   // EDITAR EXISTENTE
   const handleEditSave = (updatedRent) => {
-    const actualizado = {
-      ...updatedRent,
-      precioInmueble: `${Number(updatedRent.precioInmueble).toLocaleString("es-CO")} $`,
-      precio: `${Number(updatedRent.precio).toLocaleString("es-CO")} $`,
-      valorMensual: `${Number(updatedRent.precio).toLocaleString("es-CO")} $`,
-    };
-
-    setArriendos((prev) =>
-      prev.map((r) => (r.id === updatedRent.id ? { ...r, ...actualizado } : r))
-    );
+    // Refrescamos desde API para evitar datos locales desfasados
+    fetchArriendos();
     setShowForm(false);
     setEditingRent(null);
   };
@@ -125,10 +114,11 @@ export function RenantManagementPage() {
   };
 
   // 🗑️ ELIMINAR
-  const handleDelete = (id) => {
-    if (window.confirm("¿Estás seguro de eliminar este registro?")) {
-      setArriendos((prev) => prev.filter((r) => r.id !== id));
-    }
+  const handleDelete = async (id) => {
+    // No hay endpoint de borrado de arriendos en uso; removemos local y refrescamos
+    if (!window.confirm("¿Estás seguro de eliminar este registro?")) return;
+    setArriendos((prev) => prev.filter((r) => r.id !== id));
+    setStatusMessage({ type: "info", message: "Arriendo removido de la lista local. Refresca si persiste." });
   };
 
   const filteredRents =

@@ -17,19 +17,7 @@ const isSuperAdministrator = (user) => {
   return user && user.roles && user.roles.includes('Super Administrador');
 };
 
-/**
- * Middleware para verificar token JWT
- */
-
-const isSuperAdministrator = (user) => {
-
-  return user && user.roles && user.roles.includes('Super Administrador');
-
-};
-
-
-
-/**
+/** 
 
  * Helper function to check if user is Administrator
 
@@ -361,6 +349,5 @@ const authorizePermissions = (moduleName, requiredPermissions) => {
 module.exports = {
   authenticateToken,
   authorizeRoles,
-  optionalAuth,
   isSuperAdministrator
 };

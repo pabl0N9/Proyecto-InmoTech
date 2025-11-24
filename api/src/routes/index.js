@@ -7,13 +7,17 @@ const leasesRoutes = require('./leases.routes');
 const renantsRoutes = require('./renants.route');
 const setupRoutes = require('./setup.routes');
 const authRoutes = require('./auth.routes');
+const sseRoutes = require('./sse.routes');
+const arriendoRoutes = require('./arriendo.routes');
 
 router.use('/setup', setupRoutes);
 router.use('/auth', authRoutes);
+router.use('/sse', sseRoutes);
 router.use('/sales/buyers', buyersRoutes);
 router.use('/sales', salesRoutes);
 router.use('/leases/renants', renantsRoutes);
 router.use('/leases', leasesRoutes);
+router.use('/arriendos', arriendoRoutes);
 
 // ✅ CORRECTO: Importar desde models
 const { 
@@ -145,30 +149,6 @@ router.get('/ventas', async (req, res) => {
       success: true,
       data: ventas,
       count: ventas.length
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
-});
-
-// Rutas para Arriendos (Leases)
-router.get('/arriendos', async (req, res) => {
-  try {
-    const arriendos = await Lease.findAll({
-      include: [
-        { model: Inmueble, as: 'inmueble' },
-        { model: Persona, as: 'arrendador' },
-        { model: Persona, as: 'arrendatario' },
-        { model: Cita, as: 'cita' }
-      ]
-    });
-    res.json({
-      success: true,
-      data: arriendos,
-      count: arriendos.length
     });
   } catch (error) {
     res.status(500).json({ 
