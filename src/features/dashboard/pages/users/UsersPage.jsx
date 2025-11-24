@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Eye, Edit, UserCheck, UserX, AlertTriangle } from 'lucide-react';
+import { Plus, Eye, Edit, UserCheck, UserX, AlertTriangle, ShieldCheck } from 'lucide-react';
 import SearchBar from '../../components/SearchBar';
 import StatsCard from '../../components/StatsCard';
 import CreateUserModal from '../../components/users/CreateUserModal';
@@ -29,6 +29,7 @@ const UsersPage = () => {
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
+  const [accessFilter, setAccessFilter] = useState('Todos');
   const [dateFilter, setDateFilter] = useState('Todos los periodos');
   const [customDateRange, setCustomDateRange] = useState({
     startDate: '',
@@ -71,6 +72,16 @@ const UsersPage = () => {
     }
   };
 
+  // Estado de acceso combinado
+  const getAccessState = (user) => {
+    const isDisabled = user?.estado === false;
+    const isVerified = user?.correo_verificado === true;
+
+    if (isDisabled) return 'Cuenta deshabilitada';
+    if (isVerified && user?.estado === true) return 'Cuenta activa';
+    return 'Verificación pendiente';
+  };
+
   // Filtrar usuarios
   useEffect(() => {
     let filtered = Array.isArray(users) ? users : [];
@@ -92,6 +103,10 @@ const UsersPage = () => {
     if (statusFilter !== 'Todos') {
       const isHabilitado = statusFilter === 'Habilitado';
       filtered = filtered.filter(user => user.estado !== undefined && user.estado === isHabilitado);
+    }
+
+    if (accessFilter !== 'Todos') {
+      filtered = filtered.filter(user => getAccessState(user) === accessFilter);
     }
 
     // Filtro por fecha de creación
@@ -122,7 +137,7 @@ const UsersPage = () => {
 
     setFilteredUsers(filtered);
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, dateFilter, customDateRange, users]);
+  }, [searchTerm, statusFilter, accessFilter, dateFilter, customDateRange, users]);
 
   // Calcular estadísticas
   const usersArray = Array.isArray(users) ? users : [];
@@ -130,6 +145,11 @@ const UsersPage = () => {
     total: usersArray.length,
     habilitados: usersArray.filter(u => u.estado === true).length,
     deshabilitados: usersArray.filter(u => u.estado === false).length,
+  };
+  const accessStats = {
+    activa: usersArray.filter(u => getAccessState(u) === 'Cuenta activa').length,
+    verificacion: usersArray.filter(u => getAccessState(u) === 'Verificación pendiente').length,
+    deshabilitada: usersArray.filter(u => getAccessState(u) === 'Cuenta deshabilitada').length,
   };
 
   // Paginación
@@ -360,6 +380,37 @@ const UsersPage = () => {
           bgColor="bg-red-50"
         />
       </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+      >
+        <StatsCard
+          title="Cuenta activa"
+          value={accessStats.activa}
+          icon={ShieldCheck}
+          color="bg-gradient-to-r from-emerald-500 to-emerald-600"
+          textColor="text-emerald-600"
+          bgColor="bg-emerald-50"
+        />
+        <StatsCard
+          title="Verificación pendiente"
+          value={accessStats.verificacion}
+          icon={AlertTriangle}
+          color="bg-gradient-to-r from-amber-500 to-amber-600"
+          textColor="text-amber-600"
+          bgColor="bg-amber-50"
+        />
+        <StatsCard
+          title="Cuenta deshabilitada"
+          value={accessStats.deshabilitada}
+          icon={UserX}
+          color="bg-gradient-to-r from-slate-500 to-slate-600"
+          textColor="text-slate-600"
+          bgColor="bg-slate-50"
+        />
+      </motion.div>
 
       {/* Search and Filters */}
       <motion.div
@@ -403,6 +454,27 @@ const UsersPage = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, delay: 0.4 }}
+          >
+            <Select
+              value={accessFilter}
+              onValueChange={setAccessFilter}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Estado de acceso"/>
+              </SelectTrigger>
+              <SelectContent>
+              <SelectItem value="Todos">Todos</SelectItem>
+              <SelectItem value="Cuenta activa">Cuenta activa</SelectItem>
+              <SelectItem value="Verificación pendiente">Verificación pendiente</SelectItem>
+              <SelectItem value="Cuenta deshabilitada">Cuenta deshabilitada</SelectItem>
+            </SelectContent>
+          </Select>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: 0.5 }}
           >
             <Select
               value={dateFilter}

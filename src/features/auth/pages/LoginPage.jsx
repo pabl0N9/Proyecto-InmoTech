@@ -1,56 +1,66 @@
-import { useState } from "react"
-import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Users, Building2, AlertCircle } from "lucide-react"
-import { useAuth } from "../../../shared/contexts/AuthContext"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useState } from "react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Users, Building2, AlertCircle } from "lucide-react";
+import { useAuth } from "../../../shared/contexts/AuthContext";
+import { useNavigate, useLocation } from "react-router-dom";
+import authService from "../../../shared/services/authService";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState(null);
 
-  const { login } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Obtener la ruta de redirección después del login
-  const from = location.state?.from?.pathname || "/"
+  const from = location.state?.from?.pathname || "/";
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
     try {
-      console.log('🔐 Intentando iniciar sesión con:', email)
+      const userData = await login(email, password);
 
-      const userData = await login(email, password)
-
-      // Determinar la ruta de redirección basada en si es administrativo
-      let redirectPath = "/"
-
-      // ✅ CORREGIDO: Verificar si es administrativo (tienen acceso al dashboard)
+      let redirectPath = "/";
       if (userData && userData.es_administrativo) {
-        redirectPath = "/dashboard"
+        redirectPath = "/dashboard";
       }
-
-      // Si viene de una ruta protegida del dashboard, redirigir ahí (si tiene acceso administrativo)
       if (from !== "/" && from.startsWith("/dashboard")) {
-        redirectPath = from
+        redirectPath = from;
       }
 
-      console.log('✅ Login exitoso, redirigiendo a:', redirectPath, 'Roles del usuario:', userData?.roles)
-      navigate(redirectPath, { replace: true })
-
-    } catch (error) {
-      console.error('❌ Error en login:', error)
-      setError(error.message || 'Error al iniciar sesión. Verifica tus credenciales.')
+      setPendingVerificationEmail(null);
+      navigate(redirectPath, { replace: true });
+    } catch (err) {
+      const reason = err?.data?.reason || err?.reason;
+      const serverMessage = err?.data?.message || err?.message;
+      if (reason === "EMAIL_NOT_VERIFIED" || reason === "EMAIL_VERIFICATION_LIMIT") {
+        const normalizedEmail = email.trim().toLowerCase();
+        setPendingVerificationEmail(normalizedEmail);
+        setError(serverMessage || "Tu cuenta aun no esta verificada.");
+        try {
+          const resend = await authService.resendVerificationCode(normalizedEmail);
+          const token = resend?.data?.token;
+          if (token) {
+            setTimeout(() => navigate(`/verificar-correo?token=${encodeURIComponent(token)}`), 400);
+          }
+        } catch (resendError) {
+          console.warn("No se pudo reenviar codigo tras login:", resendError);
+        }
+      } else {
+        setPendingVerificationEmail(null);
+        setError(serverMessage || "Error al iniciar sesion. Verifica tus credenciales.");
+      }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex flex-1 ">
@@ -60,7 +70,6 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-center items-center p-12 text-white mx-auto">
           <div className="max-w-md text-center space-y-8">
             <div className="space-y-4">
-              {/* Sustituimos <Image /> por <img /> */}
               <h1 className="text-4xl font-bold leading-tight">
                 Bienvenido a tu
                 <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
@@ -76,7 +85,7 @@ export default function LoginPage() {
                   <Building2 className="h-6 w-6 text-white" />
                 </div>
                 <div className="text-left">
-                  <h3 className="font-semibold text-lg">Gestión de Propiedades</h3>
+                  <h3 className="font-semibold text-lg">Gestion de Propiedades</h3>
                   <p className="text-blue-100 text-sm">Administra tu portafolio completo</p>
                 </div>
               </div>
@@ -97,7 +106,7 @@ export default function LoginPage() {
                 </div>
                 <div className="text-left">
                   <h3 className="font-semibold text-lg">Seguridad Avanzada</h3>
-                  <p className="text-blue-100 text-sm">Protección de datos garantizada</p>
+                  <p className="text-blue-100 text-sm">Proteccion de datos garantizada</p>
                 </div>
               </div>
             </div>
@@ -112,8 +121,8 @@ export default function LoginPage() {
 
       {/* Panel derecho */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gradient-to-br from-gray-50 to-white">
-      <div className="w-full max-w-md space-y-8 min-h-[830px] flex flex-col justify-center">
-          {/* Logo móvil */}
+        <div className="w-full max-w-md space-y-8 min-h-[830px] flex flex-col justify-center">
+          {/* Logo movil */}
           <div className="lg:hidden text-center">
             <img
               src="/images/logo-matriz-sin-fondo-negro.png"
@@ -124,7 +133,7 @@ export default function LoginPage() {
 
           {/* Header */}
           <div className="text-center space-y-2">
-            <h2 className="text-3xl font-bold text-gray-900">¡Hola de nuevo!</h2>
+            <h2 className="text-3xl font-bold text-gray-900">Hola de nuevo!</h2>
             <p className="text-gray-600">Ingresa tus credenciales para continuar</p>
           </div>
 
@@ -136,14 +145,22 @@ export default function LoginPage() {
             </div>
           )}
 
+          {pendingVerificationEmail && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+              <div>
+                <p className="text-blue-800 font-semibold">Tu cuenta aun no esta verificada.</p>
+                <p className="text-blue-700 text-sm">Te enviamos un codigo a {pendingVerificationEmail}. Ingresa con ese enlace.</p>
+              </div>
+            </div>
+          )}
+
           {/* Formulario */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-              {/* Email */}
               <div className="space-y-2">
                 <label htmlFor="email" className="text-gray-700 font-medium flex items-center">
                   <Mail className="h-4 w-4 mr-2 text-[#00457B]" />
-                  Correo electrónico
+                  Correo electronico
                 </label>
                 <div className="relative">
                   <input
@@ -152,7 +169,10 @@ export default function LoginPage() {
                     placeholder="tu@email.com"
                     className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200 w-full"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setPendingVerificationEmail(null);
+                    }}
                     required
                     disabled={isLoading}
                   />
@@ -160,25 +180,24 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Password */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label htmlFor="password" className="text-gray-700 font-medium flex items-center">
                     <Lock className="h-4 w-4 mr-2 text-[#00457B]" />
-                    Contraseña
+                    Contrasena
                   </label>
                   <a
                     href="/recuperar-password"
                     className="text-sm text-[#00457B] hover:text-[#003b69] font-medium transition-colors"
                   >
-                    ¿Olvidaste tu contraseña?
+                    Olvidaste tu contrasena?
                   </a>
                 </div>
                 <div className="relative">
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="********"
                     className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200 w-full"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -198,9 +217,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-
-
-            {/* Botón */}
             <button
               type="submit"
               className="w-full h-12 bg-gradient-to-r from-[#00457B] to-[#0056A3] hover:from-[#003b69] hover:to-[#004a8f] rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 group text-white disabled:opacity-50 disabled:cursor-not-allowed"
@@ -209,28 +225,27 @@ export default function LoginPage() {
               {isLoading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Iniciando sesión...
+                  Iniciando sesion...
                 </div>
               ) : (
                 <div className="flex items-center justify-center">
-                  Iniciar Sesión
+                  Iniciar Sesion
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </div>
               )}
             </button>
           </form>
 
-          {/* Footer */}
           <div className="text-center space-y-4">
             <p className="text-gray-600">
-              ¿No tienes una cuenta?{" "}
+              No tienes una cuenta?{" "}
               <a href="/registro" className="text-[#00457B] font-semibold hover:text-[#003b69] transition-colors">
-                Regístrate gratis
+                Registrate gratis
               </a>
             </p>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

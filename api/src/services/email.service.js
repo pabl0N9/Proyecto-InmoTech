@@ -61,12 +61,12 @@ class EmailService {
 
   async enviarEmailVerificacion(data) {
     try {
-      const { email, nombre_completo, expira_en, verificationLink } = data;
+      const { email, nombre_completo, codigo_6d, expira_en, verificationLink } = data;
       const mailOptions = {
         from: `"Matriz Inmobiliaria" <${process.env.EMAIL_FROM}>`,
         to: email,
         subject: 'Confirma tu correo en Matriz Inmobiliaria',
-        html: this.generarTemplateVerificacion(nombre_completo, expira_en, verificationLink)
+        html: this.generarTemplateVerificacion(nombre_completo, expira_en, verificationLink, codigo_6d)
       };
       const info = await this.transporter.sendMail(mailOptions);
       logger.info(`Email de verificacion enviado a: ${email}`, { messageId: info.messageId });
@@ -190,7 +190,7 @@ class EmailService {
     `;
   }
 
-  generarTemplateVerificacion(nombreCompleto = "", expiraEn, verificationLink) {
+  generarTemplateVerificacion(nombreCompleto = "", expiraEn, verificationLink, codigo6d) {
     const primerNombre = nombreCompleto.trim().split(" ")[0] || "Hola";
     const logoUrl = process.env.EMAIL_LOGO_URL || "https://matrizinmobiliaria.com/images/logo-matriz-sin-fondo.png";
     const expiraTexto = expiraEn ? new Date(expiraEn).toLocaleString() : '';
@@ -212,6 +212,7 @@ class EmailService {
           h1 { margin:0 0 14px; font-size:24px; color:#0f2b46; }
           p { margin:0 0 14px; line-height:1.6; color:#4a5566; }
           .cta { display:inline-block; padding:14px 28px; background:linear-gradient(135deg,#f4b223,#f7c85c); color:#0f2b46; font-weight:800; text-decoration:none; border-radius:12px; box-shadow:0 12px 28px rgba(244,178,35,0.35); margin:18px 0; }
+          .code { font-size:28px; font-weight:800; letter-spacing:6px; color:#0f2b46; text-align:center; padding:16px; border:1px dashed #cfd8e3; border-radius:12px; background:#f6f9fc; }
           .footer { background:#0f2034; color:#c9d5e5; text-align:center; padding:18px; font-size:13px; }
           .footer a { color:#c9d5e5; text-decoration:none; }
         </style>
@@ -225,9 +226,11 @@ class EmailService {
             </div>
             <div class="content">
               <h1>Hola ${primerNombre},</h1>
-              <p>Recibimos tu registro en Matriz Inmobiliaria. Para finalizar solo confirma que este correo es tuyo.</p>
-              <p>El enlace vence el <strong>${expiraTexto}</strong>. Después de ese tiempo la cuenta se deshabilitará automáticamente.</p>
-              <a class="cta" href="${verificationLink}" target="_blank" rel="noopener noreferrer">Confirmar correo</a>
+              <p>Recibimos tu registro en Matriz Inmobiliaria. Para finalizar ingresa este codigo en la pantalla de verificacion.</p>
+              <p style="margin-bottom:6px; color:#0f2b46; font-weight:700;">Tu codigo de verificacion:</p>
+              <div class="code">${codigo6d || '******'}</div>
+              <p style="margin-top:14px;">Ve a la pagina de verificacion y escribe el codigo anterior. El codigo vence el <strong>${expiraTexto}</strong>.</p>
+              <a class="cta" href="${verificationLink}" target="_blank" rel="noopener noreferrer">Ir a verificar mi correo</a>
               <p style="margin-top:18px;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
               <p style="word-break:break-all; color:#0f2b46;">${verificationLink}</p>
               <p style="font-size:13px; color:#6b7280;">Si no solicitaste este registro, ignora este mensaje.</p>

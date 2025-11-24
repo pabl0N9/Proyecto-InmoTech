@@ -1,14 +1,12 @@
-const { Persona, Acceso, PersonasRol, Rol, Administrativo, Invitacion } = require('../models');
+const { Persona, Acceso, PersonasRol, Rol, Administrativo } = require('../models');
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
 const { buildPermissionsResponse } = require('../utils/permissions.helper');
-const emailService = require('./email.service');
 const invitacionService = require('./invitacion.service');
 
 const VERIFY_INVITE_TYPE = 'signup_verify';
-const INVITE_MAX_REENVIOS = Number(process.env.INVITATION_MAX_REENVIOS || 3);
 
 class AuthService {
   /**
@@ -17,6 +15,8 @@ class AuthService {
    * @returns {Promise<Object>} Usuario creado
    */
   async registrarUsuario(userData) {
+    let verificationInvite = null;
+
     const result = await sequelize.transaction(async (t) => {
       try {
         const { email, password } = userData;
@@ -84,7 +84,7 @@ class AuthService {
 
     // Enviar invitación de verificación de correo
     try {
-      await invitacionService.crearInvitacion({
+      verificationInvite = await invitacionService.crearInvitacion({
         id_persona: result.user.id,
         tipo: VERIFY_INVITE_TYPE,
         creado_por: null
@@ -93,7 +93,17 @@ class AuthService {
       logger.warn(`No se pudo enviar el email de verificación a ${result.user.email}:`, emailError.message);
     }
 
-    return result;
+    const limits = invitacionService.getVerificationLimits();
+
+    return {
+      ...result,
+      verification: {
+        expira_en: verificationInvite?.expira_en || null,
+        total_enviados: (verificationInvite?.reenvios || 0) + 1,
+        max_codigos: limits.max_codigos,
+        token: verificationInvite?.token || null
+      }
+    };
   }
 
   /**
@@ -169,20 +179,52 @@ class AuthService {
 
       // Bloquear verificación de correo solo a usuarios no administrativos
       if (!esAdminBase && !persona.correo_verificado) {
-        const ultimaInvitacion = await Invitacion.findOne({
-          where: { id_persona: persona.id_persona, tipo: VERIFY_INVITE_TYPE },
-          order: [['creado_en', 'DESC']]
-        });
+        const status = await invitacionService.getSignupVerificationStatus(persona.id_persona);
 
-        if (ultimaInvitacion && new Date() > ultimaInvitacion.expira_en) {
-          await Persona.update(
-            { estado: false },
-            { where: { id_persona: persona.id_persona } }
-          );
-          throw new Error('Tu cuenta fue deshabilitada por no verificar el correo en 24h. Solicita un reenvío.');
+        let expira_en = status.expira_en;
+        let total_enviados = status.total_enviados;
+        let reenvios_actuales = status.reenvios_actuales;
+        const max_codigos = status.max_codigos;
+
+        const necesitaNuevoCodigo = !expira_en || (expira_en && new Date() > expira_en);
+
+        if (necesitaNuevoCodigo && total_enviados < max_codigos) {
+          const siguienteReenvio = total_enviados > 0 ? (reenvios_actuales + 1) : 0;
+          const nuevaInvitacion = await invitacionService.crearInvitacion({
+            id_persona: persona.id_persona,
+            tipo: VERIFY_INVITE_TYPE,
+            creado_por: null,
+            reenvios: siguienteReenvio
+          });
+          expira_en = nuevaInvitacion.expira_en;
+          total_enviados = (siguienteReenvio || 0) + 1;
+          reenvios_actuales = siguienteReenvio;
         }
 
-        throw new Error('Debes verificar tu correo electrónico para iniciar sesión');
+        if (total_enviados >= max_codigos && (!expira_en || new Date() > expira_en)) {
+          const limitError = new Error('Has superado el limite de codigos de verificacion. Contacta a soporte para validar tu cuenta.');
+          limitError.code = 'EMAIL_VERIFICATION_LIMIT';
+          limitError.status = 429;
+          limitError.meta = {
+            email: persona.correo,
+            max_codigos,
+            total_enviados,
+            puede_reenviar: false
+          };
+          throw limitError;
+        }
+
+        const verifyError = new Error('Debes verificar tu correo electrónico para iniciar sesión');
+        verifyError.code = 'EMAIL_NOT_VERIFIED';
+        verifyError.status = 403;
+        verifyError.meta = {
+          email: persona.correo,
+          expira_en,
+          max_codigos,
+          total_enviados,
+          puede_reenviar: total_enviados < max_codigos
+        };
+        throw verifyError;
       }
 
       const tiene_rol_administrativo = persona.roles ?
@@ -406,6 +448,14 @@ class AuthService {
       logger.error('Error obteniendo último cambio de contraseña:', error);
       throw error;
     }
+  }
+
+  async verificarCodigoCorreo(email, codigo_6d, meta = {}) {
+    return invitacionService.verificarCodigoSignup({ email, codigo_6d, meta });
+  }
+
+  async reenviarCodigoVerificacion(email) {
+    return invitacionService.reenviarSignupPorEmail(email);
   }
 }
 

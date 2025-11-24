@@ -22,6 +22,15 @@ export const UsersProvider = ({ children }) => {
   const { toast } = useToast();
   const { isAuthenticated, hasRole } = useAuth();
 
+  const computeInvitacionEstado = useCallback((user) => {
+    if (!user) return 'Cuenta activa';
+    if (user.estado === false) return 'Cuenta deshabilitada';
+    const correoVerificado = user.correo_verificado ?? user.tiene_cuenta ?? false;
+    if (correoVerificado === false) return 'Verificacion de correo pendiente';
+    if (user.tiene_cuenta === false) return 'Pendiente de activacion (sin contrasena)';
+    return 'Cuenta activa';
+  }, []);
+
   // Cargar usuarios
   const loadUsers = useCallback(async (params = {}) => {
     try {
@@ -179,7 +188,21 @@ export const UsersProvider = ({ children }) => {
       console.log('updateUserComplete: userActualizado', userActualizado);
 
       if (userActualizado && userActualizado.id_persona) {
-        updateUser(userActualizado);
+        const previo = Array.isArray(users) ? users.find(u => u?.id_persona === id) : null;
+        const merged = {
+          ...previo,
+          ...userActualizado
+        };
+
+        const correoCambio = previo?.correo && userActualizado?.correo &&
+          previo.correo.toLowerCase() !== userActualizado.correo.toLowerCase();
+
+        merged.estado = userActualizado.estado ?? previo?.estado ?? merged.estado ?? true;
+        merged.correo_verificado = correoCambio ? false : (userActualizado.correo_verificado ?? previo?.correo_verificado ?? merged.correo_verificado ?? false);
+        merged.tiene_cuenta = userActualizado.tiene_cuenta ?? previo?.tiene_cuenta ?? merged.tiene_cuenta ?? true;
+        merged.invitacion_estado = computeInvitacionEstado(merged);
+
+        updateUser(merged);
       } else {
         console.warn('Usuario actualizado no valido, recargando lista...');
         loadUsers();
@@ -201,7 +224,7 @@ export const UsersProvider = ({ children }) => {
       });
       throw error;
     }
-  }, [updateUser, loadUsers, toast]);
+  }, [updateUser, loadUsers, toast, users, computeInvitacionEstado]);
 
   const removeUser = useCallback(async (id) => {
     try {
@@ -245,7 +268,12 @@ export const UsersProvider = ({ children }) => {
       return next;
     });
     try {
-      await invitacionApiService.crearInvitacion(user.id_persona);
+      // Para cuentas con correo sin verificar, usa el flujo de verificación de correo
+      if (user.correo && user.correo_verificado === false) {
+        await require('../services/authService').default.resendVerificationCode(user.correo);
+      } else {
+        await invitacionApiService.crearInvitacion(user.id_persona);
+      }
       setUsers(prev => prev.map(u => {
         if (u?.id_persona === user.id_persona) {
           return {

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Mail, Phone, Calendar, FileText, Shield } from 'lucide-react';
+import { X, User, Mail, Phone, Calendar, FileText, Shield, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import UserStatusSelector from '../../../../shared/components/ui/UserStatusSelector';
 
 const ViewUserModal = ({ isOpen, onClose, user }) => {
@@ -14,6 +14,66 @@ const ViewUserModal = ({ isOpen, onClose, user }) => {
 
   const getFullName = () => {
     return `${user.nombre_completo || ''} ${user.apellido_completo || ''}`.trim() || 'Sin nombre';
+  };
+
+  const renderAccessStatus = () => {
+    const isDisabled = user.estado === false;
+    const isVerified = user.correo_verificado === true;
+    const hasAccount = user.tiene_cuenta === true;
+    const raw = (user.invitacion_estado || '').toLowerCase();
+
+    if (isDisabled) {
+      return {
+        title: 'Cuenta deshabilitada',
+        description: 'El usuario no puede iniciar sesión ni recibir invitaciones.',
+        icon: <AlertTriangle className="w-5 h-5 text-red-600" />,
+        bg: 'bg-red-50',
+        border: 'border-red-200',
+        text: 'text-red-800'
+      };
+    }
+
+    if (isVerified) {
+      return {
+        title: 'Cuenta activa',
+        description: 'Correo verificado. El usuario puede iniciar sesión.',
+        icon: <CheckCircle2 className="w-5 h-5 text-green-600" />,
+        bg: 'bg-green-50',
+        border: 'border-green-200',
+        text: 'text-green-800'
+      };
+    }
+
+    if (raw.includes('verificacion')) {
+      return {
+        title: 'Verificación pendiente',
+        description: 'Se requiere que el usuario confirme el correo y genere una nueva contraseña.',
+        icon: <Clock className="w-5 h-5 text-amber-600" />,
+        bg: 'bg-amber-50',
+        border: 'border-amber-200',
+        text: 'text-amber-800'
+      };
+    }
+
+    if (hasAccount) {
+      return {
+        title: 'Verificación pendiente',
+        description: 'Tiene cuenta pero debe verificar su correo para iniciar sesión.',
+        icon: <Clock className="w-5 h-5 text-amber-600" />,
+        bg: 'bg-amber-50',
+        border: 'border-amber-200',
+        text: 'text-amber-800'
+      };
+    }
+
+    return {
+      title: 'Activación pendiente',
+      description: 'Sin contraseña definida. Reenviar invitación si es necesario.',
+      icon: <Clock className="w-5 h-5 text-blue-600" />,
+      bg: 'bg-blue-50',
+      border: 'border-blue-200',
+      text: 'text-blue-800'
+    };
   };
 
   return ReactDOM.createPortal(
@@ -133,6 +193,24 @@ const ViewUserModal = ({ isOpen, onClose, user }) => {
                     : 'El usuario no puede iniciar sesión ni acceder al sistema.'
                   }
                 </p>
+
+                <div className="mt-4">
+                  <span className="text-sm font-medium text-slate-700">Estado de acceso</span>
+                  <div className="mt-2">
+                    {(() => {
+                      const access = renderAccessStatus();
+                      return (
+                        <div className={`flex items-start gap-3 rounded-lg border ${access.border} ${access.bg} px-3 py-3`}>
+                          {access.icon}
+                          <div className={`${access.text}`}>
+                            <p className="font-semibold text-sm">{access.title}</p>
+                            <p className="text-xs mt-1">{access.description}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

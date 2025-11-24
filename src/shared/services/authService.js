@@ -74,6 +74,34 @@ class AuthService {
     }
   }
 
+
+  /**
+   * Verifica el correo usando el codigo enviado
+   * @param {string} email
+   * @param {string} codigo
+   */
+  async verifyEmailCode(email, codigo) {
+    try {
+      return await apiClient.post('/auth/verify-code', { email, codigo });
+    } catch (error) {
+      console.error('??O Error verificando codigo de correo:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Reenvia un nuevo codigo de verificacion
+   * @param {string} email
+   */
+  async resendVerificationCode(email) {
+    try {
+      return await apiClient.post('/auth/resend-code', { email });
+    } catch (error) {
+      console.error('??O Error reenviando codigo de verificacion:', error.message);
+      throw error;
+    }
+  }
+
   /**
    * Refresca el token de acceso
    * @param {string} refreshToken - Token de refresco
