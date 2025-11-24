@@ -8,6 +8,7 @@ const emailService = require('./email.service');
 const INVITE_TTL_HOURS = Number(process.env.INVITATION_TTL_HOURS || 24);
 const INVITE_MAX_INTENTOS = Number(process.env.INVITATION_MAX_INTENTOS || 5);
 const INVITE_MAX_REENVIOS = Number(process.env.INVITATION_MAX_REENVIOS || 3);
+const VERIFICATION_MAX_CODES = Math.max(1, Number(process.env.EMAIL_VERIFICATION_MAX_CODES || 5));
 const INVITE_TYPES = {
   ADMIN: 'admin_invite',
   SIGNUP_VERIFY: 'signup_verify'
@@ -62,6 +63,7 @@ class InvitacionService {
       await emailService.enviarEmailVerificacion({
         email: persona.correo,
         nombre_completo: persona.nombre_completo,
+        codigo_6d,
         expira_en,
         verificationLink
       });
@@ -77,7 +79,7 @@ class InvitacionService {
     }
 
     logger.info(`Invitacion creada para persona ${id_persona} por ${creado_por || 'sistema'}`);
-    return { token, codigo_6d, expira_en, tipo: inviteType };
+    return { token, codigo_6d, expira_en, tipo: inviteType, reenvios };
   }
 
   async reenviar(token) {
@@ -94,6 +96,25 @@ class InvitacionService {
     const intentosAgotados = invitacion.intentos >= INVITE_MAX_INTENTOS;
     const reenviosActuales = invitacion.reenvios || 0;
     const siguienteReenvio = reenviosActuales + 1;
+
+    if (invitacion.tipo === INVITE_TYPES.SIGNUP_VERIFY) {
+      if (siguienteReenvio >= VERIFICATION_MAX_CODES) {
+        throw new Error('Has superado el limite de codigos de verificacion. Contacta a soporte para validar tu cuenta.');
+      }
+
+      const nuevo = await this.crearInvitacion({
+        id_persona: invitacion.id_persona,
+        creado_por: invitacion.creado_por || null,
+        tipo: invitacion.tipo,
+        reenvios: siguienteReenvio
+      });
+
+      return {
+        ...nuevo,
+        total_enviados: siguienteReenvio + 1,
+        max_codigos: VERIFICATION_MAX_CODES
+      };
+    }
 
     // Solo permitir reenvio si esta expirada, usada/invalida o intentos agotados.
     if (!expirada && !usada && !intentosAgotados) {
@@ -116,6 +137,40 @@ class InvitacionService {
     });
 
     return nuevo;
+  }
+
+  async reenviarSignupPorEmail(email) {
+    const persona = await Persona.findOne({ where: { correo: email } });
+    if (!persona) throw new Error('No encontramos una cuenta con ese correo');
+    if (persona.correo_verificado) throw new Error('Esta cuenta ya fue verificada');
+
+    const ultimaInvitacion = await Invitacion.findOne({
+      where: { id_persona: persona.id_persona, tipo: INVITE_TYPES.SIGNUP_VERIFY },
+      order: [['creado_en', 'DESC']]
+    });
+
+    const reenviosActuales = ultimaInvitacion?.reenvios || 0;
+    const siguienteReenvio = reenviosActuales + 1;
+
+    if (siguienteReenvio >= VERIFICATION_MAX_CODES) {
+      const limitError = new Error('Has superado el limite de codigos disponibles. Contacta a soporte para validar tu cuenta.');
+      limitError.code = 'VERIFICATION_LIMIT';
+      throw limitError;
+    }
+
+    const nuevo = await this.crearInvitacion({
+      id_persona: persona.id_persona,
+      creado_por: null,
+      tipo: INVITE_TYPES.SIGNUP_VERIFY,
+      reenvios: siguienteReenvio
+    });
+
+    return {
+      ...nuevo,
+      email: persona.correo,
+      total_enviados: siguienteReenvio + 1,
+      max_codigos: VERIFICATION_MAX_CODES
+    };
   }
 
   async validar(token) {
@@ -182,6 +237,83 @@ class InvitacionService {
     );
 
     return { id_persona: invitacion.id_persona, correo: invitacion.persona?.correo };
+  }
+
+  async verificarCodigoSignup({ email, codigo_6d, meta = {} }) {
+    const persona = await Persona.findOne({ where: { correo: email } });
+    if (!persona) throw new Error('No encontramos una cuenta con ese correo');
+    if (persona.correo_verificado) return { id_persona: persona.id_persona, correo: persona.correo, ya_verificado: true };
+
+    const invitacion = await Invitacion.findOne({
+      where: { id_persona: persona.id_persona, tipo: INVITE_TYPES.SIGNUP_VERIFY },
+      order: [['creado_en', 'DESC']]
+    });
+
+    if (!invitacion) {
+      throw new Error('No encontramos un codigo activo. Solicita un nuevo envio.');
+    }
+
+    if (invitacion.usado_en) {
+      throw new Error('Este codigo ya fue utilizado. Solicita un nuevo envio.');
+    }
+
+    if (new Date() > invitacion.expira_en) {
+      throw new Error('El codigo expiro. Solicita un nuevo envio.');
+    }
+
+    if (invitacion.intentos >= INVITE_MAX_INTENTOS) {
+      throw new Error('Has superado los intentos permitidos. Solicita un nuevo codigo.');
+    }
+
+    if (invitacion.codigo_6d !== codigo_6d) {
+      await Invitacion.update(
+        { intentos: invitacion.intentos + 1 },
+        { where: { id_invitacion: invitacion.id_invitacion } }
+      );
+      throw new Error('Codigo incorrecto. Revisa el correo y vuelve a intentarlo.');
+    }
+
+    await Persona.update(
+      { correo_verificado: true, estado: true },
+      { where: { id_persona: persona.id_persona } }
+    );
+
+    await Invitacion.update(
+      {
+        usado_en: new Date(),
+        ip_uso: meta.ip || null,
+        ua_uso: meta.userAgent || null
+      },
+      { where: { id_invitacion: invitacion.id_invitacion } }
+    );
+
+    return { id_persona: persona.id_persona, correo: persona.correo };
+  }
+
+  async getSignupVerificationStatus(id_persona) {
+    const invitacion = await Invitacion.findOne({
+      where: { id_persona, tipo: INVITE_TYPES.SIGNUP_VERIFY },
+      order: [['creado_en', 'DESC']]
+    });
+
+    const reenviosActuales = invitacion?.reenvios || 0;
+    const total_enviados = invitacion ? reenviosActuales + 1 : 0;
+    const restantes = Math.max(VERIFICATION_MAX_CODES - total_enviados, 0);
+
+    return {
+      expira_en: invitacion?.expira_en || null,
+      total_enviados,
+      max_codigos: VERIFICATION_MAX_CODES,
+      puede_reenviar: restantes > 0,
+      reenvios_actuales: reenviosActuales
+    };
+  }
+
+  getVerificationLimits() {
+    return {
+      max_codigos: VERIFICATION_MAX_CODES,
+      ttl_horas: INVITE_TTL_HOURS
+    };
   }
 
   async aceptar({ token, codigo_6d, password, ip, userAgent }) {

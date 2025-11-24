@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { MdNotifications, MdSearch, MdAccountCircle } from 'react-icons/md';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MdNotifications, MdKeyboardArrowDown } from 'react-icons/md';
 import NotificationDropdown from './NotificationDropdown';
 import ViewAppointmentModal from '../../../../features/dashboard/components/appointment/ViewAppointmentModal';
 import ConfirmationDialog from '../../../components/ui/ConfirmationDialog';
@@ -12,11 +12,15 @@ const Header = () => {
   const { appointments, updateAppointmentStatus } = useAppointments();
   const { user } = useAuth();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const notificationButtonRef = useRef(null);
+  const userMenuRef = useRef(null);
+  const userMenuButtonRef = useRef(null);
+  const userMenuDropdownRef = useRef(null);
   const { toast } = useToast();
 
   // Filtrar citas solicitadas pendientes
@@ -128,44 +132,117 @@ const Header = () => {
     return roleNames[0] || 'Usuario';
   };
 
+  const getUserInitial = () => {
+    const fullName = getUserFullName();
+    if (fullName && fullName.trim().length > 0) {
+      return fullName.trim().charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const clickOutsideButton = userMenuRef.current && !userMenuRef.current.contains(event.target);
+      const clickOutsideMenu = userMenuDropdownRef.current && !userMenuDropdownRef.current.contains(event.target);
+
+      if (isUserMenuOpen && clickOutsideButton && clickOutsideMenu) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isUserMenuOpen]);
+
   return (
     <motion.header
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm flex items-center justify-between px-6 relative"
+      initial={{ opacity: 0, y: -30, rotateX: -5 }}
+      animate={{ opacity: 1, y: 0, rotateX: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-8 relative z-50 overflow-hidden"
+      style={{
+        backdropFilter: 'blur(20px)',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.9) 100%)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)',
+        transformStyle: 'preserve-3d',
+        perspective: '1000px'
+      }}
     >
-      <div className="flex items-center space-x-4">
-        <h2 className="text-xl font-semibold text-slate-800">
-          Bienvenido, {getUserFullName()}
-        </h2>
+      {/* Elementos decorativos sutiles en 3D */}
+      <div className="absolute inset-0 opacity-5" style={{
+        backgroundImage: `
+          radial-gradient(circle at 25% 25%, rgba(0,0,0,0.1) 1px, transparent 2px),
+          radial-gradient(circle at 75% 75%, rgba(0,0,0,0.1) 1px, transparent 2px)
+        `,
+        backgroundSize: '40px 40px'
+      }}></div>
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-gray-200/80 to-transparent"></div>
+
+      <div className="flex items-center space-x-3">
+        <div>
+          <motion.p
+            initial={{ opacity: 0.8, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
+            className="text-sm tracking-wide text-gray-400 font-light leading-relaxed"
+          >
+            Bienvenido 👋
+          </motion.p>
+          <motion.div
+            initial={{ y: 15, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.5, ease: "easeOut" }}
+            className="flex items-center space-x-3"
+          >
+            <h2 className="text-2xl font-light text-gray-800 leading-tight">
+              {getUserFullName()}
+            </h2>
+            <motion.span
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.4, ease: "easeOut" }}
+              className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50/80 border border-blue-100 rounded-full shadow-sm"
+            >
+              {getUserRole()}
+            </motion.span>
+          </motion.div>
+        </div>
       </div>
 
       <div className="flex items-center space-x-4">
-        {/* Search Bar */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Buscar..."
-            className="pl-10 pr-4 py-2 bg-slate-100/80 border border-slate-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-300 w-64"
-          />
-          <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
-        </div>
-
         {/* Notifications */}
         <div className="relative">
           <motion.button
             ref={notificationButtonRef}
-            whileHover={{ scale: 1.05 }}
+            whileHover={{
+              scale: 1.05,
+              backgroundColor: 'rgba(59, 130, 246, 0.05)',
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.15)'
+            }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-            className="relative p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-300"
+            className="relative p-2.5 text-gray-600 hover:text-blue-600 rounded-xl transition-all duration-300 hover:bg-blue-50/50"
+            style={{
+              border: '1px solid transparent',
+              backgroundColor: 'rgba(255, 255, 255, 0.4)'
+            }}
           >
             <MdNotifications size={22} />
             {pendingAppointments.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium"
+              >
                 {pendingAppointments.length}
-              </span>
+              </motion.span>
             )}
           </motion.button>
 
@@ -181,16 +258,53 @@ const Header = () => {
         </div>
 
         {/* User Profile */}
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          className="flex items-center space-x-3 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl px-4 py-2 cursor-pointer border border-slate-200/60 hover:border-blue-300/60 transition-all duration-300"
-        >
-          <MdAccountCircle className="text-slate-600" size={24} />
-          <div className="text-sm">
-            <p className="font-medium text-slate-800">{getUserFullName()}</p>
-            <p className="text-slate-500">{getUserRole()}</p>
-          </div>
-        </motion.div>
+        <div className="relative" ref={userMenuRef}>
+          <motion.button
+            ref={userMenuButtonRef}
+            whileHover={{
+              scale: 1.03,
+              backgroundColor: 'rgba(0, 0, 0, 0.02)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+            }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+            className="flex items-center space-x-3 bg-white/60 border border-gray-200/60 rounded-full px-3 py-1.5 shadow-sm hover:border-gray-300/80 transition-all duration-300"
+            aria-expanded={isUserMenuOpen}
+            aria-label="Menú de usuario"
+          >
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold flex items-center justify-center uppercase text-sm shadow-md"
+            >
+              {getUserInitial()}
+            </motion.div>
+            <motion.span
+              animate={{ rotate: isUserMenuOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="text-gray-600"
+            >
+              <MdKeyboardArrowDown size={20} />
+            </motion.span>
+          </motion.button>
+
+          <AnimatePresence>
+            {isUserMenuOpen && (
+              <motion.div
+                ref={userMenuDropdownRef}
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="absolute right-0 mt-3 w-52 bg-white/95 backdrop-blur-xl border border-gray-200/70 rounded-xl shadow-2xl overflow-hidden z-[9999]"
+              >
+                <div className="px-4 py-4">
+                  <p className="text-sm font-semibold text-gray-800 mb-1">{getUserFullName()}</p>
+                  <p className="text-xs text-gray-500">{getUserRole()}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* View Appointment Modal */}

@@ -3,6 +3,7 @@ const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const logger = require('../utils/logger');
 const sseService = require('./sse.service');
+const invitacionService = require('./invitacion.service');
 
 class PersonaService {
   /**
@@ -162,7 +163,7 @@ class PersonaService {
    * @param {Object} updateData - Datos a actualizar
    * @returns {Promise<Object>} Persona actualizada
    */
-  async actualizarPerfil(personaId, updateData) {
+  async actualizarPerfil(personaId, updateData, updatedBy = null) {
     const result = await sequelize.transaction(async (t) => {
       try {
         const persona = await Persona.findOne({
@@ -187,8 +188,31 @@ class PersonaService {
           delete mappedData.segundo_apellido;
         }
 
+        const prevCorreo = (persona.correo || '').trim().toLowerCase();
+
         // Separar datos de Persona y Acceso
         const { password, confirmPassword, ...personaData } = mappedData;
+
+        // Si cambia correo, forzar verificacion pendiente y tiene_cuenta true
+        if (personaData.correo) {
+          const nuevoCorreo = personaData.correo.trim().toLowerCase();
+          if (prevCorreo && nuevoCorreo !== prevCorreo) {
+            personaData.correo_verificado = false;
+            personaData.tiene_cuenta = true;
+            persona.correo = nuevoCorreo; // reflejar en instancia para respuesta
+            // Enviar nueva invitacion de verificacion
+            try {
+              await invitacionService.crearInvitacion({
+                id_persona: personaId,
+                creado_por: updatedBy || null,
+                tipo: 'signup_verify'
+              });
+              logger.info(`Invitacion de verificacion enviada a nuevo correo de persona ${personaId}`);
+            } catch (inviteError) {
+              logger.warn(`No se pudo enviar invitacion de verificacion a persona ${personaId}: ${inviteError.message}`);
+            }
+          }
+        }
 
         // Actualizar datos de Persona
         if (Object.keys(personaData).length > 0) {
@@ -211,9 +235,10 @@ class PersonaService {
             transaction: t
           });
 
+          const hashedPassword = await bcryptUtils.hashPassword(password);
+
           if (acceso) {
             // Actualizar contraseña
-            const hashedPassword = await bcryptUtils.hashPassword(password);
             await acceso.update({
               contrasena: hashedPassword,
               ultimo_cambio_password: new Date()
@@ -222,7 +247,6 @@ class PersonaService {
           } else {
             logger.warn(`No se encontró acceso para persona ID: ${personaId}, creando uno nuevo`);
             // Crear acceso si no existe
-            const hashedPassword = await bcryptUtils.hashPassword(password);
             await Acceso.create({
               id_persona: personaId,
               contrasena: hashedPassword,
@@ -233,9 +257,25 @@ class PersonaService {
 
         logger.info(`Perfil actualizado para persona ID: ${personaId}`);
 
-        return await this.obtenerPerfil(personaId);
+        // Devolver sin hacer SELECT adicional
+        return {
+          id_persona: persona.id_persona,
+          tipo_documento: persona.tipo_documento,
+          numero_documento: persona.numero_documento,
+          nombre_completo: personaData.nombre_completo || persona.nombre_completo,
+          apellido_completo: personaData.apellido_completo || persona.apellido_completo,
+          correo: personaData.correo || persona.correo,
+          telefono: personaData.telefono || persona.telefono,
+          tiene_cuenta: personaData.tiene_cuenta ?? persona.tiene_cuenta,
+          correo_verificado: personaData.correo_verificado ?? persona.correo_verificado,
+          fecha_registro: persona.fecha_registro
+        };
       } catch (error) {
-        logger.error('Error actualizando perfil:', error);
+        logger.error('Error actualizando perfil:', {
+          message: error.message,
+          sql: error.original?.sql || error.parent?.sql || null,
+          code: error.parent?.code || error.original?.code || null
+        });
         throw error;
       }
     });

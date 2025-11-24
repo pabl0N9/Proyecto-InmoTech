@@ -46,7 +46,8 @@ const UserTable = ({
 
   const renderInvitationStatus = (user) => {
     const isDisabled = user.estado === false;
-    const isVerified = user.correo_verificado === true || user.tiene_cuenta === true;
+    const isVerified = user.correo_verificado === true;
+    const hasAccount = user.tiene_cuenta === true;
     const rawText = (user.invitacion_estado || '').toLowerCase();
 
     let shortLabel = 'Cuenta activa';
@@ -59,6 +60,12 @@ const UserTable = ({
       shortLabel = 'Cuenta activa';
       variant = { bg: 'bg-green-100/60', text: 'text-green-800', border: 'border border-green-200' };
     } else if (rawText.includes('verificacion')) {
+      shortLabel = 'Verificacion pendiente';
+      variant = { bg: 'bg-amber-100/60', text: 'text-amber-800', border: 'border border-amber-200' };
+    } else if (hasAccount && rawText.includes('pendiente')) {
+      shortLabel = 'Verificacion pendiente';
+      variant = { bg: 'bg-amber-100/60', text: 'text-amber-800', border: 'border border-amber-200' };
+    } else if (hasAccount) {
       shortLabel = 'Verificacion pendiente';
       variant = { bg: 'bg-amber-100/60', text: 'text-amber-800', border: 'border border-amber-200' };
     } else if (rawText.includes('activacion') || rawText.includes('pendiente')) {

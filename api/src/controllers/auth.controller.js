@@ -17,7 +17,7 @@ class AuthController {
       return res.status(201).json({
         success: true,
         message: 'Registro recibido. Revisa tu correo y confirma tu cuenta en las proximas 24 horas.',
-        data: { user: result.user }
+        data: { user: result.user, verification: result.verification }
       });
     } catch (error) {
       logger.error('Error en registro de usuario:', error);
@@ -53,6 +53,14 @@ class AuthController {
       });
     } catch (error) {
       logger.error('Error en inicio de sesion:', error);
+      if (error.code === 'EMAIL_NOT_VERIFIED' || error.code === 'EMAIL_VERIFICATION_LIMIT') {
+        return res.status(error.status || 403).json({
+          success: false,
+          message: error.message,
+          reason: error.code,
+          data: error.meta || null
+        });
+      }
       next(error);
     }
   }
@@ -85,6 +93,43 @@ class AuthController {
     } catch (error) {
       logger.error('Error refrescando token:', error);
       next(error);
+    }
+  }
+
+  async verificarCodigo(req, res, next) {
+    try {
+      const { email, codigo } = req.validatedData;
+      const data = await authService.verificarCodigoCorreo(email, codigo, { ip: req.ip, userAgent: req.get('user-agent') });
+      return res.status(200).json({
+        success: true,
+        message: data?.ya_verificado ? 'Tu correo ya estaba verificado' : 'Correo verificado exitosamente',
+        data
+      });
+    } catch (error) {
+      logger.warn('Verificacion de codigo fallida:', error.message);
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  async reenviarCodigo(req, res, next) {
+    try {
+      const { email } = req.validatedData;
+      const data = await authService.reenviarCodigoVerificacion(email);
+      return res.status(200).json({
+        success: true,
+        message: 'Hemos enviado un nuevo codigo a tu correo',
+        data
+      });
+    } catch (error) {
+      logger.warn('Error reenviando codigo de verificacion:', error.message);
+      return res.status(error.code === 'VERIFICATION_LIMIT' ? 429 : 400).json({
+        success: false,
+        message: error.message,
+        reason: error.code || null
+      });
     }
   }
 
@@ -148,10 +193,12 @@ class AuthController {
       const userId = req.user.id;
       const updateData = req.validatedData;
 
+      const perfilActualizado = await require('../services/persona.service').actualizarPerfil(userId, updateData, userId);
+
       return res.status(200).json({
         success: true,
-        message: 'Funcionalidad de actualizacion de perfil pendiente de implementacion',
-        data: { userId, updateData }
+        message: 'Perfil actualizado exitosamente',
+        data: perfilActualizado
       });
     } catch (error) {
       logger.error('Error actualizando perfil:', error);

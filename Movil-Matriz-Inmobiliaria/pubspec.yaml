@@ -1,0 +1,72 @@
+name: flutter_citas_app
+description: Sistema de gestión de citas médicas
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP requests
+  http: ^1.1.0
+
+  # Almacenamiento local
+  shared_preferences: ^2.2.2
+
+  # Calendario
+  table_calendar: ^3.0.9
+
+  # Formateo de fechas
+  intl: ^0.18.1
+
+  # UI
+  cupertino_icons: ^1.0.6
+  animate_do: ^4.2.0
+
+  # Animaciones avanzadas
+  flutter_animate: ^4.5.0
+
+  # Notificaciones locales
+  flutter_local_notifications: ^17.1.0
+
+  # Integración calendario
+  add_2_calendar: ^3.0.1
+
+  # Swipe gestures
+  flutter_slidable: ^3.1.0
+
+  # Pull to refresh
+  pull_to_refresh: ^2.0.0
+
+  # Animaciones staggered
+  flutter_staggered_animations: ^1.1.1
+
+  # Loading skeletons
+  shimmer: ^3.0.0
+
+  # Audio playback
+  audioplayers: ^6.0.0
+
+  # Manejo de estado
+  provider: ^6.1.2
+
+  # Reinicio de app
+  flutter_phoenix: ^1.1.1
+
+  # Timezone para notificaciones
+  timezone: ^0.9.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/sounds/

@@ -3,15 +3,16 @@ const router = express.Router();
 const authController = require('../controllers/auth.controller');
 const { validate, validateQuery } = require('../middlewares/validate.middleware');
 const { authenticateToken } = require('../middlewares/auth.middleware');
-const { validarNoEsAdmin } = require('../middlewares/admin.middleware');
-const { loginLimiter } = require('../middlewares/security.middleware');
+const { loginLimiter, invitationLimiter } = require('../middlewares/security.middleware');
 const {
   registroSchema,
   loginSchema,
   cambiarContrasenaSchema,
   actualizarPerfilSchema,
   refreshTokenSchema,
-  verifyEmailSchema
+  verifyEmailSchema,
+  verifyCodeSchema,
+  resendCodeSchema
 } = require('../validators/auth.validator');
 
 // Rutas públicas
@@ -19,6 +20,8 @@ router.post('/register', validate(registroSchema), authController.registrarUsuar
 router.post('/login', loginLimiter, validate(loginSchema), authController.iniciarSesion);
 router.post('/refresh', validate(refreshTokenSchema), authController.refrescarToken);
 router.get('/verify-email', loginLimiter, validateQuery(verifyEmailSchema), authController.verificarCorreo);
+router.post('/verify-code', invitationLimiter, validate(verifyCodeSchema), authController.verificarCodigo);
+router.post('/resend-code', invitationLimiter, validate(resendCodeSchema), authController.reenviarCodigo);
 
 // Rutas protegidas
 router.use(authenticateToken); // Todas las rutas siguientes requieren autenticación

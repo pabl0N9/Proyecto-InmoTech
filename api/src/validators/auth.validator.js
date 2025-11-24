@@ -174,11 +174,40 @@ const verifyEmailSchema = Joi.object({
     })
 });
 
+const verifyCodeSchema = Joi.object({
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .required()
+    .messages({
+      'string.email': 'El formato del email es invǭlido',
+      'any.required': 'El email es obligatorio'
+    }),
+  codigo: Joi.string()
+    .length(6)
+    .required()
+    .messages({
+      'string.length': 'El codigo debe tener 6 digitos',
+      'any.required': 'El codigo es obligatorio'
+    })
+});
+
+const resendCodeSchema = Joi.object({
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .required()
+    .messages({
+      'string.email': 'El formato del email es invǭlido',
+      'any.required': 'El email es obligatorio'
+    })
+});
+
 module.exports = {
   registroSchema,
   loginSchema,
   cambiarContrasenaSchema,
   actualizarPerfilSchema,
   refreshTokenSchema,
-  verifyEmailSchema
+  verifyEmailSchema,
+  verifyCodeSchema,
+  resendCodeSchema
 };

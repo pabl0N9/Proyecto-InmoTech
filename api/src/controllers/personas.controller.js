@@ -57,7 +57,7 @@ class PersonasController {
       const personaId = req.user.id;
       const updateData = req.validatedData;
 
-      const perfilActualizado = await personasService.actualizarPerfil(personaId, updateData);
+      const perfilActualizado = await personasService.actualizarPerfil(personaId, updateData, req.user?.id || null);
 
       return res.status(200).json({
         success: true,
@@ -192,7 +192,7 @@ class PersonasController {
       const { id } = req.params;
       const updateData = req.validatedData;
 
-      const personaActualizada = await personasService.actualizarPerfil(parseInt(id), updateData);
+      const personaActualizada = await personasService.actualizarPerfil(parseInt(id), updateData, req.user?.id || null);
 
       return res.status(200).json({
         success: true,

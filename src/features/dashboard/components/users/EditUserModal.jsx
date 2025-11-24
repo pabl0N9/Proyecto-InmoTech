@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Loader2 } from 'lucide-react';
+import { X, User, Loader2, AlertTriangle } from 'lucide-react';
 
 const EditUserModal = ({ isOpen, onClose, onSubmit, user }) => {
   const [formData, setFormData] = useState({
@@ -13,6 +13,7 @@ const EditUserModal = ({ isOpen, onClose, onSubmit, user }) => {
     numero_documento: ''
   });
   const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -29,23 +30,32 @@ const EditUserModal = ({ isOpen, onClose, onSubmit, user }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      await onSubmit(formData);
-    } finally {
-      setLoading(false);
-    }
+    setConfirmOpen(true);
   };
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const correoOriginal = (user?.correo || '').trim().toLowerCase();
+  const correoActual = (formData.correo || '').trim().toLowerCase();
+  const emailChanged = correoOriginal && correoActual && correoActual !== correoOriginal;
+
+  const handleConfirmSubmit = async () => {
+    setLoading(true);
+    try {
+      await onSubmit(formData);
+      setConfirmOpen(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isOpen || !user) return null;
 
   return ReactDOM.createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 z-50 flex items-center justify-center" key="edit-modal">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -167,6 +177,7 @@ const EditUserModal = ({ isOpen, onClose, onSubmit, user }) => {
                 />
               </div>
             </div>
+
           </form>
 
           <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50">
@@ -189,6 +200,50 @@ const EditUserModal = ({ isOpen, onClose, onSubmit, user }) => {
           </div>
         </motion.div>
       </div>
+
+      {confirmOpen && (
+        <motion.div
+          key="confirm-edit-modal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 border border-slate-200">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-full bg-amber-100">
+                <AlertTriangle className="w-5 h-5 text-amber-600" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-slate-900">Confirmar edici&oacute;n</h3>
+                <p className="text-sm text-slate-700">¿Seguro que deseas guardar los cambios de este usuario?</p>
+                {emailChanged && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm">
+                    Cambiar el correo enviar&aacute; una nueva verificaci&oacute;n al correo actualizado. El usuario deber&aacute; verificarlo y definir una nueva contrase&ntilde;a; hasta entonces no podr&aacute; iniciar sesi&oacute;n y quedar&aacute; en estado "Verificaci&oacute;n pendiente".
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSubmit}
+                disabled={loading}
+                className="px-4 py-2 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 disabled:opacity-50"
+              >
+                {loading ? 'Guardando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </AnimatePresence>,
     document.body
   );

@@ -321,14 +321,35 @@ export default function RegistroPage() {
         confirmPassword: formData.confirmPassword
       };
 
-      await register(userData);
+      const res = await register(userData);
+
+      let token = res?.verification?.token;
+
+      // Fallback: solicitar un nuevo token si no vino en la respuesta
+      if (!token) {
+        try {
+          const resend = await authService.resendVerificationCode(userData.email.trim().toLowerCase());
+          token = resend?.data?.token || token;
+        } catch (err) {
+          console.warn('No se pudo obtener token de verificacion tras registro:', err);
+        }
+      }
 
       toast({
         title: "Verifica tu correo",
-        description: "Te enviamos un enlace para confirmar tu correo en las proximas 24 horas.",
+        description: "Te enviamos un codigo de 6 digitos a tu correo. Ingresalo para activar tu cuenta.",
         variant: "success",
       });
-      navigate("/login");
+      if (token) {
+        navigate(`/verificar-correo?token=${encodeURIComponent(token)}`);
+      } else {
+        toast({
+          title: "Link de verificación",
+          description: "No pudimos generar el enlace de verificación. Intenta reenviar desde el login.",
+          variant: "destructive",
+        });
+        navigate("/login");
+      }
 
     } catch (error) {
       console.error('❌ Error en registro:', error);
