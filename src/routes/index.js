@@ -11,6 +11,7 @@ export const routes = {
 
 export const dashboardRoutes = {
   dashboard: '/dashboard',
+  profile: '/dashboard/profile',
   properties: '/dashboard/salesManagement',
   owners: '/dashboard/salesManagement',
   clients: '/dashboard/citas',

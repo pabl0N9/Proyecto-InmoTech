@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
+import { dashboardRoutes } from './routes/index'
 import Navbar from './shared/components/Navbar'
 import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
@@ -30,6 +31,7 @@ import Reports from './features/dashboard/pages/reports/Reports'
 import Roles from './features/dashboard/pages/roles/Roles'
 import AdministrativosPage from './features/dashboard/pages/administrativos/AdministrativosPage'
 import UsersPage from './features/dashboard/pages/users/UsersPage'
+import ProfilePage from './features/dashboard/pages/Profile/ProfilePage'
 
 function App() {
   return (
@@ -243,6 +245,16 @@ function App() {
           }
         />
 
+        <Route
+          path={dashboardRoutes.profile}
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <ProfilePage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
       </Routes>
       <Toaster />
     </div>

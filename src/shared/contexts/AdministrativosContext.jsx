@@ -179,11 +179,17 @@ export const AdministrativosProvider = ({ children }) => {
     }
   }, []);
 
-  // Cargar datos iniciales solo si hay autenticación y roles adecuados
+  // Cargar datos iniciales solo si hay autenticación, feature habilitada y roles adecuados
   useEffect(() => {
-    // Solo cargar si está autenticado y tiene rol Super Administrador o Administrador
-    const hasRequiredRole = user?.roles?.some(role => ['Super Administrador', 'Administrador'].includes(role));
-    if (isAuthenticated && hasRequiredRole) {
+    const flagEnabled = import.meta?.env?.VITE_ENABLE_ADMINISTRATIVOS === 'true';
+    const hasRequiredRole = user?.roles?.some(role => {
+      if (typeof role === 'object') {
+        return ['Super Administrador', 'Administrador'].includes(role.nombre_rol || role.rol || role.name);
+      }
+      return ['Super Administrador', 'Administrador'].includes(role);
+    });
+
+    if (isAuthenticated && flagEnabled && hasRequiredRole) {
       loadAdministrativos();
     } else {
       setLoading(false);

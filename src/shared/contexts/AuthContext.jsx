@@ -216,22 +216,47 @@ export const AuthProvider = ({ children }) => {
 
       const response = await authService.updateProfile(profileData);
 
-      if (response.success && response.data) {
-        const updatedUser = { ...user, ...response.data };
-        setUser(updatedUser);
+      // Intentar diferentes formas de respuesta
+      const updatedData =
+        response?.data?.user ||
+        response?.data?.usuario ||
+        response?.data?.data ||
+        response?.data ||
+        response?.user ||
+        response?.usuario ||
+        null;
 
-        const userDataStr = JSON.stringify(updatedUser);
-        if (localStorage.getItem(USER_KEY)) {
-          localStorage.setItem(USER_KEY, userDataStr);
-        } else {
-          sessionStorage.setItem(USER_KEY, userDataStr);
-        }
+      // Normalizar datos aunque la API no devuelva el usuario actualizado
+      const mergedData = updatedData ? { ...updatedData, ...profileData } : { ...profileData };
 
-        console.log('Perfil actualizado');
-        return updatedUser;
-      } else {
-        throw new Error(response.message || 'Error al actualizar perfil');
+      if (profileData.nombre) {
+        const nombreParts = profileData.nombre.trim().split(' ');
+        mergedData.nombre_completo = profileData.nombre;
+        mergedData.nombre = profileData.nombre;
+        mergedData.primer_nombre = nombreParts[0] || mergedData.primer_nombre || '';
+        mergedData.segundo_nombre = nombreParts.slice(1).join(' ') || mergedData.segundo_nombre || '';
       }
+
+      if (profileData.apellidos) {
+        const apellidoParts = profileData.apellidos.trim().split(' ');
+        mergedData.apellidos = profileData.apellidos;
+        mergedData.apellido_completo = profileData.apellidos;
+        mergedData.primer_apellido = apellidoParts[0] || mergedData.primer_apellido || '';
+        mergedData.segundo_apellido = apellidoParts.slice(1).join(' ') || mergedData.segundo_apellido || '';
+      }
+
+      const updatedUser = { ...user, ...mergedData };
+
+      setUser(updatedUser);
+
+      const userDataStr = JSON.stringify(updatedUser);
+      // Mantener compatibilidad con claves usadas en otros flujos
+      localStorage.setItem(USER_KEY, userDataStr);
+      localStorage.setItem('user', userDataStr);
+      sessionStorage.setItem(USER_KEY, userDataStr);
+
+      console.log('Perfil actualizado');
+      return updatedUser;
     } catch (err) {
       console.error('Error actualizando perfil:', err);
       setError(err.message || 'Error al actualizar perfil');

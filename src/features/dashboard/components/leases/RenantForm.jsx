@@ -2,6 +2,7 @@ import React, { useRef, useState, useCallback, useMemo, useEffect } from "react"
 import { FaTimes } from "react-icons/fa";
 import { motion } from 'framer-motion';
 import { renantsApiService } from "../../../../shared/services/arrendatarioApiService";
+import arriendoApiService from "../../../../shared/services/arriendoApiService"; // ⬅️ NUEVO
 
 // Lista de campos que deben ser obligatorios según la solicitud del usuario (INCLUYE ARRENDATARIO, CODEUDOR, INMUEBLE Y CONTRATO)
 const requiredFields = [
@@ -44,8 +45,11 @@ const parseNumberField = (value) => {
     return Number.isNaN(numeric) ? undefined : numeric;
 };
 
-const buildApiPayload = (values = {}) => ({
-    // Persona
+/**
+ * Payload SOLO para crear / actualizar Arrendatario (persona)
+ * Ya NO mete datos del contrato aquí.
+ */
+const buildArrendatarioPayload = (values = {}) => ({
     tipoDocumento: values.tipoDocArrendatario,
     documento: values.numeroDocArrendatario,
     primerNombre: values.primerNombreArrendatario,
@@ -54,20 +58,61 @@ const buildApiPayload = (values = {}) => ({
     segundoApellido: values.segundoApellidoArrendatario,
     correo: values.correoArrendatario,
     telefono: values.telefonoArrendatario,
-    // Inmueble y contrato (lo que requiere la API /leases/renants para crear el arriendo)
-    idInmueble: values.idInmueble || values.registroInmobiliario || values.nombreInmueble || undefined,
-    fechaInicio: values.fechaInicio,
-    fechaFin: values.fechaFinal,
-    valorMensual: parseNumberField(values.precio) ?? parseNumberField(values.precioInmueble),
-    tipoGarantia: values.tipoGarantia,
-    valorGarantia: parseNumberField(values.valorGarantia),
-    descripcionGarantia: values.descripcionGarantia,
+    // Datos opcionales (si decides agregarlos luego al formulario)
     contactoEmergenciaNombre: values.contactoEmergenciaNombre,
     contactoEmergenciaTelefono: values.contactoEmergenciaTelefono,
     contactoEmergenciaParentesco: values.contactoEmergenciaParentesco,
     observaciones: values.observaciones,
-    estado: values.estado || "Activo"
+    estado: "Activo",
 });
+
+/**
+ * Payload para crear el ARRIENDO / CONTRATO
+ * Intenta ser compatible con ambas convenciones (camelCase y snake_case)
+ * para que el backend pueda mapear fácilmente.
+ */
+const buildArriendoPayload = (values = {}, renant = {}) => {
+    const idArrendatario =
+        renant.id_arrendatario ||
+        renant.idArrendatario ||
+        renant.id;
+
+    const valorMensual =
+        parseNumberField(values.precio) ?? parseNumberField(values.precioInmueble);
+
+    const valorGarantia = parseNumberField(values.valorGarantia);
+
+    return {
+        // Relación con Arrendatario
+        id_arrendatario: idArrendatario,
+        idArrendatario: idArrendatario,
+
+        // Inmueble: enviamos una referencia flexible como antes
+        // El backend puede resolver a id_inmueble por registro / nombre / id.
+        idInmueble: values.idInmueble || values.registroInmobiliario || values.nombreInmueble || undefined,
+
+        // Fechas
+        fecha_inicio: values.fechaInicio,
+        fecha_finalizacion: values.fechaFinal,
+        fechaInicio: values.fechaInicio,
+        fechaFin: values.fechaFinal,
+
+        // Valores
+        valor_mensual: valorMensual,
+        valorMensual: valorMensual,
+
+        // Garantía (opcional)
+        tipo_garantia: values.tipoGarantia,
+        tipoGarantia: values.tipoGarantia,
+        valor_garantia: valorGarantia,
+        valorGarantia: valorGarantia,
+        descripcion_garantia: values.descripcionGarantia,
+        descripcionGarantia: values.descripcionGarantia,
+
+        // Estado del contrato
+        estado: values.estado || "Activo",
+    };
+};
 
 export default function RentForm({ onClose, onSubmit }) {
     const [step, setStep] = useState(1);
@@ -686,10 +731,10 @@ export default function RentForm({ onClose, onSubmit }) {
         let fieldsToValidate = stepFields[step].filter(f => f !== 'garaje' || requiredFields.includes('garaje'));
         
         // Añadir el campo de documento cruzado para validar el conflicto al cambiar de paso 1 a 2
-        if (step === 1 && valuesRef.current[NUMERO_DOC_COD].trim()) {
+        if (step === 1 && (valuesRef.current[NUMERO_DOC_COD] || "").trim()) {
             if (!fieldsToValidate.includes(NUMERO_DOC_COD)) fieldsToValidate.push(NUMERO_DOC_COD);
         }
-        if (step === 2 && valuesRef.current[NUMERO_DOC_ARR].trim()) {
+        if (step === 2 && (valuesRef.current[NUMERO_DOC_ARR] || "").trim()) {
             if (!fieldsToValidate.includes(NUMERO_DOC_ARR)) fieldsToValidate.push(NUMERO_DOC_ARR);
         }
         
@@ -718,7 +763,9 @@ export default function RentForm({ onClose, onSubmit }) {
         if (submissionState.isSubmitting) return;
         
         // En el envío final, validamos TODOS los campos obligatorios
-        const allFieldsToValidate = Object.values(stepFields).flat().filter(f => f !== 'garaje' || requiredFields.includes('garaje'));
+        const allFieldsToValidate = Object.values(stepFields)
+            .flat()
+            .filter(f => f !== 'garaje' || requiredFields.includes('garaje'));
         const { currentErrors, hasError, firstErrorField } = runValidation(allFieldsToValidate);
 
         setErrors(currentErrors);
@@ -743,47 +790,58 @@ export default function RentForm({ onClose, onSubmit }) {
         }
 
         setSubmissionState({ isSubmitting: true, error: null });
-        const apiPayload = buildApiPayload(valuesRef.current);
+        const rawValues = { ...valuesRef.current };
 
         try {
-            const createdRenant = await renantsApiService.create(apiPayload);
-            await onSubmit?.({
-                renant: createdRenant,
-                formData: { ...valuesRef.current }
-            });
-            setSubmissionState({ isSubmitting: false, error: null });
-            onClose?.();
-            console.log("Formulario Enviado:", createdRenant);
-        } catch (error) {
-            const duplicateMsg = "ya esta registrada como arrendatario";
-            if (error?.message?.toLowerCase().includes(duplicateMsg)) {
-                const tipoDocumento = (valuesRef.current.tipoDocArrendatario || "").trim();
-                const numeroDocumento = cleanDocument(valuesRef.current.numeroDocArrendatario);
+            // 1️⃣ Asegurar ARRRENDATARIO (crear o reutilizar)
+            const arrendatarioPayload = buildArrendatarioPayload(rawValues);
+            let renant;
 
-                try {
+            try {
+                // Intentar crear el arrendatario
+                renant = await renantsApiService.create(arrendatarioPayload);
+            } catch (error) {
+                const duplicateMsg = "ya esta registrada como arrendatario";
+                if (error?.message?.toLowerCase().includes(duplicateMsg)) {
+                    // Ya existe → lo buscamos y reutilizamos
+                    const tipoDocumento = (rawValues.tipoDocArrendatario || "").trim();
+                    const numeroDocumento = cleanDocument(rawValues.numeroDocArrendatario);
+
                     const existing = await renantsApiService.getAll({
                         tipo_documento: tipoDocumento,
                         numero_documento: numeroDocumento
                     });
 
                     const matched = existing?.[0];
-                    if (matched) {
-                        await onSubmit?.({
-                            renant: matched,
-                            formData: { ...valuesRef.current }
-                        });
-                        setSubmissionState({ isSubmitting: false, error: null });
-                        onClose?.();
-                        return;
+                    if (!matched) {
+                        throw error; // no pudimos recuperarlo, dejamos que caiga al catch general
                     }
-                } catch (innerError) {
-                    console.error("No se pudo recuperar el arrendatario existente:", innerError.message);
+                    renant = matched;
+                } else {
+                    throw error;
                 }
             }
 
+            // 2️⃣ Crear ARRIENDO ligado al arrendatario obtenido/creado
+            const arriendoPayload = buildArriendoPayload(rawValues, renant);
+            const arriendoCreated = await arriendoApiService.crearArriendo(arriendoPayload);
+
+            // 3️⃣ Notificar al padre → RenantManagementPage hará fetchArriendos()
+            await onSubmit?.({
+                renant,
+                arriendo: arriendoCreated,
+                formData: rawValues
+            });
+
+            setSubmissionState({ isSubmitting: false, error: null });
+            onClose?.();
+            console.log("Formulario Enviado:", { renant, arriendoCreated });
+
+        } catch (error) {
+            console.error(error);
             setSubmissionState({
                 isSubmitting: false,
-                error: error?.message || "No fue posible crear el arrendatario"
+                error: error?.message || "No fue posible crear el arriendo"
             });
         }
     };
@@ -945,7 +1003,7 @@ export default function RentForm({ onClose, onSubmit }) {
                     <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 space-y-6">
                         
                         {/* PASO 1 */}
-{step === 1 && (
+                        {step === 1 && (
                             <div>
                                 <h3 className="text-lg font-bold text-blue-800 mb-4 pb-2 border-b border-blue-200">
                                     Datos del Arrendatario
