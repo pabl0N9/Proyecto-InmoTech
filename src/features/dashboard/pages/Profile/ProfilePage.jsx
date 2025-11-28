@@ -4,6 +4,8 @@ import { User, Save, Loader, Mail, Phone, Camera, Shield, Bell, Globe } from 'lu
 import { useAuth } from '../../../../shared/contexts/AuthContext';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import PasswordConfirmationModal from '../../../../shared/components/dashboard/Header/PasswordConfirmationModal.jsx';
+import { API_CONFIG } from '../../../../shared/services/api.config';
+import { validateNombres, validateApellidos, validateTelefono } from '../../../../shared/utils/fieldValidations';
 
 const ProfilePage = () => {
   const { user, updateProfile } = useAuth();
@@ -14,6 +16,14 @@ const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
+  const [errors, setErrors] = useState({});
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const validators = useRef({
+    nombre_completo: validateNombres,
+    apellidos: validateApellidos,
+    telefono: validateTelefono,
+  });
 
   const mapUserData = useCallback((userData) => {
     const roleName = Array.isArray(userData.roles)
@@ -46,6 +56,7 @@ const ProfilePage = () => {
       tipo_documento: userData.tipo_documento || '',
       numero_documento: userData.numero_documento || '',
       foto_perfil_url: userData.foto_perfil_url || null,
+      foto_public_id: userData.foto_public_id || null,
     };
   }, []);
 
@@ -61,6 +72,32 @@ const ProfilePage = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    if (validators.current[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: validators.current[name](value),
+      }));
+    }
+  };
+
+  const uploadProfileImage = async (file) => {
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
+
+    const response = await fetch(`${API_CONFIG.BASE_URL}/files/upload`, {
+      method: 'POST',
+      body: formDataUpload,
+      credentials: 'include'
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Error al subir la imagen');
+    }
+
+    return data.data;
   };
 
   const fileInputRef = useRef(null);
@@ -80,18 +117,46 @@ const ProfilePage = () => {
     }
   };
 
+  const validateProfileForm = () => {
+    const newErrors = {
+      nombre_completo: validators.current.nombre_completo(formData.nombre_completo || ""),
+      apellidos: validators.current.apellidos(formData.apellidos || ""),
+      telefono: validators.current.telefono(formData.telefono || ""),
+    };
+
+    setErrors(newErrors);
+    return Object.values(newErrors).every((msg) => !msg);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateProfileForm()) {
+      toast({
+        title: "Por favor corrige los errores",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsPasswordModalOpen(true);
   };
 
   const handleConfirmAndUpdate = async () => {
     try {
       setIsLoading(true);
+      let uploadResult = null;
+
+      if (profileImageFile) {
+        setIsUploadingImage(true);
+        uploadResult = await uploadProfileImage(profileImageFile);
+        setIsUploadingImage(false);
+      }
+
       const payload = {
         nombre: (formData.nombre_completo || "").trim(),
         apellidos: (formData.apellidos || "").trim(),
-        telefono: formData.telefono || ""
+        telefono: formData.telefono || "",
+        foto_perfil_url: uploadResult?.url || formData.foto_perfil_url || null,
+        foto_public_id: uploadResult?.public_id || formData.foto_public_id || null
       };
 
       const updatedUser = await updateProfile(payload);
@@ -99,6 +164,7 @@ const ProfilePage = () => {
         const mappedData = mapUserData(updatedUser);
         setFormData(mappedData);
         setImagePreview(mappedData.foto_perfil_url);
+        setProfileImageFile(null);
       }
 
       toast({
@@ -117,6 +183,8 @@ const ProfilePage = () => {
         variant: "destructive",
       });
     } finally {
+      setIsUploadingImage(false);
+      setIsPasswordModalOpen(false);
       setIsLoading(false);
     }
   };
@@ -289,8 +357,11 @@ const ProfilePage = () => {
                         value={formData.nombre_completo || ''} 
                         onChange={handleInputChange} 
                         required 
-                        className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+                        className={`w-full px-3 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.nombre_completo ? 'border-red-500' : 'border-slate-300'}`} 
                       />
+                      {errors.nombre_completo && (
+                        <p className="text-red-500 text-xs mt-1">{errors.nombre_completo}</p>
+                      )}
                     </div>
                     <div>
                       <label htmlFor="apellidos" className="text-sm font-medium text-slate-700 mb-2 block">
@@ -303,8 +374,11 @@ const ProfilePage = () => {
                         value={formData.apellidos || ''} 
                         onChange={handleInputChange} 
                         required 
-                        className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+                        className={`w-full px-3 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.apellidos ? 'border-red-500' : 'border-slate-300'}`} 
                       />
+                      {errors.apellidos && (
+                        <p className="text-red-500 text-xs mt-1">{errors.apellidos}</p>
+                      )}
                     </div>
                   </div>
 
@@ -338,9 +412,13 @@ const ProfilePage = () => {
                           type="tel" 
                           value={formData.telefono || ''} 
                           onChange={handleInputChange} 
-                          className="w-full pl-10 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+                          required
+                          className={`w-full pl-10 pr-3 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.telefono ? 'border-red-500' : 'border-slate-300'}`} 
                         />
                       </div>
+                      {errors.telefono && (
+                        <p className="text-red-500 text-xs mt-1">{errors.telefono}</p>
+                      )}
                     </div>
                   </div>
                 </div>

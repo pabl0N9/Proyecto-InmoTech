@@ -49,6 +49,14 @@ const Persona = sequelize.define('Personas', {
     allowNull: false,
     defaultValue: false
   },
+  foto_perfil_url: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  foto_public_id: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
   tiene_cuenta: {
     type: DataTypes.BOOLEAN,
     allowNull: false,

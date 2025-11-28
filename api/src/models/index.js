@@ -20,6 +20,7 @@ const Reporte = require('./Reporte');
 const Sale = require('./Sale');
 const Lease = require('./Lease');
 const Arriendo = require('./Arriendo');
+const Invitacion = require('./Invitacion');
 
 // =============================================================================
 // ASOCIACIONES PRINCIPALES - PERSONA
@@ -371,6 +372,6 @@ module.exports = {
   Renant,
   Sale,
   Lease,
-  Arriendo
+  Arriendo,
+  Invitacion
 };
-

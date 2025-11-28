@@ -1,4 +1,5 @@
 const authService = require('../services/auth.service');
+const personaService = require('../services/persona.service');
 const logger = require('../utils/logger');
 
 const buildCookieOptions = () => {
@@ -148,10 +149,12 @@ class AuthController {
       const userId = req.user.id;
       const updateData = req.validatedData;
 
+      const perfilActualizado = await personaService.actualizarPerfil(userId, updateData);
+
       return res.status(200).json({
         success: true,
-        message: 'Funcionalidad de actualizacion de perfil pendiente de implementacion',
-        data: { userId, updateData }
+        message: 'Perfil actualizado correctamente',
+        data: perfilActualizado
       });
     } catch (error) {
       logger.error('Error actualizando perfil:', error);

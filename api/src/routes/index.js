@@ -9,6 +9,7 @@ const setupRoutes = require('./setup.routes');
 const authRoutes = require('./auth.routes');
 const sseRoutes = require('./sse.routes');
 const arriendoRoutes = require('./arriendo.routes');
+const uploadRoutes = require('./upload.routes');
 
 router.use('/setup', setupRoutes);
 router.use('/auth', authRoutes);
@@ -18,6 +19,7 @@ router.use('/sales', salesRoutes);
 router.use('/leases/renants', renantsRoutes);
 router.use('/leases', leasesRoutes);
 router.use('/arriendos', arriendoRoutes);
+router.use('/files', uploadRoutes);
 
 // ✅ CORRECTO: Importar desde models
 const { 

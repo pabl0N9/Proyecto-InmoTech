@@ -61,6 +61,7 @@ export default function RegistroPage() {
   });
 
   const [fieldErrors, setFieldErrors] = useState({});
+  const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/;
 
   // Funciones de validación
   const validateTipoDocumento = (tipo) => {
@@ -161,6 +162,24 @@ export default function RegistroPage() {
     return '';
   };
 
+  const validatePassword = (password) => {
+    if (!password || !password.trim()) return 'La contraseña es obligatoria';
+    if (password.length < 8) return 'La contraseña debe tener al menos 8 caracteres';
+    if (password.length > 100) return 'La contraseña no puede exceder 100 caracteres';
+    if (!PASSWORD_REGEX.test(password)) {
+      return 'Debe incluir una minúscula, una mayúscula, un número y uno de @$!%*?&#';
+    }
+    return '';
+  };
+
+  const validateConfirmPassword = (confirmPassword, password) => {
+    if (!confirmPassword || !confirmPassword.trim()) return 'Confirma tu contraseña';
+    if (confirmPassword !== password) return 'Las contraseñas no coinciden';
+    return '';
+  };
+
+  const mapTipoDocumento = (tipo) => (tipo === 'PASAPORTE' ? 'PAS' : tipo);
+
   // Función para validar todos los campos
   const validateAllFields = () => {
     const errors = {
@@ -170,6 +189,8 @@ export default function RegistroPage() {
       apellido_completo: validateApellidoCompleto(formData.apellido_completo),
       email: validateEmail(formData.email),
       telefono: validateTelefono(formData.telefono),
+      password: validatePassword(formData.password),
+      confirmPassword: validateConfirmPassword(formData.confirmPassword, formData.password),
     };
     return errors;
   };
@@ -217,6 +238,12 @@ export default function RegistroPage() {
       case 'telefono':
         error = validateTelefono(val);
         break;
+      case 'password':
+        error = validatePassword(val);
+        break;
+      case 'confirmPassword':
+        error = validateConfirmPassword(val, formData.password);
+        break;
     }
 
     setFieldErrors(prev => ({ ...prev, [fieldName]: error }));
@@ -240,6 +267,14 @@ export default function RegistroPage() {
         number: /[0-9]/.test(newValue),
         special: /[^A-Za-z0-9]/.test(newValue),
       });
+      validateField('password', newValue);
+      if (formData.confirmPassword) {
+        validateField('confirmPassword', formData.confirmPassword);
+      }
+    }
+
+    if (name === 'confirmPassword') {
+      validateField('confirmPassword', newValue);
     }
 
     // Validación en tiempo real con debouncing para email
@@ -303,6 +338,21 @@ export default function RegistroPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const validationErrors = validateAllFields();
+    const hasErrors = Object.values(validationErrors).some(msg => msg);
+    if (hasErrors) {
+      setFieldErrors(validationErrors);
+      const firstErrorMessage = Object.values(validationErrors).find(msg => msg) || 'Corrige los campos señalados.';
+      setError(firstErrorMessage);
+      toast({
+        title: "Revisa los datos",
+        description: firstErrorMessage,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
@@ -311,7 +361,7 @@ export default function RegistroPage() {
 
       // Preparar datos para el registro
       const userData = {
-        tipo_documento: formData.tipo_documento,
+        tipo_documento: mapTipoDocumento(formData.tipo_documento),
         numero_documento: formData.numero_documento,
         nombre_completo: formData.nombre_completo,
         apellido_completo: formData.apellido_completo,
@@ -660,6 +710,9 @@ export default function RegistroPage() {
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+                {fieldErrors.password && (
+                  <p className="text-sm text-red-500 mt-1">{fieldErrors.password}</p>
+                )}
               </div>
 
               {/* Indicador de fortaleza de contraseña */}
@@ -749,6 +802,9 @@ export default function RegistroPage() {
                     {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+                {fieldErrors.confirmPassword && (
+                  <p className="text-sm text-red-500 mt-1">{fieldErrors.confirmPassword}</p>
+                )}
                 {formData.password &&
                   formData.confirmPassword &&
                   formData.password !== formData.confirmPassword && (

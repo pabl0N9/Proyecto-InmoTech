@@ -41,10 +41,11 @@ export const AuthProvider = ({ children }) => {
         console.log('No hay sesiÃ³n activa en cookies');
       }
     } catch (err) {
-      console.error('Error verificando sesiÃ³n:', err);
-      setUser(null);
-      setIsAuthenticated(false);
-      console.log('SesiÃ³n expirada o invÃ¡lida');
+      console.error('Error en registro:', err);
+      const backendError = err?.data?.errors ? Object.values(err.data.errors)[0] : null;
+      const message = backendError || err.message || "Error al registrar usuario";
+      setError(message);
+      throw new Error(message);
     } finally {
       setLoading(false);
     }
@@ -144,8 +145,10 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Error en registro:', err);
-      setError(err.message || 'Error al registrar usuario');
-      throw err;
+      const backendError = err?.data?.errors ? Object.values(err.data.errors)[0] : null;
+      const message = backendError || err.message || 'Error al registrar usuario';
+      setError(message);
+      throw new Error(message);
     } finally {
       setLoading(false);
     }

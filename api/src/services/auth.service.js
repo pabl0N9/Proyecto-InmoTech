@@ -6,6 +6,7 @@ const logger = require('../utils/logger');
 const { buildPermissionsResponse } = require('../utils/permissions.helper');
 const emailService = require('./email.service');
 const invitacionService = require('./invitacion.service');
+const personaService = require('./persona.service');
 
 const VERIFY_INVITE_TYPE = 'signup_verify';
 const INVITE_MAX_REENVIOS = Number(process.env.INVITATION_MAX_REENVIOS || 3);
@@ -224,6 +225,8 @@ class AuthService {
           tipo_documento: persona.tipo_documento,
           numero_documento: persona.numero_documento,
           telefono: persona.telefono,
+          foto_perfil_url: persona.foto_perfil_url,
+          foto_public_id: persona.foto_public_id,
           roles: roles,
           es_administrativo: es_administrativo,
           permisos: permisos
@@ -370,6 +373,8 @@ class AuthService {
         apellido_completo: persona.apellido_completo,
         correo: persona.correo,
         telefono: persona.telefono,
+        foto_perfil_url: persona.foto_perfil_url,
+        foto_public_id: persona.foto_public_id,
         fecha_registro: persona.fecha_registro,
         estado: persona.estado,
         correo_verificado: persona.correo_verificado,
