@@ -45,9 +45,7 @@ export const AppointmentProvider = ({ children }) => {
 
   // Cargar citas solo si hay autenticación y es un administrativo
   useEffect(() => {
-    const token = localStorage.getItem('inmotech_access_token') ||
-                  sessionStorage.getItem('inmotech_access_token');
-    if (token && isAuthenticated && user?.es_administrativo) {
+    if (isAuthenticated && user?.es_administrativo) {
       loadAppointments();
     } else {
       setLoading(false);
@@ -60,7 +58,7 @@ export const AppointmentProvider = ({ children }) => {
   const createAppointment = async (appointmentData) => {
     try {
       console.log("➕ Creando nueva cita en el backend...");
-      const citaCreada = await citaApiService.crearCita(appointmentData);
+      const citaCreada = await citaApiService.crearCita(appointmentData, user?.id);
       console.log("✅ Cita creada con ID:", citaCreada.id);
 
       setAppointments((prev) => [...prev, citaCreada]);

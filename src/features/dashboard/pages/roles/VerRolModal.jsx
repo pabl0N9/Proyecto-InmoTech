@@ -24,56 +24,32 @@ import {
 
 const modulesData = [
   {
-    name: "Gestión de Inmuebles",
-    key: "gInmuebles",
+    name: "Gestion de Inmuebles",
+    key: "inmuebles",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Building2,
     color: "bg-slate-50 border-slate-200",
-    description: "Administración completa del portafolio inmobiliario"
+    description: "Administracion completa del portafolio inmobiliario"
   },
   {
-    name: "Gestión de Clientes",
-    key: "gClientes",
-    permisos: ["Crear", "Editar", "Eliminar", "Ver"],
-    icon: Users,
-    color: "bg-slate-50 border-slate-200",
-    description: "Control de base de datos de clientes y prospectos"
-  },
-  {
-    name: "Gestión de Citas",
-    key: "gCitas",
+    name: "Gestion de Citas",
+    key: "citas",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Calendar,
     color: "bg-slate-50 border-slate-200",
-    description: "Programación y seguimiento de citas comerciales"
+    description: "Programacion y seguimiento de citas comerciales"
   },
   {
-    name: "Gestión de Compradores",
-    key: "gComprador",
-    permisos: ["Crear", "Editar", "Eliminar", "Ver"],
-    icon: ShoppingCart,
-    color: "bg-slate-50 border-slate-200",
-    description: "Administración de clientes compradores potenciales"
-  },
-  {
-    name: "Gestión de Ventas",
-    key: "gVentas",
+    name: "Gestion de Ventas",
+    key: "ventas",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: DollarSign,
     color: "bg-slate-50 border-slate-200",
     description: "Control de procesos de venta y transacciones"
   },
   {
-    name: "Gestión de Arrendatarios",
-    key: "gArrendatario",
-    permisos: ["Crear", "Editar", "Eliminar", "Ver"],
-    icon: Home,
-    color: "bg-slate-50 border-slate-200",
-    description: "Administración de inquilinos y contratos de arriendo"
-  },
-  {
-    name: "Gestión de Arriendos",
-    key: "gArriendos",
+    name: "Gestion de Arriendos",
+    key: "arriendos",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: Key,
     color: "bg-slate-50 border-slate-200",
@@ -81,28 +57,12 @@ const modulesData = [
   },
   {
     name: "Reportes Inmobiliarios",
-    key: "gReporteInmuebles",
+    key: "reportes",
     permisos: ["Crear", "Editar", "Eliminar", "Ver"],
     icon: BarChart3,
     color: "bg-slate-50 border-slate-200",
-    description: "Generación de informes y análisis de mercado"
-  },
-  {
-    name: "Administración de Usuarios",
-    key: "usuarios",
-    permisos: ["Crear", "Editar", "Eliminar", "Ver"],
-    icon: User,
-    color: "bg-slate-50 border-slate-200",
-    description: "Control de acceso y gestión de personal"
-  },
-  {
-    name: "Administración de Roles",
-    key: "roles",
-    permisos: ["Crear", "Editar", "Eliminar", "Ver"],
-    icon: Shield,
-    color: "bg-slate-50 border-slate-200",
-    description: "Configuración de permisos y niveles de acceso"
-  },
+    description: "Generacion de informes y analisis de mercado"
+  }
 ];
 
 const permissionConfig = {
@@ -142,7 +102,7 @@ export default function VerRolModal({ isOpen, onClose, rol }) {
   const getPermisosGrupo = (groupKey) => {
     const permisos = rol?.permisos?.[groupKey] || {};
     return Object.entries(permisos)
-      .filter(([_, value]) => value === true)
+      .filter(([key, value]) => value === true && key && key.trim() !== '')
       .map(([key]) => key);
   };
 
@@ -459,21 +419,23 @@ export default function VerRolModal({ isOpen, onClose, rol }) {
                     <span>Resumen de Permisos</span>
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(permissionConfig).map(([key, config]) => {
-                      const Icon = config.icon;
-                      const count = modulosConPermisos.filter(modulo => 
-                        modulo.permisosActivos.includes(key)
-                      ).length;
-                      
-                      return (
-                        <div key={key} className={`${config.bg} border rounded-lg p-4 text-center shadow-sm`}>
-                          <Icon className={`h-6 w-6 ${config.color} mx-auto mb-2`} />
-                          <div className="text-2xl font-bold text-slate-900">{count}</div>
-                          <div className="text-sm text-slate-600">{config.label}</div>
-                          <div className="text-xs text-slate-500 mt-1">módulos</div>
-                        </div>
-                      );
-                    })}
+                    {Object.entries(permissionConfig)
+                      .filter(([key, config]) => key && key.trim() !== '')
+                      .map(([key, config]) => {
+                        const Icon = config.icon;
+                        const count = modulosConPermisos.filter(modulo =>
+                          modulo.permisosActivos && modulo.permisosActivos.includes(key)
+                        ).length;
+
+                        return (
+                          <div key={key && key.trim() !== '' ? key : `permiso-${Math.random()}`} className={`${config.bg} border rounded-lg p-4 text-center shadow-sm`}>
+                            <Icon className={`h-6 w-6 ${config.color} mx-auto mb-2`} />
+                            <div className="text-2xl font-bold text-slate-900">{count}</div>
+                            <div className="text-sm text-slate-600">{config.label}</div>
+                            <div className="text-xs text-slate-500 mt-1">módulos</div>
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
 
@@ -508,15 +470,17 @@ export default function VerRolModal({ isOpen, onClose, rol }) {
 
                           {/* Permisos activos del módulo */}
                           <div className="grid grid-cols-2 gap-3">
-                          {modulo.permisosActivos.map((permiso, index) => {
+                          {modulo.permisosActivos
+                            .filter(permiso => permiso && permiso.trim() !== '')
+                            .map((permiso, index) => {
                               const config = permissionConfig[permiso];
                               const PermisoIcon = config?.icon || Eye;
 
                               return (
-                              <div
-                                key={`permiso-normal-${modulo.key}-${index}`}
-                                className="flex items-center space-x-3 p-3 rounded-lg border bg-white shadow-sm"
-                              >
+                                <div
+                                  key={`permiso-normal-${modulo.key}-${permiso}-${index}`}
+                                  className="flex items-center space-x-3 p-3 rounded-lg border bg-white shadow-sm"
+                                >
                                   <div className={`p-2 rounded-md ${config?.bg || 'bg-slate-50'}`}>
                                     <PermisoIcon className={`h-4 w-4 ${config?.color || 'text-slate-600'}`} />
                                   </div>

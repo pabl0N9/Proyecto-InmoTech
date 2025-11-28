@@ -133,6 +133,78 @@ BEGIN
 END
 GO
 
+ALTER TABLE Acceso ADD ultimo_cambio_password DATETIME NULL DEFAULT GETDATE();
+GO
+
+
+
+/*
+  Script para habilitar el flujo de invitaciones con código 6D.
+  - Crea tabla Invitaciones
+  - Agrega flag password_change_required a Acceso
+*/
+
+-- Tabla Invitaciones
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Invitaciones' AND xtype='U')
+BEGIN
+  CREATE TABLE Invitaciones (
+    id_invitacion INT IDENTITY(1,1) PRIMARY KEY,
+    id_persona INT NOT NULL,
+    tipo VARCHAR(20) NOT NULL DEFAULT 'admin_invite',
+    token_hash VARCHAR(255) NOT NULL UNIQUE,
+    codigo_6d CHAR(6) NOT NULL,
+    expira_en DATETIME NOT NULL,
+    usado_en DATETIME NULL,
+    intentos INT NOT NULL DEFAULT 0,
+    reenvios INT NOT NULL DEFAULT 0,
+    creado_en DATETIME NOT NULL DEFAULT GETDATE(),
+    creado_por INT NULL,
+    ip_uso VARCHAR(64) NULL,
+    ua_uso VARCHAR(255) NULL
+  );
+
+  CREATE INDEX IX_Invitaciones_Persona ON Invitaciones (id_persona);
+  CREATE INDEX IX_Invitaciones_Expira ON Invitaciones (expira_en);
+
+  ALTER TABLE Invitaciones
+    ADD CONSTRAINT FK_Invitaciones_Persona
+    FOREIGN KEY (id_persona) REFERENCES Personas(id_persona);
+END
+GO
+
+-- Campos adicionales para el flujo de invitaciones/verificación
+IF COL_LENGTH('Invitaciones', 'tipo') IS NULL
+BEGIN
+  ALTER TABLE Invitaciones
+    ADD tipo VARCHAR(20) NOT NULL CONSTRAINT DF_Invitaciones_tipo DEFAULT 'admin_invite';
+END
+GO
+
+IF COL_LENGTH('Invitaciones', 'reenvios') IS NULL
+BEGIN
+  ALTER TABLE Invitaciones
+    ADD reenvios INT NOT NULL CONSTRAINT DF_Invitaciones_reenvios DEFAULT 0;
+END
+GO
+
+-- Flag para correo verificado en Personas
+IF COL_LENGTH('Personas', 'correo_verificado') IS NULL
+BEGIN
+  ALTER TABLE Personas
+    ADD correo_verificado BIT NOT NULL CONSTRAINT DF_Personas_correo_verificado DEFAULT 0;
+END
+GO
+
+-- Flag en Acceso para forzar cambio de password
+IF COL_LENGTH('Acceso', 'password_change_required') IS NULL
+BEGIN
+  ALTER TABLE Acceso
+    ADD password_change_required BIT NOT NULL CONSTRAINT DF_Acceso_password_change_required DEFAULT 0;
+END
+GO
+
+
+
 -- ---------------------------------------------------------------------------------------------------------------------
 -- Tabla: Roles
 -- Descripción: Define los roles del sistema con permisos específicos
@@ -180,6 +252,32 @@ BEGIN
     );
     PRINT '✅ Tabla Personas_rol creada';
 END
+GO
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- Tabla: Permisos
+-- Descripción: Almacena los permisos específicos por módulo para cada rol
+-- Relación: Un rol puede tener múltiples permisos por módulo
+-- ---------------------------------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Permisos]') AND type = 'U')
+BEGIN
+    CREATE TABLE Permisos (
+        id_permiso INT PRIMARY KEY IDENTITY(1,1),
+        id_rol INT NOT NULL,
+        modulo VARCHAR(50) NOT NULL,                    -- Ej: "gInmuebles", "gClientes"
+        permiso VARCHAR(50) NOT NULL,                   -- Ej: "crear", "editar", "eliminar", "ver"
+        estado BIT NOT NULL DEFAULT 1,
+        fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
+
+        CONSTRAINT FK_Permisos_Rol FOREIGN KEY (id_rol) REFERENCES Roles(id_rol) ON DELETE CASCADE,
+        CONSTRAINT UQ_Permiso_Unico UNIQUE (id_rol, modulo, permiso)
+    );
+    PRINT '✅ Tabla Permisos creada';
+END
+GO
+
+-- Índice para búsquedas por rol
+CREATE NONCLUSTERED INDEX IX_Permisos_Rol ON Permisos(id_rol);
 GO
 
 -- Índices para consultas de roles
@@ -432,6 +530,57 @@ CREATE NONCLUSTERED INDEX IX_Citas_Persona ON Citas(id_persona);                
 CREATE NONCLUSTERED INDEX IX_Citas_ConflictoHorario ON Citas(id_inmueble, fecha_cita, hora_inicio, hora_fin) INCLUDE (id_estado_cita);  -- Verificar disponibilidad
 CREATE NONCLUSTERED INDEX IX_Citas_Creador ON Citas(id_usuario_creador);                      -- Quién creó las citas
 GO
+
+
+
+
+-- =====================================================================================================================
+-- TABLA DE HISTORIAL DE ASIGNACIÓN DE AGENTES
+-- =====================================================================================================================
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[HistorialAsignacionAgentes]') AND type = 'U')
+BEGIN
+    CREATE TABLE HistorialAsignacionAgentes (
+        id_historial INT PRIMARY KEY IDENTITY(1,1),
+
+        -- Relación con cita
+        id_cita INT NOT NULL,
+
+        -- Agentes involucrados
+        id_agente_anterior INT NULL,  -- NULL si es primera asignación
+        id_agente_nuevo INT NOT NULL,
+
+        -- Información de la asignación
+        comentario TEXT NULL,  -- Obligatorio cuando se reasigna
+        estado_asignacion VARCHAR(20) NOT NULL DEFAULT 'Activa',  -- Activa, Reasignada, Cancelada
+
+        -- Usuario que realizó la asignación/reasignación
+        id_usuario_realizo INT NOT NULL,  -- Quién realizó la acción
+
+        -- Fechas
+        fecha_asignacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
+
+        -- Auditoría
+        fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
+
+        CONSTRAINT FK_HistorialAsignacion_Cita FOREIGN KEY (id_cita) REFERENCES Citas(id_cita) ON DELETE CASCADE,
+        CONSTRAINT FK_HistorialAsignacion_AgenteAnterior FOREIGN KEY (id_agente_anterior) REFERENCES Personas(id_persona),
+        CONSTRAINT FK_HistorialAsignacion_AgenteNuevo FOREIGN KEY (id_agente_nuevo) REFERENCES Personas(id_persona),
+        CONSTRAINT FK_HistorialAsignacion_UsuarioRealizo FOREIGN KEY (id_usuario_realizo) REFERENCES Personas(id_persona),
+        CONSTRAINT CHK_HistorialAsignacion_Estado CHECK (estado_asignacion IN ('Activa', 'Reasignada', 'Cancelada'))
+    );
+    PRINT '✅ Tabla HistorialAsignacionAgentes creada - NUEVA FUNCIONALIDAD';
+END
+GO
+
+-- Índices para búsquedas frecuentes
+CREATE NONCLUSTERED INDEX IX_Historial_Cita ON HistorialAsignacionAgentes(id_cita, fecha_asignacion DESC);
+CREATE NONCLUSTERED INDEX IX_Historial_AgenteNuevo ON HistorialAsignacionAgentes(id_agente_nuevo);
+CREATE NONCLUSTERED INDEX IX_Historial_UsuarioRealizo ON HistorialAsignacionAgentes(id_usuario_realizo);
+GO
+
+
+
 
 -- =====================================================================================================================
 -- PASO 6: SISTEMA DE NOTIFICACIONES
@@ -706,50 +855,76 @@ BEGIN
 END
 GO
 
--- ---------------------------------------------------------------------------------------------------------------------
--- Seed: Super Administrador (Usuario inicial del sistema)
--- Importante: CAMBIAR LA CONTRASEÑA EN PRODUCCIÓN
--- ---------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT 1 FROM Personas WHERE numero_documento = '999999999')
+-- Script para agregar el campo motivo_reagendamiento a la tabla Citas
+-- Ejecutar este script en la base de datos InmobiliariaDB
+
+USE InmobiliariaDB;
+GO
+
+-- Verificar si el campo ya existe
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID('Citas')
+    AND name = 'motivo_reagendamiento'
+)
 BEGIN
-    -- Insertar Persona
-    INSERT INTO Personas (tipo_documento, numero_documento, nombre_completo, apellido_completo, correo, telefono, tiene_cuenta)
-    VALUES ('CC', '999999999', 'Super', 'Admin', 'admin@inmotech.com', '+57 300 000 0000', 1);
+    -- Agregar el campo motivo_reagendamiento con tipo NVARCHAR(MAX) para compatibilidad con índices
+    ALTER TABLE Citas
+    ADD motivo_reagendamiento NVARCHAR(MAX) NULL;
 
-    DECLARE @id_super_admin INT = SCOPE_IDENTITY();
-
-    -- Insertar Acceso (contraseña hasheada con bcrypt: "Admin123!")
-    -- ⚠️ IMPORTANTE: En producción, cambiar esta contraseña inmediatamente después del primer login
-    INSERT INTO Acceso (id_persona, contrasena)
-    VALUES (@id_super_admin, '$2b$10$rKvFJZEJfRJdLx6jxL5zMeyPh8s9JZCvC.yMFNyV8HQKZ6yFN.JxC');
-
-    -- Insertar en tabla Administrativos (personal interno)
-    INSERT INTO Administrativos (id_persona, codigo_empleado, fecha_ingreso, cargo, departamento, estado_laboral)
-    VALUES (@id_super_admin, 'ADMIN-001', GETDATE(), 'Super Administrador', 'Tecnología', 'Activo');
-
-    -- Asignar rol Super Administrador
-    DECLARE @id_rol_super INT = (SELECT id_rol FROM Roles WHERE nombre_rol = 'Super Administrador');
-    INSERT INTO Personas_rol (id_persona, id_rol)
-    VALUES (@id_super_admin, @id_rol_super);
-
-    PRINT '';
-    PRINT '✅ Super Administrador creado exitosamente';
-    PRINT '';
-    PRINT '   ╔════════════════════════════════════════════════════╗';
-    PRINT '   ║         CREDENCIALES DE SUPER ADMINISTRADOR        ║';
-    PRINT '   ╠════════════════════════════════════════════════════╣';
-    PRINT '   ║  Email:    admin@inmotech.com                      ║';
-    PRINT '   ║  Password: Admin123!                               ║';
-    PRINT '   ║  Código:   ADMIN-001                               ║';
-    PRINT '   ╚════════════════════════════════════════════════════╝';
-    PRINT '';
-    PRINT '   ⚠️  IMPORTANTE: Cambiar esta contraseña en producción';
-    PRINT '';
+    PRINT '✅ Campo motivo_reagendamiento agregado exitosamente a la tabla Citas';
 END
 ELSE
 BEGIN
-    PRINT '⚠️  Super Administrador ya existe en la base de datos';
+    PRINT '⚠️  El campo motivo_reagendamiento ya existe en la tabla Citas';
 END
+GO
+
+
+-- Crear índice para búsquedas por motivo de reagendamiento (opcional)
+-- Nota: En SQL Server, NVARCHAR(MAX) puede ser indexado pero con limitaciones
+-- Si hay problemas, este índice puede ser removido
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Citas') AND name = 'IX_Citas_MotivoReagendamiento')
+BEGIN
+    BEGIN TRY
+        CREATE NONCLUSTERED INDEX IX_Citas_MotivoReagendamiento
+        ON Citas(motivo_reagendamiento)
+        WHERE motivo_reagendamiento IS NOT NULL;
+
+        PRINT '✅ Índice IX_Citas_MotivoReagendamiento creado';
+    END TRY
+    BEGIN CATCH
+        PRINT '⚠️  No se pudo crear el índice IX_Citas_MotivoReagendamiento (posiblemente por limitaciones de NVARCHAR(MAX))';
+        PRINT '   El campo funciona correctamente sin índice para este caso de uso.';
+    END CATCH
+END
+ELSE
+BEGIN
+    PRINT '⚠️  El índice IX_Citas_MotivoReagendamiento ya existe';
+END
+GO
+
+PRINT '';
+PRINT '🎯 CAMPO motivo_reagendamiento AGREGADO EXITOSAMENTE';
+PRINT '';
+PRINT '📋 DESCRIPCIÓN DEL CAMPO:';
+PRINT '   - Nombre: motivo_reagendamiento';
+PRINT '   - Tipo: NVARCHAR(MAX) (permite textos largos en Unicode)';
+PRINT '   - Nullable: Sí (NULL cuando no es reagendamiento)';
+PRINT '   - Uso: Almacena el motivo específico de reprogramación';
+PRINT '';
+PRINT '💡 USO EN LA APLICACIÓN:';
+PRINT '   - Se llena cuando se reprograma una cita';
+PRINT '   - Se muestra en la vista de detalles de citas reagendadas';
+PRINT '   - Permite seguimiento específico de reagendamientos';
+PRINT '';
+
+
+ALTER TABLE Citas
+ADD ediciones_realizadas INT NOT NULL DEFAULT 0;
+
+ALTER TABLE Citas
+ADD ediciones_maximas INT NOT NULL DEFAULT 2;
 GO
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -773,6 +948,107 @@ BEGIN
     PRINT '✅ Inmueble de prueba creado (INM-001-TEST)';
 END
 GO
+
+
+
+-- =====================================================================================================================
+-- PASO 9.5: OPTIMIZACIÓN DE ÍNDICES PARA ENDPOINTS LENTOS
+-- =====================================================================================================================
+-- Este script agrega índices faltantes en columnas FK para mejorar rendimiento de JOINs
+-- Especialmente optimizado para /api/v1/citas, /api/v1/personas, /api/v1/administrativos
+-- Debe ejecutarse DESPUÉS de crear todas las tablas y datos iniciales
+-- =====================================================================================================================
+
+PRINT '';
+PRINT '=====================================================================================================================';
+PRINT 'OPTIMIZACIÓN DE ÍNDICES PARA MEJORAR RENDIMIENTO DE CONSULTAS';
+PRINT '=====================================================================================================================';
+PRINT '';
+
+-- Índices para tabla Citas (FKs más consultadas en endpoints de citas)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Citas') AND name = 'IX_Citas_Inmueble')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Citas_Inmueble ON Citas(id_inmueble);
+    PRINT '✅ Índice agregado: IX_Citas_Inmueble';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_Citas_Inmueble ya existe';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Citas') AND name = 'IX_Citas_Servicio')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Citas_Servicio ON Citas(id_servicio);
+    PRINT '✅ Índice agregado: IX_Citas_Servicio';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_Citas_Servicio ya existe';
+END
+
+-- Índices para tabla Administrativos (optimización de consultas de personal)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Administrativos') AND name = 'IX_Administrativos_Persona')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Administrativos_Persona ON Administrativos(id_persona);
+    PRINT '✅ Índice agregado: IX_Administrativos_Persona';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_Administrativos_Persona ya existe';
+END
+
+-- Índices para tabla Personas_rol (optimización de filtros por roles y estado)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Personas_rol') AND name = 'IX_PersonasRol_Estado')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_PersonasRol_Estado ON Personas_rol(id_persona, estado) WHERE estado = 1;
+    PRINT '✅ Índice agregado: IX_PersonasRol_Estado (filtrado para activos)';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_PersonasRol_Estado ya existe';
+END
+
+-- Índice compuesto para optimización de consultas con joins complejos rol-persona
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Personas_rol') AND name = 'IX_PersonasRol_RolEstado')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_PersonasRol_RolEstado ON Personas_rol(id_rol, estado) INCLUDE (id_persona) WHERE estado = 1;
+    PRINT '✅ Índice agregado: IX_PersonasRol_RolEstado (con columna incluida)';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_PersonasRol_RolEstado ya existe';
+END
+
+-- Índice para consultas de personas con cuenta activa (login y autenticación)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Personas') AND name = 'IX_Personas_EstadoCuenta')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Personas_EstadoCuenta ON Personas(estado, tiene_cuenta) WHERE estado = 1;
+    PRINT '✅ Índice agregado: IX_Personas_EstadoCuenta (filtrado para activos)';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_Personas_EstadoCuenta ya existe';
+END
+
+PRINT '';
+PRINT '🎯 OPTIMIZACIÓN DE ÍNDICES COMPLETADA';
+PRINT '';
+PRINT '📊 Estos índices mejorarán significativamente el rendimiento de:';
+PRINT '   ✓ GET /api/v1/citas         - Joins con persona, inmueble, servicio';
+PRINT '   ✓ GET /api/v1/personas      - Filtrado por rol Usuario y estado activo';
+PRINT '   ✓ GET /api/v1/administrativos - Joins con persona y roles';
+PRINT '   ✓ POST /api/v1/auth/login   - Búsqueda de usuarios con cuenta activa';
+PRINT '';
+PRINT '💡 RECOMENDACIONES:';
+PRINT '   - Monitorear tiempo de respuesta de los endpoints después de aplicar';
+PRINT '   - Usar SET STATISTICS TIME ON para medir mejoras';
+PRINT '   - Considerar actualizar estadísticas: UPDATE STATISTICS [tabla]';
+PRINT '';
+GO
+
+
+
+
 
 -- =====================================================================================================================
 -- PASO 10: VERIFICACIÓN FINAL Y RESUMEN

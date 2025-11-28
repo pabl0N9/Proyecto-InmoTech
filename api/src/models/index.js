@@ -4,12 +4,15 @@ const Inmueble = require('./Inmueble');
 const ServicioCita = require('./ServicioCita');
 const EstadoCita = require('./EstadoCita');
 const Cita = require('./Cita');
+const HistorialAsignacionAgente = require('./HistorialAsignacionAgente');  // <-- NUEVO
 const Notificacion = require('./Notificacion');
 const Rol = require('./Rol');
+const Permiso = require('./Permiso');
 const Acceso = require('./Acceso');
 const PersonasRol = require('./PersonasRol');
 const PropiedadInmueble = require('./PropiedadInmueble');
 const Reporte = require('./Reporte');
+const Invitacion = require('./Invitacion');
 
 // Asociaciones de Cita
 Cita.belongsTo(Persona, {
@@ -35,6 +38,11 @@ Cita.belongsTo(EstadoCita, {
 Cita.belongsTo(Persona, {
   foreignKey: 'id_agente_asignado',
   as: 'agente'
+});
+
+Cita.belongsTo(Persona, {
+  foreignKey: 'id_usuario_creador',
+  as: 'creador'
 });
 
 Cita.belongsTo(Cita, {
@@ -107,6 +115,17 @@ Persona.hasOne(Acceso, {
   as: 'acceso'
 });
 
+// Asociaciones de Invitacion
+Invitacion.belongsTo(Persona, {
+  foreignKey: 'id_persona',
+  as: 'persona'
+});
+
+Persona.hasMany(Invitacion, {
+  foreignKey: 'id_persona',
+  as: 'invitaciones'
+});
+
 // Asociaciones de PersonasRol
 PersonasRol.belongsTo(Persona, {
   foreignKey: 'id_persona',
@@ -124,6 +143,19 @@ Persona.belongsToMany(Rol, {
   otherKey: 'id_rol',
   as: 'roles'
 });
+
+// Asociaciones de Permiso
+Permiso.belongsTo(Rol, {
+  foreignKey: 'id_rol',
+  as: 'rol'
+});
+
+Rol.hasMany(Permiso, {
+  foreignKey: 'id_rol',
+  as: 'permisos'
+});
+
+// FIN ASOCIACIONES DE PERMISOS
 
 Rol.belongsToMany(Persona, {
   through: PersonasRol,
@@ -165,6 +197,32 @@ Persona.hasMany(Reporte, {
 });
 // FIN DE NUEVAS ASOCIACIONES
 
+// Asociaciones de HistorialAsignacionAgente
+HistorialAsignacionAgente.belongsTo(Cita, {
+  foreignKey: 'id_cita',
+  as: 'cita'
+});
+
+HistorialAsignacionAgente.belongsTo(Persona, {
+  foreignKey: 'id_agente_anterior',
+  as: 'agenteAnterior'
+});
+
+HistorialAsignacionAgente.belongsTo(Persona, {
+  foreignKey: 'id_agente_nuevo',
+  as: 'agenteNuevo'
+});
+
+HistorialAsignacionAgente.belongsTo(Persona, {
+  foreignKey: 'id_usuario_realizo',
+  as: 'usuarioRealizo'
+});
+
+Cita.hasMany(HistorialAsignacionAgente, {
+  foreignKey: 'id_cita',
+  as: 'historialAsignaciones'
+});
+
 // Asociaciones de Administrativo
 Administrativo.belongsTo(Persona, {
   foreignKey: 'id_persona',
@@ -183,10 +241,13 @@ module.exports = {
   ServicioCita,
   EstadoCita,
   Cita,
+  HistorialAsignacionAgente,  // <-- NUEVO
   Notificacion,
   Rol,
+  Permiso,
   Acceso,
   PersonasRol,
   PropiedadInmueble,
-  Reporte
+  Reporte,
+  Invitacion
 };

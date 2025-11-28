@@ -27,7 +27,12 @@ const crearRolSchema = Joi.object({
     .default(false)
     .messages({
       'boolean.base': 'El campo es_rol_administrativo debe ser un valor booleano'
-    })
+    }),
+
+  permisos: Joi.object().pattern(
+      Joi.string(),
+      Joi.object().pattern(Joi.string(), Joi.boolean())
+    ).optional()
 });
 
 // Validación para actualizar rol
@@ -44,7 +49,12 @@ const actualizarRolSchema = Joi.object({
     }),
 
   estado: Joi.boolean()
-    .optional()
+    .optional(),
+
+  permisos: Joi.object().pattern(
+      Joi.string(),
+      Joi.object().pattern(Joi.string(), Joi.boolean())
+    ).optional()
 })
   .min(1)
   .messages({

@@ -1,11 +1,13 @@
+// Importaciones necesarias
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import App from './App.jsx'
+import { UsersProvider } from './shared/contexts/UsersContext.jsx'
 import { AppointmentProvider } from './shared/contexts/AppointmentContext.jsx'
 import { AuthProvider } from './shared/contexts/AuthContext.jsx'
 import { AdministrativosProvider } from './shared/contexts/AdministrativosContext.jsx'
 import { Toaster } from './shared/components/ui/toaster.jsx'
+import App from './App.jsx'
 import './shared/styles/globals.css'
 import './shared/styles/animations.css'
 
@@ -15,8 +17,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <AppointmentProvider>
           <AdministrativosProvider>
-            <App />
-            <Toaster />
+            <UsersProvider>
+              <App />
+              <Toaster />
+            </UsersProvider>
           </AdministrativosProvider>
         </AppointmentProvider>
       </AuthProvider>

@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, Calendar, Clock, MapPin, Phone, Mail, Check, X } from 'lucide-react';
+import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, Calendar, Clock, MapPin, Phone, Mail, Check, X, RefreshCw } from 'lucide-react';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import StatusSelector from '../../../../shared/components/ui/StatusSelector';
+import { useAuth } from '../../../../shared/contexts/AuthContext';
+import AgentAssignmentSection from './AgentAssignmentSection';
+import RescheduleAppointmentModal from './RescheduleAppointmentModal';
+import citaApiService from '../../../../shared/services/citaApiService';
 
 const AppointmentTable = ({
   citas,
@@ -17,6 +21,11 @@ const AppointmentTable = ({
   totalPages,
   onPageChange
 }) => {
+  const { hasPermission } = useAuth();
+  const [rescheduleModal, setRescheduleModal] = useState({
+    isOpen: false,
+    cita: null
+  });
   const getStatusBadge = (estado) => {
     const statusConfig = {
       programada: {
@@ -71,14 +80,26 @@ const AppointmentTable = ({
 
       // Manejar diferentes formatos de fecha
       if (dateString.includes('T')) {
-        // Formato ISO (2023-12-25T10:30:00Z)
+        // Formato ISO (2023-12-25T10:30:00Z) - puede venir en UTC
         date = new Date(dateString);
+        // Si vienen en zona UTC y necesitamos Colombia, ajustar la hora pero NO la fecha
+        // Solo ajustar por zona horaria si afecta la fecha del día
+        const utcDate = date.getUTCDate();
+        const utcMonth = date.getUTCMonth();
+        const utcYear = date.getUTCFullYear();
+
+        // Crear fecha local usando componentes UTC para evitar problemas de zona horaria
+        date = new Date(utcYear, utcMonth, utcDate);
       } else if (dateString.includes('-')) {
-        // Formato YYYY-MM-DD
-        date = new Date(dateString);
+        // Formato YYYY-MM-DD - tratar como fecha local
+        date = new Date(dateString + 'T00:00:00');
       } else if (dateString.includes('/')) {
-        // Formato DD/MM/YYYY o MM/DD/YYYY
-        date = new Date(dateString);
+        // Formato DD/MM/YYYY o MM/DD/YYYY - asumir DD/MM/YYYY
+        const parts = dateString.split('/');
+        if (parts.length === 3) {
+          // DD/MM/YYYY
+          date = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}T00:00:00`);
+        }
       } else {
         // Si no es un formato reconocible, devolver el string original
         return dateString;
@@ -95,6 +116,7 @@ const AppointmentTable = ({
         year: 'numeric'
       });
     } catch (error) {
+      console.error('❌ Error formateando fecha en AppointmentTable:', error, dateString);
       return dateString;
     }
   };
@@ -119,154 +141,11 @@ const AppointmentTable = ({
     if (!timeString) return '-';
 
     try {
-      // Si es un timestamp ISO completo (1970-01-01T10:00:00.000Z)
-      if (typeof timeString === 'string' && timeString.includes('T') && timeString.includes('Z')) {
-        return formatTimeFromTimestamp(timeString);
-      }
-
-      // Si es un string simple de hora (formato TIME de SQL Server)
-      if (typeof timeString === 'string' && timeString.includes(':')) {
-        return formatTimeFromSQL(timeString);
-      }
-
-      // Si es un objeto Date o timestamp, usar la función del citaApiService
-      const citaApiService = require('../../../../shared/services/citaApiService').default;
+      // Usar la función centralizada corregida para zona horaria
       return citaApiService.formatHoraDesdeAPI(timeString);
     } catch (error) {
-      console.error('❌ Error formateando hora:', error);
-      return formatTimeFallback(timeString);
-    }
-  };
-
-  const formatTimeFromTimestamp = (timestampString) => {
-    try {
-      // Parsear el timestamp ISO y extraer solo la hora
-      const date = new Date(timestampString);
-
-      if (isNaN(date.getTime())) {
-        console.warn('⚠️ Timestamp inválido:', timestampString);
-        return timestampString;
-      }
-
-      // Extraer horas y minutos del timestamp
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
-
-      // Convertir de 24 horas a 12 horas
-      const isPM = hours >= 12;
-      let hours12 = hours;
-
-      if (hours === 0) {
-        hours12 = 12; // 00:XX -> 12:XX AM
-      } else if (hours > 12) {
-        hours12 = hours - 12; // 13:XX -> 1:XX PM
-      } else if (hours === 12) {
-        hours12 = 12; // 12:XX -> 12:XX PM
-      }
-
-      const ampm = isPM ? 'PM' : 'AM';
-      return `${hours12}:${String(minutes).padStart(2, '0')} ${ampm}`;
-
-    } catch (error) {
-      console.error('❌ Error en formatTimeFromTimestamp:', error);
-      return timestampString;
-    }
-  };
-
-  const formatTimeFromSQL = (timeString) => {
-    try {
-      // Limpiar el string de hora (quitar posibles caracteres extra)
-      const cleanTime = timeString.trim();
-
-      // Si ya tiene formato 12 horas (AM/PM), devolverlo tal cual
-      if (cleanTime.toLowerCase().includes('am') || cleanTime.toLowerCase().includes('pm')) {
-        return cleanTime;
-      }
-
-      // Parsear formato HH:MM:SS o HH:MM
-      const timeMatch = cleanTime.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-      if (!timeMatch) {
-        console.warn('⚠️ Formato de hora no reconocido:', cleanTime);
-        return cleanTime;
-      }
-
-      const hours = parseInt(timeMatch[1], 10);
-      const minutes = parseInt(timeMatch[2], 10);
-
-      if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-        console.warn('⚠️ Hora fuera de rango:', { hours, minutes });
-        return cleanTime;
-      }
-
-      // Convertir de 24 horas a 12 horas
-      const isPM = hours >= 12;
-      let hours12 = hours;
-
-      if (hours === 0) {
-        hours12 = 12; // 00:XX -> 12:XX AM
-      } else if (hours > 12) {
-        hours12 = hours - 12; // 13:XX -> 1:XX PM
-      } else if (hours === 12) {
-        hours12 = 12; // 12:XX -> 12:XX PM
-      }
-
-      const ampm = isPM ? 'PM' : 'AM';
-      return `${hours12}:${String(minutes).padStart(2, '0')} ${ampm}`;
-
-    } catch (error) {
-      console.error('❌ Error en formatTimeFromSQL:', error);
-      return timeString;
-    }
-  };
-
-  const formatTimeFallback = (timeString) => {
-    if (!timeString) return '-';
-
-    try {
-      // Clean multiple AM/PM suffixes for display safety
-      let cleanedTime = timeString;
-      const amMatches = timeString.match(/\b(am|AM)\b/g);
-      const pmMatches = timeString.match(/\b(pm|PM)\b/g);
-      const totalSuffixes = (amMatches ? amMatches.length : 0) + (pmMatches ? pmMatches.length : 0);
-
-      if (totalSuffixes > 1) {
-        // Keep only the last suffix
-        const lastAM = amMatches && amMatches.length > 0 ? amMatches[amMatches.length - 1] : null;
-        const lastPM = pmMatches && pmMatches.length > 0 ? pmMatches[pmMatches.length - 1] : null;
-
-        // Remove all suffixes first
-        cleanedTime = timeString.replace(/\s*\b(am|pm)\b/gi, '');
-
-        // Add back the last suffix
-        if (lastPM) {
-          cleanedTime += ' ' + lastPM.toLowerCase();
-        } else if (lastAM) {
-          cleanedTime += ' ' + lastAM.toLowerCase();
-        }
-
-        cleanedTime = cleanedTime.trim();
-      }
-
-      // Si ya tiene am/pm (minúsculas o mayúsculas), devolver como está
-      if (cleanedTime.includes('am') || cleanedTime.includes('pm') ||
-          cleanedTime.includes('AM') || cleanedTime.includes('PM')) {
-        return cleanedTime;
-      }
-
-      // Convertir de formato 24 horas a 12 horas
-      const [hours, minutes] = cleanedTime.split(':');
-      if (!hours || !minutes) return cleanedTime;
-
-      const hour24 = parseInt(hours, 10);
-      if (isNaN(hour24)) return cleanedTime;
-
-      const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
-      const ampm = hour24 >= 12 ? 'PM' : 'AM';
-
-      return `${hour12}:${minutes} ${ampm}`;
-    } catch (error) {
-      console.error('❌ Error en formatTimeFallback:', error);
-      return timeString;
+      console.error('❌ Error formateando hora en componente:', error, timeString);
+      return timeString || '-';
     }
   };
 
@@ -411,6 +290,14 @@ const AppointmentTable = ({
     return '';
   };
 
+  // Función para manejar reagendamiento exitoso
+  const handleRescheduled = (citaActualizada) => {
+    // Aquí puedes actualizar la lista de citas o mostrar una notificación
+    console.log('Cita reagendada:', citaActualizada);
+    // Si tienes un método para refrescar los datos, lo llamarías aquí
+    // onRefreshData();
+  };
+
   // Componente para vista móvil
   const MobileAppointmentCard = ({ cita }) => {
     const isSolicitada = cita.estado === 'solicitada';
@@ -465,32 +352,39 @@ const AppointmentTable = ({
         <div className="flex gap-2">
           {isSolicitada ? (
             <>
+              {/* Para citas solicitadas - TODOS LOS BOTONES APARECEN */}
               <motion.button
                 key={`mobile-view-${cita.id}`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onView(cita)}
-                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                disabled={!hasPermission("citas", "ver")}
+                whileHover={hasPermission("citas", "ver") ? { scale: 1.05 } : {}}
+                whileTap={hasPermission("citas", "ver") ? { scale: 0.95 } : {}}
+                onClick={() => hasPermission("citas", "ver") ? onView(cita) : null}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasPermission("citas", "ver") ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
+                title={hasPermission("citas", "ver") ? "Ver detalles" : "No tienes permiso para ver"}
               >
                 <Eye className="w-4 h-4" />
                 Ver
               </motion.button>
               <motion.button
                 key={`mobile-accept-${cita.id}`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onAcceptAppointment(cita)}
-                className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                disabled={!hasPermission("citas", "editar")}
+                whileHover={hasPermission("citas", "editar") ? { scale: 1.05 } : {}}
+                whileTap={hasPermission("citas", "editar") ? { scale: 0.95 } : {}}
+                onClick={() => hasPermission("citas", "editar") ? onAcceptAppointment(cita) : null}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasPermission("citas", "editar") ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
+                title={hasPermission("citas", "editar") ? "Aceptar cita" : "No tienes permiso para aceptar"}
               >
                 <Check className="w-4 h-4" />
                 Aceptar
               </motion.button>
               <motion.button
                 key={`mobile-reject-${cita.id}`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onRejectAppointment(cita)}
-                className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                disabled={!hasPermission("citas", "eliminar")}
+                whileHover={hasPermission("citas", "eliminar") ? { scale: 1.05 } : {}}
+                whileTap={hasPermission("citas", "eliminar") ? { scale: 0.95 } : {}}
+                onClick={() => hasPermission("citas", "eliminar") ? onRejectAppointment(cita) : null}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasPermission("citas", "eliminar") ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
+                title={hasPermission("citas", "eliminar") ? "Cancelar cita" : "No tienes permiso para cancelar"}
               >
                 <X className="w-4 h-4" />
                 Cancelar
@@ -498,32 +392,39 @@ const AppointmentTable = ({
             </>
           ) : (
             <>
+              {/* Para citas confirmadas - TODOS LOS BOTONES APARECEN */}
               <motion.button
                 key={`mobile-view-${cita.id}`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onView(cita)}
-                className="flex items-center gap-2 px-3 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
+                disabled={!hasPermission("citas", "ver")}
+                whileHover={hasPermission("citas", "ver") ? { scale: 1.05 } : {}}
+                whileTap={hasPermission("citas", "ver") ? { scale: 0.95 } : {}}
+                onClick={() => hasPermission("citas", "ver") ? onView(cita) : null}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasPermission("citas", "ver") ? 'bg-slate-600 text-white hover:bg-slate-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
+                title={hasPermission("citas", "ver") ? "Ver detalles" : "No tienes permiso para ver"}
               >
                 <Eye className="w-4 h-4" />
                 Ver
               </motion.button>
               <motion.button
                 key={`mobile-edit-${cita.id}`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onEdit(cita)}
-                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                disabled={!hasPermission("citas", "editar")}
+                whileHover={hasPermission("citas", "editar") ? { scale: 1.05 } : {}}
+                whileTap={hasPermission("citas", "editar") ? { scale: 0.95 } : {}}
+                onClick={() => hasPermission("citas", "editar") ? onEdit(cita) : null}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasPermission("citas", "editar") ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
+                title={hasPermission("citas", "editar") ? "Editar cita" : "No tienes permiso para editar"}
               >
                 <Edit className="w-4 h-4" />
                 Editar
               </motion.button>
               <motion.button
                 key={`mobile-delete-${cita.id}`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onDelete(cita)}
-                className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                disabled={!hasPermission("citas", "eliminar")}
+                whileHover={hasPermission("citas", "eliminar") ? { scale: 1.05 } : {}}
+                whileTap={hasPermission("citas", "eliminar") ? { scale: 0.95 } : {}}
+                onClick={() => hasPermission("citas", "eliminar") ? onDelete(cita) : null}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${hasPermission("citas", "eliminar") ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'}`}
+                title={hasPermission("citas", "eliminar") ? "Eliminar cita" : "No tienes permiso para eliminar"}
               >
                 <Trash2 className="w-4 h-4" />
                 Eliminar
@@ -554,6 +455,9 @@ const AppointmentTable = ({
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Estado
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Agente Asignado
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Contacto
@@ -593,6 +497,17 @@ const AppointmentTable = ({
                       <div className="flex items-center gap-2 mt-1">
                         <Clock className="w-4 h-4 text-slate-400" />
                         <span className="text-sm text-slate-500">{formatTime(cita.hora_inicio || cita.hora)}</span>
+                        {!isSolicitada && hasPermission("citas", "editar") && (
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => setRescheduleModal({ isOpen: true, cita })}
+                            className="p-1 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                            title="Reagendar cita"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                          </motion.button>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -603,9 +518,24 @@ const AppointmentTable = ({
                           value={cita.id_estado_cita}
                           onChange={(newStatus) => onStatusChange(cita, newStatus)}
                           loading={loadingStatusChanges.has(cita.id)}
+                          disabled={!hasPermission("citas", "editar")}
                           className="w-44"
                         />
                       )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="max-w-[200px]">
+                        <AgentAssignmentSection
+                          cita={cita}
+                          compact={true}
+                          showHistory={true}
+                          showEdit={true}
+                          onAgentAssigned={(citaActualizada) => {
+                            // Aquí puedes manejar la actualización de la cita
+                            console.log('Cita actualizada:', citaActualizada);
+                          }}
+                        />
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
@@ -624,73 +554,81 @@ const AppointmentTable = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center gap-2">
-                        {isSolicitada ? (
-                          <>
-                            <motion.button
-                              key={`view-${cita.id}`}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => onView(cita)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Ver detalles"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </motion.button>
-                            <motion.button
-                              key={`accept-${cita.id}`}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => onAcceptAppointment(cita)}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                              title="Aceptar cita"
-                            >
-                              <Check className="w-4 h-4" />
-                            </motion.button>
-                            <motion.button
-                              key={`reject-${cita.id}`}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => onRejectAppointment(cita)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Cancelar cita"
-                            >
-                              <X className="w-4 h-4" />
-                            </motion.button>
-                          </>
-                        ) : (
-                          <>
-                            <motion.button
-                              key={`view-${cita.id}`}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => onView(cita)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Ver detalles"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </motion.button>
-                            <motion.button
-                              key={`edit-${cita.id}`}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => onEdit(cita)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Editar cita"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </motion.button>
-                            <motion.button
-                              key={`delete-${cita.id}`}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => onDelete(cita)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Eliminar cita"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </motion.button>
-                          </>
-                        )}
+              {isSolicitada ? (
+                <>
+                  {/* Para citas solicitadas - TODOS LOS BOTONES APARECEN */}
+                  <motion.button
+                    key={`view-${cita.id}`}
+                    disabled={!hasPermission("citas", "ver")}
+                    whileHover={hasPermission("citas", "ver") ? { scale: 1.05 } : {}}
+                    whileTap={hasPermission("citas", "ver") ? { scale: 0.95 } : {}}
+                    onClick={() => hasPermission("citas", "ver") ? onView(cita) : null}
+                    className={`p-2 rounded-lg transition-colors ${hasPermission("citas", "ver") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
+                    title={hasPermission("citas", "ver") ? "Ver detalles" : "No tienes permiso para ver"}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    key={`accept-${cita.id}`}
+                    disabled={!hasPermission("citas", "editar")}
+                    whileHover={hasPermission("citas", "editar") ? { scale: 1.05 } : {}}
+                    whileTap={hasPermission("citas", "editar") ? { scale: 0.95 } : {}}
+                    onClick={() => hasPermission("citas", "editar") ? onAcceptAppointment(cita) : null}
+                    className={`p-2 rounded-lg transition-colors ${hasPermission("citas", "editar") ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
+                    title={hasPermission("citas", "editar") ? "Aceptar cita" : "No tienes permiso para aceptar"}
+                  >
+                    <Check className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    key={`reject-${cita.id}`}
+                    disabled={!hasPermission("citas", "eliminar")}
+                    whileHover={hasPermission("citas", "eliminar") ? { scale: 1.05 } : {}}
+                    whileTap={hasPermission("citas", "eliminar") ? { scale: 0.95 } : {}}
+                    onClick={() => hasPermission("citas", "eliminar") ? onRejectAppointment(cita) : null}
+                    className={`p-2 rounded-lg transition-colors ${hasPermission("citas", "eliminar") ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
+                    title={hasPermission("citas", "eliminar") ? "Cancelar cita" : "No tienes permiso para cancelar"}
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                </>
+              ) : (
+                <>
+                  {/* Para citas confirmadas - TODOS LOS BOTONES APARECEN */}
+                  <motion.button
+                    key={`view-${cita.id}`}
+                    disabled={!hasPermission("citas", "ver")}
+                    whileHover={hasPermission("citas", "ver") ? { scale: 1.05 } : {}}
+                    whileTap={hasPermission("citas", "ver") ? { scale: 0.95 } : {}}
+                    onClick={() => hasPermission("citas", "ver") ? onView(cita) : null}
+                    className={`p-2 rounded-lg transition-colors ${hasPermission("citas", "ver") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
+                    title={hasPermission("citas", "ver") ? "Ver detalles" : "No tienes permiso para ver"}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    key={`edit-${cita.id}`}
+                    disabled={!hasPermission("citas", "editar")}
+                    whileHover={hasPermission("citas", "editar") ? { scale: 1.05 } : {}}
+                    whileTap={hasPermission("citas", "editar") ? { scale: 0.95 } : {}}
+                    onClick={() => hasPermission("citas", "editar") ? onEdit(cita) : null}
+                    className={`p-2 rounded-lg transition-colors ${hasPermission("citas", "editar") ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
+                    title={hasPermission("citas", "editar") ? "Editar cita" : "No tienes permiso para editar"}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    key={`delete-${cita.id}`}
+                    disabled={!hasPermission("citas", "eliminar")}
+                    whileHover={hasPermission("citas", "eliminar") ? { scale: 1.05 } : {}}
+                    whileTap={hasPermission("citas", "eliminar") ? { scale: 0.95 } : {}}
+                    onClick={() => hasPermission("citas", "eliminar") ? onDelete(cita) : null}
+                    className={`p-2 rounded-lg transition-colors ${hasPermission("citas", "eliminar") ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
+                    title={hasPermission("citas", "eliminar") ? "Eliminar cita" : "No tienes permiso para eliminar"}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </motion.button>
+                </>
+              )}
                       </div>
                     </td>
                   </motion.tr>
@@ -760,6 +698,14 @@ const AppointmentTable = ({
           </div>
         </div>
       )}
+
+      {/* Reschedule Modal */}
+      <RescheduleAppointmentModal
+        isOpen={rescheduleModal.isOpen}
+        onClose={() => setRescheduleModal({ isOpen: false, cita: null })}
+        cita={rescheduleModal.cita}
+        onRescheduled={handleRescheduled}
+      />
     </div>
   );
 };

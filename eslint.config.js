@@ -6,6 +6,24 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
   { ignores: ['dist'] },
+  
+  // ↓↓↓ ESTO ES LO NUEVO - Configuración para Node.js (backend) ↓↓↓
+  {
+    files: ['api/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: {
+        ...globals.node
+      },
+      sourceType: 'commonjs',
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+    },
+  },
+  // ↑↑↑ FIN DE LO NUEVO ↑↑↑
+  
+  // Tu configuración de React existente (sin cambios)
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
@@ -23,7 +41,6 @@ export default [
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
     },
-    rules: {
       ...js.configs.recommended.rules,
       ...react.configs.recommended.rules,
       ...react.configs['jsx-runtime'].rules,
@@ -34,5 +51,4 @@ export default [
         { allowConstantExport: true },
       ],
     },
-  },
 ]

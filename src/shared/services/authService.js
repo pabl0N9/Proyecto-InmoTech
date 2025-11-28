@@ -13,38 +13,30 @@ class AuthService {
    * Inicia sesión de usuario
    * @param {string} email - Correo electrónico
    * @param {string} password - Contraseña
-   * @returns {Promise<Object>} Respuesta del servidor con tokens y datos de usuario
+   * @returns {Promise<Object>} Respuesta del servidor (tokens enviados como cookies)
    */
   async login(email, password) {
     try {
       console.log('🔐 Enviando solicitud de login para:', email);
-      
+
       const response = await apiClient.post('/auth/login', {
         email: email.trim().toLowerCase(),
         password
       });
-  
+
       console.log('📦 Respuesta del servidor:', response);
-  
-      // ✅ CRÍTICO: Guardar tokens en localStorage
+
+      // ✅ Tokens ahora enviados como cookies httpOnly por el backend
       if (response.success && response.data) {
-        const { accessToken, refreshToken, user } = response.data;
-        
-        if (accessToken && refreshToken) {
-          // Guardar tokens usando apiClient
-          apiClient.setTokens(accessToken, refreshToken);
-          
-          console.log('✅ Tokens guardados en localStorage');
-          console.log('   - Access Token:', !!localStorage.getItem('inmotech_access_token'));
-          console.log('   - Refresh Token:', !!localStorage.getItem('inmotech_refresh_token'));
-        } else {
-          console.error('❌ El servidor no devolvió tokens válidos');
-        }
+        console.log('✅ Login exitoso - tokens guardados en cookies httpOnly');
+        console.log('🍪 El navegador recibió cookies de sesión');
+      } else {
+        console.error('❌ El servidor no devolvió respuesta válida');
       }
-  
+
       console.log('✅ Login exitoso');
       return response;
-      
+
     } catch (error) {
       console.error('❌ Error en login:', error.message);
       throw error;
@@ -78,6 +70,34 @@ class AuthService {
       return response;
     } catch (error) {
       console.error('❌ Error en registro:', error.message);
+      throw error;
+    }
+  }
+
+
+  /**
+   * Verifica el correo usando el codigo enviado
+   * @param {string} email
+   * @param {string} codigo
+   */
+  async verifyEmailCode(email, codigo) {
+    try {
+      return await apiClient.post('/auth/verify-code', { email, codigo });
+    } catch (error) {
+      console.error('??O Error verificando codigo de correo:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Reenvia un nuevo codigo de verificacion
+   * @param {string} email
+   */
+  async resendVerificationCode(email) {
+    try {
+      return await apiClient.post('/auth/resend-code', { email });
+    } catch (error) {
+      console.error('??O Error reenviando codigo de verificacion:', error.message);
       throw error;
     }
   }
@@ -263,6 +283,23 @@ class AuthService {
       console.error('❌ Error verificando email:', error.message);
       // Si hay error, asumimos que no está disponible
       return false;
+    }
+  }
+
+  /**
+   * Obtiene el timestamp del último cambio de contraseña
+   * @returns {Promise<Date|null>} Timestamp del último cambio
+   */
+  async getPasswordLastChanged() {
+    try {
+      console.log('🔑 Obteniendo último cambio de contraseña...');
+
+      const response = await apiClient.get('/auth/password-last-changed');
+
+      return response.data?.data?.ultimo_cambio_password || null;
+    } catch (error) {
+      console.error('❌ Error obteniendo último cambio de contraseña:', error.message);
+      throw error;
     }
   }
 }

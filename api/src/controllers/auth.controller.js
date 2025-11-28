@@ -1,11 +1,14 @@
 const authService = require('../services/auth.service');
-const { validarNoEsAdmin } = require('../middlewares/admin.middleware');
 const logger = require('../utils/logger');
 
+const buildCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const secureCookies = process.env.COOKIE_SECURE === 'true' || isProduction;
+  const sameSite = process.env.COOKIE_SAMESITE || 'lax';
+  return { secureCookies, sameSite };
+};
+
 class AuthController {
-  /**
-   * Registra un nuevo usuario
-   */
   async registrarUsuario(req, res, next) {
     try {
       const userData = req.validatedData;
@@ -13,8 +16,8 @@ class AuthController {
 
       return res.status(201).json({
         success: true,
-        message: 'Usuario registrado exitosamente',
-        data: result
+        message: 'Registro recibido. Revisa tu correo y confirma tu cuenta en las proximas 24 horas.',
+        data: { user: result.user, verification: result.verification }
       });
     } catch (error) {
       logger.error('Error en registro de usuario:', error);
@@ -22,32 +25,65 @@ class AuthController {
     }
   }
 
-  /**
-   * Inicia sesión de usuario
-   */
   async iniciarSesion(req, res, next) {
     try {
       const { email, password } = req.validatedData;
       const result = await authService.iniciarSesion(email, password);
+      const { accessToken, refreshToken } = result;
+      const { secureCookies, sameSite } = buildCookieOptions();
+
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: secureCookies,
+        sameSite,
+        maxAge: 60 * 60 * 1000 // 1h
+      });
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: secureCookies,
+        sameSite,
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7d
+      });
 
       return res.status(200).json({
         success: true,
-        message: 'Inicio de sesión exitoso',
-        data: result
+        message: 'Inicio de sesion exitoso',
+        data: { user: result.user }
       });
     } catch (error) {
-      logger.error('Error en inicio de sesión:', error);
+      logger.error('Error en inicio de sesion:', error);
+      if (error.code === 'EMAIL_NOT_VERIFIED' || error.code === 'EMAIL_VERIFICATION_LIMIT') {
+        return res.status(error.status || 403).json({
+          success: false,
+          message: error.message,
+          reason: error.code,
+          data: error.meta || null
+        });
+      }
       next(error);
     }
   }
 
-  /**
-   * Refresca el token de acceso
-   */
   async refrescarToken(req, res, next) {
     try {
       const { refreshToken } = req.validatedData;
       const tokens = await authService.refrescarToken(refreshToken);
+      const { secureCookies, sameSite } = buildCookieOptions();
+
+      res.cookie('accessToken', tokens.accessToken, {
+        httpOnly: true,
+        secure: secureCookies,
+        sameSite,
+        maxAge: 60 * 60 * 1000
+      });
+
+      res.cookie('refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        secure: secureCookies,
+        sameSite,
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
 
       return res.status(200).json({
         success: true,
@@ -60,9 +96,61 @@ class AuthController {
     }
   }
 
-  /**
-   * Obtiene el perfil del usuario autenticado
-   */
+  async verificarCodigo(req, res, next) {
+    try {
+      const { email, codigo } = req.validatedData;
+      const data = await authService.verificarCodigoCorreo(email, codigo, { ip: req.ip, userAgent: req.get('user-agent') });
+      return res.status(200).json({
+        success: true,
+        message: data?.ya_verificado ? 'Tu correo ya estaba verificado' : 'Correo verificado exitosamente',
+        data
+      });
+    } catch (error) {
+      logger.warn('Verificacion de codigo fallida:', error.message);
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  async reenviarCodigo(req, res, next) {
+    try {
+      const { email } = req.validatedData;
+      const data = await authService.reenviarCodigoVerificacion(email);
+      return res.status(200).json({
+        success: true,
+        message: 'Hemos enviado un nuevo codigo a tu correo',
+        data
+      });
+    } catch (error) {
+      logger.warn('Error reenviando codigo de verificacion:', error.message);
+      return res.status(error.code === 'VERIFICATION_LIMIT' ? 429 : 400).json({
+        success: false,
+        message: error.message,
+        reason: error.code || null
+      });
+    }
+  }
+
+  async verificarCorreo(req, res, next) {
+    try {
+      const { token } = req.validatedQuery;
+      const data = await authService.verificarCorreo(token, { ip: req.ip, userAgent: req.get('user-agent') });
+      return res.status(200).json({
+        success: true,
+        message: 'Correo verificado exitosamente',
+        data
+      });
+    } catch (error) {
+      logger.warn('Verificacion de correo fallida:', error.message);
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
   async obtenerPerfil(req, res, next) {
     try {
       const userId = req.user.id;
@@ -75,24 +163,42 @@ class AuthController {
       });
     } catch (error) {
       logger.error('Error obteniendo perfil:', error);
+
+      if (error.message.includes('Usuario inactivo') || error.message.includes('deshabilitado')) {
+        logger.warn(`Logout forzado para usuario ${req.user.id}: ${error.message}`);
+        return res.status(423).json({
+          success: false,
+          message: 'Tu cuenta ha sido deshabilitada por un administrador. Sesion terminada.',
+          forceLogout: true,
+          reason: 'user_disabled'
+        });
+      }
+
+      if (error.message.includes('Acceso administrativo revocado')) {
+        logger.warn(`Logout forzado para usuario administrativo ${req.user.id}: ${error.message}`);
+        return res.status(403).json({
+          success: false,
+          message: 'Tu acceso administrativo ha sido revocado. Sesion terminada.',
+          forceLogout: true,
+          reason: 'admin_access_revoked'
+        });
+      }
+
       next(error);
     }
   }
 
-  /**
-   * Actualiza el perfil del usuario autenticado
-   */
   async actualizarPerfil(req, res, next) {
     try {
       const userId = req.user.id;
       const updateData = req.validatedData;
 
-      // Aquí necesitaríamos un método en el servicio para actualizar perfil
-      // Por ahora, devolveremos un mensaje de que la funcionalidad está pendiente
+      const perfilActualizado = await require('../services/persona.service').actualizarPerfil(userId, updateData, userId);
+
       return res.status(200).json({
         success: true,
-        message: 'Funcionalidad de actualización de perfil pendiente de implementación',
-        data: { userId, updateData }
+        message: 'Perfil actualizado exitosamente',
+        data: perfilActualizado
       });
     } catch (error) {
       logger.error('Error actualizando perfil:', error);
@@ -100,9 +206,6 @@ class AuthController {
     }
   }
 
-  /**
-   * Cambia la contraseña del usuario autenticado
-   */
   async cambiarContrasena(req, res, next) {
     try {
       const userId = req.user.id;
@@ -112,27 +215,52 @@ class AuthController {
 
       return res.status(200).json({
         success: true,
-        message: 'Contraseña cambiada exitosamente'
+        message: 'Contrasena cambiada exitosamente'
       });
     } catch (error) {
-      logger.error('Error cambiando contraseña:', error);
+      logger.error('Error cambiando contrasena:', error);
       next(error);
     }
   }
 
-  /**
-   * Cierra la sesión del usuario (invalidar tokens)
-   */
   async cerrarSesion(req, res, next) {
     try {
-      // En una implementación completa, aquí invalidaríamos el token
-      // Por ahora, solo devolvemos una respuesta exitosa
+      const { secureCookies, sameSite } = buildCookieOptions();
+
+      res.clearCookie('accessToken', {
+        httpOnly: true,
+        secure: secureCookies,
+        sameSite
+      });
+
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: secureCookies,
+        sameSite
+      });
+
       return res.status(200).json({
         success: true,
-        message: 'Sesión cerrada exitosamente'
+        message: 'Sesion cerrada exitosamente'
       });
     } catch (error) {
-      logger.error('Error cerrando sesión:', error);
+      logger.error('Error cerrando sesion:', error);
+      next(error);
+    }
+  }
+
+  async obtenerUltimoCambioPassword(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const ultimoCambio = await authService.obtenerUltimoCambioPassword(userId);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Ultimo cambio de contrasena obtenido exitosamente',
+        data: { ultimo_cambio_password: ultimoCambio }
+      });
+    } catch (error) {
+      logger.error('Error obteniendo ultimo cambio de contrasena:', error);
       next(error);
     }
   }

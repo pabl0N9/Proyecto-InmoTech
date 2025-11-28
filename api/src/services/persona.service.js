@@ -2,6 +2,8 @@ const { Persona, Acceso, PersonasRol, Rol } = require('../models');
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const logger = require('../utils/logger');
+const sseService = require('./sse.service');
+const invitacionService = require('./invitacion.service');
 
 class PersonaService {
   /**
@@ -98,7 +100,8 @@ class PersonaService {
         id_persona: persona.id_persona,
         tipo_documento: persona.tipo_documento,
         numero_documento: persona.numero_documento,
-        nombre_completo: `${persona.primer_nombre} ${persona.segundo_nombre || ''} ${persona.primer_apellido} ${persona.segundo_apellido || ''}`.trim(),
+          nombre_completo: persona.nombre_completo,
+          apellido_completo: persona.apellido_completo,
         correo: persona.correo,
         telefono: persona.telefono,
         tiene_cuenta: persona.tiene_cuenta,
@@ -140,10 +143,8 @@ class PersonaService {
         id_persona: persona.id_persona,
         tipo_documento: persona.tipo_documento,
         numero_documento: persona.numero_documento,
-        primer_nombre: persona.primer_nombre,
-        segundo_nombre: persona.segundo_nombre,
-        primer_apellido: persona.primer_apellido,
-        segundo_apellido: persona.segundo_apellido,
+        nombre_completo: persona.nombre_completo,
+        apellido_completo: persona.apellido_completo,
         correo: persona.correo,
         telefono: persona.telefono,
         tiene_cuenta: persona.tiene_cuenta,
@@ -162,7 +163,7 @@ class PersonaService {
    * @param {Object} updateData - Datos a actualizar
    * @returns {Promise<Object>} Persona actualizada
    */
-  async actualizarPerfil(personaId, updateData) {
+  async actualizarPerfil(personaId, updateData, updatedBy = null) {
     const result = await sequelize.transaction(async (t) => {
       try {
         const persona = await Persona.findOne({
@@ -187,19 +188,145 @@ class PersonaService {
           delete mappedData.segundo_apellido;
         }
 
-        // Actualizar datos
-        await persona.update(mappedData, { transaction: t });
+        const prevCorreo = (persona.correo || '').trim().toLowerCase();
+
+        // Separar datos de Persona y Acceso
+        const { password, confirmPassword, ...personaData } = mappedData;
+
+        // Si cambia correo, forzar verificacion pendiente y tiene_cuenta true
+        if (personaData.correo) {
+          const nuevoCorreo = personaData.correo.trim().toLowerCase();
+          if (prevCorreo && nuevoCorreo !== prevCorreo) {
+            personaData.correo_verificado = false;
+            personaData.tiene_cuenta = true;
+            persona.correo = nuevoCorreo; // reflejar en instancia para respuesta
+            // Enviar nueva invitacion de verificacion
+            try {
+              await invitacionService.crearInvitacion({
+                id_persona: personaId,
+                creado_por: updatedBy || null,
+                tipo: 'signup_verify'
+              });
+              logger.info(`Invitacion de verificacion enviada a nuevo correo de persona ${personaId}`);
+            } catch (inviteError) {
+              logger.warn(`No se pudo enviar invitacion de verificacion a persona ${personaId}: ${inviteError.message}`);
+            }
+          }
+        }
+
+        // Actualizar datos de Persona
+        if (Object.keys(personaData).length > 0) {
+          await persona.update(personaData, { transaction: t });
+        }
+
+        // Actualizar contraseña si se proporciona
+        if (password) {
+          const { Acceso } = require('../models');
+          const bcryptUtils = require('../utils/bcrypt');
+
+          // Verificar que confirmPassword coincida
+          if (password !== confirmPassword) {
+            throw new Error('Las contraseñas no coinciden');
+          }
+
+          // Buscar acceso existente
+          const acceso = await Acceso.findOne({
+            where: { id_persona: personaId },
+            transaction: t
+          });
+
+          const hashedPassword = await bcryptUtils.hashPassword(password);
+
+          if (acceso) {
+            // Actualizar contraseña
+            await acceso.update({
+              contrasena: hashedPassword,
+              ultimo_cambio_password: new Date()
+            }, { transaction: t });
+            logger.info(`Contraseña actualizada para persona ID: ${personaId}`);
+          } else {
+            logger.warn(`No se encontró acceso para persona ID: ${personaId}, creando uno nuevo`);
+            // Crear acceso si no existe
+            await Acceso.create({
+              id_persona: personaId,
+              contrasena: hashedPassword,
+              ultimo_cambio_password: new Date()
+            }, { transaction: t });
+          }
+        }
 
         logger.info(`Perfil actualizado para persona ID: ${personaId}`);
 
-        return await this.obtenerPerfil(personaId);
+        // Devolver sin hacer SELECT adicional
+        return {
+          id_persona: persona.id_persona,
+          tipo_documento: persona.tipo_documento,
+          numero_documento: persona.numero_documento,
+          nombre_completo: personaData.nombre_completo || persona.nombre_completo,
+          apellido_completo: personaData.apellido_completo || persona.apellido_completo,
+          correo: personaData.correo || persona.correo,
+          telefono: personaData.telefono || persona.telefono,
+          tiene_cuenta: personaData.tiene_cuenta ?? persona.tiene_cuenta,
+          correo_verificado: personaData.correo_verificado ?? persona.correo_verificado,
+          fecha_registro: persona.fecha_registro
+        };
       } catch (error) {
-        logger.error('Error actualizando perfil:', error);
+        logger.error('Error actualizando perfil:', {
+          message: error.message,
+          sql: error.original?.sql || error.parent?.sql || null,
+          code: error.parent?.code || error.original?.code || null
+        });
         throw error;
       }
     });
 
     return result;
+  }
+
+  /**
+   * Verifica si existe un correo electrónico
+   * @param {string} email - Correo electrónico a verificar
+   * @returns {Promise<boolean>} True si existe, false si no
+   */
+  async verificarCorreoExistente(email) {
+    try {
+      const persona = await Persona.findOne({
+        where: {
+          correo: email.trim().toLowerCase(),
+          estado: true
+        },
+        attributes: ['id_persona']
+      });
+
+      return !!persona;
+    } catch (error) {
+      logger.error('Error verificando correo existente:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verifica si existe un número de documento
+   * @param {string} tipo - Tipo de documento
+   * @param {string} numero - Número de documento
+   * @returns {Promise<boolean>} True si existe, false si no
+   */
+  async verificarDocumentoExistente(tipo, numero) {
+    try {
+      const persona = await Persona.findOne({
+        where: {
+          tipo_documento: tipo,
+          numero_documento: numero.trim(),
+          estado: true
+        },
+        attributes: ['id_persona']
+      });
+
+      return !!persona;
+    } catch (error) {
+      logger.error('Error verificando documento existente:', error);
+      throw error;
+    }
   }
 
   /**
@@ -216,7 +343,7 @@ class PersonaService {
         nombre,
         correo,
         tiene_cuenta,
-        estado = true
+        estado
       } = filtros;
 
       const {
@@ -228,58 +355,145 @@ class PersonaService {
 
       const offset = (pagina - 1) * limite;
 
-      const whereClause = { estado };
+      // ✅ OPTIMIZACIÓN: Filtrar por rol "Usuario" a nivel de base de datos
+      const whereClausePersona = {};
 
-      if (tipo_documento) whereClause.tipo_documento = tipo_documento;
-      if (numero_documento) whereClause.numero_documento = { [sequelize.Op.like]: `%${numero_documento}%` };
-      if (correo) whereClause.correo = { [sequelize.Op.like]: `%${correo}%` };
-      if (tiene_cuenta !== undefined) whereClause.tiene_cuenta = tiene_cuenta;
+      if (estado !== undefined) whereClausePersona.estado = estado;
+      if (tipo_documento) whereClausePersona.tipo_documento = tipo_documento;
+      if (numero_documento) whereClausePersona.numero_documento = { [sequelize.Op.like]: `%${numero_documento}%` };
+      if (correo) whereClausePersona.correo = { [sequelize.Op.like]: `%${correo}%` };
+      if (tiene_cuenta !== undefined) whereClausePersona.tiene_cuenta = tiene_cuenta;
 
       if (nombre) {
-        whereClause[sequelize.Op.or] = [
+        whereClausePersona[sequelize.Op.or] = [
           { nombre_completo: { [sequelize.Op.like]: `%${nombre}%` } },
           { apellido_completo: { [sequelize.Op.like]: `%${nombre}%` } }
         ];
       }
 
-      const { count, rows } = await Persona.findAndCountAll({
-        where: whereClause,
+      // ✅ Obtener TODAS las personas con sus roles (sin paginación) y filtrar por 'Usuario' en memoria
+      // ⚠️ Esto no es eficiente para muchos registros, pero funciona para el caso actual
+      const allPersonsResult = await Persona.findAll({
+        where: whereClausePersona,
         include: [
           {
             model: Rol,
             as: 'roles',
             through: { attributes: [] },
-            attributes: ['id_rol', 'nombre_rol']
+            attributes: ['id_rol', 'nombre_rol'],
+            required: false
           }
         ],
-        limit,
-        offset,
-        order: [[ordenarPor, orden]]
+        order: [[ordenarPor, orden]],
+        distinct: false,
+        logging: false
       });
 
+      // Filtrar elementos undefined/null
+      const validPersons = allPersonsResult.filter(p => p != null);
+
+      // Filtrar personas con rol 'Usuario' o sin rol (para mostrar invitaciones pendientes)
+      const personasFiltradas = validPersons.filter(persona => {
+        if (!persona.roles || persona.roles.length === 0) return true;
+        return persona.roles.some(rol => rol.nombre_rol === 'Usuario');
+      });
+
+      // Aplicar paginación manual en memoria
+      const totalPersonasFiltradas = personasFiltradas.length;
+      const personasPaginadas = personasFiltradas.slice(offset, offset + limite);
+
       return {
-        personas: rows.map(persona => ({
+        personas: personasPaginadas.map(persona => ({
           id_persona: persona.id_persona,
           tipo_documento: persona.tipo_documento,
           numero_documento: persona.numero_documento,
-          nombre_completo: `${persona.primer_nombre} ${persona.segundo_nombre || ''} ${persona.primer_apellido} ${persona.segundo_apellido || ''}`.trim(),
+          nombre_completo: persona.nombre_completo,
+          apellido_completo: persona.apellido_completo,
           correo: persona.correo,
           telefono: persona.telefono,
           tiene_cuenta: persona.tiene_cuenta,
+          correo_verificado: persona.correo_verificado,
+          estado: persona.estado,
           fecha_registro: persona.fecha_registro,
           roles: persona.roles || []
         })),
         paginacion: {
-          total: count,
+          total: totalPersonasFiltradas,
           pagina,
           limite,
-          paginas_totales: Math.ceil(count / limite)
+          paginas_totales: Math.ceil(totalPersonasFiltradas / limite)
         }
       };
     } catch (error) {
       logger.error('Error listando personas:', error);
       throw error;
     }
+  }
+
+  /**
+   * Crea una persona administrativa con posibilidad de crear cuenta de usuario
+   * @param {Object} personaData - Datos de la persona
+   * @param {string|null} password - Contraseña si se va a crear usuario
+   * @returns {Promise<Object>} Persona creada
+   */
+  async crearPersonaAdmin(personaData, password = null) {
+    const result = await sequelize.transaction(async (t) => {
+      try {
+        // Preparar datos de persona
+        const datosPersona = {
+          ...personaData,
+          tiene_cuenta: !!password, // Si hay password, tiene cuenta
+          estado: personaData.estado ?? true,
+          correo_verificado: !!password
+        };
+
+        // Crear persona
+        const persona = await this.crearOActualizar(datosPersona, t);
+
+        // Asignar rol Usuario siempre que se cree desde admin
+        const rolUsuario = await Rol.findOne({
+          where: { nombre_rol: 'Usuario' },
+          transaction: t
+        });
+
+        if (rolUsuario) {
+          const yaTieneRol = await PersonasRol.findOne({
+            where: { id_persona: persona.id_persona, id_rol: rolUsuario.id_rol },
+            transaction: t
+          });
+
+          if (!yaTieneRol) {
+            await PersonasRol.create({
+              id_persona: persona.id_persona,
+              id_rol: rolUsuario.id_rol
+            }, { transaction: t });
+          }
+        }
+
+        // Si se proporciona password, crear acceso
+        if (password) {
+          const hashedPassword = await bcryptUtils.hashPassword(password);
+
+          await Acceso.create({
+            id_persona: persona.id_persona,
+            contrasena: hashedPassword,
+            ultimo_cambio_password: new Date()
+          }, { transaction: t });
+
+          logger.info(`Usuario administrativo creado con acceso: ${persona.correo || persona.nombre_completo}`);
+        } else {
+          logger.info(`Persona administrativa creada (sin cuenta, con rol Usuario): ${persona.nombre_completo}`);
+        }
+
+        return persona;
+
+      } catch (error) {
+        logger.error('Error creando persona administrativa:', error);
+        throw error;
+      }
+    });
+
+    return result;
   }
 
   // Mantener métodos existentes para compatibilidad
@@ -377,6 +591,115 @@ class PersonaService {
       return persona;
     } catch (error) {
       logger.error('Error al obtener persona por ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cambia el estado de una persona (activar/desactivar cuenta)
+   * @param {number} personaId - ID de la persona
+   * @param {boolean} estado - Nuevo estado
+   * @returns {Promise<Object>} Persona actualizada
+   */
+  async cambiarEstadoPersona(personaId, estado) {
+    try {
+      const persona = await Persona.findOne({
+        where: { id_persona: personaId },
+        include: [
+          {
+            model: Rol,
+            as: 'roles',
+            through: { attributes: [] },
+            attributes: ['id_rol', 'nombre_rol'],
+            required: false
+          }
+        ]
+      });
+
+      if (!persona) {
+        throw new Error('Persona no encontrada');
+      }
+
+      // Verificar que no sea Super Administrador o Administrador
+      const isSuperAdminOrAdmin = persona.roles?.some(rol =>
+        rol.nombre_rol === 'Super Administrador' || rol.nombre_rol === 'Administrador'
+      );
+
+      if (isSuperAdminOrAdmin) {
+        throw new Error('No se puede cambiar el estado de un Super Administrador o Administrador');
+      }
+
+      await persona.update({ estado });
+
+      // ✅ SSE: Notificar al usuario que su cuenta ha sido deshabilitada
+      if (!estado) {
+        sseService.notifyUserDisabled(personaId);
+        logger.info(`📡 SSE: Notificación enviada - Usuario deshabilitado ${personaId}`);
+      }
+
+      logger.info(`Estado de persona actualizado: ID ${personaId}, estado: ${estado}`);
+
+      return persona;
+
+    } catch (error) {
+      logger.error('Error cambiando estado de persona:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cambia la contraseña de una persona (solo para administradores)
+   * @param {number} personaId - ID de la persona
+   * @param {string} nuevaPassword - Nueva contraseña
+   * @returns {Promise<boolean>} True si se cambió exitosamente
+   */
+  async cambiarContrasenaPersona(personaId, nuevaPassword) {
+    try {
+      const persona = await Persona.findOne({
+        where: { id_persona: personaId },
+        include: [
+          {
+            model: Rol,
+            as: 'roles',
+            through: { attributes: [] },
+            attributes: ['id_rol', 'nombre_rol'],
+            required: false
+          }
+        ]
+      });
+
+      if (!persona) {
+        throw new Error('Persona no encontrada');
+      }
+
+      // Verificar que no sea Super Administrador o Administrador
+      const isSuperAdminOrAdmin = persona.roles?.some(rol =>
+        rol.nombre_rol === 'Super Administrador' || rol.nombre_rol === 'Administrador'
+      );
+
+      if (isSuperAdminOrAdmin) {
+        throw new Error('No se puede cambiar la contraseña de un Super Administrador o Administrador');
+      }
+
+      // Hashear nueva contraseña y actualizar
+      const hashedPassword = await bcryptUtils.hashPassword(nuevaPassword);
+      await Acceso.update({
+        contrasena: hashedPassword,
+        ultimo_cambio_password: new Date()
+      }, {
+        where: { id_persona: personaId }
+      });
+
+      // ✅ SSE: Notificar al usuario que su contraseña ha sido cambiada
+      sseService.notifyPasswordChanged(personaId);
+      logger.info(`📡 SSE: Notificación enviada - Contraseña cambiada para usuario ${personaId}`);
+
+      logger.info(`Contraseña cambiada para persona ID: ${personaId}`);
+
+      return true;
+
+    } catch (error) {
+      logger.error('Error cambiando contraseña de persona:', error);
       throw error;
     }
   }

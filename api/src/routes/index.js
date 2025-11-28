@@ -9,6 +9,8 @@ const rolesRoutes = require('./roles.routes');
 const inmueblesRoutes = require('./inmuebles.routes');
 const reportesRoutes = require('./reportes.routes');
 const setupRoutes = require('./setup.routes');
+const sseRoutes = require('./sse.routes');
+const invitacionesRoutes = require('./invitaciones.routes');
 
 router.use('/auth', authRoutes);
 router.use('/administrativos', administrativosRoutes);
@@ -19,6 +21,8 @@ router.use('/roles', rolesRoutes);
 router.use('/inmuebles', inmueblesRoutes);
 router.use('/reportes', reportesRoutes);
 router.use('/setup', setupRoutes);
+router.use('/sse', sseRoutes);
+router.use('/invitaciones', invitacionesRoutes);
 
 router.get('/health', (req, res) => {
   res.status(200).json({
