@@ -5,6 +5,53 @@ import "../../../../shared/styles/globals.css"
 import BuyerForm from "../../components/sales/BuyerForm";
 import BuyerViewModal from "../../components/sales/BuyerView";
 
+const mapApiBuyerToRow = (buyer = {}, formData = {}) => {
+    const info = {
+        // id debe ser el id del comprador (id_comprador) para que las operaciones de actualización funcionen
+        id: buyer.buyerId || buyer.id_buyer || buyer.id_comprador || buyer.id || buyer.personaId || buyer.persona?.id_persona,
+        personaId: buyer.personaId || buyer.id_persona || buyer.persona?.id_persona,
+        tipoDocumento: buyer.tipoDocumento || buyer.persona?.tipo_documento || "CC",
+        documento: buyer.documento || buyer.persona?.numero_documento || "",
+        primerNombre: buyer.primerNombre || buyer.persona?.nombre_completo?.split(" ")[0] || "",
+        segundoNombre: buyer.segundoNombre || "",
+        primerApellido: buyer.primerApellido || buyer.persona?.apellido_completo?.split(" ")[0] || "",
+        segundoApellido: buyer.segundoApellido || "",
+        correo: buyer.correo || buyer.persona?.correo || "",
+        telefono: buyer.telefono || buyer.persona?.telefono || "",
+        estado: buyer.estado || buyer.compra?.estado || "Activo",
+        fechaCompra: buyer.fechaCompra || buyer.compra?.fecha_compra || "",
+        valorCompra: buyer.valorCompra || buyer.compra?.valor_compra || "",
+        tipoCompra: buyer.tipoCompra || buyer.compra?.tipo_compra || "",
+        ciudadResidencia: buyer.ciudadResidencia || buyer.compra?.ciudad_residencia || "",
+        direccionAnterior: buyer.direccionAnterior || buyer.compra?.direccion_anterior || "",
+        entidadFinanciera: buyer.entidadFinanciera || buyer.compra?.entidad_financiera || "",
+        numeroCredito: buyer.numeroCredito || buyer.compra?.numero_credito || "",
+        montoFinanciado: buyer.montoFinanciado || buyer.compra?.monto_financiado || "",
+        observaciones: buyer.observaciones || buyer.compra?.observaciones || "",
+        inmueble: buyer.inmueble || buyer.compra?.inmueble || null,
+        formData: buyer.formData || formData,
+        compra: buyer.compra || null,
+        raw: buyer
+    };
+    return info;
+};
+
+const filterRealBuyers = (list = []) => {
+    if (!Array.isArray(list)) return [];
+    return list.filter((buyer) => {
+        if (!buyer) return false;
+        return Boolean(
+            buyer.buyerId ||
+            buyer.id_buyer ||
+            buyer.id_comprador ||
+            buyer.registroComprador ||
+            buyer.raw?.id_buyer ||
+            buyer.raw?.id_comprador ||
+            buyer.raw?.registro_comprador
+        );
+    });
+};
+
 export function BuyersManagementPage() {
     const [compradores, setCompradores] = useState([
         {

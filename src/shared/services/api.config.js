@@ -5,7 +5,8 @@
 
 const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
-  TIMEOUT: 15000,
+  // Ampliamos timeout para operaciones que involucran DB y subida de imagen
+  TIMEOUT: 60000,
   RETRY_ATTEMPTS: 2,
   RETRY_DELAY: 1000,
   HEADERS: {

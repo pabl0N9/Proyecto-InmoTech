@@ -66,7 +66,7 @@ export default function ViewTenantModal({ tenant, onClose }) {
                 <p className="text-gray-900">{tenant.segundoApellido || "-"}</p>
               </div>
               <div>
-                <p className="font-semibold text-gray-700">Correo electrónico:</p>
+                <p className="font-semibold text-gray-700">Correo electronico:</p>
                 {tenant.correo ? (
                   <a href={`mailto:${tenant.correo}`} className="text-blue-600 hover:text-blue-800 underline">
                     {tenant.correo}

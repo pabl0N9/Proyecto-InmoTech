@@ -1,6 +1,6 @@
-/**
- * @fileoverview Context de React para gestión global de autenticación JWT
- * @version 2.1.0 - Manejo de verificación de correo y registro sin login automático
+﻿/**
+ * @fileoverview Context de React para gestiÃ³n global de autenticaciÃ³n JWT
+ * @version 2.1.0 - Manejo de verificaciÃ³n de correo y registro sin login automÃ¡tico
  */
 
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   /**
-   * Carga la información de autenticación desde cookies
+   * Carga la informaciÃ³n de autenticaciÃ³n desde cookies
    */
   const loadAuthFromStorage = useCallback(async () => {
     try {
@@ -34,24 +34,25 @@ export const AuthProvider = ({ children }) => {
         const userData = response.data;
         setUser(userData);
         setIsAuthenticated(true);
-        console.log('Sesión restaurada desde cookies:', userData.correo);
+        console.log('SesiÃ³n restaurada desde cookies:', userData.correo);
       } else {
         setUser(null);
         setIsAuthenticated(false);
-        console.log('No hay sesión activa en cookies');
+        console.log('No hay sesiÃ³n activa en cookies');
       }
     } catch (err) {
-      console.error('Error verificando sesión:', err);
-      setUser(null);
-      setIsAuthenticated(false);
-      console.log('Sesión expirada o inválida');
+      console.error('Error en registro:', err);
+      const backendError = err?.data?.errors ? Object.values(err.data.errors)[0] : null;
+      const message = backendError || err.message || "Error al registrar usuario";
+      setError(message);
+      throw new Error(message);
     } finally {
       setLoading(false);
     }
   }, []);
 
   /**
-   * Guarda la información de autenticación
+   * Guarda la informaciÃ³n de autenticaciÃ³n
    */
   const saveAuthToStorage = useCallback((userData, accessToken, refreshToken) => {
     try {
@@ -59,14 +60,14 @@ export const AuthProvider = ({ children }) => {
 
       const userDataString = JSON.stringify(userData);
       sessionStorage.setItem(USER_KEY, userDataString);
-      console.log('Sesión guardada');
+      console.log('SesiÃ³n guardada');
     } catch (err) {
-      console.error('Error guardando autenticación:', err);
+      console.error('Error guardando autenticaciÃ³n:', err);
     }
   }, []);
 
   /**
-   * Limpia toda la información de autenticación
+   * Limpia toda la informaciÃ³n de autenticaciÃ³n
    */
   const clearAuthData = useCallback(() => {
     localStorage.removeItem(USER_KEY);
@@ -74,44 +75,39 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setError(null);
-    console.log('Datos de autenticación limpiados');
+    console.log('Datos de autenticaciÃ³n limpiados');
   }, []);
 
   /**
-   * Inicia sesión del usuario
+   * Inicia sesiÃ³n del usuario
+   */
+    /**
+   * Inicia sesiÃ³n del usuario
    */
   const login = async (email, password) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Intentando iniciar sesión:', email);
+      console.log('Intentando iniciar sesiÃ³n:', email);
 
       const response = await authService.login(email, password);
 
-      if (response.success && response.data) {
-        const userData = response.data.user;
-
-        sseService.resetForcedDisconnect();
-
-        setUser(userData);
-        setIsAuthenticated(true);
-
-        console.log('Usuario autenticado:', userData.correo);
-        return userData;
-      } else {
-        throw new Error(response.message || 'Error en la autenticación');
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Error en la autenticaciÃ³n');
       }
     } catch (err) {
       console.error('Error en login:', err);
-      setError(err.message || 'Error al iniciar sesión');
+      setError(err.message || 'Error en la autenticaciÃ³n');
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
+
+
   /**
-   * Registra un nuevo usuario (no inicia sesión; requiere verificación de correo)
+   * Registra un nuevo usuario (no inicia sesiÃ³n; requiere verificaciÃ³n de correo)
    */
   const register = async (userData) => {
     try {
@@ -122,22 +118,24 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.register(userData);
 
       if (response.success && response.data) {
-        // No se establece sesión hasta que verifique el correo
+        // No se establece sesiÃ³n hasta que verifique el correo
         return response.data;
       } else {
         throw new Error(response.message || 'Error en el registro');
       }
     } catch (err) {
       console.error('Error en registro:', err);
-      setError(err.message || 'Error al registrar usuario');
-      throw err;
+      const backendError = err?.data?.errors ? Object.values(err.data.errors)[0] : null;
+      const message = backendError || err.message || 'Error al registrar usuario';
+      setError(message);
+      throw new Error(message);
     } finally {
       setLoading(false);
     }
   };
 
   /**
-   * Cierra la sesión del usuario
+   * Cierra la sesiÃ³n del usuario
    */
   const logout = useCallback(async () => {
     try {
@@ -150,7 +148,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       clearAuthData();
-      console.log('Sesión cerrada exitosamente');
+      console.log('SesiÃ³n cerrada exitosamente');
     } catch (err) {
       console.error('Error en logout:', err);
       clearAuthData();
@@ -200,22 +198,47 @@ export const AuthProvider = ({ children }) => {
 
       const response = await authService.updateProfile(profileData);
 
-      if (response.success && response.data) {
-        const updatedUser = { ...user, ...response.data };
-        setUser(updatedUser);
+      // Intentar diferentes formas de respuesta
+      const updatedData =
+        response?.data?.user ||
+        response?.data?.usuario ||
+        response?.data?.data ||
+        response?.data ||
+        response?.user ||
+        response?.usuario ||
+        null;
 
-        const userDataStr = JSON.stringify(updatedUser);
-        if (localStorage.getItem(USER_KEY)) {
-          localStorage.setItem(USER_KEY, userDataStr);
-        } else {
-          sessionStorage.setItem(USER_KEY, userDataStr);
-        }
+      // Normalizar datos aunque la API no devuelva el usuario actualizado
+      const mergedData = updatedData ? { ...updatedData, ...profileData } : { ...profileData };
 
-        console.log('Perfil actualizado');
-        return updatedUser;
-      } else {
-        throw new Error(response.message || 'Error al actualizar perfil');
+      if (profileData.nombre) {
+        const nombreParts = profileData.nombre.trim().split(' ');
+        mergedData.nombre_completo = profileData.nombre;
+        mergedData.nombre = profileData.nombre;
+        mergedData.primer_nombre = nombreParts[0] || mergedData.primer_nombre || '';
+        mergedData.segundo_nombre = nombreParts.slice(1).join(' ') || mergedData.segundo_nombre || '';
       }
+
+      if (profileData.apellidos) {
+        const apellidoParts = profileData.apellidos.trim().split(' ');
+        mergedData.apellidos = profileData.apellidos;
+        mergedData.apellido_completo = profileData.apellidos;
+        mergedData.primer_apellido = apellidoParts[0] || mergedData.primer_apellido || '';
+        mergedData.segundo_apellido = apellidoParts.slice(1).join(' ') || mergedData.segundo_apellido || '';
+      }
+
+      const updatedUser = { ...user, ...mergedData };
+
+      setUser(updatedUser);
+
+      const userDataStr = JSON.stringify(updatedUser);
+      // Mantener compatibilidad con claves usadas en otros flujos
+      localStorage.setItem(USER_KEY, userDataStr);
+      localStorage.setItem('user', userDataStr);
+      sessionStorage.setItem(USER_KEY, userDataStr);
+
+      console.log('Perfil actualizado');
+      return updatedUser;
     } catch (err) {
       console.error('Error actualizando perfil:', err);
       setError(err.message || 'Error al actualizar perfil');
@@ -226,25 +249,25 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Cambia la contraseña del usuario
+   * Cambia la contraseÃ±a del usuario
    */
   const changePassword = async (currentPassword, newPassword) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Cambiando contraseña...');
+      console.log('Cambiando contraseÃ±a...');
 
       const response = await authService.changePassword(currentPassword, newPassword);
 
       if (response.success) {
-        console.log('Contraseña cambiada exitosamente');
+        console.log('ContraseÃ±a cambiada exitosamente');
         return true;
       } else {
-        throw new Error(response.message || 'Error al cambiar contraseña');
+        throw new Error(response.message || 'Error al cambiar contraseÃ±a');
       }
     } catch (err) {
-      console.error('Error cambiando contraseña:', err);
-      setError(err.message || 'Error al cambiar contraseña');
+      console.error('Error cambiando contraseÃ±a:', err);
+      setError(err.message || 'Error al cambiar contraseÃ±a');
       throw err;
     } finally {
       setLoading(false);
@@ -323,28 +346,40 @@ export const AuthProvider = ({ children }) => {
    */
   const connectSSE = useCallback(async () => {
     try {
-      if (isAuthenticated && user) {
-        console.log('Conectando SSE con cookies httpOnly...');
-        await sseService.connect();
+      sseService.resetForcedDisconnect();
+      if (!sseService.isConnected) {
+        sseService.connect();
       }
     } catch (err) {
       console.error('Error conectando SSE:', err);
     }
   }, [isAuthenticated, user]);
 
-  /**
-   * Desconecta del servicio SSE
-   */
   const disconnectSSE = useCallback(() => {
-    console.log('Desconectando SSE...');
-    sseService.disconnect();
+    try {
+      sseService.setForcedDisconnect();
+      sseService.disconnect();
+    } catch (err) {
+      console.error('Error desconectando SSE:', err);
+    }
   }, []);
 
-  /**
-   * Manejador de eventos SSE para cierre de sesión forzado
-   */
-  const performForcedLogout = useCallback(async (message = 'Tu sesión ha sido terminada por seguridad.') => {
-    console.log('Ejecutando logout forzado:', message);
+  // Logout forzado por eventos SSE
+  const handleForcedLogout = useCallback((data) => {
+    try {
+      console.warn('Logout forzado por SSE', data);
+      disconnectSSE();
+      clearAuthData();
+      toast({
+        title: 'Sesión finalizada',
+        description: data?.message || 'Tu sesión fue cerrada por seguridad',
+        variant: 'destructive'
+      });
+      navigate('/login');
+    } catch (err) {
+      console.error('Error manejando logout forzado:', err);
+    }
+  }, [clearAuthData, disconnectSSE, navigate, toast]);
 
     setIsAuthenticated(false);
     setUser(null);
@@ -363,7 +398,7 @@ export const AuthProvider = ({ children }) => {
         navigate('/login', { replace: true });
       }
     }, 1500);
-  }, [toast, navigate, clearAuthData]);
+  }, [toast, navigate, clearAuthData];
 
   const handleForcedLogout = useCallback(async (eventData) => {
     console.log('Evento SSE recibido - Cierre de sesión forzado:', eventData);
@@ -434,3 +469,5 @@ export const useAuth = () => {
 };
 
 export default AuthContext;
+
+

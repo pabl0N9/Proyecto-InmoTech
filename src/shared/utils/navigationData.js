@@ -13,7 +13,7 @@ import {
   MdWeb
 } from 'react-icons/md';
 
-<<<<<<< HEAD
+
 /**
  * Filtra los elementos visibles según los módulos habilitados
  */
@@ -56,7 +56,6 @@ export const getFilteredNavigation = (availableModules = []) => {
 
   if (subItemsSeguridad.length > 0) {
     filteredItems.push({ ...seguridadItem, subItems: subItemsSeguridad });
-=======
 // Función para filtrar navegación basada en permisos del usuario
 export const getFilteredNavigation = (availableModules = []) => {
   // ✅ ADMINISTRADORES VEN TODOS LOS MÓDULOS
@@ -95,17 +94,15 @@ export const getFilteredNavigation = (availableModules = []) => {
   if (subItemsSeguridad.length > 0) {
     const newseguridadItem = { ...seguridadItem, subItems: subItemsSeguridad };
     filteredItems.push(newseguridadItem);
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
   }
 
   return filteredItems;
 };
 
-<<<<<<< HEAD
+
 // Ítems principales del menú lateral
-=======
+
 // Lista de elementos principales del menú de navegación
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
 export const navigationItems = [
   {
     id: 'dashboard',
@@ -210,10 +207,6 @@ export const navigationItems = [
         title: 'Administrativos',
         path: dashboardRoutes.administrativos || '/seguridad/administrativos',
       },
-<<<<<<< HEAD
-=======
-
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
       {
         id: 'roles',
         title: 'Roles',

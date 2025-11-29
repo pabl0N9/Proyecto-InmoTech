@@ -16,9 +16,13 @@
     "@floating-ui/react": "^0.27.16",
 <<<<<<< HEAD
     "axios": "^1.13.0",
+<<<<<<< HEAD
 =======
     "axios": "^1.12.2",
 >>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
+=======
+    "cloudinary": "^2.8.0",
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.12",

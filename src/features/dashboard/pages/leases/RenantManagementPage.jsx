@@ -1,119 +1,107 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ReactDOM from 'react-dom';
 import { FaUserPlus, FaEye, FaEdit, FaTrash, FaSearch } from "react-icons/fa";
 import RenantForm from "../../components/leases/RenantForm";
 import EditRenantForm from "../../components/leases/EditRenantForm";
 import ViewRenant from "../../components/leases/ViewRenant"; 
 import "../../../../shared/styles/globals.css";
+import arriendoApiService from "../../../../shared/services/arriendoApiService";
+
+const formatCurrency = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "";
+  return `${numeric.toLocaleString("es-CO")} $`;
+};
+
+const mapApiArriendoToRow = (arriendo = {}) => {
+  const inmueble = arriendo.Inmueble || arriendo.inmueble || {};
+  const arrendatario = arriendo.Arrendatario || arriendo.arrendatario || {};
+  const persona = arrendatario.persona || arrendatario.Persona || arrendatario || {};
+
+  const nombreCompleto = persona.nombre_completo || "";
+  const [primerNombre = "", segundoNombre = ""] = nombreCompleto.split(" ");
+  const apellidos = persona.apellido_completo || "";
+  const [primerApellido = "", segundoApellido = ""] = apellidos.split(" ");
+
+  const valor = arriendo.valor_mensual || arriendo.valor_arriendo || arriendo.valor_arriendo_mensual || 0;
+  const fechaInicio = arriendo.fecha_inicio || "";
+  const fechaFin = arriendo.fecha_finalizacion || arriendo.fecha_fin || "";
+
+  return {
+    id: arriendo.id_arrendamiento || arriendo.id_arriendo || arriendo.id || Date.now(),
+    tipoDocInquilino: persona.tipo_documento || "",
+    numeroDocInquilino: persona.numero_documento || "",
+    primerNombreInquilino: primerNombre,
+    segundoNombreInquilino: segundoNombre,
+    primerApellidoInquilino: primerApellido,
+    segundoApellidoInquilino: segundoApellido,
+    correoInquilino: persona.correo || "",
+    telefonoInquilino: persona.telefono || "",
+    tipoInmueble: inmueble.categoria || inmueble.tipo || "",
+    registroInmobiliario: inmueble.registro_inmobiliario || inmueble.registro || "",
+    nombreInmueble: inmueble.nombre || inmueble.titulo || "",
+    area: inmueble.area_construida || inmueble.m2 || "",
+    habitaciones: inmueble.habitaciones || "",
+    banos: inmueble.banos || "",
+    departamento: inmueble.departamento || "",
+    ciudad: inmueble.ciudad || "",
+    barrio: inmueble.barrio || "",
+    estrato: inmueble.estrato || "",
+    direccion: inmueble.direccion || "",
+    precioInmueble: formatCurrency(inmueble.precio_arriendo || inmueble.precio || valor),
+    fechaInicio: fechaInicio ? String(fechaInicio).slice(0, 10) : "",
+    fechaFinal: fechaFin ? String(fechaFin).slice(0, 10) : "",
+    fechaCobro: "",
+    precio: formatCurrency(valor),
+    estado: arriendo.estado || "Pendiente",
+    fechaLimite: "",
+    valorMensual: formatCurrency(valor),
+  };
+};
 
 export function RenantManagementPage() {
-  const [arriendos, setArriendos] = useState([
-    {
-      id: 1,
-      tipoDocInquilino: "CC",
-      numeroDocInquilino: "1036000001",
-      primerNombreInquilino: "Juan",
-      primerApellidoInquilino: "Pérez",
-      telefonoInquilino: "3001111111",
-      correoInquilino: "juan.perez@example.com",
-      tipoDocCodeudor: "CC",
-      numeroDocCodeudor: "70000001",
-      primerNombreCodeudor: "Ana",
-      primerApellidoCodeudor: "Gómez",
-      telefonoCodeudor: "3002222222",
-      correoCodeudor: "ana.gomez@example.com",
-      estabilidadLaboral: "Empleado",
-      tipoInmueble: "Casa",
-      registroInmobiliario: "110010123456",
-      nombreInmueble: "Casa Moderna",
-      area: 120,
-      habitaciones: 3,
-      banos: 2,
-      departamento: "Antioquia",
-      ciudad: "Medellín",
-      barrio: "Poblado",
-      estrato: 5,
-      direccion: "Carrera 40 # 10-25",
-      precioInmueble: "250.000.000 $",
-      fechaInicio: "22/05/2025",
-      fechaFinal: "22/05/2026",
-      fechaCobro: 27,
-      precio: "2.500.000 $",
-      estado: "Pagado",
-      fechaLimite: "27/05/2025",
-      valorMensual: "2.500.000 $",
-    },
-    {
-      id: 2,
-      tipoDocInquilino: "CE",
-      numeroDocInquilino: "80000002",
-      primerNombreInquilino: "Carlos",
-      primerApellidoInquilino: "Vásquez",
-      telefonoInquilino: "3003333333",
-      correoInquilino: "carlos.v@example.com",
-      tipoDocCodeudor: "NIT",
-      numeroDocCodeudor: "900000000-1",
-      primerNombreCodeudor: "Empresa",
-      primerApellidoCodeudor: "XYZ",
-      telefonoCodeudor: "6045555555",
-      correoCodeudor: "info@xyz.com",
-      estabilidadLaboral: "Independiente",
-      tipoInmueble: "Apartamento",
-      registroInmobiliario: "760010789012",
-      nombreInmueble: "Apartamento Central",
-      area: 75,
-      habitaciones: 2,
-      banos: 1,
-      departamento: "Valle del Cauca",
-      ciudad: "Cali",
-      barrio: "Granada",
-      estrato: 4,
-      direccion: "Calle 10 # 5-10",
-      precioInmueble: "150.000.000 $",
-      fechaInicio: "10/10/2025",
-      fechaFinal: "10/10/2026",
-      fechaCobro: 15,
-      precio: "3.000.000 $",
-      estado: "Pendiente",
-      fechaLimite: "15/10/2025",
-      valorMensual: "3.000.000 $",
-    },
-  ]);
+  const [arriendos, setArriendos] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const idCounter = useRef(arriendos.length + 1);
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingRent, setEditingRent] = useState(null);
   const [viewingRent, setViewingRent] = useState(null);
+  const [statusMessage, setStatusMessage] = useState(null);
+  const fetchArriendos = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await arriendoApiService.obtenerArriendos();
+      const list = response?.data?.data || response?.data || [];
+      setArriendos(list.map(mapApiArriendoToRow));
+      setStatusMessage(null);
+    } catch (error) {
+      setStatusMessage({
+        type: "error",
+        message: error?.message || "No fue posible cargar los arrendatarios"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setStatusMessage]);
+
+  useEffect(() => {
+    fetchArriendos();
+  }, [fetchArriendos]);
 
   // CREAR NUEVO
-  const handleNewRent = (newRentData) => {
-    const nuevoArriendo = {
-      id: idCounter.current++,
-      ...newRentData,
-      precioInmueble: `${Number(newRentData.precioInmueble).toLocaleString("es-CO")} $`,
-      precio: `${Number(newRentData.precio).toLocaleString("es-CO")} $`,
-      valorMensual: `${Number(newRentData.precio).toLocaleString("es-CO")} $`,
-      estado: "Pendiente de inicio",
-    };
-
-    setArriendos((prev) => [...prev, nuevoArriendo]);
+  const handleNewRent = ({ renant, formData }) => {
+    // Solo refrescamos desde API; crear arrendatario no debe agregar a la lista de arriendos
+    fetchArriendos();
     setShowForm(false);
     setEditingRent(null);
+    setStatusMessage({ type: "success", message: "Arriendo sincronizado con la API" });
   };
 
   // EDITAR EXISTENTE
   const handleEditSave = (updatedRent) => {
-    const actualizado = {
-      ...updatedRent,
-      precioInmueble: `${Number(updatedRent.precioInmueble).toLocaleString("es-CO")} $`,
-      precio: `${Number(updatedRent.precio).toLocaleString("es-CO")} $`,
-      valorMensual: `${Number(updatedRent.precio).toLocaleString("es-CO")} $`,
-    };
-
-    setArriendos((prev) =>
-      prev.map((r) => (r.id === updatedRent.id ? { ...r, ...actualizado } : r))
-    );
+    // Refrescamos desde API para evitar datos locales desfasados
+    fetchArriendos();
     setShowForm(false);
     setEditingRent(null);
   };
@@ -124,10 +112,11 @@ export function RenantManagementPage() {
   };
 
   // 🗑️ ELIMINAR
-  const handleDelete = (id) => {
-    if (window.confirm("¿Estás seguro de eliminar este registro?")) {
-      setArriendos((prev) => prev.filter((r) => r.id !== id));
-    }
+  const handleDelete = async (id) => {
+    // No hay endpoint de borrado de arriendos en uso; removemos local y refrescamos
+    if (!window.confirm("¿Estás seguro de eliminar este registro?")) return;
+    setArriendos((prev) => prev.filter((r) => r.id !== id));
+    setStatusMessage({ type: "info", message: "Arriendo removido de la lista local. Refresca si persiste." });
   };
 
   const filteredRents =

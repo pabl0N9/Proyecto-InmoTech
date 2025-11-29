@@ -171,6 +171,8 @@ class PersonaService {
         tiene_cuenta: persona.tiene_cuenta,
         estado: persona.estado,
         fecha_registro: persona.fecha_registro,
+        foto_perfil_url: persona.foto_perfil_url,
+        foto_public_id: persona.foto_public_id,
         roles: persona.roles || []
       };
     } catch (error) {

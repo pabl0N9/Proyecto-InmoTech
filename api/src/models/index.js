@@ -4,7 +4,11 @@ const Inmueble = require('./Inmueble');
 const ServicioCita = require('./ServicioCita');
 const EstadoCita = require('./EstadoCita');
 const Cita = require('./Cita');
+<<<<<<< HEAD
 const HistorialAsignacionAgente = require('./HistorialAsignacionAgente');  // <-- NUEVO
+=======
+const HistorialAsignacionAgente = require('./HistorialAsignacionAgente');
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
 const Notificacion = require('./Notificacion');
 const Rol = require('./Rol');
 const Permiso = require('./Permiso');
@@ -12,6 +16,12 @@ const Acceso = require('./Acceso');
 const PersonasRol = require('./PersonasRol');
 const PropiedadInmueble = require('./PropiedadInmueble');
 const Reporte = require('./Reporte');
+<<<<<<< HEAD
+=======
+const Sale = require('./Sale');
+const Lease = require('./Lease');
+const Arriendo = require('./Arriendo');
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
 const Invitacion = require('./Invitacion');
 
 // Asociaciones de Cita
@@ -20,6 +30,7 @@ Cita.belongsTo(Persona, {
   as: 'cliente'
 });
 
+<<<<<<< HEAD
 Cita.belongsTo(Inmueble, {
   foreignKey: 'id_inmueble',
   as: 'inmueble'
@@ -105,6 +116,9 @@ Rol.hasMany(Notificacion, {
 });
 
 // Asociaciones de Acceso
+=======
+// Persona - Acceso (One-to-One)
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
 Acceso.belongsTo(Persona, {
   foreignKey: 'id_persona',
   as: 'persona'
@@ -115,6 +129,7 @@ Persona.hasOne(Acceso, {
   as: 'acceso'
 });
 
+<<<<<<< HEAD
 // Asociaciones de Invitacion
 Invitacion.belongsTo(Persona, {
   foreignKey: 'id_persona',
@@ -128,6 +143,10 @@ Persona.hasMany(Invitacion, {
 
 // Asociaciones de PersonasRol
 PersonasRol.belongsTo(Persona, {
+=======
+// Persona - Administrativo (One-to-One)
+Administrativo.belongsTo(Persona, {
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
   foreignKey: 'id_persona',
   as: 'persona'
 });
@@ -199,6 +218,7 @@ Persona.belongsToMany(Inmueble, {
   as: 'inmuebles'
 });
 
+<<<<<<< HEAD
 // Asociaciones de comodidades
 Inmueble.belongsToMany(Comodidad, {
   through: InmuebleComodidad,
@@ -225,6 +245,126 @@ InmuebleComodidad.belongsTo(Comodidad, {
 });
 
 // Asociaciones de Reporte
+=======
+Persona.hasOne(Buyer, {
+  foreignKey: 'id_persona',
+  as: 'buyer'
+});
+
+// Buyer - Sale (One-to-One) - ¡RELACIÓN CLAVE CORREGIDA!
+// =============================================================================
+// ASOCIACIONES DE VENTAS (SALE)
+// =============================================================================
+
+// Sale - Inmueble
+Sale.belongsTo(Inmueble, {
+  foreignKey: 'id_inmueble',
+  as: 'inmueble'
+});
+
+Inmueble.hasMany(Sale, {
+  foreignKey: 'id_inmueble',
+  as: 'ventas'
+});
+
+// Sale - Buyer (Comprador)
+Sale.belongsTo(Buyer, {
+  foreignKey: 'id_comprador',
+  as: 'comprador'
+});
+
+Buyer.hasMany(Sale, {
+  foreignKey: 'id_comprador',
+  as: 'ventas'
+});
+
+// =============================================================================
+// ASOCIACIONES DE ARRIENDOS (LEASE)
+// =============================================================================
+
+// Lease - Inmueble (Arrendamientos)
+Lease.belongsTo(Inmueble, {
+  foreignKey: 'id_inmueble',
+  as: 'inmueble'
+});
+
+Inmueble.hasMany(Lease, {
+  foreignKey: 'id_inmueble',
+  as: 'arriendos'
+});
+
+// Lease - Persona (Arrendatario) usando id_cliente (columna id_arrendatario)
+Lease.belongsTo(Persona, {
+  foreignKey: 'id_cliente',
+  as: 'arrendatario'
+});
+
+Persona.hasMany(Lease, {
+  foreignKey: 'id_cliente',
+  as: 'arriendosComoArrendatario'
+});
+
+// =============================================================================
+// ASOCIACIONES DE ARRIENDOS (Arriendo - tabla Arriendos)
+// =============================================================================
+Arriendo.belongsTo(Inmueble, {
+  foreignKey: 'id_inmueble',
+  as: 'Inmueble'
+});
+
+Inmueble.hasMany(Arriendo, {
+  foreignKey: 'id_inmueble',
+  as: 'arriendosContrato'
+});
+
+Arriendo.belongsTo(Renant, {
+  foreignKey: 'id_arrendatario',
+  as: 'Arrendatario'
+});
+
+Renant.hasMany(Arriendo, {
+  foreignKey: 'id_arrendatario',
+  as: 'arriendos'
+});
+
+// =============================================================================
+// ASOCIACIONES DE NOTIFICACIONES
+// =============================================================================
+
+Notificacion.belongsTo(Cita, {
+  foreignKey: 'id_cita',
+  as: 'cita'
+});
+
+Notificacion.belongsTo(Rol, {
+  foreignKey: 'id_rol_destino',
+  as: 'rol'
+});
+
+Notificacion.belongsTo(Persona, {
+  foreignKey: 'id_persona_destino',
+  as: 'persona'
+});
+
+Cita.hasMany(Notificacion, {
+  foreignKey: 'id_cita',
+  as: 'notificaciones'
+});
+
+Rol.hasMany(Notificacion, {
+  foreignKey: 'id_rol_destino',
+  as: 'notificaciones'
+});
+
+Persona.hasMany(Notificacion, {
+  foreignKey: 'id_persona_destino',
+  as: 'notificaciones'
+});
+
+// ASOCIACIONES DE REPORTES
+// =============================================================================
+
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
 Reporte.belongsTo(Persona, {
   foreignKey: 'id_generado_por',
   as: 'generadoPor'
@@ -236,6 +376,7 @@ Persona.hasMany(Reporte, {
 });
 // FIN DE NUEVAS ASOCIACIONES
 
+<<<<<<< HEAD
 // Asociaciones de HistorialAsignacionAgente
 HistorialAsignacionAgente.belongsTo(Cita, {
   foreignKey: 'id_cita',
@@ -266,6 +407,15 @@ Cita.hasMany(HistorialAsignacionAgente, {
 Administrativo.belongsTo(Persona, {
   foreignKey: 'id_persona',
   as: 'persona'
+=======
+// =============================================================================
+// ASOCIACIONES DE HISTORIAL ASIGNACIÓN AGENTE
+// =============================================================================
+
+HistorialAsignacionAgente.belongsTo(Cita, {
+  foreignKey: 'id_cita',
+  as: 'cita'
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
 });
 
 Persona.hasOne(Administrativo, {
@@ -280,7 +430,11 @@ module.exports = {
   ServicioCita,
   EstadoCita,
   Cita,
+<<<<<<< HEAD
   HistorialAsignacionAgente,  // <-- NUEVO
+=======
+  HistorialAsignacionAgente,
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
   Notificacion,
   Rol,
   Permiso,
@@ -288,5 +442,13 @@ module.exports = {
   PersonasRol,
   PropiedadInmueble,
   Reporte,
+<<<<<<< HEAD
+=======
+  Buyer,
+  Renant,
+  Sale,
+  Lease,
+  Arriendo,
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
   Invitacion
 };

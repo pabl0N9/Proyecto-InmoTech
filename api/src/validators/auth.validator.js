@@ -152,6 +152,22 @@ const actualizarPerfilSchema = Joi.object({
     .max(20)
     .pattern(/^[0-9\s\+\-]+$/)
     .optional()
+    .messages({
+      'string.min': 'El teléfono debe tener al menos 10 caracteres',
+      'string.max': 'El teléfono no puede exceder 20 caracteres',
+      'string.pattern.base': 'El teléfono solo puede contener números, espacios, + y -'
+    }),
+
+  foto_perfil_url: Joi.string()
+    .uri()
+    .optional()
+    .messages({
+      'string.uri': 'La URL de la imagen no es válida'
+    }),
+
+  foto_public_id: Joi.string()
+    .max(255)
+    .optional()
 })
   .min(1)
   .messages({

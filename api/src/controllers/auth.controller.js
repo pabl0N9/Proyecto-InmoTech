@@ -1,4 +1,5 @@
 const authService = require('../services/auth.service');
+const personaService = require('../services/persona.service');
 const logger = require('../utils/logger');
 
 const buildCookieOptions = () => {

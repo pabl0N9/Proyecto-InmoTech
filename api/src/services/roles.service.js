@@ -394,7 +394,6 @@ if (rolInactivo) {
           // Reactivar o crear permisos según se necesite
           for (const [modulo, permisosModulo] of Object.entries(normalizedPermissions)) {
             for (const [permiso, valor] of Object.entries(permisosModulo)) {
-              if (!valor) {
                 continue;
               }
 
@@ -417,9 +416,8 @@ if (rolInactivo) {
               // Si no se creó (ya existía), reactivarlo
               if (!created) {
                 await permisoExistente.update({ estado: true }, { transaction: t });
-              }
-            }
-          }
+          for (const [modulo, permisosModulo] of Object.entries(permisos)) {
+            for (const [permiso, valor] of Object.entries(permisosModulo)) {
         }
 
         logger.info(`Rol actualizado: ${rolId} por usuario ${userId}`);

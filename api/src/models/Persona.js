@@ -40,13 +40,22 @@ const Persona = sequelize.define('Personas', {
     }
   },
   telefono: {
-    type: DataTypes.STRING(15),
+    // La columna en BD es VARCHAR(20); ampliar para evitar truncamiento en teléfonos con prefijos/espacios
+    type: DataTypes.STRING(20),
     allowNull: true
   },
   correo_verificado: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false
+  },
+  foto_perfil_url: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  foto_public_id: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   },
   tiene_cuenta: {
     type: DataTypes.BOOLEAN,

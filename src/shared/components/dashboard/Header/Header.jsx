@@ -2,14 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MdNotifications, MdKeyboardArrowDown } from 'react-icons/md';
 import NotificationDropdown from './NotificationDropdown';
+import ProfileDropdown from './ProfileDropdown';
 import ViewAppointmentModal from '../../../../features/dashboard/components/appointment/ViewAppointmentModal';
 import ConfirmationDialog from '../../../components/ui/ConfirmationDialog';
 import { useAppointments } from '../../../contexts/AppointmentContext';
 import { useToast } from '../../../hooks/use-toast';
 import { useAuth } from '../../../contexts/AuthContext';
+import SettingsModal from '../Header/SettingsModal';
 
 const Header = () => {
-  const { appointments, updateAppointmentStatus } = useAppointments();
+  const { appointments, updateAppointmentStatus, logout } = useAppointments();
   const { user } = useAuth();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -345,6 +347,12 @@ const Header = () => {
         confirmText="Rechazar"
         cancelText="Cancelar"
         variant="destructive"
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
       />
     </motion.header>
   );

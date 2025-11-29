@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,6 +8,17 @@ import { Input } from '../../../../shared/components/ui/input';
 import usersApiService from '../../../../shared/services/usersApiService';
 
 const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
+=======
+import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, UserCheck, Loader2, Eye, EyeOff, CheckCircle2, XCircle, User, Mail, Phone, Lock } from 'lucide-react';
+import PasswordValidator from '../../../../shared/components/ui/PasswordValidator';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../shared/components/ui/select';
+import { Input } from '../../../../shared/components/ui/input';
+
+const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
   if (!isOpen) return null;
 
   const [formData, setFormData] = useState({
@@ -15,6 +27,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
     correo: '',
     telefono: '',
     tipo_documento: '',
+<<<<<<< HEAD
     numero_documento: ''
   });
   const [loading, setLoading] = useState(false);
@@ -29,6 +42,16 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
   // Refs para debouncing
   const emailTimeoutRef = useRef(null);
   const documentTimeoutRef = useRef(null);
+=======
+    numero_documento: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,6 +79,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
     }
   };
 
+<<<<<<< HEAD
   // Validaciones
   const validateTipoDocumento = (tipo) => {
     if (!tipo) return 'El tipo de documento es obligatorio';
@@ -142,6 +166,112 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
         break;
       case 'apellido_completo':
         error = validateApellidoCompleto(value);
+=======
+  // ✅ Validar nombres (igual que PropertyVisitModal)
+  const validateNombres = (nombres) => {
+    if (!nombres.trim()) return "Los nombres son requeridos";
+    if (nombres.trim().length < 2)
+      return "Los nombres deben tener al menos 2 caracteres";
+    if (nombres.trim().length > 50)
+      return "Los nombres no pueden tener más de 50 caracteres";
+    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(nombres.trim()))
+      return "Los nombres solo pueden contener letras y espacios";
+    return "";
+  };
+
+  // ✅ Validar apellidos (igual que PropertyVisitModal)
+  const validateApellidos = (apellidos) => {
+    if (!apellidos.trim()) return "Los apellidos son requeridos";
+    if (apellidos.trim().length < 2)
+      return "Los apellidos deben tener al menos 2 caracteres";
+    if (apellidos.trim().length > 50)
+      return "Los apellidos no pueden tener más de 50 caracteres";
+    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(apellidos.trim()))
+      return "Los apellidos solo pueden contener letras y espacios";
+    return "";
+  };
+
+  // ✅ Validar teléfono colombiano (igual que PropertyVisitModal)
+  const validateTelefono = (telefono) => {
+    if (!telefono.trim()) return "El teléfono es requerido";
+    const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, "");
+    if (!/^(\+57|57)?[3][0-9]{9}$/.test(telefonoLimpio)) {
+      return "El teléfono debe tener formato colombiano (+57 XXX XXX XXXX o 3XX XXX XXXX)";
+    }
+    return "";
+  };
+
+  // ✅ Validar email (igual que PropertyVisitModal)
+  const validateEmail = (email) => {
+    if (!email.trim()) return "El email es requerido";
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) return "Ingresa un email válido";
+    if (email.length > 254) return "El email es demasiado largo";
+    return "";
+  };
+
+  // ✅ Validar tipo de documento (igual que PropertyVisitModal)
+  const validateTipoDocumento = (tipoDocumento) => {
+    if (!tipoDocumento) return "El tipo de documento es requerido";
+    return "";
+  };
+
+  // ✅ Validar número de documento (igual que PropertyVisitModal)
+  const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
+    if (!numeroDocumento.trim()) return "El número de documento es requerido";
+
+    const numeroLimpio = numeroDocumento.replace(/[\s.-]/g, "");
+
+    switch (tipoDocumento) {
+      case "CC":
+      case "Cédula de Ciudadanía":
+        if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
+          return "La cédula debe tener entre 8 y 10 dígitos";
+        }
+        break;
+      case "CE":
+      case "Cédula de Extranjería":
+        if (!/^[0-9]{6,10}$/.test(numeroLimpio)) {
+          return "La cédula de extranjería debe tener entre 6 y 10 dígitos";
+        }
+        break;
+      case "NIT":
+        if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
+          return "El NIT debe tener entre 8 y 10 dígitos";
+        }
+        break;
+      case "PASAPORTE":
+      case "Pasaporte":
+        if (numeroLimpio.length < 6 || numeroLimpio.length > 20) {
+          return "El pasaporte debe tener entre 6 y 20 caracteres";
+        }
+        if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) {
+          return "El pasaporte solo puede contener letras y números";
+        }
+        break;
+      case "TI":
+      case "Tarjeta de Identidad":
+        if (!/^[0-9]{10,11}$/.test(numeroLimpio)) {
+          return "La tarjeta de identidad debe tener 10 u 11 dígitos";
+        }
+        break;
+      default:
+        return "Tipo de documento no válido";
+    }
+
+    return "";
+  };
+
+  const validateField = (field, value) => {
+    let error = "";
+
+    switch (field) {
+      case 'nombre_completo':
+        error = validateNombres(value);
+        break;
+      case 'apellido_completo':
+        error = validateApellidos(value);
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
         break;
       case 'correo':
         error = validateEmail(value);
@@ -155,17 +285,29 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
       case 'tipo_documento':
         error = validateTipoDocumento(value);
         break;
+<<<<<<< HEAD
       default:
         break;
+=======
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
     }
 
     setValidationErrors(prev => {
       const newErrors = { ...prev };
+<<<<<<< HEAD
       if (error) newErrors[field] = error; else delete newErrors[field];
+=======
+      if (error) {
+        newErrors[field] = error;
+      } else {
+        delete newErrors[field];
+      }
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
       return newErrors;
     });
   };
 
+<<<<<<< HEAD
   const checkEmailAvailability = useCallback(async (email) => {
     if (!email || !validateEmail(email)) {
       setEmailAvailable(null);
@@ -240,6 +382,16 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
         checkDocumentAvailability(value, formData.numero_documento);
       }, 500);
     }
+=======
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    validateField(field, value);
+  };
+
+  const handleSelectChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    validateField(field, value);
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
   };
 
   return ReactDOM.createPortal(
@@ -281,6 +433,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
+<<<<<<< HEAD
             {serverErrors.general && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <div className="flex items-center text-red-600">
@@ -292,6 +445,10 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
 
             <div className="space-y-6">
               {/* Documento */}
+=======
+            <div className="space-y-6">
+              {/* Campos de documento */}
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-slate-700 font-medium flex items-center">
@@ -302,7 +459,10 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                     <Select
                       value={formData.tipo_documento}
                       onValueChange={(value) => handleSelectChange('tipo_documento', value)}
+<<<<<<< HEAD
                       onBlur={() => handleBlur('tipo_documento')}
+=======
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
                     >
                       <SelectTrigger className="h-12 pl-12 pr-4 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200 w-full">
                         <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 z-10 pointer-events-none" />
@@ -335,17 +495,25 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                       type="tel"
                       value={formData.numero_documento}
                       onChange={(e) => handleChange('numero_documento', e.target.value.replace(/\D/g, ''))}
+<<<<<<< HEAD
                       onBlur={() => handleBlur('numero_documento')}
+=======
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
                       onKeyDown={(e) => {
                         if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
                           e.preventDefault();
                         }
                       }}
+<<<<<<< HEAD
                       className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+=======
+                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
                       required
                       placeholder="Tu número de documento"
                       inputMode="numeric"
                       pattern="[0-9]*"
+<<<<<<< HEAD
                       maxLength={formData.tipo_documento === 'PAS' ? 20 : formData.tipo_documento === 'TI' ? 11 : 10}
                     />
                     <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
@@ -359,6 +527,10 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                         <XCircle className="absolute right-4 top-3.5 h-5 w-5 text-red-500" />
                       )
                     )}
+=======
+                    />
+                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
                   </div>
                   {validationErrors.numero_documento && (
                     <div className="flex items-center mt-1 text-red-600">
@@ -366,6 +538,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                       <span className="text-sm">{validationErrors.numero_documento}</span>
                     </div>
                   )}
+<<<<<<< HEAD
                   {!checkingDocument && documentAvailable === false && !validationErrors.numero_documento && (
                     <div className="flex items-center mt-1 text-red-600">
                       <XCircle className="h-4 w-4 mr-1" />
@@ -382,6 +555,12 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
               </div>
 
               {/* Nombre y apellido */}
+=======
+                </div>
+              </div>
+
+              {/* Campos de nombre y apellido */}
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-slate-700 font-medium flex items-center">
@@ -393,11 +572,17 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                       type="text"
                       value={formData.nombre_completo}
                       onChange={(e) => handleChange('nombre_completo', e.target.value)}
+<<<<<<< HEAD
                       onBlur={() => handleBlur('nombre_completo')}
                       className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                       required
                       placeholder="Tu nombre completo"
                       maxLength={50}
+=======
+                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      required
+                      placeholder="Tu nombre completo"
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
                     />
                     <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                   </div>
@@ -419,11 +604,17 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                       type="text"
                       value={formData.apellido_completo}
                       onChange={(e) => handleChange('apellido_completo', e.target.value)}
+<<<<<<< HEAD
                       onBlur={() => handleBlur('apellido_completo')}
                       className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                       required
                       placeholder="Tu apellido completo"
                       maxLength={50}
+=======
+                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      required
+                      placeholder="Tu apellido completo"
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
                     />
                     <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                   </div>
@@ -448,6 +639,7 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                       type="email"
                       value={formData.correo}
                       onChange={(e) => handleChange('correo', e.target.value)}
+<<<<<<< HEAD
                       onBlur={() => handleBlur('correo')}
                       className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                       required
@@ -482,6 +674,18 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                     <div className="flex items-center mt-1 text-green-600">
                       <CheckCircle2 className="h-4 w-4 mr-1" />
                       <span className="text-sm">Correo electrónico disponible</span>
+=======
+                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      required
+                      placeholder="tu@email.com"
+                    />
+                    <Mail className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                  </div>
+                  {validationErrors.correo && (
+                    <div className="flex items-center mt-1 text-red-600">
+                      <XCircle className="h-4 w-4 mr-1" />
+                      <span className="text-sm">{validationErrors.correo}</span>
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
                     </div>
                   )}
                 </div>
@@ -495,7 +699,10 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                       type="tel"
                       value={formData.telefono}
                       onChange={(e) => handleChange('telefono', e.target.value.replace(/\D/g, ''))}
+<<<<<<< HEAD
                       onBlur={() => handleBlur('telefono')}
+=======
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
                       onKeyDown={(e) => {
                         if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
                           e.preventDefault();
@@ -516,6 +723,84 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
                   )}
                 </div>
               </div>
+<<<<<<< HEAD
+=======
+
+              {/* Contraseña */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-slate-700 font-medium flex items-center">
+                    <Lock className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Contraseña
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={(e) => handleChange('password', e.target.value)}
+                      className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      required
+                      placeholder="••••••••"
+                    />
+                    <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Indicador de fortaleza de contraseña */}
+                {formData.password && (
+                  <PasswordValidator password={formData.password} />
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-slate-700 font-medium flex items-center">
+                    <Lock className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Confirmar contraseña
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                      className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      required
+                      placeholder="••••••••"
+                    />
+                    <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+
+                  {/* Indicador de coincidencia de contraseñas */}
+                  {formData.password && formData.confirmPassword && (
+                    <div className="flex items-center mt-2">
+                      {formData.password === formData.confirmPassword ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 text-green-500 mr-1" />
+                          <span className="text-sm text-green-600">Las contraseñas coinciden</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-4 w-4 text-red-500 mr-1" />
+                          <span className="text-sm text-red-600">Las contraseñas no coinciden</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
             </div>
           </form>
 
@@ -530,7 +815,11 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit, serverErrors = {} }) => {
             <button
               type="submit"
               onClick={handleSubmit}
+<<<<<<< HEAD
               disabled={loading || Object.keys(validationErrors).length > 0 || !formData.nombre_completo || !formData.apellido_completo || !formData.correo || !formData.tipo_documento || !formData.numero_documento}
+=======
+              disabled={loading || (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword) || Object.keys(validationErrors).length > 0 || !formData.nombre_completo || !formData.apellido_completo || !formData.correo || !formData.tipo_documento || !formData.numero_documento || !formData.password || !formData.confirmPassword}
+>>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
               className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
