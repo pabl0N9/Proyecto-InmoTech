@@ -308,3 +308,54 @@
 {"level":"info","message":"[SSE] Client connected","timestamp":"2025-11-29 14:45:51","totalClients":1,"userId":15}
 {"email":"admin@gmail.com","level":"info","message":"[SSE] Connection accepted","timestamp":"2025-11-29 14:45:51","userId":15}
 {"level":"info","message":"[SSE] Client connected","timestamp":"2025-11-29 14:45:51","totalClients":1,"userId":15}
+{"level":"info","message":"🔌 Intentando conectar a SQL Server...","timestamp":"2025-11-29 15:11:28"}
+{"level":"info","message":"   Servidor: localhost","timestamp":"2025-11-29 15:11:28"}
+{"level":"info","message":"   Instancia: (por defecto)","timestamp":"2025-11-29 15:11:28"}
+{"level":"info","message":"   Puerto: 1433","timestamp":"2025-11-29 15:11:28"}
+{"level":"info","message":"   Base de datos: InmobiliariaDB","timestamp":"2025-11-29 15:11:28"}
+{"level":"info","message":"✓ Conexión exitosa a SQL Server","timestamp":"2025-11-29 15:11:29"}
+{"level":"info","message":"✓ Base de datos: InmobiliariaDB","timestamp":"2025-11-29 15:11:29"}
+{"level":"info","message":"✓ Servidor: DESKTOP-FNR0BPJ\\SQLEXPRESS","timestamp":"2025-11-29 15:11:29"}
+{"hasAccessToken":true,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 15:11:29","url":"/connect?credentials=include"}
+{"email":"admin@gmail.com","level":"info","message":"[AUTH] Token verified","method":"GET","timestamp":"2025-11-29 15:11:29","url":"/connect?credentials=include","userId":15}
+{"email":"admin@gmail.com","level":"info","message":"[SSE] Connection initiated from httpOnly cookies","timestamp":"2025-11-29 15:11:29","userId":15}
+{"email":"admin@gmail.com","level":"info","message":"[SSE] Connection accepted","timestamp":"2025-11-29 15:11:29","userId":15}
+{"level":"info","message":"[SSE] Client connected","timestamp":"2025-11-29 15:11:29","totalClients":1,"userId":15}
+{"level":"info","message":"[SSE] Client disconnected","remainingClients":0,"timestamp":"2025-11-29 15:11:35","userId":15}
+{"hasAccessToken":true,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 15:11:50","url":"/me"}
+{"email":"admin@gmail.com","level":"info","message":"[AUTH] Token verified","method":"GET","timestamp":"2025-11-29 15:11:50","url":"/me","userId":15}
+{"hasAccessToken":true,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 15:11:52","url":"/me"}
+{"email":"admin@gmail.com","level":"info","message":"[AUTH] Token verified","method":"GET","timestamp":"2025-11-29 15:11:52","url":"/me","userId":15}
+{"hasAccessToken":true,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 15:11:53","url":"/?params=%5Bobject+Object%5D"}
+{"email":"admin@gmail.com","level":"info","message":"[AUTH] Token verified","method":"GET","timestamp":"2025-11-29 15:11:53","url":"/?params=%5Bobject+Object%5D","userId":15}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com (rol: Super Administrador)","timestamp":"2025-11-29 15:11:53"}
+{"hasAccessToken":true,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 15:11:53","url":"/connect?credentials=include"}
+{"email":"admin@gmail.com","level":"info","message":"[AUTH] Token verified","method":"GET","timestamp":"2025-11-29 15:11:53","url":"/connect?credentials=include","userId":15}
+{"email":"admin@gmail.com","level":"info","message":"[SSE] Connection initiated from httpOnly cookies","timestamp":"2025-11-29 15:11:53","userId":15}
+{"hasAccessToken":true,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 15:11:53","url":"/"}
+{"email":"admin@gmail.com","level":"info","message":"[AUTH] Token verified","method":"GET","timestamp":"2025-11-29 15:11:53","url":"/","userId":15}
+{"level":"info","message":"Acceso concedido a admin@gmail.com para mÃ³dulo citas (full access para Admin)","timestamp":"2025-11-29 15:11:53"}
+{"level":"info","message":"🔍 Consultando citas con filtros: {\"page\":1,\"limit\":50}","timestamp":"2025-11-29 15:11:53"}
+{"hasAccessToken":true,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 15:11:53","url":"/connect?credentials=include"}
+{"email":"admin@gmail.com","level":"info","message":"[AUTH] Token verified","method":"GET","timestamp":"2025-11-29 15:11:53","url":"/connect?credentials=include","userId":15}
+{"email":"admin@gmail.com","level":"info","message":"[SSE] Connection initiated from httpOnly cookies","timestamp":"2025-11-29 15:11:53","userId":15}
+{"email":"admin@gmail.com","level":"info","message":"[SSE] Connection accepted","timestamp":"2025-11-29 15:11:53","userId":15}
+{"level":"info","message":"[SSE] Client connected","timestamp":"2025-11-29 15:11:53","totalClients":1,"userId":15}
+{"hasAccessToken":true,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 15:11:53","url":"/?params=%5Bobject+Object%5D"}
+{"email":"admin@gmail.com","level":"info","message":"[AUTH] Token verified","method":"GET","timestamp":"2025-11-29 15:11:53","url":"/?params=%5Bobject+Object%5D","userId":15}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com (rol: Super Administrador)","timestamp":"2025-11-29 15:11:53"}
+{"level":"error","message":"❌ Error en obtenerTodasLasCitas: ","timestamp":"2025-11-29 15:11:53"}
+{"level":"error","message":"","method":"GET","path":"/api/v1/citas","stack":"Error\n    at Query.run (C:\\Users\\Pablo Navia\\Desktop\\SENA\\Proyecto-InmoTech\\api\\node_modules\\sequelize\\lib\\dialects\\mssql\\query.js:107:25)\n    at C:\\Users\\Pablo Navia\\Desktop\\SENA\\Proyecto-InmoTech\\api\\node_modules\\sequelize\\lib\\sequelize.js:315:28\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async MSSqlQueryInterface.select (C:\\Users\\Pablo Navia\\Desktop\\SENA\\Proyecto-InmoTech\\api\\node_modules\\sequelize\\lib\\dialects\\abstract\\query-interface.js:407:12)\n    at async Cita.findAll (C:\\Users\\Pablo Navia\\Desktop\\SENA\\Proyecto-InmoTech\\api\\node_modules\\sequelize\\lib\\model.js:1140:21)\n    at async Promise.all (index 1)\n    at async Cita.findAndCountAll (C:\\Users\\Pablo Navia\\Desktop\\SENA\\Proyecto-InmoTech\\api\\node_modules\\sequelize\\lib\\model.js:1322:27)\n    at async CitaService.obtenerTodasLasCitas (C:\\Users\\Pablo Navia\\Desktop\\SENA\\Proyecto-InmoTech\\api\\src\\services\\cita.service.js:168:31)\n    at async obtenerCitas (C:\\Users\\Pablo Navia\\Desktop\\SENA\\Proyecto-InmoTech\\api\\src\\controllers\\cita.controller.js:50:22)","timestamp":"2025-11-29 15:11:53"}
+{"email":"admin@gmail.com","level":"info","message":"[SSE] Connection accepted","timestamp":"2025-11-29 15:11:53","userId":15}
+{"level":"info","message":"[SSE] Client connected","timestamp":"2025-11-29 15:11:53","totalClients":1,"userId":15}
+{"level":"info","message":"[SSE] Client disconnected","remainingClients":1,"timestamp":"2025-11-29 15:37:39","userId":15}
+{"hasAccessToken":false,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 15:38:49","url":"/connect?credentials=include"}
+{"level":"warn","message":"[AUTH] No access token in cookies for URL:","method":"GET","timestamp":"2025-11-29 15:38:49","url":"/connect?credentials=include"}
+{"hasAccessToken":false,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 15:38:49","url":"/me"}
+{"level":"warn","message":"[AUTH] No access token in cookies for URL:","method":"GET","timestamp":"2025-11-29 15:38:49","url":"/me"}
+{"hasAccessToken":false,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 15:40:59","url":"/me"}
+{"level":"warn","message":"[AUTH] No access token in cookies for URL:","method":"GET","timestamp":"2025-11-29 15:40:59","url":"/me"}
+{"hasAccessToken":false,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 15:40:59","url":"/me"}
+{"level":"warn","message":"[AUTH] No access token in cookies for URL:","method":"GET","timestamp":"2025-11-29 15:40:59","url":"/me"}
+{"level":"info","message":"Usuario iniciÃ³ sesiÃ³n: admin@gmail.com (Administrativo: true)","timestamp":"2025-11-29 15:41:01"}
+{"level":"info","message":"Usuario iniciÃ³ sesiÃ³n: admin@gmail.com (Administrativo: true)","timestamp":"2025-11-29 15:41:05"}
