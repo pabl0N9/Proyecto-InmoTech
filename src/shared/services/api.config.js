@@ -17,7 +17,13 @@ class ApiClient {
   constructor() {
     this.isRefreshing = false;
     this.failedQueue = [];
-    this.maxRetries = 1; // Máximo de reintentos después de refresh
+    this.maxRetries = 1;
+    this.pendingRequests = new Map();
+    this.concurrentLimit = 1;
+    this.activeRequests = 0;
+    this.waitQueue = [];
+    this.minIntervalMs = 400;
+    this.nextRequestTime = 0;
   }
 
   processQueue(error, token = null) {
@@ -96,20 +102,17 @@ class ApiClient {
   }
 
   async handleTokenRefresh(endpoint, options, retryCount) {
-    // Si ya se alcanzó el máximo de reintentos, fallar
     if (retryCount >= this.maxRetries) {
       console.error('❌ Máximo de reintentos alcanzado');
       this.clearTokens();
       throw new Error('No se pudo completar la petición después de refrescar el token');
     }
 
-    // Si ya hay un refresh en progreso, esperar
     if (this.isRefreshing) {
       console.log('⏳ Esperando refresh en progreso...');
       return new Promise((resolve, reject) => {
         this.failedQueue.push({ resolve, reject });
       }).then(() => {
-        // Después del refresh, reintentar con el nuevo token
         console.log('♻️ Reintentando petición después de refresh...');
         return this.request(endpoint, options, retryCount + 1);
       });
@@ -121,12 +124,10 @@ class ApiClient {
       const newToken = await this.refreshAccessToken();
       this.processQueue(null, newToken);
       
-      // IMPORTANTE: Esperar un poco para asegurar que el token esté guardado
       await new Promise(resolve => setTimeout(resolve, 100));
       
       console.log('♻️ Reintentando petición original con nuevo token...');
       
-      // Reintentar la petición original
       const result = await this.request(endpoint, options, retryCount + 1);
       
       this.isRefreshing = false;
@@ -138,7 +139,6 @@ class ApiClient {
       this.isRefreshing = false;
       this.clearTokens();
       
-      // Redirigir al login
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }
@@ -162,7 +162,6 @@ class ApiClient {
           urlObj.searchParams.append(key, options.params[key]);
         }
       });
-      url = urlObj.toString();
     }
 
     const config = {
@@ -195,7 +194,10 @@ class ApiClient {
 
       clearTimeout(timeoutId);
 
-      console.log(`📥 Respuesta: ${response.status}`);
+    if (this.pendingRequests.has(requestKey)) {
+      console.log('Peticion duplicada detectada, esperando resultado:', endpoint);
+      return this.pendingRequests.get(requestKey);
+    }
 
       // ⚠️ INTERCEPTOR DE SEGURIDAD: Verificar respuesta antes de procesar
       if (!response.ok) {
@@ -239,10 +241,7 @@ class ApiClient {
         return await this.handleTokenRefresh(endpoint, options, retryCount);
       }
 
-      // Manejar 429
-      if (response.status === 429) {
-        throw new Error('Demasiadas peticiones. Por favor, espera un momento e intenta nuevamente.');
-      }
+        console.log(`${options.method || 'GET'} ${url}`);
 
       const data = await response.json();
 
@@ -268,20 +267,90 @@ class ApiClient {
         throw timeoutError;
       }
 
-      if (error.message === 'Failed to fetch') {
-        const networkError = new Error('No se pudo conectar con el servidor.');
-        networkError.code = 'NETWORK_ERROR';
-        throw networkError;
-      }
+        if (response.status === 429) {
+          console.warn('429 detectado, aplicando espera controlada...', retryCount);
+          if (retryCount < API_CONFIG.RETRY_ATTEMPTS + 2) {
+            const waitTime = API_CONFIG.RETRY_DELAY * (retryCount + 1);
+            await this.delay(waitTime);
+            return this.request(endpoint, options, retryCount + 1);
+          }
+          throw new Error('Demasiadas peticiones. Por favor, espera un momento e intenta nuevamente.');
+        }
 
-      console.error(`❌ API Error [${endpoint}]:`, error.message);
-      throw error;
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({
+            message: response.statusText,
+          }));
+          const error = new Error(errorData.message || `Error ${response.status}`);
+          error.status = response.status;
+          error.data = errorData;
+          throw error;
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.data && data.data.accessToken) {
+          console.log('Tokens detectados en respuesta, guardando...');
+          this.setTokens(data.data.accessToken, data.data.refreshToken);
+        }
+
+        return data;
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          const timeoutError = new Error('La peticion tardo demasiado tiempo.');
+          timeoutError.code = 'TIMEOUT';
+
+          if (retryCount < API_CONFIG.RETRY_ATTEMPTS) {
+            console.warn(`Timeout. Reintentando... (${retryCount + 1}/${API_CONFIG.RETRY_ATTEMPTS})`);
+            await this.delay(API_CONFIG.RETRY_DELAY);
+            return this.request(endpoint, options, retryCount + 1);
+          }
+
+          throw timeoutError;
+        }
+
+        if (error.message === 'Failed to fetch') {
+          const networkError = new Error('No se pudo conectar con el servidor.');
+          networkError.code = 'NETWORK_ERROR';
+          throw networkError;
+        }
+
+        console.error(`API Error [${endpoint}]:`, error.message);
+        throw error;
+      } finally {
+        this.releaseSlot();
+      }
+    })();
+
+    this.pendingRequests.set(requestKey, execution);
+    try {
+      return await execution;
+    } finally {
+      this.pendingRequests.delete(requestKey);
     }
   }
 
   async get(endpoint, params = {}) {
-    const queryParams = params.params || params;
-    return this.request(endpoint, { method: 'GET', params: queryParams });
+    // ✅ PARCHE TEMPORAL: Asegurar que limit esté siempre definido
+    const safeParams = {
+      page: 1,
+      limit: 10,
+      ...params
+    };
+    
+    // ✅ Limpiar parámetros undefined
+    Object.keys(safeParams).forEach(key => {
+      if (safeParams[key] === undefined) {
+        delete safeParams[key];
+      }
+    });
+    
+    console.log('🔍 Parámetros seguros enviados a GET:', safeParams);
+    
+    return this.request(endpoint, { 
+      method: 'GET', 
+      params: safeParams 
+    });
   }
 
   async post(endpoint, data) {

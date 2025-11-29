@@ -1,9 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Home, FileText } from 'lucide-react';
+import { Home, FileText, Building } from 'lucide-react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../../shared/components/ui/select';
 
-const DetailsStep = ({ formData, errors, updateFormData, onFieldComplete }) => {
+const DetailsStep = ({ formData, errors, updateFormData, onFieldComplete, properties, propertiesLoading }) => {
   const servicios = [
     'Avalúos',
     'Gestión de Alquileres',
@@ -71,6 +71,33 @@ const DetailsStep = ({ formData, errors, updateFormData, onFieldComplete }) => {
               {errors.servicio}
             </motion.p>
           )}
+        </div>
+
+        {/* Propiedad */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            <Building className="w-4 h-4 inline mr-2" />
+            Propiedad
+          </label>
+          <Select
+            value={formData.propiedad}
+            onValueChange={(value) => updateFormData('propiedad', value)}
+            disabled={propertiesLoading}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={propertiesLoading ? "Cargando propiedades..." : "Selecciona una propiedad (opcional)"} />
+            </SelectTrigger>
+            <SelectContent>
+              {properties.map((property) => (
+                <SelectItem key={property.id_inmueble} value={property.id_inmueble.toString()}>
+                  {property.registro_inmobiliario} - {property.direccion}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-slate-500 text-sm mt-1">
+            Opcional: Selecciona la propiedad relacionada con la cita
+          </p>
         </div>
 
         {/* Notas */}

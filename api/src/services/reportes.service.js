@@ -1,5 +1,6 @@
 const { Reporte, Persona } = require('../models');
 const { sequelize } = require('../config/database');
+const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 const { normalizePermissionsStructure, normalizeModuleKey, normalizePermissionKey } = require('../utils/permissions.helper');
 
@@ -629,8 +630,8 @@ class ReportesService {
       if (id_generado_por) whereClause.id_generado_por = id_generado_por;
       if (fecha_desde || fecha_hasta) {
         whereClause.fecha_generacion = {};
-        if (fecha_desde) whereClause.fecha_generacion[sequelize.Op.gte] = fecha_desde;
-        if (fecha_hasta) whereClause.fecha_generacion[sequelize.Op.lte] = fecha_hasta;
+        if (fecha_desde) whereClause.fecha_generacion[Op.gte] = fecha_desde;
+        if (fecha_hasta) whereClause.fecha_generacion[Op.lte] = fecha_hasta;
       }
 
       const { count, rows } = await Reporte.findAndCountAll({

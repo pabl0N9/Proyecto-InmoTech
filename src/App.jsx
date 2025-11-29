@@ -4,11 +4,7 @@ import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
 import { Toaster } from './shared/components/ui/toaster'
 import DashboardLayout from './shared/components/dashboard/Layout/DashboardLayout'
-<<<<<<< HEAD
 import ProtectedRoute, { EmployeeRoute, DashboardRoute, AuthenticatedRoute } from './shared/components/ProtectedRoute'
-=======
-import ProtectedRoute, { EmployeeRoute, DashboardRoute } from './shared/components/ProtectedRoute'
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
 
 // Pages
 import HomePage from './features/properties/pages/HomePage'
@@ -204,7 +200,6 @@ function App() {
                 <AppointmentPage />
               </DashboardLayout>
             </DashboardRoute>
-<<<<<<< HEAD
           }
         />
         <Route
@@ -245,8 +240,6 @@ function App() {
                 <UsersPage />
               </DashboardLayout>
             </DashboardRoute>
-=======
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
           }
         />
         <Route
@@ -287,6 +280,26 @@ function App() {
                 <UsersPage />
               </DashboardLayout>
             </DashboardRoute>
+          }
+        />
+        <Route
+          path="/dashboard/propietarios"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <OwnerDashboardPage />
+              </DashboardLayout>
+            </EmployeeRoute>
+          }
+        />
+        <Route
+          path="/dashboard/inmuebles"
+          element={
+            <EmployeeRoute>
+              <DashboardLayout>
+                <InmueblesDashboardPage />
+              </DashboardLayout>
+            </EmployeeRoute>
           }
         />
 

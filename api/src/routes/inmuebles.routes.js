@@ -1,18 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const inmueblesController = require('../controllers/inmuebles.controller');
-
-// ✅ CORRECTO
 const { validate, validateQuery } = require('../middlewares/validate.middleware');
 const auth = require('../middlewares/auth.middleware');
-
 const {
   crearInmuebleSchema,
   actualizarInmuebleSchema,
   buscarInmueblesSchema
 } = require('../validators/inmuebles.validator');
 
-// Rutas públicas (no requieren autenticación)
+// ========================================
+// RUTAS PÚBLICAS (sin autenticación)
+// ========================================
 router.get('/buscar',
   validateQuery(buscarInmueblesSchema),
   inmueblesController.buscarInmuebles

@@ -1,5 +1,35 @@
 const Joi = require('joi');
 
+const comodidadSchema = Joi.object({
+  nombre: Joi.string()
+    .max(100)
+    .required()
+    .messages({
+      'any.required': 'Cada comodidad debe tener un nombre',
+      'string.max': 'El nombre de la comodidad es demasiado largo'
+    }),
+  cantidad: Joi.number()
+    .integer()
+    .min(0)
+    .max(999)
+    .default(1)
+    .messages({
+      'number.min': 'La cantidad de la comodidad no puede ser negativa',
+      'number.max': 'La cantidad de la comodidad es demasiado grande'
+    }),
+  seleccionada: Joi.boolean().default(true),
+  custom: Joi.boolean().default(false)
+});
+
+const propietarioSchema = Joi.object({
+  id: Joi.number().integer().positive().optional(),
+  nombreCompleto: Joi.string().max(150).optional(),
+  nombre: Joi.string().max(150).optional(),
+  email: Joi.string().email().allow('', null).optional(),
+  telefono: Joi.string().allow('', null).optional(),
+  documento: Joi.string().allow('', null).optional()
+}).optional();
+
 // Validación para crear inmueble
 const crearInmuebleSchema = Joi.object({
   registro_inmobiliario: Joi.string()
@@ -48,6 +78,16 @@ const crearInmuebleSchema = Joi.object({
       'string.min': 'El departamento debe tener al menos 2 caracteres',
       'string.max': 'El departamento no puede exceder 100 caracteres',
       'any.required': 'El departamento es obligatorio'
+    }),
+
+  pais: Joi.string()
+    .min(2)
+    .max(100)
+    .required()
+    .messages({
+      'string.min': 'El país debe tener al menos 2 caracteres',
+      'string.max': 'El país no puede exceder 100 caracteres',
+      'any.required': 'El país es obligatorio'
     }),
 
   categoria: Joi.string()
@@ -148,6 +188,15 @@ const crearInmuebleSchema = Joi.object({
       'array.max': 'Demasiadas características'
     }),
 
+  comodidades: Joi.array()
+    .items(comodidadSchema)
+    .max(50)
+    .allow(null)
+    .optional()
+    .messages({
+      'array.max': 'Demasiadas comodidades'
+    }),
+
   imagenes: Joi.array()
     .items(Joi.string().uri())
     .max(20)
@@ -158,10 +207,13 @@ const crearInmuebleSchema = Joi.object({
       'string.uri': 'URL de imagen inválida'
     }),
 
+  propietario_id: Joi.number().integer().positive().optional(),
+  propietario: propietarioSchema.optional(),
+
   estado: Joi.boolean()
     .optional()
     .default(true)
-});
+}).unknown(true);
 
 // Validación para actualizar inmueble
 const actualizarInmuebleSchema = Joi.object({
@@ -200,14 +252,23 @@ const actualizarInmuebleSchema = Joi.object({
       'string.max': 'La ciudad no puede exceder 100 caracteres'
     }),
 
-  departamento: Joi.string()
-    .min(2)
-    .max(100)
-    .optional()
-    .messages({
-      'string.min': 'El departamento debe tener al menos 2 caracteres',
-      'string.max': 'El departamento no puede exceder 100 caracteres'
-    }),
+    departamento: Joi.string()
+      .min(2)
+      .max(100)
+      .optional()
+      .messages({
+        'string.min': 'El departamento debe tener al menos 2 caracteres',
+        'string.max': 'El departamento no puede exceder 100 caracteres'
+      }),
+
+    pais: Joi.string()
+      .min(2)
+      .max(100)
+      .optional()
+      .messages({
+        'string.min': 'El país debe tener al menos 2 caracteres',
+        'string.max': 'El país no puede exceder 100 caracteres'
+      }),
 
   categoria: Joi.string()
     .valid('Apartamento', 'Casa', 'Local', 'Oficina', 'Bodega', 'Lote', 'Finca', 'Otro')
@@ -306,6 +367,15 @@ const actualizarInmuebleSchema = Joi.object({
       'array.max': 'Demasiadas características'
     }),
 
+  comodidades: Joi.array()
+    .items(comodidadSchema)
+    .max(50)
+    .allow(null)
+    .optional()
+    .messages({
+      'array.max': 'Demasiadas comodidades'
+    }),
+
   imagenes: Joi.array()
     .items(Joi.string().uri())
     .max(20)
@@ -316,13 +386,17 @@ const actualizarInmuebleSchema = Joi.object({
       'string.uri': 'URL de imagen inválida'
     }),
 
+  propietario_id: Joi.number().integer().positive().optional(),
+  propietario: propietarioSchema.optional(),
+
   estado: Joi.boolean()
     .optional()
 })
   .min(1)
   .messages({
     'object.min': 'Debe proporcionar al menos un campo para actualizar'
-  });
+  })
+  .unknown(true);
 
 // Validación para buscar inmuebles
 const buscarInmueblesSchema = Joi.object({

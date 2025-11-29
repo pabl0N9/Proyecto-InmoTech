@@ -1,4 +1,4 @@
-const { Persona, Acceso, PersonasRol, Rol, Administrativo } = require('../models');
+﻿const { Persona, Acceso, PersonasRol, Rol, Administrativo } = require('../models');
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
@@ -7,6 +7,12 @@ const { buildPermissionsResponse } = require('../utils/permissions.helper');
 const invitacionService = require('./invitacion.service');
 
 const VERIFY_INVITE_TYPE = 'signup_verify';
+
+const normalizeEmail = (email = '') =>
+  typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+const buildEmailCondition = (email) =>
+  sequelize.where(sequelize.fn('LOWER', sequelize.col('correo')), email);
 
 class AuthService {
   /**
@@ -23,12 +29,12 @@ class AuthService {
 
         // Verificar si el email ya existe
         const personaExistente = await Persona.findOne({
-          where: { correo: email },
+          where: buildEmailCondition(normalizedEmail),
           transaction: t
         });
 
         if (personaExistente) {
-          throw new Error('El correo electrónico ya está registrado');
+          throw new Error('El correo electrÃ³nico ya estÃ¡ registrado');
         }
 
         // Crear persona
@@ -37,7 +43,7 @@ class AuthService {
           numero_documento: userData.numero_documento,
           nombre_completo: userData.nombre_completo,
           apellido_completo: userData.apellido_completo,
-          correo: email,
+          correo: normalizedEmail,
           telefono: userData.telefono,
           tiene_cuenta: true,
           estado: true,
@@ -65,6 +71,7 @@ class AuthService {
         }
 
         logger.info(`Usuario registrado: ${email}`);
+        const userRoles = rolUsuario ? [rolUsuario.nombre_rol] : [];
 
         return {
           user: {
@@ -107,9 +114,9 @@ class AuthService {
   }
 
   /**
-   * Inicia sesión de usuario
-   * @param {string} email - Correo electrónico
-   * @param {string} password - Contraseña
+   * Inicia sesiÃ³n de usuario
+   * @param {string} email - Correo electrÃ³nico
+   * @param {string} password - contraseña
    * @returns {Promise<Object>} Usuario autenticado con tokens
    */
   async iniciarSesion(email, password) {
@@ -150,13 +157,17 @@ class AuthService {
       });
 
       if (!persona) {
-        throw new Error('Credenciales inválidas');
+        const error = new Error('Credenciales inválidas');
+        error.status = 401;
+        throw error;
       }
 
       // Verificar contraseña
       const isValidPassword = await bcryptUtils.verifyPassword(password, persona.acceso.contrasena);
       if (!isValidPassword) {
-        throw new Error('Credenciales inválidas');
+        const error = new Error('Credenciales inválidas');
+        error.status = 401;
+        throw error;
       }
 
       // Validación adicional administrativa
@@ -257,7 +268,7 @@ class AuthService {
 
       const tokens = jwtUtils.generateTokens(payload);
 
-      logger.info(`Usuario inició sesión: ${email} (Administrativo: ${es_administrativo})`);
+      logger.info(`Usuario iniciÃ³ sesiÃ³n: ${email} (Administrativo: ${es_administrativo})`);
 
       return {
         user: {
@@ -278,7 +289,7 @@ class AuthService {
       };
 
     } catch (error) {
-      logger.error('Error en inicio de sesión:', error);
+      logger.error('Error en inicio de sesiÃ³n:', error);
       throw error;
     }
   }
@@ -460,3 +471,6 @@ class AuthService {
 }
 
 module.exports = new AuthService();
+
+
+

@@ -1,9 +1,26 @@
 const { Persona, Acceso, PersonasRol, Rol } = require('../models');
 const { sequelize } = require('../config/database');
+const { Op } = require('sequelize');
 const bcryptUtils = require('../utils/bcrypt');
 const logger = require('../utils/logger');
 const sseService = require('./sse.service');
 const invitacionService = require('./invitacion.service');
+
+const splitFullName = (value = '') => {
+  if (!value) {
+    return { first: '', second: '' };
+  }
+
+  const parts = value.trim().split(/\s+/);
+  if (parts.length === 1) {
+    return { first: parts[0], second: '' };
+  }
+
+  return {
+    first: parts.shift(),
+    second: parts.join(' ')
+  };
+};
 
 class PersonaService {
   /**
@@ -80,7 +97,7 @@ class PersonaService {
         where: {
           tipo_documento: tipoDocumento,
           numero_documento: {
-            [sequelize.Op.like]: `%${numeroDocumento}%`
+            [Op.like]: `%${numeroDocumento}%`
           },
           estado: true
         },
@@ -105,6 +122,7 @@ class PersonaService {
         correo: persona.correo,
         telefono: persona.telefono,
         tiene_cuenta: persona.tiene_cuenta,
+        estado: persona.estado,
         roles: persona.roles || []
       }));
     } catch (error) {
@@ -139,6 +157,9 @@ class PersonaService {
         throw new Error('Persona no encontrada');
       }
 
+      const nombres = splitFullName(persona.nombre_completo || '');
+      const apellidos = splitFullName(persona.apellido_completo || '');
+
       return {
         id_persona: persona.id_persona,
         tipo_documento: persona.tipo_documento,
@@ -148,6 +169,7 @@ class PersonaService {
         correo: persona.correo,
         telefono: persona.telefono,
         tiene_cuenta: persona.tiene_cuenta,
+        estado: persona.estado,
         fecha_registro: persona.fecha_registro,
         roles: persona.roles || []
       };

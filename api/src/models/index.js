@@ -177,12 +177,51 @@ PropiedadInmueble.belongsTo(Persona, {
 
 Inmueble.hasMany(PropiedadInmueble, {
   foreignKey: 'id_inmueble',
-  as: 'propietarios'
+  as: 'propietariosRelacion'
 });
 
 Persona.hasMany(PropiedadInmueble, {
   foreignKey: 'id_persona',
-  as: 'propiedades'
+  as: 'propiedadesRelacion'
+});
+
+Inmueble.belongsToMany(Persona, {
+  through: PropiedadInmueble,
+  foreignKey: 'id_inmueble',
+  otherKey: 'id_persona',
+  as: 'propietarios'
+});
+
+Persona.belongsToMany(Inmueble, {
+  through: PropiedadInmueble,
+  foreignKey: 'id_persona',
+  otherKey: 'id_inmueble',
+  as: 'inmuebles'
+});
+
+// Asociaciones de comodidades
+Inmueble.belongsToMany(Comodidad, {
+  through: InmuebleComodidad,
+  foreignKey: 'id_inmueble',
+  otherKey: 'id_comodidad',
+  as: 'comodidades'
+});
+
+Comodidad.belongsToMany(Inmueble, {
+  through: InmuebleComodidad,
+  foreignKey: 'id_comodidad',
+  otherKey: 'id_inmueble',
+  as: 'inmuebles'
+});
+
+Inmueble.hasMany(InmuebleComodidad, {
+  foreignKey: 'id_inmueble',
+  as: 'comodidadesRelacion'
+});
+
+InmuebleComodidad.belongsTo(Comodidad, {
+  foreignKey: 'id_comodidad',
+  as: 'comodidad'
 });
 
 // Asociaciones de Reporte
