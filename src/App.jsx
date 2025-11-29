@@ -5,11 +5,7 @@ import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
 import { Toaster } from './shared/components/ui/toaster'
 import DashboardLayout from './shared/components/dashboard/Layout/DashboardLayout'
-<<<<<<< HEAD
 import ProtectedRoute, { EmployeeRoute, DashboardRoute, AuthenticatedRoute } from './shared/components/ProtectedRoute'
-=======
-import ProtectedRoute, { EmployeeRoute, DashboardRoute } from './shared/components/ProtectedRoute'
->>>>>>> ce0cf95798581a8b1debed16ee980718455d53c2
 
 // Pages
 import HomePage from './features/properties/pages/HomePage'
@@ -248,67 +244,6 @@ function App() {
             </DashboardRoute>
           }
         />
-        <Route
-          path="/reportes/gestion"
-          element={
-            <DashboardRoute>
-              <DashboardLayout>
-                <Reports />
-              </DashboardLayout>
-            </DashboardRoute>
-          }
-        />
-        <Route
-          path="/seguridad/roles"
-          element={
-            <DashboardRoute>
-              <DashboardLayout>
-                <Roles />
-              </DashboardLayout>
-            </DashboardRoute>
-          }
-        />
-        <Route
-          path="/seguridad/administrativos"
-          element={
-            <DashboardRoute>
-              <DashboardLayout>
-                <AdministrativosPage />
-              </DashboardLayout>
-            </DashboardRoute>
-          }
-        />
-        <Route
-          path="/seguridad/usuarios"
-          element={
-            <DashboardRoute>
-              <DashboardLayout>
-                <UsersPage />
-              </DashboardLayout>
-            </DashboardRoute>
-          }
-        />
-        <Route
-          path="/dashboard/propietarios"
-          element={
-            <EmployeeRoute>
-              <DashboardLayout>
-                <OwnerDashboardPage />
-              </DashboardLayout>
-            </EmployeeRoute>
-          }
-        />
-        <Route
-          path="/dashboard/inmuebles"
-          element={
-            <EmployeeRoute>
-              <DashboardLayout>
-                <InmueblesDashboardPage />
-              </DashboardLayout>
-            </EmployeeRoute>
-          }
-        />
-
         <Route
           path={dashboardRoutes.profile}
           element={

@@ -379,47 +379,34 @@ if (rolInactivo) {
         }
 
         // Actualizar el rol (sin permisos)
-        const { permisos, ...updateFields } = updateData; // Separar permisos
+        const { permisos, ...updateFields } = updateData;
         await rol.update(updateFields, { transaction: t });
 
         // Si se enviaron permisos, actualizarlos
         if (permisos) {
           const normalizedPermissions = normalizePermissionsStructure(permisos);
-          // Desactivar permisos existentes
+
           await Permiso.update(
             { estado: false },
             { where: { id_rol: rolId }, transaction: t }
           );
 
-          // Reactivar o crear permisos según se necesite
           for (const [modulo, permisosModulo] of Object.entries(normalizedPermissions)) {
             for (const [permiso, valor] of Object.entries(permisosModulo)) {
-                continue;
-              }
+              if (!valor) continue;
 
-              // Buscar si ya existe el permiso (desactivado o activo)
               const [permisoExistente, created] = await Permiso.findOrCreate({
-                where: {
-                  id_rol: rolId,
-                  modulo,
-                  permiso
-                },
-                defaults: {
-                  id_rol: rolId,
-                  modulo,
-                  permiso,
-                  estado: true
-                },
+                where: { id_rol: rolId, modulo, permiso },
+                defaults: { id_rol: rolId, modulo, permiso, estado: true },
                 transaction: t
               });
 
-              // Si no se creó (ya existía), reactivarlo
               if (!created) {
                 await permisoExistente.update({ estado: true }, { transaction: t });
-          for (const [modulo, permisosModulo] of Object.entries(permisos)) {
-            for (const [permiso, valor] of Object.entries(permisosModulo)) {
+              }
+            }
+          }
         }
-
         logger.info(`Rol actualizado: ${rolId} por usuario ${userId}`);
         return rol;
 

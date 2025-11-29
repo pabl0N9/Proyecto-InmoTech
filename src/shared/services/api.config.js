@@ -1,169 +1,43 @@
 /**
- * @fileoverview Configuración centralizada de la API con cookies httpOnly
- * @version 5.0.0 - Usando cookies httpOnly para tokens JWT (más seguro)
+ * Cliente API simplificado usando fetch con cookies httpOnly.
  */
 
 const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
-  // Ampliamos timeout para operaciones que involucran DB y subida de imagen
   TIMEOUT: 60000,
   RETRY_ATTEMPTS: 2,
   RETRY_DELAY: 1000,
   HEADERS: {
     'Content-Type': 'application/json',
-  }
+  },
 };
 
 class ApiClient {
   constructor() {
-    this.isRefreshing = false;
-    this.failedQueue = [];
-    this.maxRetries = 1;
-    this.pendingRequests = new Map();
-    this.concurrentLimit = 1;
-    this.activeRequests = 0;
-    this.waitQueue = [];
-    this.minIntervalMs = 400;
-    this.nextRequestTime = 0;
-  }
-
-  processQueue(error, token = null) {
-    this.failedQueue.forEach(promise => {
-      if (error) {
-        promise.reject(error);
-      } else {
-        promise.resolve(token);
-      }
-    });
-    this.failedQueue = [];
-  }
-
-  getAccessToken() {
-    console.log('🛡️ Tokens ahora almacenados en cookies httpOnly - no accesibles desde frontend');
-    return null; // Los tokens están en cookies httpOnly
-  }
-
-  getRefreshToken() {
-    console.log('🛡️ Refresh token también en cookies httpOnly');
-    return null; // Los tokens están en cookies httpOnly
-  }
-
-  setTokens(accessToken, refreshToken) {
-    console.log('🛡️ Tokens enviados como cookies httpOnly por el backend');
-    // Los tokens se envían como cookies httpOnly por el backend
-  }
-
-  clearTokens() {
-    console.log('🛡️ Tokens limpiados mediante endpoint /auth/logout');
-    // Los tokens se limpian via backend (cookies.clearCookie)
-  }
-
-  async refreshAccessToken() {
-    const refreshToken = this.getRefreshToken();
-    
-    if (!refreshToken) {
-      throw new Error('No hay refresh token disponible');
-    }
-
-    try {
-      console.log('🔄 Intentando refrescar token...');
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refreshToken })
-      });
-
-      if (!response.ok) {
-        throw new Error('No se pudo refrescar el token');
-      }
-
-      const result = await response.json();
-      console.log('📦 Respuesta de refresh:', result.success);
-      
-      if (result.success && result.data) {
-        const { accessToken, refreshToken: newRefreshToken } = result.data;
-        
-        if (accessToken) {
-          this.setTokens(accessToken, newRefreshToken);
-          console.log('✅ Token refrescado y guardado exitosamente');
-          return accessToken;
-        }
-      }
-
-      throw new Error('Respuesta de refresh inválida');
-      
-    } catch (error) {
-      console.error('❌ Error al refrescar token:', error.message);
-      this.clearTokens();
-      throw error;
-    }
-  }
-
-  async handleTokenRefresh(endpoint, options, retryCount) {
-    if (retryCount >= this.maxRetries) {
-      console.error('❌ Máximo de reintentos alcanzado');
-      this.clearTokens();
-      throw new Error('No se pudo completar la petición después de refrescar el token');
-    }
-
-    if (this.isRefreshing) {
-      console.log('⏳ Esperando refresh en progreso...');
-      return new Promise((resolve, reject) => {
-        this.failedQueue.push({ resolve, reject });
-      }).then(() => {
-        console.log('♻️ Reintentando petición después de refresh...');
-        return this.request(endpoint, options, retryCount + 1);
-      });
-    }
-
-    this.isRefreshing = true;
-
-    try {
-      const newToken = await this.refreshAccessToken();
-      this.processQueue(null, newToken);
-      
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      console.log('♻️ Reintentando petición original con nuevo token...');
-      
-      const result = await this.request(endpoint, options, retryCount + 1);
-      
-      this.isRefreshing = false;
-      return result;
-      
-    } catch (refreshError) {
-      console.error('❌ Error en handleTokenRefresh:', refreshError.message);
-      this.processQueue(refreshError, null);
-      this.isRefreshing = false;
-      this.clearTokens();
-      
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
-      
-      throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-    }
+    this.maxRetries = 2;
   }
 
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  async request(endpoint, options = {}, retryCount = 0) {
-    let url = `${API_CONFIG.BASE_URL}${endpoint}`;
+  // Placeholders: tokens viven en cookies httpOnly
+  setTokens() {}
+  clearTokens() {}
 
-    // Manejar parámetros de consulta
+  async request(endpoint, options = {}, retryCount = 0) {
+    const url = new URL(`${API_CONFIG.BASE_URL}${endpoint}`);
+
     if (options.params && Object.keys(options.params).length > 0) {
-      const urlObj = new URL(url);
-      Object.keys(options.params).forEach(key => {
-        if (options.params[key] !== null && options.params[key] !== undefined) {
-          urlObj.searchParams.append(key, options.params[key]);
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          url.searchParams.append(key, value);
         }
       });
     }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
 
     const config = {
       ...options,
@@ -171,213 +45,96 @@ class ApiClient {
         ...API_CONFIG.HEADERS,
         ...options.headers,
       },
-      // Habilitar envío de cookies automáticamente
       credentials: 'include',
+      signal: controller.signal,
     };
 
-    // No necesitamos Authorization headers - el navegador envía cookies automáticamente
-    console.log('🍪 Cookies httpOnly serán enviadas automáticamente por el navegador');
-
-    if (config.params) {
-      delete config.params;
-    }
+    // No reenviar params en fetch
+    delete config.params;
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-
-      console.log(`📤 ${options.method || 'GET'} ${url}`);
-
-      const response = await fetch(url, {
-        ...config,
-        signal: controller.signal,
-      });
-
+      const response = await fetch(url.toString(), config);
       clearTimeout(timeoutId);
 
-    if (this.pendingRequests.has(requestKey)) {
-      console.log('Peticion duplicada detectada, esperando resultado:', endpoint);
-      return this.pendingRequests.get(requestKey);
-    }
+      if (response.status === 429) {
+        if (retryCount < API_CONFIG.RETRY_ATTEMPTS + 2) {
+          const waitTime = API_CONFIG.RETRY_DELAY * (retryCount + 1);
+          await this.delay(waitTime);
+          return this.request(endpoint, options, retryCount + 1);
+        }
+        throw new Error('Demasiadas peticiones. Por favor, espera e intenta nuevamente.');
+      }
 
-      // ⚠️ INTERCEPTOR DE SEGURIDAD: Verificar respuesta antes de procesar
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({
-          message: response.statusText
+          message: response.statusText,
         }));
-
-        // 🚨 DETECTAR LOGOUT FORZADO
-        if (errorData.forceLogout === true) {
-          console.log('🚨 Respuesta con logout forzado detectado:', errorData);
-
-          try {
-            // Emitir evento SSE para logout forzado
-            const sseService = (await import('./sseService.js')).default;
-            sseService.emit('user_disabled', {
-              message: errorData.message,
-              action: 'logout',
-              reason: errorData.reason || 'security_required',
-              timestamp: new Date().toISOString()
-            });
-
-            // Esperar un poco para que el evento SSE sea procesado
-            await new Promise(resolve => setTimeout(resolve, 500));
-          } catch (sseError) {
-            console.warn('⚠️ Error enviando evento SSE de logout forzado:', sseError.message);
-          }
-
-          // No lanzar error, el SSE se encargará del logout
-          return errorData;
-        }
-
         const error = new Error(errorData.message || `Error ${response.status}`);
         error.status = response.status;
         error.data = errorData;
         throw error;
       }
 
-      // ✅ Respuesta OK: continuar normalmente
-      if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
-        console.warn('🔄 Token expirado (401), intentando refrescar...');
-        return await this.handleTokenRefresh(endpoint, options, retryCount);
-      }
-
-        console.log(`${options.method || 'GET'} ${url}`);
-
       const data = await response.json();
 
-      // Guardar tokens si vienen en la respuesta
-      if (data.success && data.data && data.data.accessToken) {
-        console.log('🔑 Tokens detectados en respuesta, guardando...');
+      if (data?.success && data?.data?.accessToken) {
         this.setTokens(data.data.accessToken, data.data.refreshToken);
       }
 
       return data;
-
     } catch (error) {
       if (error.name === 'AbortError') {
-        const timeoutError = new Error('La petición tardó demasiado tiempo.');
-        timeoutError.code = 'TIMEOUT';
-
         if (retryCount < API_CONFIG.RETRY_ATTEMPTS) {
-          console.warn(`⏳ Timeout. Reintentando... (${retryCount + 1}/${API_CONFIG.RETRY_ATTEMPTS})`);
           await this.delay(API_CONFIG.RETRY_DELAY);
           return this.request(endpoint, options, retryCount + 1);
         }
-
+        const timeoutError = new Error('La peticion tardo demasiado tiempo.');
+        timeoutError.code = 'TIMEOUT';
         throw timeoutError;
       }
 
-        if (response.status === 429) {
-          console.warn('429 detectado, aplicando espera controlada...', retryCount);
-          if (retryCount < API_CONFIG.RETRY_ATTEMPTS + 2) {
-            const waitTime = API_CONFIG.RETRY_DELAY * (retryCount + 1);
-            await this.delay(waitTime);
-            return this.request(endpoint, options, retryCount + 1);
-          }
-          throw new Error('Demasiadas peticiones. Por favor, espera un momento e intenta nuevamente.');
-        }
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({
-            message: response.statusText,
-          }));
-          const error = new Error(errorData.message || `Error ${response.status}`);
-          error.status = response.status;
-          error.data = errorData;
-          throw error;
-        }
-
-        const data = await response.json();
-
-        if (data.success && data.data && data.data.accessToken) {
-          console.log('Tokens detectados en respuesta, guardando...');
-          this.setTokens(data.data.accessToken, data.data.refreshToken);
-        }
-
-        return data;
-      } catch (error) {
-        if (error.name === 'AbortError') {
-          const timeoutError = new Error('La peticion tardo demasiado tiempo.');
-          timeoutError.code = 'TIMEOUT';
-
-          if (retryCount < API_CONFIG.RETRY_ATTEMPTS) {
-            console.warn(`Timeout. Reintentando... (${retryCount + 1}/${API_CONFIG.RETRY_ATTEMPTS})`);
-            await this.delay(API_CONFIG.RETRY_DELAY);
-            return this.request(endpoint, options, retryCount + 1);
-          }
-
-          throw timeoutError;
-        }
-
-        if (error.message === 'Failed to fetch') {
-          const networkError = new Error('No se pudo conectar con el servidor.');
-          networkError.code = 'NETWORK_ERROR';
-          throw networkError;
-        }
-
-        console.error(`API Error [${endpoint}]:`, error.message);
-        throw error;
-      } finally {
-        this.releaseSlot();
+      if (error.message === 'Failed to fetch') {
+        const networkError = new Error('No se pudo conectar con el servidor.');
+        networkError.code = 'NETWORK_ERROR';
+        throw networkError;
       }
-    })();
 
-    this.pendingRequests.set(requestKey, execution);
-    try {
-      return await execution;
-    } finally {
-      this.pendingRequests.delete(requestKey);
+      throw error;
     }
   }
 
   async get(endpoint, params = {}) {
-    // ✅ PARCHE TEMPORAL: Asegurar que limit esté siempre definido
-    const safeParams = {
-      page: 1,
-      limit: 10,
-      ...params
-    };
-    
-    // ✅ Limpiar parámetros undefined
-    Object.keys(safeParams).forEach(key => {
-      if (safeParams[key] === undefined) {
-        delete safeParams[key];
-      }
-    });
-    
-    console.log('🔍 Parámetros seguros enviados a GET:', safeParams);
-    
-    return this.request(endpoint, { 
-      method: 'GET', 
-      params: safeParams 
-    });
+    return this.request(endpoint, { method: 'GET', params });
   }
 
-  async post(endpoint, data) {
+  async post(endpoint, body = {}, headers = {}) {
     return this.request(endpoint, {
       method: 'POST',
-      body: JSON.stringify(data),
+      headers,
+      body: JSON.stringify(body),
     });
   }
 
-  async put(endpoint, data) {
+  async put(endpoint, body = {}, headers = {}) {
     return this.request(endpoint, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      headers,
+      body: JSON.stringify(body),
     });
   }
 
-  async patch(endpoint, data) {
+  async patch(endpoint, body = {}, headers = {}) {
     return this.request(endpoint, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      headers,
+      body: JSON.stringify(body),
     });
   }
 
-  async delete(endpoint) {
+  async delete(endpoint, headers = {}) {
     return this.request(endpoint, {
       method: 'DELETE',
+      headers,
     });
   }
 }

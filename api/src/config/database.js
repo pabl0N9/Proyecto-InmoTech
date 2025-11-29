@@ -11,8 +11,9 @@ const REQUEST_TIMEOUT = parseInt(process.env.DB_REQUEST_TIMEOUT || '60000', 10);
 const CONNECT_TIMEOUT = parseInt(process.env.DB_CONNECT_TIMEOUT || '60000', 10);
 
 const SERVER = process.env.DB_SERVER || 'localhost';
-const INSTANCE = process.env.DB_INSTANCE || '';
-const PORT = INSTANCE ? undefined : parseInt(process.env.DB_PORT || '1433', 10);
+// Si se define DB_PORT, priorizamos puerto y anulamos instancia (mssql no permite ambos)
+const PORT = process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : undefined;
+const INSTANCE = PORT ? '' : (process.env.DB_INSTANCE || '');
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -20,7 +21,6 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: SERVER,
-    ...(PORT ? { port: PORT } : {}),
     dialect: 'mssql',
     dialectOptions: {
       encrypt: process.env.DB_ENCRYPT === 'true',
@@ -31,6 +31,7 @@ const sequelize = new Sequelize(
         requestTimeout: REQUEST_TIMEOUT,
         connectTimeout: CONNECT_TIMEOUT,
         ...(INSTANCE ? { instanceName: INSTANCE } : {}),
+        ...(PORT ? { port: PORT } : {}),
       }
     },
     pool: {
@@ -57,7 +58,7 @@ const testConnection = async () => {
     logger.info('🔌 Intentando conectar a SQL Server...');
     logger.info(`   Servidor: ${SERVER}`);
     logger.info(`   Instancia: ${INSTANCE || '(por defecto)'}`);
-    logger.info(`   Puerto: ${PORT || '(usando instancia)'}`);
+    logger.info(`   Puerto: ${PORT || '(usando instancia/dinámico)'}`);
     logger.info(`   Base de datos: ${process.env.DB_NAME}`);
     
     await sequelize.authenticate();

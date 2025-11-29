@@ -1,4 +1,4 @@
-// Centraliza las rutas para el menú del dashboard
+// Centraliza las rutas para el menu del dashboard
 import { dashboardRoutes } from '../../routes/index';
 
 import {
@@ -13,27 +13,28 @@ import {
   MdWeb
 } from 'react-icons/md';
 
-
 /**
- * Filtra los elementos visibles según los módulos habilitados
+ * Filtra los elementos visibles segun los modulos habilitados
  */
 export const getFilteredNavigation = (availableModules = []) => {
-  if (
+  const hasFullAccess =
     availableModules.includes('inmuebles') ||
+    availableModules.includes('propiedades') ||
     availableModules.includes('citas') ||
     availableModules.includes('reportes') ||
-    availableModules.includes('administrativos')
-  ) {
+    availableModules.includes('administrativos');
+
+  if (hasFullAccess) {
     return navigationItems;
   }
 
   const filteredItems = [navigationItems[0]];
 
-  if (availableModules.includes('citas')) {
+  if (availableModules.includes('citas') || availableModules.includes('gCitas')) {
     filteredItems.push(navigationItems.find(item => item.id === 'citas'));
   }
 
-  if (availableModules.includes('inmuebles')) {
+  if (availableModules.includes('inmuebles') || availableModules.includes('propiedades')) {
     filteredItems.push(navigationItems.find(item => item.id === 'inmuebles'));
   }
 
@@ -47,62 +48,21 @@ export const getFilteredNavigation = (availableModules = []) => {
   if (availableModules.includes('usuarios')) {
     subItemsSeguridad.push(seguridadItem.subItems[0]);
   }
-  if (availableModules.includes('administrativos')) {
+  if (availableModules.includes('administrativos') || availableModules.includes('gAdministrativos')) {
     subItemsSeguridad.push(seguridadItem.subItems[1]);
   }
-  if (availableModules.includes('roles')) {
+  if (availableModules.includes('roles') || availableModules.includes('gRoles')) {
     subItemsSeguridad.push(seguridadItem.subItems[2]);
   }
 
   if (subItemsSeguridad.length > 0) {
     filteredItems.push({ ...seguridadItem, subItems: subItemsSeguridad });
-// Función para filtrar navegación basada en permisos del usuario
-export const getFilteredNavigation = (availableModules = []) => {
-  // ✅ ADMINISTRADORES VEN TODOS LOS MÓDULOS
-  if (availableModules.includes('propiedades') || availableModules.includes('citas') ||
-      availableModules.includes('reportes') || availableModules.includes('administrativos')) {
-    return navigationItems; // Mostrar todos los módulos disponibles
-  }
-
-  // Para usuarios normales, filtrar por permisos específicos
-  const filteredItems = [navigationItems[0]]; // Siempre incluir Dashboard
-
-  // Solo incluir módulos implementados
-  if (availableModules.includes('citas') || availableModules.includes('gCitas')) {
-    filteredItems.push(navigationItems.find(item => item.id === 'citas')); // Citas
-  }
-
-  if (availableModules.includes('propiedades')) {
-    filteredItems.push(navigationItems.find(item => item.id === 'inmuebles')); // Inmuebles
-  }
-
-  if (availableModules.includes('reportes')) {
-    filteredItems.push(navigationItems.find(item => item.id === 'reportes')); // Reportes
-  }
-
-  // El módulo de Seguridad incluye solo los módulos implementados
-  const seguridadItem = navigationItems.find(item => item.id === 'seguridad'); // Copia del ítem de Seguridad
-  const subItemsSeguridad = [];
-
-  if (availableModules.includes('gAdministrativos') || availableModules.includes('administrativos')) {
-    subItemsSeguridad.push(seguridadItem.subItems[1]); // Administrativos (índice 1)
-  }
-  if (availableModules.includes('gRoles')) {
-    subItemsSeguridad.push(seguridadItem.subItems[2]); // Roles (índice 2)
-  }
-
-  if (subItemsSeguridad.length > 0) {
-    const newseguridadItem = { ...seguridadItem, subItems: subItemsSeguridad };
-    filteredItems.push(newseguridadItem);
   }
 
   return filteredItems;
 };
 
-
-// Ítems principales del menú lateral
-
-// Lista de elementos principales del menú de navegación
+// Lista de elementos principales del menu de navegacion
 export const navigationItems = [
   {
     id: 'dashboard',
@@ -120,14 +80,14 @@ export const navigationItems = [
       {
         id: 'gestion-inmuebles',
         title: 'Gestion de Inmuebles',
-        path: dashboardRoutes.properties
+        path: dashboardRoutes.properties,
       },
       {
         id: 'gestion-propietarios',
         title: 'Gestion de Propietarios',
-        path: dashboardRoutes.owners
-      }
-    ]
+        path: dashboardRoutes.owners,
+      },
+    ],
   },
   {
     id: 'citas',

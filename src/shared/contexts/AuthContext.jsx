@@ -364,45 +364,33 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Logout forzado por eventos SSE
-  const handleForcedLogout = useCallback((data) => {
+  const performForcedLogout = useCallback(async (message) => {
     try {
-      console.warn('Logout forzado por SSE', data);
-      disconnectSSE();
+      setIsAuthenticated(false);
+      setUser(null);
+      sseService.setForcedDisconnect();
+      sseService.disconnect();
       clearAuthData();
+
       toast({
-        title: 'Sesión finalizada',
-        description: data?.message || 'Tu sesión fue cerrada por seguridad',
+        title: 'Cuenta deshabilitada',
+        description: message,
         variant: 'destructive'
       });
-      navigate('/login');
+
+      setTimeout(() => {
+        if (window.location.pathname !== '/login') {
+          navigate('/login', { replace: true });
+        }
+      }, 1500);
     } catch (err) {
       console.error('Error manejando logout forzado:', err);
     }
-  }, [clearAuthData, disconnectSSE, navigate, toast]);
-
-    setIsAuthenticated(false);
-    setUser(null);
-    sseService.setForcedDisconnect();
-    sseService.disconnect();
-    clearAuthData();
-
-    toast({
-      title: 'Cuenta deshabilitada',
-      description: message,
-      variant: 'destructive'
-    });
-
-    setTimeout(() => {
-      if (window.location.pathname !== '/login') {
-        navigate('/login', { replace: true });
-      }
-    }, 1500);
-  }, [toast, navigate, clearAuthData];
+  }, [toast, navigate, clearAuthData]);
 
   const handleForcedLogout = useCallback(async (eventData) => {
-    console.log('Evento SSE recibido - Cierre de sesión forzado:', eventData);
-    const message = eventData.message || 'Tu sesión ha sido terminada por seguridad.';
+    console.log('Evento SSE recibido - Cierre de sesion forzado:', eventData);
+    const message = eventData.message || 'Tu sesion ha sido terminada por seguridad.';
     await performForcedLogout(message);
   }, [performForcedLogout]);
 
