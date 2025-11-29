@@ -7,6 +7,7 @@ import CustomerStep from './steps/CustomerStep';
 import DateTimeStep from './steps/DateTimeStep';
 import DetailsStepStep from './steps/DetailsStep';
 import SummaryStepStep from './steps/SummaryStep';
+import ConfirmationModal from './ConfirmationModal';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import { useAppointments } from '../../../../shared/contexts/AppointmentContext';
@@ -821,7 +822,6 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
             </div>
           </div>
         </motion.div>
-
 
       </div>
     </AnimatePresence>,

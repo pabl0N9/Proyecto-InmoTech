@@ -18,7 +18,6 @@ class AuthService {
   async login(email, password) {
     try {
       console.log('🔐 Enviando solicitud de login para:', email);
-
       const response = await apiClient.post('/auth/login', {
         email: email.trim().toLowerCase(),
         password

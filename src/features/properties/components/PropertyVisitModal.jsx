@@ -15,7 +15,9 @@ import {
   DollarSign,
   Info,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Save,
+  Clock as ClockIcon
 } from 'lucide-react';
 import { formatPhoneNumber } from '../../../shared/utils/phoneFormatter';
 import { useToast } from '../../../shared/hooks/use-toast';

@@ -133,81 +133,6 @@ BEGIN
 END
 GO
 
-ALTER TABLE Acceso ADD ultimo_cambio_password DATETIME NULL DEFAULT GETDATE();
-GO
-
-<<<<<<< HEAD
-
-
-/*
-  Script para habilitar el flujo de invitaciones con código 6D.
-  - Crea tabla Invitaciones
-  - Agrega flag password_change_required a Acceso
-*/
-
--- Tabla Invitaciones
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Invitaciones' AND xtype='U')
-BEGIN
-  CREATE TABLE Invitaciones (
-    id_invitacion INT IDENTITY(1,1) PRIMARY KEY,
-    id_persona INT NOT NULL,
-    tipo VARCHAR(20) NOT NULL DEFAULT 'admin_invite',
-    token_hash VARCHAR(255) NOT NULL UNIQUE,
-    codigo_6d CHAR(6) NOT NULL,
-    expira_en DATETIME NOT NULL,
-    usado_en DATETIME NULL,
-    intentos INT NOT NULL DEFAULT 0,
-    reenvios INT NOT NULL DEFAULT 0,
-    creado_en DATETIME NOT NULL DEFAULT GETDATE(),
-    creado_por INT NULL,
-    ip_uso VARCHAR(64) NULL,
-    ua_uso VARCHAR(255) NULL
-  );
-
-  CREATE INDEX IX_Invitaciones_Persona ON Invitaciones (id_persona);
-  CREATE INDEX IX_Invitaciones_Expira ON Invitaciones (expira_en);
-
-  ALTER TABLE Invitaciones
-    ADD CONSTRAINT FK_Invitaciones_Persona
-    FOREIGN KEY (id_persona) REFERENCES Personas(id_persona);
-END
-GO
-
--- Campos adicionales para el flujo de invitaciones/verificación
-IF COL_LENGTH('Invitaciones', 'tipo') IS NULL
-BEGIN
-  ALTER TABLE Invitaciones
-    ADD tipo VARCHAR(20) NOT NULL CONSTRAINT DF_Invitaciones_tipo DEFAULT 'admin_invite';
-END
-GO
-
-IF COL_LENGTH('Invitaciones', 'reenvios') IS NULL
-BEGIN
-  ALTER TABLE Invitaciones
-    ADD reenvios INT NOT NULL CONSTRAINT DF_Invitaciones_reenvios DEFAULT 0;
-END
-GO
-
--- Flag para correo verificado en Personas
-IF COL_LENGTH('Personas', 'correo_verificado') IS NULL
-BEGIN
-  ALTER TABLE Personas
-    ADD correo_verificado BIT NOT NULL CONSTRAINT DF_Personas_correo_verificado DEFAULT 0;
-END
-GO
-
--- Flag en Acceso para forzar cambio de password
-IF COL_LENGTH('Acceso', 'password_change_required') IS NULL
-BEGIN
-  ALTER TABLE Acceso
-    ADD password_change_required BIT NOT NULL CONSTRAINT DF_Acceso_password_change_required DEFAULT 0;
-END
-GO
-
-
-
-=======
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
 -- ---------------------------------------------------------------------------------------------------------------------
 -- Tabla: Roles
 -- Descripción: Define los roles del sistema con permisos específicos
@@ -288,60 +213,6 @@ CREATE NONCLUSTERED INDEX IX_PersonasRol_Persona ON Personas_rol(id_persona);  -
 CREATE NONCLUSTERED INDEX IX_PersonasRol_Rol ON Personas_rol(id_rol);          -- Obtener personas con un rol
 GO
 
-<<<<<<< HEAD
-=======
--- ======================[ TABLA DE PROPIETARIOS ]=========================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Propietarios]') AND type = 'U')
-BEGIN
-    CREATE TABLE [dbo].[Propietarios] (
-        id_propietario INT IDENTITY(1,1) PRIMARY KEY,
-        id_persona INT NOT NULL,
-        numero_contrato NVARCHAR(50) NULL,
-        fecha_inicio DATE NOT NULL DEFAULT CONVERT(date, GETDATE()),
-        fecha_fin DATE NULL,
-        estado NVARCHAR(20) NOT NULL DEFAULT 'Activo',
-        CONSTRAINT FK_Propietarios_Personas FOREIGN KEY (id_persona)
-            REFERENCES [dbo].[Personas](id_persona) ON DELETE CASCADE,
-        CONSTRAINT UQ_Propietarios_Persona UNIQUE (id_persona)
-    );
-END
-GO
-
-CREATE NONCLUSTERED INDEX IX_Propietarios_estado ON [dbo].[Propietarios](estado);
-CREATE NONCLUSTERED INDEX IX_Propietarios_id_persona ON [dbo].[Propietarios](id_persona);
-GO
-
--- ======================[ CAMPOS Y FK EN INMUEBLES ]=========================
-
-IF COL_LENGTH('dbo.Inmuebles', 'propietario') IS NULL
-BEGIN
-    ALTER TABLE dbo.Inmuebles ADD propietario NVARCHAR(200) NULL;
-END
-GO
-
-IF COL_LENGTH('dbo.Inmuebles', 'id_propietario') IS NULL
-BEGIN
-    ALTER TABLE dbo.Inmuebles ADD id_propietario INT NULL;
-END
-GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.foreign_keys
-    WHERE name = 'FK_Inmuebles_Propietarios'
-    AND parent_object_id = OBJECT_ID('dbo.Inmuebles')
-)
-BEGIN
-    ALTER TABLE dbo.Inmuebles
-    ADD CONSTRAINT FK_Inmuebles_Propietarios
-    FOREIGN KEY (id_propietario) REFERENCES [dbo].[Propietarios](id_propietario)
-    ON DELETE SET NULL;
-END
-GO
-
-CREATE NONCLUSTERED INDEX IX_Inmuebles_id_propietario ON dbo.Inmuebles(id_propietario);
-GO
-
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
 -- =====================================================================================================================
 -- PASO 3: TABLA DE ADMINISTRATIVOS (PERSONAL INTERNO)
 -- =====================================================================================================================
@@ -408,21 +279,16 @@ IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[In
 BEGIN
     CREATE TABLE Inmuebles (
         id_inmueble INT PRIMARY KEY IDENTITY(1,1),
-<<<<<<< HEAD
 
         -- Identificación única del inmueble
         registro_inmobiliario VARCHAR(50) NOT NULL UNIQUE,  -- Matrícula inmobiliaria
 
         -- Ubicación
-=======
-        registro_inmobiliario VARCHAR(50) NOT NULL UNIQUE,
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
         pais VARCHAR(50) NOT NULL,
         departamento VARCHAR(50) NOT NULL,
         ciudad VARCHAR(50) NOT NULL,
         barrio VARCHAR(50) NULL,
         direccion VARCHAR(100) NOT NULL,
-<<<<<<< HEAD
 
         -- Características básicas
         categoria VARCHAR(50) NULL,                         -- Casa, Apartamento, Local, Oficina, Lote
@@ -450,52 +316,6 @@ CREATE NONCLUSTERED INDEX IX_Inmuebles_Categoria ON Inmuebles(categoria);       
 CREATE NONCLUSTERED INDEX IX_Inmuebles_Precio ON Inmuebles(precio_venta);       -- Ordenar por precio
 GO
 
-=======
-        categoria VARCHAR(50) NULL,
-        precio_venta DECIMAL(15,2) NULL,
-        precio_arriendo DECIMAL(15,2) NULL,
-        area_construida DECIMAL(10,2) NULL,
-        area_terreno DECIMAL(10,2) NULL,
-        descripcion TEXT NULL,
-        estado VARCHAR(50) NOT NULL DEFAULT 'Disponible',
-        fecha_registro DATETIME2(3) NOT NULL DEFAULT GETDATE()
-    );
-END
-GO
-
-IF COL_LENGTH('dbo.Inmuebles', 'propietario') IS NULL
-BEGIN
-    ALTER TABLE dbo.Inmuebles ADD propietario NVARCHAR(200) NULL;
-END
-GO
-
-IF COL_LENGTH('dbo.Inmuebles', 'id_propietario') IS NULL
-BEGIN
-    ALTER TABLE dbo.Inmuebles ADD id_propietario INT NULL;
-END
-GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.foreign_keys
-    WHERE name = 'FK_Inmuebles_Propietarios'
-    AND parent_object_id = OBJECT_ID('dbo.Inmuebles')
-)
-BEGIN
-    ALTER TABLE dbo.Inmuebles
-    ADD CONSTRAINT FK_Inmuebles_Propietarios
-    FOREIGN KEY (id_propietario) REFERENCES [dbo].[Propietarios](id_propietario)
-    ON DELETE SET NULL;
-END
-GO
-
-CREATE NONCLUSTERED INDEX IX_Inmuebles_id_propietario ON dbo.Inmuebles(id_propietario);
-CREATE NONCLUSTERED INDEX IX_Inmuebles_Ciudad ON Inmuebles(ciudad, estado);
-CREATE NONCLUSTERED INDEX IX_Inmuebles_Categoria ON Inmuebles(categoria);
-CREATE NONCLUSTERED INDEX IX_Inmuebles_Precio ON Inmuebles(precio_venta);
-GO
-
-
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
 -- ---------------------------------------------------------------------------------------------------------------------
 -- Tabla: Propiedad_inmueble
 -- Descripción: Relación entre Personas y sus Inmuebles (quién es dueño de qué)
@@ -505,7 +325,6 @@ GO
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Propiedad_inmueble]') AND type = 'U')
 BEGIN
     CREATE TABLE Propiedad_inmueble (
-<<<<<<< HEAD
         id_propietario INT PRIMARY KEY IDENTITY(1,1),
         id_inmueble INT NOT NULL,
         id_persona INT NOT NULL,
@@ -513,22 +332,11 @@ BEGIN
         fecha_final DATE NULL,                              -- NULL = propietario actual
         estado VARCHAR(20) NOT NULL DEFAULT 'Activo',       -- Activo, Inactivo
 
-=======
-        id_propiedad INT PRIMARY KEY IDENTITY(1,1),
-        id_inmueble INT NOT NULL,
-        id_persona INT NOT NULL,
-        fecha_inicio DATE NOT NULL,
-        fecha_final DATE NULL,
-        estado VARCHAR(20) NOT NULL DEFAULT 'Activo',
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
         CONSTRAINT FK_Propiedad_Inmueble FOREIGN KEY (id_inmueble) REFERENCES Inmuebles(id_inmueble) ON DELETE CASCADE,
         CONSTRAINT FK_Propiedad_Persona FOREIGN KEY (id_persona) REFERENCES Personas(id_persona),
         CONSTRAINT CHK_Propiedad_Fechas CHECK (fecha_final IS NULL OR fecha_final >= fecha_inicio)
     );
-<<<<<<< HEAD
     PRINT '✅ Tabla Propiedad_inmueble creada';
-=======
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
 END
 GO
 
@@ -771,18 +579,11 @@ GO
 -- Tipos:       Mantenimiento, Daño, Queja, Sugerencia
 -- Estados:     Pendiente → En Proceso → Resuelto → Cerrado
 -- ---------------------------------------------------------------------------------------------------------------------
-<<<<<<< HEAD
-=======
--- MÓDULO DE REPORTES Y DEPENDENCIAS
-
--- ================= Tabla principal: Reportes =================
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Reportes]') AND type = 'U')
 BEGIN
     CREATE TABLE Reportes (
         id_reporte INT PRIMARY KEY IDENTITY(1,1),
         id_inmueble INT NOT NULL,
-<<<<<<< HEAD
 
         -- Tipo y contenido
         tipo_reporte VARCHAR(50) NOT NULL,                  -- Mantenimiento, Daño, Queja, Sugerencia
@@ -817,114 +618,6 @@ CREATE NONCLUSTERED INDEX IX_Reportes_Inmueble ON Reportes(id_inmueble);
 CREATE NONCLUSTERED INDEX IX_Reportes_Prioridad ON Reportes(prioridad) WHERE estado != 'Cerrado';
 GO
 
-=======
-        tipo_reporte VARCHAR(50) NOT NULL,
-        estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente',
-        descripcion TEXT NOT NULL,
-        fecha_creacion DATETIME NOT NULL DEFAULT GETDATE(),
-        fecha_estado DATETIME NULL,
-        id_responsable INT NOT NULL,
-        seguimiento_general TEXT NULL,
-        id_persona_reporta INT NOT NULL,
-        fecha_modificacion DATETIME NULL,
-        FOREIGN KEY (id_inmueble) REFERENCES Inmuebles(id_inmueble),
-        FOREIGN KEY (id_responsable) REFERENCES Personas(id_persona),
-        FOREIGN KEY (id_persona_reporta) REFERENCES Personas(id_persona)
-    );
-END
-GO
-
--- Asegura compatibilidad con campo de seguimiento general
-IF COL_LENGTH('dbo.Reportes', 'seguimiento_general') IS NULL
-BEGIN
-    ALTER TABLE Reportes ADD seguimiento_general TEXT NULL;
-END
-GO
-
--- Índices para búsquedas optimizadas
-CREATE NONCLUSTERED INDEX IX_Reportes_Inmueble ON Reportes(id_inmueble);
-CREATE NONCLUSTERED INDEX IX_Reportes_Estado ON Reportes(estado) INCLUDE (fecha_creacion);
-CREATE NONCLUSTERED INDEX IX_Reportes_Responsable ON Reportes(id_responsable);
-GO
-
--- --------------- Tabla: Reporte_Imagen ----------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Reporte_Imagen]') AND type = 'U')
-BEGIN
-    CREATE TABLE Reporte_Imagen (
-        id_imagen INT PRIMARY KEY IDENTITY(1,1),
-        id_reporte INT NOT NULL,
-        url_imagen VARCHAR(255) NOT NULL,
-        descripcion VARCHAR(200) NULL,
-        FOREIGN KEY (id_reporte) REFERENCES Reportes(id_reporte) ON DELETE CASCADE
-    );
-END
-GO
-
--- --------------- Tabla: Reporte_Archivo ---------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Reporte_Archivo]') AND type = 'U')
-BEGIN
-    CREATE TABLE Reporte_Archivo (
-        id_archivo INT PRIMARY KEY IDENTITY(1,1),
-        id_reporte INT NOT NULL,
-        url_archivo VARCHAR(255) NOT NULL,
-        descripcion VARCHAR(200) NULL,
-        FOREIGN KEY (id_reporte) REFERENCES Reportes(id_reporte) ON DELETE CASCADE
-    );
-END
-GO
-
--- --------------- Tabla: Reporte_Rubro -----------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Reporte_Rubro]') AND type = 'U')
-BEGIN
-    CREATE TABLE Reporte_Rubro (
-        id_rubro INT PRIMARY KEY IDENTITY(1,1),
-        id_reporte INT NOT NULL,
-        nombre VARCHAR(100) NOT NULL,
-        descripcion TEXT NULL,
-        FOREIGN KEY (id_reporte) REFERENCES Reportes(id_reporte) ON DELETE CASCADE
-    );
-END
-GO
-
--- --------------- Tabla: Rubro_Seguimiento --------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Rubro_Seguimiento]') AND type = 'U')
-BEGIN
-    CREATE TABLE Rubro_Seguimiento (
-        id_seguimiento INT PRIMARY KEY IDENTITY(1,1),
-        id_rubro INT NOT NULL,
-        fecha DATETIME NOT NULL DEFAULT GETDATE(),
-        estado VARCHAR(20) NOT NULL,
-        id_responsable INT NOT NULL,
-        descripcion TEXT NOT NULL,
-        FOREIGN KEY (id_rubro) REFERENCES Reporte_Rubro(id_rubro) ON DELETE CASCADE,
-        FOREIGN KEY (id_responsable) REFERENCES Personas(id_persona)
-    );
-END
-GO
-
--- --------------- Tabla: Reporte_Seguimiento_General -----------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Reporte_Seguimiento_General]') AND type = 'U')
-BEGIN
-    CREATE TABLE Reporte_Seguimiento_General (
-        id_seguimiento_general INT PRIMARY KEY IDENTITY(1,1),
-        id_reporte INT NOT NULL,
-        fecha DATETIME NOT NULL DEFAULT GETDATE(),
-        estado VARCHAR(20) NOT NULL,
-        id_responsable INT NOT NULL,
-        descripcion TEXT NOT NULL,
-        FOREIGN KEY (id_reporte) REFERENCES Reportes(id_reporte) ON DELETE CASCADE,
-        FOREIGN KEY (id_responsable) REFERENCES Personas(id_persona)
-    );
-END
-GO
-
--- --------- Índices para optimizar seguimientos ---------------
-CREATE NONCLUSTERED INDEX IX_Rubro_Seguimiento_Rubro ON Rubro_Seguimiento(id_rubro, fecha);
-CREATE NONCLUSTERED INDEX IX_Reporte_Seguimiento_General_Reporte ON Reporte_Seguimiento_General(id_reporte, fecha);
-GO
-
-
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
 -- =====================================================================================================================
 -- PASO 8: FUNCIONES Y VISTAS AUXILIARES
 -- =====================================================================================================================
@@ -1090,77 +783,50 @@ BEGIN
 END
 GO
 
--- Script para agregar el campo motivo_reagendamiento a la tabla Citas
--- Ejecutar este script en la base de datos InmobiliariaDB
-
-USE InmobiliariaDB;
-GO
-
--- Verificar si el campo ya existe
-IF NOT EXISTS (
-    SELECT * FROM sys.columns
-    WHERE object_id = OBJECT_ID('Citas')
-    AND name = 'motivo_reagendamiento'
-)
+-- ---------------------------------------------------------------------------------------------------------------------
+-- Seed: Super Administrador (Usuario inicial del sistema)
+-- Importante: CAMBIAR LA CONTRASEÑA EN PRODUCCIÓN
+-- ---------------------------------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM Personas WHERE numero_documento = '999999999')
 BEGIN
-    -- Agregar el campo motivo_reagendamiento con tipo NVARCHAR(MAX) para compatibilidad con índices
-    ALTER TABLE Citas
-    ADD motivo_reagendamiento NVARCHAR(MAX) NULL;
+    -- Insertar Persona
+    INSERT INTO Personas (tipo_documento, numero_documento, nombre_completo, apellido_completo, correo, telefono, tiene_cuenta)
+    VALUES ('CC', '999999999', 'Super', 'Admin', 'admin@inmotech.com', '+57 300 000 0000', 1);
 
-    PRINT '✅ Campo motivo_reagendamiento agregado exitosamente a la tabla Citas';
+    DECLARE @id_super_admin INT = SCOPE_IDENTITY();
+
+    -- Insertar Acceso (contraseña hasheada con bcrypt: "Admin123!")
+    -- ⚠️ IMPORTANTE: En producción, cambiar esta contraseña inmediatamente después del primer login
+    INSERT INTO Acceso (id_persona, contrasena)
+    VALUES (@id_super_admin, '$2b$10$rKvFJZEJfRJdLx6jxL5zMeyPh8s9JZCvC.yMFNyV8HQKZ6yFN.JxC');
+
+    -- Insertar en tabla Administrativos (personal interno)
+    INSERT INTO Administrativos (id_persona, codigo_empleado, fecha_ingreso, cargo, departamento, estado_laboral)
+    VALUES (@id_super_admin, 'ADMIN-001', GETDATE(), 'Super Administrador', 'Tecnología', 'Activo');
+
+    -- Asignar rol Super Administrador
+    DECLARE @id_rol_super INT = (SELECT id_rol FROM Roles WHERE nombre_rol = 'Super Administrador');
+    INSERT INTO Personas_rol (id_persona, id_rol)
+    VALUES (@id_super_admin, @id_rol_super);
+
+    PRINT '';
+    PRINT '✅ Super Administrador creado exitosamente';
+    PRINT '';
+    PRINT '   ╔════════════════════════════════════════════════════╗';
+    PRINT '   ║         CREDENCIALES DE SUPER ADMINISTRADOR        ║';
+    PRINT '   ╠════════════════════════════════════════════════════╣';
+    PRINT '   ║  Email:    admin@inmotech.com                      ║';
+    PRINT '   ║  Password: Admin123!                               ║';
+    PRINT '   ║  Código:   ADMIN-001                               ║';
+    PRINT '   ╚════════════════════════════════════════════════════╝';
+    PRINT '';
+    PRINT '   ⚠️  IMPORTANTE: Cambiar esta contraseña en producción';
+    PRINT '';
 END
 ELSE
 BEGIN
-    PRINT '⚠️  El campo motivo_reagendamiento ya existe en la tabla Citas';
+    PRINT '⚠️  Super Administrador ya existe en la base de datos';
 END
-GO
-
-
--- Crear índice para búsquedas por motivo de reagendamiento (opcional)
--- Nota: En SQL Server, NVARCHAR(MAX) puede ser indexado pero con limitaciones
--- Si hay problemas, este índice puede ser removido
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Citas') AND name = 'IX_Citas_MotivoReagendamiento')
-BEGIN
-    BEGIN TRY
-        CREATE NONCLUSTERED INDEX IX_Citas_MotivoReagendamiento
-        ON Citas(motivo_reagendamiento)
-        WHERE motivo_reagendamiento IS NOT NULL;
-
-        PRINT '✅ Índice IX_Citas_MotivoReagendamiento creado';
-    END TRY
-    BEGIN CATCH
-        PRINT '⚠️  No se pudo crear el índice IX_Citas_MotivoReagendamiento (posiblemente por limitaciones de NVARCHAR(MAX))';
-        PRINT '   El campo funciona correctamente sin índice para este caso de uso.';
-    END CATCH
-END
-ELSE
-BEGIN
-    PRINT '⚠️  El índice IX_Citas_MotivoReagendamiento ya existe';
-END
-GO
-
-PRINT '';
-PRINT '🎯 CAMPO motivo_reagendamiento AGREGADO EXITOSAMENTE';
-PRINT '';
-PRINT '📋 DESCRIPCIÓN DEL CAMPO:';
-PRINT '   - Nombre: motivo_reagendamiento';
-PRINT '   - Tipo: NVARCHAR(MAX) (permite textos largos en Unicode)';
-PRINT '   - Nullable: Sí (NULL cuando no es reagendamiento)';
-PRINT '   - Uso: Almacena el motivo específico de reprogramación';
-PRINT '';
-PRINT '💡 USO EN LA APLICACIÓN:';
-PRINT '   - Se llena cuando se reprograma una cita';
-PRINT '   - Se muestra en la vista de detalles de citas reagendadas';
-PRINT '   - Permite seguimiento específico de reagendamientos';
-PRINT '';
-
-
-<<<<<<< HEAD
-ALTER TABLE Citas
-ADD ediciones_realizadas INT NOT NULL DEFAULT 0;
-
-ALTER TABLE Citas
-ADD ediciones_maximas INT NOT NULL DEFAULT 2;
 GO
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -1169,34 +835,12 @@ GO
 IF NOT EXISTS (SELECT 1 FROM Inmuebles WHERE registro_inmobiliario = 'INM-001-TEST')
 BEGIN
     INSERT INTO Inmuebles (registro_inmobiliario, pais, departamento, ciudad, barrio, direccion, categoria, precio_venta, area_construida, descripcion)
-=======
--- ======================[ INMUEBLE DE PRUEBA ]=========================
-
-IF NOT EXISTS (SELECT 1 FROM Inmuebles WHERE registro_inmobiliario = 'INM-001-TEST')
-BEGIN
-    INSERT INTO Inmuebles (
-        registro_inmobiliario,
-        pais,
-        departamento,
-        ciudad,
-        barrio,
-        direccion,
-        categoria,
-        precio_venta,
-        precio_arriendo,
-        area_construida,
-        area_terreno,
-        descripcion,
-        estado
-    )
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
     VALUES (
         'INM-001-TEST',
         'Colombia',
         'Antioquia',
         'Medellín',
         'El Poblado',
-<<<<<<< HEAD
         'Calle 50 # 45-20',
         'Apartamento',
         450000000.00,
@@ -1207,94 +851,8 @@ BEGIN
 END
 GO
 
-=======
-        'Calle 50 #45-20',
-        'Apartamento',
-        450000000.00,
-        NULL,
-        120.50,
-        NULL,
-        'Apartamento de prueba para testing del sistema. 3 habitaciones, 2 baños, balcón con vista.',
-        'Disponible'
-    );
-    PRINT 'Inmueble de prueba creado: INM-001-TEST';
-END
-GO
 
--- ======================[ PROPIETARIO DE PRUEBA ]=========================
--- Crea la persona, la asocia como propietario y luego actualiza el inmueble
 
-IF NOT EXISTS (SELECT 1 FROM dbo.Personas WHERE numerodocumento = '900000001')
-BEGIN
-    INSERT INTO dbo.Personas (
-        tipodocumento,
-        numerodocumento,
-        nombrecompleto,
-        apellidocompleto,
-        correo,
-        telefono,
-        tienecuenta
-    )
-    VALUES (
-        'CC',
-        '900000001',
-        'Propietario',
-        'De Prueba',
-        'propietario.prueba@inmotech.com',
-        '57 300 111 2233',
-        0
-    );
-    PRINT 'Persona de prueba creada: 900000001';
-END
-ELSE
-BEGIN
-    PRINT 'Persona de prueba ya existe: 900000001';
-END
-GO
-
-DECLARE @idpersonaprop INT = (SELECT idpersona FROM dbo.Personas WHERE numerodocumento = '900000001');
-
-IF NOT EXISTS (SELECT 1 FROM dbo.Propietarios WHERE idpersona = @idpersonaprop)
-BEGIN
-    INSERT INTO dbo.Propietarios (
-        idpersona,
-        numerocontrato,
-        estado
-    )
-    VALUES (
-        @idpersonaprop,
-        'TEST-001',
-        'Activo'
-    );
-    PRINT 'Propietario de prueba registrado en Propietarios';
-END
-ELSE BEGIN
-    PRINT 'Propietario de prueba ya existe en Propietarios';
-END
-GO
-
-DECLARE @idpropietario INT = (SELECT idpropietario FROM dbo.Propietarios WHERE idpersona = @idpersonaprop);
-DECLARE @idinmuebletest INT = (SELECT idinmueble FROM dbo.Inmuebles WHERE registro_inmobiliario = 'INM-001-TEST');
-
-IF @idinmuebletest IS NOT NULL AND @idpersonaprop IS NOT NULL
-BEGIN
-    UPDATE dbo.Inmuebles
-    SET
-        idpropietario = @idpropietario,
-        propietario = (
-            SELECT CONCAT(nombrecompleto, ' ', apellidocompleto)
-            FROM dbo.Personas
-            WHERE idpersona = @idpersonaprop
-        )
-    WHERE idinmueble = @idinmuebletest;
-    PRINT 'Inmuebles.idpropietario y Inmuebles.propietario actualizados para INM-001-TEST';
-END
-ELSE
-BEGIN
-    PRINT 'No se pudo asociar; verifica que existan INM-001-TEST y la persona de prueba';
-END
-GO
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
 
 
 -- =====================================================================================================================
@@ -1490,10 +1048,3 @@ PRINT '=========================================================================
 PRINT '                                    🎉 BASE DE DATOS LISTA PARA USAR 🎉';
 PRINT '=====================================================================================================================';
 GO
-<<<<<<< HEAD
-=======
-
-
-
-
->>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0

@@ -13,6 +13,7 @@ import {
   MdWeb
 } from 'react-icons/md';
 
+<<<<<<< HEAD
 /**
  * Filtra los elementos visibles según los módulos habilitados
  */
@@ -55,12 +56,56 @@ export const getFilteredNavigation = (availableModules = []) => {
 
   if (subItemsSeguridad.length > 0) {
     filteredItems.push({ ...seguridadItem, subItems: subItemsSeguridad });
+=======
+// Función para filtrar navegación basada en permisos del usuario
+export const getFilteredNavigation = (availableModules = []) => {
+  // ✅ ADMINISTRADORES VEN TODOS LOS MÓDULOS
+  if (availableModules.includes('propiedades') || availableModules.includes('citas') ||
+      availableModules.includes('reportes') || availableModules.includes('administrativos')) {
+    return navigationItems; // Mostrar todos los módulos disponibles
+  }
+
+  // Para usuarios normales, filtrar por permisos específicos
+  const filteredItems = [navigationItems[0]]; // Siempre incluir Dashboard
+
+  // Solo incluir módulos implementados
+  if (availableModules.includes('citas') || availableModules.includes('gCitas')) {
+    filteredItems.push(navigationItems.find(item => item.id === 'citas')); // Citas
+  }
+
+  if (availableModules.includes('propiedades')) {
+    filteredItems.push(navigationItems.find(item => item.id === 'inmuebles')); // Inmuebles
+  }
+
+  if (availableModules.includes('reportes')) {
+    filteredItems.push(navigationItems.find(item => item.id === 'reportes')); // Reportes
+  }
+
+  // El módulo de Seguridad incluye solo los módulos implementados
+  const seguridadItem = navigationItems.find(item => item.id === 'seguridad'); // Copia del ítem de Seguridad
+  const subItemsSeguridad = [];
+
+  if (availableModules.includes('gAdministrativos') || availableModules.includes('administrativos')) {
+    subItemsSeguridad.push(seguridadItem.subItems[1]); // Administrativos (índice 1)
+  }
+  if (availableModules.includes('gRoles')) {
+    subItemsSeguridad.push(seguridadItem.subItems[2]); // Roles (índice 2)
+  }
+
+  if (subItemsSeguridad.length > 0) {
+    const newseguridadItem = { ...seguridadItem, subItems: subItemsSeguridad };
+    filteredItems.push(newseguridadItem);
+>>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
   }
 
   return filteredItems;
 };
 
+<<<<<<< HEAD
 // Ítems principales del menú lateral
+=======
+// Lista de elementos principales del menú de navegación
+>>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
 export const navigationItems = [
   {
     id: 'dashboard',
@@ -165,6 +210,10 @@ export const navigationItems = [
         title: 'Administrativos',
         path: dashboardRoutes.administrativos || '/seguridad/administrativos',
       },
+<<<<<<< HEAD
+=======
+
+>>>>>>> b54f2ddb131eb0581a024d48b281505c5f0953b0
       {
         id: 'roles',
         title: 'Roles',

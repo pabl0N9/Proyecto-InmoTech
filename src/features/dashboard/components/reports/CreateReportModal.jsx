@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../../../../shared/components/ui/button';
 import { Input } from '../../../../shared/components/ui/input';
@@ -7,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../../../../shared/components/ui/badge';
 import PropertyAutocomplete from '../../../../shared/components/ui/PropertyAutocomplete';
 import { usePropertyAutocomplete } from '../../../../shared/hooks/usePropertyAutocomplete';
+import { useToast } from '../../../../shared/hooks/use-toast';
+import GeneralFollowUpSection from './GeneralFollowUpSection';
+import { useGeneralFollowUp } from '../../hooks/useGeneralFollowUp';
 import { 
   PlusIcon, 
   EditIcon, 
@@ -37,14 +41,35 @@ const CreateReportModal = ({
 }) => {
   // Hook de autocompletado de propiedades
   const {
+    selectedProperty,
     searchTerm,
     setSearchTerm,
     filteredProperties,
-    selectedProperty,
     selectProperty,
     clearSelection,
-    searchByReference
+    isSearching,
   } = usePropertyAutocomplete();
+
+  // Usuario actual simulado (en producción vendría del contexto de autenticación)
+  const currentUser = {
+    id_persona: 1,
+    primer_nombre: 'Juan',
+    primer_apellido: 'Pérez'
+  };
+
+  // Hook de seguimiento general
+  const {
+    followUps,
+    loading: followUpsLoading,
+    submitting: followUpsSubmitting,
+    newFollowUpNote,
+    addFollowUp,
+    updateFollowUpStatus,
+    handleNewFollowUpChange,
+    refreshFollowUps,
+    getTemporaryFollowUps,
+    clearTemporaryFollowUps
+  } = useGeneralFollowUp(initialData?.id, currentUser);
 
   // Función para obtener la fecha actual en formato ISO
   const getCurrentDate = () => {
@@ -75,7 +100,8 @@ const CreateReportModal = ({
     fecha: getCurrentDate(),
     fechaCreacion: getCurrentDateTime(),
     estado: 'En proceso',
-    seguimientoGeneral: ''
+    seguimientoGeneral: '',
+    responsable: '' // Nuevo campo
   };
 
   // Estados del formulario
@@ -91,6 +117,9 @@ const CreateReportModal = ({
   // Referencias para los inputs de archivos
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // Hook para notificaciones
+  const { toast } = useToast();
 
   // Resetear formulario cuando se abre/cierra el modal
   useEffect(() => {
@@ -120,23 +149,23 @@ const CreateReportModal = ({
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.ubicacion.trim()) {
+    if (!(formData.ubicacion || '').toString().trim()) {
       newErrors.ubicacion = 'La ubicación es requerida';
     }
 
-    if (!formData.tipoInmueble.trim()) {
+    if (!(formData.tipoInmueble || '').toString().trim()) {
       newErrors.tipoInmueble = 'El tipo de inmueble es requerido';
     }
 
-    if (!formData.referencia.trim()) {
+    if (!(formData.referencia || '').toString().trim()) {
       newErrors.referencia = 'La referencia es requerida';
     }
 
-    if (!formData.propietario.trim()) {
+    if (!(formData.propietario || '').toString().trim()) {
       newErrors.propietario = 'El propietario es requerido';
     }
 
-    if (!formData.tipoReporte.trim()) {
+    if (!(formData.tipoReporte || '').toString().trim()) {
       newErrors.tipoReporte = 'El tipo de reporte es requerido';
     }
 
@@ -167,7 +196,8 @@ const CreateReportModal = ({
     // Actualizar los campos del formulario con los datos de la propiedad
     setFormData(prev => ({
       ...prev,
-      ...propertyData
+      ...propertyData,
+      id_inmueble: property?.id || propertyData?.id || null
     }));
 
     // Mostrar información de la propiedad seleccionada
@@ -181,6 +211,13 @@ const CreateReportModal = ({
       delete newErrors.referencia;
       delete newErrors.propietario;
       return newErrors;
+    });
+
+    // Toast estilo Citas
+    toast({
+      title: 'Propiedad seleccionada',
+      description: `Se seleccionó ${property?.referencia || propertyData?.referencia || 'la propiedad'} correctamente.`,
+      variant: 'success',
     });
   };
 
@@ -208,6 +245,13 @@ const CreateReportModal = ({
       file: file
     }));
     setImagenes(prev => [...prev, ...newImages]);
+
+    // Toast estilo Citas
+    toast({
+      title: 'Imágenes agregadas',
+      description: `${newImages.length} ${newImages.length === 1 ? 'imagen' : 'imágenes'} agregadas correctamente.`,
+      variant: 'success',
+    });
   };
 
   // Manejar archivos
@@ -221,6 +265,13 @@ const CreateReportModal = ({
       file: file
     }));
     setArchivos(prev => [...prev, ...newFiles]);
+
+    // Toast estilo Citas
+    toast({
+      title: 'Archivos agregados',
+      description: `${newFiles.length} ${newFiles.length === 1 ? 'archivo' : 'archivos'} agregados correctamente.`,
+      variant: 'success',
+    });
   };
 
   // Eliminar imagen
@@ -245,6 +296,13 @@ const CreateReportModal = ({
       fechaAnulacion: null // Fecha cuando se anuló
     };
     setRubros(prev => [...prev, nuevoRubro]);
+
+    // Toast estilo Citas
+    toast({
+      title: 'Rubro agregado',
+      description: 'Se creó un nuevo rubro correctamente.',
+      variant: 'success',
+    });
   };
 
   // Editar rubro
@@ -267,18 +325,17 @@ const CreateReportModal = ({
     ));
   };
 
-  // Eliminar rubro permanentemente (solo para rubros nuevos sin guardar)
-  const eliminarRubroPermanente = (id) => {
-    const rubro = rubros.find(r => r.id === id);
-    if (rubro && !rubro.nombre.trim()) {
-      // Solo eliminar si es un rubro vacío recién creado
-      setRubros(prev => prev.filter(rubro => rubro.id !== id));
-    }
-  };
-
-  // Eliminar rubro
-  const eliminarRubro = (id) => {
-    setRubros(prev => prev.filter(rubro => rubro.id !== id));
+  // Anular rubro (soft delete)
+  const anularRubro = (id) => {
+    setRubros(prev => prev.map(rubro =>
+      rubro.id === id
+        ? {
+            ...rubro,
+            activo: false,
+            fechaAnulacion: new Date().toISOString()
+          }
+        : rubro
+    ));
   };
 
   // Toggle expandir rubro
@@ -304,6 +361,13 @@ const CreateReportModal = ({
         ? { ...rubro, seguimientos: [...rubro.seguimientos, nuevoSeguimiento] }
         : rubro
     ));
+
+    // Toast estilo Citas
+    toast({
+      title: 'Seguimiento agregado',
+      description: 'Se añadió un seguimiento al rubro correctamente.',
+      variant: 'success',
+    });
   };
 
   // Editar seguimiento de rubro
@@ -340,29 +404,10 @@ const CreateReportModal = ({
     ));
   };
 
-  // Eliminar seguimiento permanentemente (solo para seguimientos nuevos sin guardar)
-  const eliminarSeguimientoPermanente = (rubroId, seguimientoId) => {
-    setRubros(prev => prev.map(rubro => 
-      rubro.id === rubroId 
-        ? {
-            ...rubro,
-            seguimientos: rubro.seguimientos.filter(seg => seg.id !== seguimientoId)
-          }
-        : rubro
-    ));
-  };
 
-  // Eliminar seguimiento de rubro
-  const eliminarSeguimientoRubro = (rubroId, seguimientoId) => {
-    setRubros(prev => prev.map(rubro => 
-      rubro.id === rubroId 
-        ? {
-            ...rubro,
-            seguimientos: rubro.seguimientos.filter(seg => seg.id !== seguimientoId)
-          }
-        : rubro
-    ));
-  };
+
+  // Hook global de toasts ya está definido arriba
+  // const { toast } = useToast();
 
   // Manejar envío del formulario
   const handleSubmit = async (e) => {
@@ -375,17 +420,38 @@ const CreateReportModal = ({
     setIsSubmitting(true);
 
     try {
+      // Obtener seguimientos temporales del hook
+      const temporaryFollowUps = getTemporaryFollowUps();
+      
       const reportData = {
         ...formData,
         rubros,
         imagenes,
-        archivos
+        archivos,
+        // Incluir seguimientos temporales para ser procesados por el servicio
+        seguimientosTemporales: temporaryFollowUps
       };
 
       await onSubmit(reportData);
+      
+      // Limpiar seguimientos temporales después del envío exitoso
+      clearTemporaryFollowUps();
+      
+      toast({
+        title: initialData ? 'Reporte actualizado' : 'Reporte creado',
+        description: initialData
+          ? 'El reporte fue actualizado correctamente.'
+          : 'El reporte fue creado correctamente.',
+        variant: 'success',
+      });
       onClose();
     } catch (error) {
       console.error('Error al guardar reporte:', error);
+      toast({
+        title: 'Error al guardar reporte',
+        description: error?.message || 'Intenta de nuevo.',
+        variant: 'error',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -406,73 +472,66 @@ const CreateReportModal = ({
 
   if (!isOpen) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          onClick={onClose}
-        >
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.9, opacity: 0, y: 20 }}
-r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
-          className="bg-white rounded-2xl shadow-2xl ring-1 ring-gray-900/10 w-full max-w-5xl max-h-[85vh] overflow-hidden border-2 border-gray-200 mx-auto flex flex-col"
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)'
-          }}
-        >
-          {/* Header Mejorado con estilo slate */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-800">
-                {initialData ? 'Editar Reporte' : 'Nuevo Reporte'}
-              </h2>
-              <p className="text-slate-600 mt-1">
-                {initialData ? 'Modifica la información del reporte inmobiliario' : 'Crea un nuevo reporte inmobiliario detallado'}
-              </p>
-              <div className="flex gap-4 mt-3 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                  <span className="text-slate-600">{formData.fechaCreacion}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="text-slate-600">Estado: {formData.estado}</span>
-                </div>
-              </div>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={onClose}
-              className="p-2 hover:bg-white/50 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5 text-slate-500" />
-            </motion.button>
-          </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay (idéntico a "Nueva Cita") */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={onClose}
+          />
 
-          {/* Content Reorganizado */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="flex justify-center p-6">
-              <form onSubmit={handleSubmit} className="w-full max-w-4xl">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.3 }}
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header (título y subtítulo igual a "Nueva Cita") */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800">
+                  {initialData ? 'Editar Reporte' : 'Nuevo Reporte'}
+                </h2>
+                <p className="text-slate-600 mt-1">
+                  {initialData
+                    ? 'Modifica la información del reporte inmobiliario'
+                    : 'Crea un nuevo reporte inmobiliario detallado'}
+                </p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onClose}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </motion.button>
+            </div>
+
+              {/* Contenido con padding uniforme */}
+              <div className="flex-1 overflow-y-auto min-h-0">
+                <div className="p-6">
+              <form onSubmit={handleSubmit} className="w-full">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 
                 {/* Columna Izquierda - Información Principal */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-4">
                   
                   {/* Sección 1: Identificación de Propiedad */}
                   <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                    <div className="flex items-center mb-4">
+                    <div className="flex items-center mb-3">
                       <div className="p-2 bg-blue-100 rounded-lg mr-3">
                         <Building className="w-5 h-5 text-blue-600" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-800">
+                      <h3 className="text-base font-semibold text-gray-800">
                         Identificación de Propiedad
                       </h3>
                     </div>
@@ -488,6 +547,7 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
                         onPropertySelect={handlePropertySelect}
                         onSearchChange={setSearchTerm}
                         filteredProperties={filteredProperties}
+                        isSearching={isSearching}
                         placeholder="Buscar por referencia (ej: J001) o nombre..."
                         className="w-full"
                         error={!!errors.referencia}
@@ -513,6 +573,11 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
                               <p><span className="font-medium">Área:</span> {selectedProperty.area}</p>
                               <p><span className="font-medium">Precio:</span> {selectedProperty.price}</p>
                               <p><span className="font-medium">Estado:</span> {selectedProperty.status}</p>
+                              {/* Nuevo: Tipo de Inmueble */}
+                              <p>
+                                <span className="font-medium">Tipo de Inmueble:</span>{' '}
+                                {formData.tipoInmueble || selectedProperty?.tipoInmueble || selectedProperty?.type || '—'}
+                              </p>
                             </div>
                           </div>
                           <button
@@ -526,6 +591,10 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
                                 tipoInmueble: '',
                                 referencia: '',
                                 propietario: ''
+                              }));
+                              setFormData(prev => ({
+                                ...prev,
+                                referencia: ''
                               }));
                               setSearchTerm('');
                             }}
@@ -541,15 +610,15 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Ubicación */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                          Ubicación *
+                        <div className="flex items-center justify-between mb-1 min-h-[24px]">
+                          <span className="text-sm font-medium text-gray-700">Ubicación *</span>
                           {selectedProperty && (
-                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center">
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center">
                               <CheckIcon className="h-3 w-3 mr-1" />
                               Auto
                             </span>
                           )}
-                        </label>
+                        </div>
                         <Input
                           value={formData.ubicacion}
                           onChange={(e) => handleChange('ubicacion', e.target.value)}
@@ -564,15 +633,15 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
 
                       {/* Tipo de Inmueble */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                          Tipo de Inmueble *
+                        <div className="flex items-center justify-between mb-1 min-h-[24px]">
+                          <span className="text-sm font-medium text-gray-700">Tipo de Inmueble *</span>
                           {selectedProperty && (
-                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center">
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center">
                               <CheckIcon className="h-3 w-3 mr-1" />
                               Auto
                             </span>
                           )}
-                        </label>
+                        </div>
                         <Select 
                           value={formData.tipoInmueble} 
                           onValueChange={(value) => handleChange('tipoInmueble', value)}
@@ -599,17 +668,19 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
                         )}
                       </div>
 
+                      {/* Espacio vacío donde estaba el Responsable del Reporte */}
+
                       {/* Propietario */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                          Propietario *
+                        <div className="flex items-center justify-between mb-1 min-h-[24px]">
+                          <span className="text-sm font-medium text-gray-700">Propietario *</span>
                           {selectedProperty && (
-                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center">
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center">
                               <CheckIcon className="h-3 w-3 mr-1" />
                               Auto
                             </span>
                           )}
-                        </label>
+                        </div>
                         <Input
                           value={formData.propietario}
                           onChange={(e) => handleChange('propietario', e.target.value)}
@@ -640,29 +711,27 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
                     </div>
                   </div>
 
-                  {/* Sección 2: Descripción */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                    <div className="flex items-center mb-4">
-                      <div className="p-2 bg-orange-100 rounded-lg mr-3">
-                        <FileText className="w-5 h-5 text-orange-600" />
+                  {/* Responsable del Reporte (debajo y más pequeño) */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm mt-4">
+                    <div className="flex items-center mb-2">
+                      <div className="p-1.5 bg-blue-100 rounded-lg mr-2">
+                        <UserIcon className="w-4 h-4 text-blue-600" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        Descripción del Reporte
-                      </h3>
+                      <h4 className="text-sm font-semibold text-gray-800">
+                        Responsable del Reporte
+                      </h4>
                     </div>
-                    
-                    <Textarea
-                      value={formData.descripcion}
-                      onChange={(e) => handleChange('descripcion', e.target.value)}
-                      placeholder="Descripción detallada del reporte..."
-                      className="min-h-[120px] resize-none"
-                      rows={5}
+                    <Input
+                      value={formData.responsable}
+                      onChange={(e) => handleChange('responsable', e.target.value)}
+                      placeholder="Nombre del responsable"
+                      className="text-sm"
                     />
                   </div>
                 </div>
 
                 {/* Columna Derecha - Estado y Acciones */}
-                <div className="space-y-6">
+                <div className="space-y-4">
                   
                   {/* Estado del Reporte */}
                   <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
@@ -711,32 +780,73 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
                     </Select>
                   </div>
 
-                  {/* Información Adicional */}
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-5">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  {/* Información del Reporte (compacto y arriba) */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
                       Información del Reporte
                     </h4>
-                    <div className="space-y-2 text-sm text-gray-600">
-                      <div className="flex justify-between">
-                        <span>Fecha de creación:</span>
-                        <span className="font-medium">{formData.fechaCreacion}</span>
+
+                    <div className="space-y-2 text-xs text-gray-700">
+                      {/* Fecha y hora de creación (combinadas) */}
+                      <div className="flex items-start gap-2">
+                        <CalendarIcon className="w-3 h-3 text-gray-500 mt-0.5" />
+                        <div>
+                          <p className="text-gray-600">Fecha y hora de creación</p>
+                          <p className="font-medium text-gray-900">
+                            {formData.fechaCreacion
+                              ? `${formData.fechaCreacion}${formData.horaCreacion ? ` ${formData.horaCreacion}` : ''}`
+                              : 'No definida'}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Hora:</span>
-                        <span className="font-medium">{formData.horaCreacion}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Estado actual:</span>
-                        <span className={`font-medium px-2 py-1 rounded-full text-xs ${
-                          formData.estado === 'Completado' ? 'bg-green-100 text-green-800' :
-                          formData.estado === 'En proceso' ? 'bg-blue-100 text-blue-800' :
-                          formData.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {formData.estado || 'Sin definir'}
-                        </span>
+
+                      {/* Estado actual (Cancelado en rojo) */}
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-3 h-3 text-gray-500 mt-0.5" />
+                        <div>
+                          <p className="text-gray-600">Estado actual</p>
+                          <span
+                            className={`font-medium px-2 py-1 rounded-full text-[10px] inline-block
+                              ${
+                                formData.estado === 'Pendiente'
+                                  ? 'bg-yellow-100 text-yellow-700'
+                                  : formData.estado === 'En proceso'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : formData.estado === 'Completado'
+                                  ? 'bg-green-100 text-green-700'
+                                  : formData.estado === 'Cancelado'
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-gray-100 text-gray-700'
+                              }
+                            `}
+                          >
+                            {formData.estado || 'No definido'}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Descripción del Reporte - ancho completo */}
+                <div className="lg:col-span-3">
+                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm mt-4">
+                    <div className="flex items-center mb-4">
+                      <div className="p-2 bg-orange-100 rounded-lg mr-3">
+                        <FileText className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Descripción del Reporte
+                      </h3>
+                    </div>
+                    
+                    <Textarea
+                      value={formData.descripcion}
+                      onChange={(e) => handleChange('descripcion', e.target.value)}
+                      placeholder="Descripción detallada del reporte..."
+                      className="w-full min-h-[160px] resize-y"
+                      rows={6}
+                    />
                   </div>
                 </div>
               </div>
@@ -862,17 +972,21 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
               </div>
 
               {/* Seguimiento General */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <CalendarIcon className="w-5 h-5 mr-2 text-blue-600" />
-                  Seguimiento General
-                </h3>
-                
-                <Textarea
-                  value={formData.seguimientoGeneral}
-                  onChange={(e) => handleChange('seguimientoGeneral', e.target.value)}
-                  placeholder="Notas generales del seguimiento..."
-                  rows={3}
+              {/* Separador visual entre Archivos/Imágenes y Seguimiento */}
+              <div className="mt-8 border-t border-gray-200" />
+
+              {/* Bloque de Seguimiento General con separación */}
+              <div className="mt-6">
+                <GeneralFollowUpSection
+                  reportId={initialData?.id}
+                  followUps={followUps}
+                  onAddFollowUp={addFollowUp}
+                  onUpdateFollowUpStatus={updateFollowUpStatus}
+                  currentUser={currentUser}
+                  isEditing={true}
+                  newFollowUpNote={newFollowUpNote}
+                  onNewFollowUpChange={handleNewFollowUpChange}
+                  isSubmitting={followUpsSubmitting}
                 />
               </div>
 
@@ -884,11 +998,11 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
                     Rubros del Proyecto
                   </h3>
                   <Button
-                    type="button"
-                    onClick={agregarRubro}
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
+                  type="button"
+                  onClick={agregarRubro}
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors px-4"
+                >
                     <PlusIcon className="w-4 h-4 mr-2" />
                     Agregar Rubro
                   </Button>
@@ -915,26 +1029,17 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
                         </button>
                         
                         <div className="flex items-center space-x-2">
-                          {initialData && (
-                            <Button
-                              type="button"
-                              onClick={() => toggleRubroActivo(rubro.id)}
-                              size="sm"
-                              variant="outline"
-                              className="text-orange-600 border-orange-600 hover:bg-orange-50"
-                            >
-                              Anular
-                            </Button>
-                          )}
-                          {!initialData && !rubro.nombre.trim() && (
-                            <button
-                              type="button"
-                              onClick={() => eliminarRubroPermanente(rubro.id)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          )}
+                          <Button
+                            type="button"
+                            onClick={() => toggleRubroActivo(rubro.id)}
+                            size="sm"
+                            variant="outline"
+                            className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                          >
+                            Anular
+                          </Button>
+                          {/* Eliminado: botón de eliminar permanente */}
+                          {/* Antes: mostrar Trash cuando !initialData && !rubro.nombre.trim() */}
                         </div>
                       </div>
 
@@ -999,29 +1104,16 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
                                       <span className="text-sm font-medium text-gray-700">Seguimiento {index + 1}</span>
                                     </div>
                                     <div className="flex items-center space-x-2">
-                                      {initialData && (
-                                        <Button
-                                          type="button"
-                                          onClick={() => toggleSeguimientoActivo(rubro.id, seguimiento.id)}
-                                          size="sm"
-                                          variant="outline"
-                                          className="text-orange-600 border-orange-600 hover:bg-orange-50 text-xs px-2 py-1"
-                                        >
-                                          <XCircleIcon className="w-3 h-3 mr-1" />
-                                          Anular
-                                        </Button>
-                                      )}
-                                      {!initialData && !seguimiento.descripcion.trim() && (
-                                        <Button
-                                          type="button"
-                                          onClick={() => eliminarSeguimientoPermanente(rubro.id, seguimiento.id)}
-                                          size="sm"
-                                          variant="ghost"
-                                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <TrashIcon className="w-3 h-3" />
-                                        </Button>
-                                      )}
+                                      <Button
+                                        type="button"
+                                        onClick={() => toggleSeguimientoActivo(rubro.id, seguimiento.id)}
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-orange-600 border-orange-600 hover:bg-orange-50 text-xs px-2 py-1"
+                                      >
+                                        <XCircleIcon className="w-3 h-3 mr-1" />
+                                        Anular
+                                      </Button>
                                     </div>
                                   </div>
 
@@ -1140,7 +1232,7 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
                               </div>
 
                               {/* Seguimientos Anulados */}
-                              {initialData && rubro.seguimientos.filter(seg => seg.activo === false).length > 0 && (
+                              {rubro.seguimientos.filter(seg => seg.activo === false).length > 0 && (
                                 <div className="mt-3">
                                   <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                                     <XCircleIcon className="w-3 h-3 mr-1" />
@@ -1233,43 +1325,33 @@ r4          transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
                 </div>
               </div>
             </form>
-            </div>
-          </div>
-
-          {/* Footer - Siempre visible */}
-          <div className="bg-slate-50 border-t border-slate-200 px-8 py-6 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-slate-600">
-                Campos obligatorios marcados con *
+                </div>
               </div>
-              
-              <div className="flex items-center space-x-3">
+
+              {/* Footer (acciones a la derecha, misma paleta) */}
+              <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
                 <Button
                   type="button"
-                  variant="outline"
                   onClick={onClose}
                   disabled={isSubmitting}
-                  className="flex items-center space-x-2 px-6"
+                  className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all ease-in-out duration-200"
                 >
-                  <XCircleIcon className="w-4 h-4" />
-                  <span>Cancelar</span>
+                  Cancelar
                 </Button>
                 <Button
                   type="submit"
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white flex items-center space-x-2 px-6 shadow-lg"
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all ease-in-out duration-200"
                 >
-                  <SaveIcon className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Guardando...' : submitLabel}</span>
+                  {isSubmitting ? 'Guardando...' : submitLabel}
                 </Button>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </motion.div>
-      </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

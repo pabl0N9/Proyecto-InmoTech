@@ -165,7 +165,6 @@ export const AuthProvider = ({ children }) => {
   const refreshToken = async () => {
     try {
       const storedRefreshToken = apiClient.getRefreshToken();
-
       if (!storedRefreshToken) {
         throw new Error('No hay token de refresco disponible');
       }
