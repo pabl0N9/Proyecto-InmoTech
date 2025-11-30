@@ -219,6 +219,3 @@ const arriendoController = {
 };
 
 module.exports = arriendoController;
-
-
-

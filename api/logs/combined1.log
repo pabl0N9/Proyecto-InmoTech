@@ -359,3 +359,17 @@
 {"level":"warn","message":"[AUTH] No access token in cookies for URL:","method":"GET","timestamp":"2025-11-29 15:40:59","url":"/me"}
 {"level":"info","message":"Usuario iniciÃ³ sesiÃ³n: admin@gmail.com (Administrativo: true)","timestamp":"2025-11-29 15:41:01"}
 {"level":"info","message":"Usuario iniciÃ³ sesiÃ³n: admin@gmail.com (Administrativo: true)","timestamp":"2025-11-29 15:41:05"}
+{"level":"info","message":"🔌 Intentando conectar a SQL Server...","timestamp":"2025-11-29 19:48:19"}
+{"level":"info","message":"   Servidor: localhost","timestamp":"2025-11-29 19:48:19"}
+{"level":"info","message":"   Instancia: (por defecto)","timestamp":"2025-11-29 19:48:19"}
+{"level":"info","message":"   Puerto: 1433","timestamp":"2025-11-29 19:48:19"}
+{"level":"info","message":"   Base de datos: InmobiliariaDB","timestamp":"2025-11-29 19:48:19"}
+{"level":"info","message":"✓ Conexión exitosa a SQL Server","timestamp":"2025-11-29 19:48:19"}
+{"level":"info","message":"✓ Base de datos: InmobiliariaDB","timestamp":"2025-11-29 19:48:19"}
+{"level":"info","message":"✓ Servidor: DESKTOP-FNR0BPJ\\SQLEXPRESS","timestamp":"2025-11-29 19:48:19"}
+{"hasAccessToken":false,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 19:52:58","url":"/me"}
+{"level":"warn","message":"[AUTH] No access token in cookies for URL:","method":"GET","timestamp":"2025-11-29 19:52:58","url":"/me"}
+{"hasAccessToken":false,"hasRefreshToken":true,"level":"info","message":"[AUTH] Verifying request","method":"GET","timestamp":"2025-11-29 19:52:59","url":"/me"}
+{"level":"warn","message":"[AUTH] No access token in cookies for URL:","method":"GET","timestamp":"2025-11-29 19:52:59","url":"/me"}
+{"level":"info","message":"Usuario iniciÃ³ sesiÃ³n: admin@gmail.com (Administrativo: true)","timestamp":"2025-11-29 19:53:04"}
+{"level":"info","message":"Usuario iniciÃ³ sesiÃ³n: admin@gmail.com (Administrativo: true)","timestamp":"2025-11-29 19:53:23"}

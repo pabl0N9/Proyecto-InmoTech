@@ -41,11 +41,16 @@ export const AuthProvider = ({ children }) => {
         console.log('No hay sesiÃ³n activa en cookies');
       }
     } catch (err) {
-      console.error('Error en registro:', err);
-      const backendError = err?.data?.errors ? Object.values(err.data.errors)[0] : null;
-      const message = backendError || err.message || "Error al registrar usuario";
-      setError(message);
-      throw new Error(message);
+      // Si no hay sesi�n/tokens, lo tratamos como usuario no autenticado sin romper la app
+      const isAuthError = err?.status === 401 || /Token de acceso requerido/i.test(err?.message || '');
+      console.warn('No se pudo restaurar sesi�n:', err?.message);
+      setUser(null);
+      setIsAuthenticated(false);
+      if (!isAuthError) {
+        const backendError = err?.data?.errors ? Object.values(err.data.errors)[0] : null;
+        const message = backendError || err.message || "Error al registrar usuario";
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
