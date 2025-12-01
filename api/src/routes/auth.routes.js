@@ -9,13 +9,17 @@ const {
   loginSchema,
   cambiarContrasenaSchema,
   actualizarPerfilSchema,
-  refreshTokenSchema
+  refreshTokenSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema
 } = require('../validators/auth.validator');
 
 // Rutas públicas
 router.post('/register', validate(registroSchema), authController.registrarUsuario);
 router.post('/login', validate(loginSchema), authController.iniciarSesion);
 router.post('/refresh', validate(refreshTokenSchema), authController.refrescarToken);
+router.post('/forgot-password', validate(forgotPasswordSchema), authController.solicitarRecuperacionContrasena);
+router.post('/reset-password', validate(resetPasswordSchema), authController.restablecerContrasena);
 
 // Rutas protegidas
 router.use(authenticateToken); // Todas las rutas siguientes requieren autenticación

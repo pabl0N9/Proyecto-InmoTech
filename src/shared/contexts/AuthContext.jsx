@@ -306,6 +306,47 @@ const login = async (email, password, rememberMe = false) => {
   };
 
   /**
+   * Solicita un enlace para restablecer contraseña
+   */
+  const requestPasswordReset = async (email) => {
+    try {
+      setError(null);
+      const response = await authService.forgotPassword(email);
+      if (!response.success) {
+        throw new Error(response.message || 'No se pudo enviar el correo de recuperación');
+      }
+      return response;
+    } catch (error) {
+      console.error('Error solicitando recuperación:', error);
+      const message = error.status === 404
+        ? 'No encontramos una cuenta con ese correo.'
+        : error.message || 'Error solicitando recuperación';
+      setError(message);
+      const custom = new Error(message);
+      custom.status = error.status;
+      throw custom;
+    }
+  };
+
+  /**
+   * Restablece la contraseña usando un token
+   */
+  const resetPasswordWithToken = async (token, newPassword) => {
+    try {
+      setError(null);
+      const response = await authService.resetPassword(token, newPassword);
+      if (!response.success) {
+        throw new Error(response.message || 'No se pudo restablecer la contraseña');
+      }
+      return response;
+    } catch (error) {
+      console.error('Error restableciendo contraseña:', error);
+      setError(error.message || 'Error restableciendo contraseña');
+      throw error;
+    }
+  };
+
+  /**
    * Verifica si el usuario tiene un rol específico
    */
   const hasRole = useCallback((roles) => {
@@ -344,6 +385,8 @@ const login = async (email, password, rememberMe = false) => {
     refreshToken,
     updateProfile,
     changePassword,
+    requestPasswordReset,
+    resetPassword: resetPasswordWithToken,
     // Utilidades
     hasRole,
     hasAccess,

@@ -209,8 +209,12 @@ class AuthService {
     try {
       console.log('📧 Solicitando recuperación de contraseña para:', email);
 
-      const response = await apiClient.post('/auth/forgot-password', {
-        email: email.trim().toLowerCase()
+      const response = await apiClient.request('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: email.trim().toLowerCase()
+        }),
+        skipAuth: true
       });
 
       console.log('✅ Solicitud de recuperación enviada');
@@ -231,10 +235,14 @@ class AuthService {
     try {
       console.log('🔑 Reseteando contraseña...');
 
-      const response = await apiClient.post('/auth/reset-password', {
-        token,
-        password: newPassword,
-        confirmPassword: newPassword
+      const response = await apiClient.request('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({
+          token,
+          password: newPassword,
+          confirmPassword: newPassword
+        }),
+        skipAuth: true
       });
 
       console.log('✅ Contraseña reseteada');

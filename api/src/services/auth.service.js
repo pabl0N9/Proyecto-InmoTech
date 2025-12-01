@@ -1,14 +1,19 @@
-﻿const { Persona, Acceso, PersonasRol, Rol, Administrativo } = require('../models');
+﻿const crypto = require('crypto');
+const { Persona, Acceso, PersonasRol, Rol, Administrativo } = require('../models');
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
+const emailService = require('./email.service');
 
 const normalizeEmail = (email = '') =>
   typeof email === 'string' ? email.trim().toLowerCase() : '';
 
 const buildEmailCondition = (email) =>
   sequelize.where(sequelize.fn('LOWER', sequelize.col('correo')), email);
+
+const PASSWORD_RESET_TTL = 60 * 60 * 1000;
+const passwordResetTokens = new Map();
 
 class AuthService {
   /**
@@ -287,6 +292,72 @@ class AuthService {
       throw error;
     }
   }
+  async solicitarRecuperacionContrasena(email) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
+      const error = new Error('Correo inválido');
+      error.status = 400;
+      throw error;
+    }
+
+    const persona = await Persona.findOne({
+      where: buildEmailCondition(normalizedEmail),
+      include: [{ model: Acceso, as: 'acceso', required: false }]
+    });
+
+    if (!persona) {
+      const error = new Error('No encontramos una cuenta registrada con este correo.');
+      error.status = 404;
+      throw error;
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    passwordResetTokens.set(token, {
+      personId: persona.id_persona,
+      expiresAt: Date.now() + PASSWORD_RESET_TTL
+    });
+
+    setTimeout(() => passwordResetTokens.delete(token), PASSWORD_RESET_TTL);
+
+    await emailService.sendPasswordResetEmail({
+      to: persona.correo,
+      token
+    });
+
+    logger.info(`Solicitud de recuperación registrada para ${email}`);
+    return true;
+  }
+
+  async restablecerContrasena(token, newPassword) {
+    const record = passwordResetTokens.get(token);
+    if (!record) {
+      const error = new Error('Token inválido o expirado.');
+      error.status = 400;
+      throw error;
+    }
+
+    if (record.expiresAt < Date.now()) {
+      passwordResetTokens.delete(token);
+      const error = new Error('El token ha expirado.');
+      error.status = 400;
+      throw error;
+    }
+
+    const acceso = await Acceso.findOne({ where: { id_persona: record.personId } });
+    if (!acceso) {
+      const error = new Error('No se encontró el usuario para restablecer la contraseña.');
+      error.status = 404;
+      throw error;
+    }
+
+    const hashedPassword = await bcryptUtils.hashPassword(newPassword);
+    await acceso.update({ contrasena: hashedPassword });
+    passwordResetTokens.delete(token);
+
+    logger.info(`Contraseña restablecida para usuario ${record.personId}`);
+    return true;
+  }
+
 }
 
 module.exports = new AuthService();

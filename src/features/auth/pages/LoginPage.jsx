@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Users, Building2, AlertCircle } from "lucide-react"
 import { useAuth } from "../../../shared/contexts/AuthContext"
 import { useNavigate, useLocation } from "react-router-dom"
+import ForgotPasswordModal from "../components/ForgotPasswordModal"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -10,8 +11,9 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showForgotModal, setShowForgotModal] = useState(false)
 
-  const { login } = useAuth()
+  const { login, requestPasswordReset } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -174,12 +176,13 @@ export default function LoginPage() {
                     <Lock className="h-4 w-4 mr-2 text-[#00457B]" />
                     Contraseña
                   </label>
-                  <a
-                    href="/recuperar-password"
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(true)}
                     className="text-sm text-[#00457B] hover:text-[#003b69] font-medium transition-colors"
                   >
                     ¿Olvidaste tu contraseña?
-                  </a>
+                  </button>
                 </div>
                 <div className="relative">
                   <input
@@ -251,6 +254,11 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      <ForgotPasswordModal
+        isOpen={showForgotModal}
+        onClose={() => setShowForgotModal(false)}
+        onSubmit={({ email: recoveryEmail }) => requestPasswordReset(recoveryEmail)}
+      />
     </div>
   )
 }

@@ -190,19 +190,20 @@ class ApiClient {
   }
 
   async request(endpoint, options = {}, retryCount = 0) {
+    const { skipAuth, ...restOptions } = options;
     let url = `${API_CONFIG.BASE_URL}${endpoint}`;
     const config = {
-      ...options,
+      ...restOptions,
       headers: {
         ...API_CONFIG.HEADERS,
-        ...options.headers,
+        ...restOptions.headers,
       },
     };
 
-    if (options.params && typeof options.params === 'object' && Object.keys(options.params).length > 0) {
+    if (restOptions.params && typeof restOptions.params === 'object' && Object.keys(restOptions.params).length > 0) {
       const urlObj = new URL(url);
-      Object.keys(options.params).forEach((key) => {
-        const value = options.params[key];
+      Object.keys(restOptions.params).forEach((key) => {
+        const value = restOptions.params[key];
         if (value !== null && value !== undefined && value !== '') {
           urlObj.searchParams.append(key, value.toString());
         }
@@ -212,7 +213,7 @@ class ApiClient {
 
     const accessToken = this.getAccessToken();
 
-    if (accessToken) {
+    if (accessToken && !skipAuth) {
       config.headers['Authorization'] = `Bearer ${accessToken}`;
       console.log('Token incluido en peticion:', accessToken.substring(0, 30) + '...');
     } else {
@@ -223,9 +224,9 @@ class ApiClient {
       delete config.params;
     }
 
-    const paramsKey = options.params ? JSON.stringify(options.params) : '';
+    const paramsKey = restOptions.params ? JSON.stringify(restOptions.params) : '';
     const bodyKey = config.body || '';
-    const requestKey = `${options.method || 'GET'}:${url}:${bodyKey}:${paramsKey}`;
+    const requestKey = `${restOptions.method || 'GET'}:${url}:${bodyKey}:${paramsKey}`;
 
     if (this.pendingRequests.has(requestKey)) {
       console.log('Peticion duplicada detectada, esperando resultado:', endpoint);
@@ -238,7 +239,7 @@ class ApiClient {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
 
-        console.log(`${options.method || 'GET'} ${url}`);
+        console.log(`${restOptions.method || 'GET'} ${url}`);
 
         const response = await fetch(url, {
           ...config,
@@ -249,9 +250,9 @@ class ApiClient {
 
         console.log(`Respuesta: ${response.status}`);
 
-        if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
+        if (response.status === 401 && !skipAuth && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
           console.warn('Token expirado (401), intentando refrescar...');
-          return await this.handleTokenRefresh(endpoint, options, retryCount);
+          return await this.handleTokenRefresh(endpoint, restOptions, retryCount);
         }
 
         if (response.status === 429) {

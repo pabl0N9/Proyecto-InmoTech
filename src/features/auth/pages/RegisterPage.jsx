@@ -35,7 +35,7 @@ export default function RegistroPage() {
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
-    tipo_documento: "",
+    tipo_documento: "CC",
     numero_documento: "",
     nombre_completo: "",
     apellido_completo: "",
@@ -56,18 +56,28 @@ export default function RegistroPage() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let nextValue = type === "checkbox" ? checked : value;
+
+    if (name === "numero_documento") {
+      nextValue = value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    }
+
+    if (name === "telefono") {
+      nextValue = value.replace(/[^\d+\-\s]/g, "");
+    }
+
     setFormData({
       ...formData,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: nextValue,
     });
 
     if (name === "password") {
       setPasswordStrength({
-        length: value.length >= 8,
-        uppercase: /[A-Z]/.test(value),
-        lowercase: /[a-z]/.test(value),
-        number: /[0-9]/.test(value),
-        special: /[^A-Za-z0-9]/.test(value),
+        length: nextValue.length >= 8,
+        uppercase: /[A-Z]/.test(nextValue),
+        lowercase: /[a-z]/.test(nextValue),
+        number: /[0-9]/.test(nextValue),
+        special: /[^A-Za-z0-9]/.test(nextValue),
       });
     }
   };
@@ -83,11 +93,11 @@ export default function RegistroPage() {
       // Preparar datos para el registro
       const userData = {
         tipo_documento: formData.tipo_documento,
-        numero_documento: formData.numero_documento,
-        nombre_completo: formData.nombre_completo,
-        apellido_completo: formData.apellido_completo,
-        email: formData.email,
-        telefono: formData.telefono,
+        numero_documento: formData.numero_documento.trim().toUpperCase(),
+        nombre_completo: formData.nombre_completo.trim(),
+        apellido_completo: formData.apellido_completo.trim(),
+        email: formData.email.trim().toLowerCase(),
+        telefono: formData.telefono.replace(/[^\d+\-\s]/g, '').trim(),
         password: formData.password,
         confirmPassword: formData.confirmPassword
       };
@@ -103,8 +113,11 @@ export default function RegistroPage() {
       navigate("/");
 
     } catch (error) {
-      console.error('❌ Error en registro:', error);
-      const errorMessage = error.message || 'Error al crear la cuenta. Inténtalo de nuevo.';
+      console.error('Error en registro:', error);
+      const serverErrors = error.data?.errors;
+      const errorMessage = serverErrors
+        ? Object.values(serverErrors).join(' ')
+        : error.message || 'Error al crear la cuenta. Inténtalo de nuevo.';
       setError(errorMessage);
       toast({
         title: "Error en el registro",
@@ -220,6 +233,7 @@ export default function RegistroPage() {
                   <div className="relative">
                     <Select
                       value={formData.tipo_documento}
+                      defaultValue="CC"
                       onValueChange={(value) => setFormData({ ...formData, tipo_documento: value })}
                     >
                       <SelectTrigger className="h-12 pl-12 pr-4 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200 w-full">
@@ -230,7 +244,7 @@ export default function RegistroPage() {
                         <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
                         <SelectItem value="CE">Cédula de Extranjería</SelectItem>
                         <SelectItem value="NIT">NIT</SelectItem>
-                        <SelectItem value="PASAPORTE">Pasaporte</SelectItem>
+                        <SelectItem value="PAS">Pasaporte</SelectItem>
                         <SelectItem value="TI">Tarjeta de Identidad</SelectItem>
                       </SelectContent>
                     </Select>

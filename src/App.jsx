@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Navbar from './shared/components/Navbar'
 import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
@@ -15,6 +15,7 @@ import AboutPage from './features/about/pages/AboutPage'
 import ServicesPage from './features/services/pages/ServicesPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
+import ResetPasswordPage from './features/auth/pages/ResetPasswordPage'
 
 // Dashboard pages
 import DashboardPage from './features/dashboard/DashboardPage'
@@ -118,6 +119,17 @@ function App() {
             </>
           }
         />
+        <Route
+          path="/restablecer-contrasena"
+          element={
+            <>
+              <Navbar />
+              <ResetPasswordPage />
+              <Footer />
+            </>
+          }
+        />
+        <Route path="/recuperar-password" element={<Navigate to="/restablecer-contrasena" replace />} />
 
         {/* Dashboard routes with sidebar layout */}
         <Route

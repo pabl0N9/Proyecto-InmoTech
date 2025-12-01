@@ -166,10 +166,49 @@ const refreshTokenSchema = Joi.object({
     })
 });
 
+const forgotPasswordSchema = Joi.object({
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .required()
+    .messages({
+      'string.email': 'El formato del email es inválido',
+      'any.required': 'El email es obligatorio'
+    })
+});
+
+const resetPasswordSchema = Joi.object({
+  token: Joi.string()
+    .min(10)
+    .required()
+    .messages({
+      'string.min': 'El token de recuperación no es válido',
+      'any.required': 'El token de recuperación es obligatorio'
+    }),
+  password: Joi.string()
+    .min(8)
+    .max(100)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/)
+    .required()
+    .messages({
+      'string.min': 'La contraseña debe tener al menos 8 caracteres',
+      'string.pattern.base': 'La contraseña debe contener al menos una minúscula, una mayúscula, un número y un carácter especial',
+      'any.required': 'La contraseña es obligatoria'
+    }),
+  confirmPassword: Joi.string()
+    .valid(Joi.ref('password'))
+    .required()
+    .messages({
+      'any.only': 'Las contraseñas no coinciden',
+      'any.required': 'La confirmación de contraseña es obligatoria'
+    })
+});
+
 module.exports = {
   registroSchema,
   loginSchema,
   cambiarContrasenaSchema,
   actualizarPerfilSchema,
-  refreshTokenSchema
+  refreshTokenSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema
 };

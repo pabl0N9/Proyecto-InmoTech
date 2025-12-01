@@ -136,6 +136,43 @@ class AuthController {
       next(error);
     }
   }
+  /**
+   * Solicita envío de enlace de recuperación
+   */
+  async solicitarRecuperacionContrasena(req, res, next) {
+    try {
+      const { email } = req.validatedData;
+      await authService.solicitarRecuperacionContrasena(email);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Si el correo se encuentra registrado, se envió un enlace para restablecer la contraseña.'
+      });
+    } catch (error) {
+      logger.error('Error solicitando recuperación de contraseña:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Restablece la contraseña usando un token
+   */
+  async restablecerContrasena(req, res, next) {
+    try {
+      const { token, password } = req.validatedData;
+      await authService.restablecerContrasena(token, password);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Contraseña restablecida correctamente.'
+      });
+    } catch (error) {
+      logger.error('Error restableciendo contraseña:', error);
+      next(error);
+    }
+  }
+
+
 }
 
 module.exports = new AuthController();

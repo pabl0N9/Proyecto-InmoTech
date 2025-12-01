@@ -6607,3 +6607,157 @@
 {"level":"info","message":"🔍 Consultando citas con filtros: {}","timestamp":"2025-11-20 08:01:29"}
 {"level":"info","message":"✅ 0 citas obtenidas exitosamente","timestamp":"2025-11-20 08:01:29"}
 {"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-20 08:04:41"}
+{"level":"info","message":"Iniciando servidor...","timestamp":"2025-11-30 18:23:10"}
+{"level":"info","message":"🔌 Intentando conectar a SQL Server...","timestamp":"2025-11-30 18:23:10"}
+{"level":"info","message":"   Servidor: localhost","timestamp":"2025-11-30 18:23:10"}
+{"level":"info","message":"   Base de datos: InmobiliariaDB","timestamp":"2025-11-30 18:23:10"}
+{"level":"info","message":"✓ Conexión exitosa a SQL Server","timestamp":"2025-11-30 18:23:11"}
+{"level":"info","message":"✓ Base de datos: InmobiliariaDB","timestamp":"2025-11-30 18:23:11"}
+{"level":"info","message":"✓ Servidor: JERO\\SQLEXPRESS","timestamp":"2025-11-30 18:23:11"}
+{"level":"info","message":"=================================================","timestamp":"2025-11-30 18:23:11"}
+{"level":"info","message":"🚀 Servidor corriendo en puerto 5000","timestamp":"2025-11-30 18:23:11"}
+{"level":"info","message":"📊 Entorno: development","timestamp":"2025-11-30 18:23:11"}
+{"level":"info","message":"🔗 URL: http://localhost:5000","timestamp":"2025-11-30 18:23:11"}
+{"level":"info","message":"📚 API: http://localhost:5000/api/v1","timestamp":"2025-11-30 18:23:11"}
+{"level":"info","message":"💚 Health: http://localhost:5000/api/v1/health","timestamp":"2025-11-30 18:23:11"}
+{"level":"info","message":"=================================================","timestamp":"2025-11-30 18:23:11"}
+{"level":"info","message":"\nSIGINT recibido. Cerrando servidor gracefully...","timestamp":"2025-11-30 22:22:25"}
+{"level":"info","message":"Iniciando servidor...","timestamp":"2025-11-30 22:22:30"}
+{"level":"info","message":"🔌 Intentando conectar a SQL Server...","timestamp":"2025-11-30 22:22:30"}
+{"level":"info","message":"   Servidor: localhost","timestamp":"2025-11-30 22:22:30"}
+{"level":"info","message":"   Base de datos: InmobiliariaDB","timestamp":"2025-11-30 22:22:30"}
+{"level":"info","message":"✓ Conexión exitosa a SQL Server","timestamp":"2025-11-30 22:22:31"}
+{"level":"info","message":"✓ Base de datos: InmobiliariaDB","timestamp":"2025-11-30 22:22:31"}
+{"level":"info","message":"✓ Servidor: JERO\\SQLEXPRESS","timestamp":"2025-11-30 22:22:31"}
+{"level":"info","message":"=================================================","timestamp":"2025-11-30 22:22:31"}
+{"level":"info","message":"🚀 Servidor corriendo en puerto 5000","timestamp":"2025-11-30 22:22:31"}
+{"level":"info","message":"📊 Entorno: development","timestamp":"2025-11-30 22:22:31"}
+{"level":"info","message":"🔗 URL: http://localhost:5000","timestamp":"2025-11-30 22:22:31"}
+{"level":"info","message":"📚 API: http://localhost:5000/api/v1","timestamp":"2025-11-30 22:22:31"}
+{"level":"info","message":"💚 Health: http://localhost:5000/api/v1/health","timestamp":"2025-11-30 22:22:31"}
+{"level":"info","message":"=================================================","timestamp":"2025-11-30 22:22:31"}
+{"level":"info","message":"\nSIGINT recibido. Cerrando servidor gracefully...","timestamp":"2025-11-30 22:32:24"}
+{"level":"info","message":"Iniciando servidor...","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"🔌 Intentando conectar a SQL Server...","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"   Servidor: localhost","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"   Base de datos: InmobiliariaDB","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"✓ Conexión exitosa a SQL Server","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"✓ Base de datos: InmobiliariaDB","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"✓ Servidor: JERO\\SQLEXPRESS","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"=================================================","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"🚀 Servidor corriendo en puerto 5000","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"📊 Entorno: development","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"🔗 URL: http://localhost:5000","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"📚 API: http://localhost:5000/api/v1","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"💚 Health: http://localhost:5000/api/v1/health","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"=================================================","timestamp":"2025-11-30 22:34:02"}
+{"level":"info","message":"Solicitud de recuperación enviada a jeromb.08@gmail.com. Token: b984c3926e5dec20b6974b0cf58faf799b45d41d0ba56f8ff6d21fc97105c96c","timestamp":"2025-11-30 22:34:19"}
+{"level":"info","message":"Solicitud de recuperación enviada a jeromb.08@gmail.com. Token: 4e68d19e18858d61bc65288bd5780c9c5a2cea83c57e1f6b962541d6e4b72d7c","timestamp":"2025-11-30 22:34:29"}
+{"level":"info","message":"\nSIGINT recibido. Cerrando servidor gracefully...","timestamp":"2025-11-30 23:02:00"}
+{"level":"warn","message":"SENDGRID_API_KEY no está configurado. No se enviarán correos reales.","timestamp":"2025-11-30 23:05:18"}
+{"level":"info","message":"Iniciando servidor...","timestamp":"2025-11-30 23:05:18"}
+{"level":"info","message":"🔌 Intentando conectar a SQL Server...","timestamp":"2025-11-30 23:05:18"}
+{"level":"info","message":"   Servidor: localhost","timestamp":"2025-11-30 23:05:18"}
+{"level":"info","message":"   Base de datos: InmobiliariaDB","timestamp":"2025-11-30 23:05:18"}
+{"level":"info","message":"✓ Conexión exitosa a SQL Server","timestamp":"2025-11-30 23:05:19"}
+{"level":"info","message":"✓ Base de datos: InmobiliariaDB","timestamp":"2025-11-30 23:05:19"}
+{"level":"info","message":"✓ Servidor: JERO\\SQLEXPRESS","timestamp":"2025-11-30 23:05:19"}
+{"level":"info","message":"=================================================","timestamp":"2025-11-30 23:05:19"}
+{"level":"info","message":"🚀 Servidor corriendo en puerto 5000","timestamp":"2025-11-30 23:05:19"}
+{"level":"info","message":"📊 Entorno: development","timestamp":"2025-11-30 23:05:19"}
+{"level":"info","message":"🔗 URL: http://localhost:5000","timestamp":"2025-11-30 23:05:19"}
+{"level":"info","message":"📚 API: http://localhost:5000/api/v1","timestamp":"2025-11-30 23:05:19"}
+{"level":"info","message":"💚 Health: http://localhost:5000/api/v1/health","timestamp":"2025-11-30 23:05:19"}
+{"level":"info","message":"=================================================","timestamp":"2025-11-30 23:05:19"}
+{"level":"error","message":"Error solicitando recuperación de contraseña: El servicio de correo no está configurado correctamente.","stack":"Error: El servicio de correo no está configurado correctamente.\n    at ensureSendgridReady (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\email.service.js:17:19)\n    at Object.sendPasswordResetEmail (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\email.service.js:24:3)\n    at AuthService.solicitarRecuperacionContrasena (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\auth.service.js:322:24)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async solicitarRecuperacionContrasena (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\controllers\\auth.controller.js:145:7)","status":500,"timestamp":"2025-11-30 23:05:32"}
+{"level":"error","message":"El servicio de correo no está configurado correctamente.","method":"POST","path":"/api/v1/auth/forgot-password","stack":"Error: El servicio de correo no está configurado correctamente.\n    at ensureSendgridReady (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\email.service.js:17:19)\n    at Object.sendPasswordResetEmail (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\email.service.js:24:3)\n    at AuthService.solicitarRecuperacionContrasena (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\auth.service.js:322:24)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async solicitarRecuperacionContrasena (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\controllers\\auth.controller.js:145:7)","timestamp":"2025-11-30 23:05:32"}
+{"level":"error","message":"Error solicitando recuperación de contraseña: El servicio de correo no está configurado correctamente.","stack":"Error: El servicio de correo no está configurado correctamente.\n    at ensureSendgridReady (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\email.service.js:17:19)\n    at Object.sendPasswordResetEmail (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\email.service.js:24:3)\n    at AuthService.solicitarRecuperacionContrasena (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\auth.service.js:322:24)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async solicitarRecuperacionContrasena (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\controllers\\auth.controller.js:145:7)","status":500,"timestamp":"2025-11-30 23:05:40"}
+{"level":"error","message":"El servicio de correo no está configurado correctamente.","method":"POST","path":"/api/v1/auth/forgot-password","stack":"Error: El servicio de correo no está configurado correctamente.\n    at ensureSendgridReady (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\email.service.js:17:19)\n    at Object.sendPasswordResetEmail (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\email.service.js:24:3)\n    at AuthService.solicitarRecuperacionContrasena (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\auth.service.js:322:24)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async solicitarRecuperacionContrasena (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\controllers\\auth.controller.js:145:7)","timestamp":"2025-11-30 23:05:40"}
+{"level":"info","message":"\nSIGINT recibido. Cerrando servidor gracefully...","timestamp":"2025-11-30 23:08:20"}
+{"level":"info","message":"SendGrid inicializado correctamente","timestamp":"2025-11-30 23:09:35"}
+{"level":"info","message":"Iniciando servidor...","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"🔌 Intentando conectar a SQL Server...","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"   Servidor: localhost","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"   Base de datos: InmobiliariaDB","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"✓ Conexión exitosa a SQL Server","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"✓ Base de datos: InmobiliariaDB","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"✓ Servidor: JERO\\SQLEXPRESS","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"=================================================","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"🚀 Servidor corriendo en puerto 5000","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"📊 Entorno: development","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"🔗 URL: http://localhost:5000","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"📚 API: http://localhost:5000/api/v1","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"💚 Health: http://localhost:5000/api/v1/health","timestamp":"2025-11-30 23:09:36"}
+{"level":"info","message":"=================================================","timestamp":"2025-11-30 23:09:36"}
+{"code":401,"level":"error","message":"Unauthorized","response":{"body":{"errors":[{"field":null,"help":null,"message":"The provided authorization grant is invalid, expired, or revoked"}]},"headers":{"access-control-allow-headers":"Authorization, Content-Type, On-behalf-of, x-sg-elas-acl","access-control-allow-methods":"POST","access-control-allow-origin":"https://sendgrid.api-docs.io","access-control-max-age":"600","cache-control":"no-cache","connection":"keep-alive","content-length":"116","content-security-policy":"frame-ancestors 'none'","content-type":"application/json","date":"Mon, 01 Dec 2025 04:09:57 GMT","referrer-policy":"strict-origin-when-cross-origin","server":"nginx","strict-transport-security":"max-age=31536000; includeSubDomains","x-content-type-options":"no-sniff","x-no-cors-reason":"https://sendgrid.com/docs/Classroom/Basics/API/cors.html"}},"stack":"Error: Unauthorized\n    at C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\node_modules\\@sendgrid\\client\\src\\classes\\client.js:146:29\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","timestamp":"2025-11-30 23:09:59"}
+{"level":"error","message":"Unauthorized","method":"POST","path":"/api/v1/auth/forgot-password","stack":"Error: Unauthorized\n    at C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\node_modules\\@sendgrid\\client\\src\\classes\\client.js:146:29\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","timestamp":"2025-11-30 23:09:59"}
+{"code":401,"level":"error","message":"Unauthorized","response":{"body":{"errors":[{"field":null,"help":null,"message":"The provided authorization grant is invalid, expired, or revoked"}]},"headers":{"access-control-allow-headers":"Authorization, Content-Type, On-behalf-of, x-sg-elas-acl","access-control-allow-methods":"POST","access-control-allow-origin":"https://sendgrid.api-docs.io","access-control-max-age":"600","cache-control":"no-cache","connection":"keep-alive","content-length":"116","content-security-policy":"frame-ancestors 'none'","content-type":"application/json","date":"Mon, 01 Dec 2025 04:10:02 GMT","referrer-policy":"strict-origin-when-cross-origin","server":"nginx","strict-transport-security":"max-age=31536000; includeSubDomains","x-content-type-options":"no-sniff","x-no-cors-reason":"https://sendgrid.com/docs/Classroom/Basics/API/cors.html"}},"stack":"Error: Unauthorized\n    at C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\node_modules\\@sendgrid\\client\\src\\classes\\client.js:146:29\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","timestamp":"2025-11-30 23:10:04"}
+{"level":"error","message":"Unauthorized","method":"POST","path":"/api/v1/auth/forgot-password","stack":"Error: Unauthorized\n    at C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\node_modules\\@sendgrid\\client\\src\\classes\\client.js:146:29\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","timestamp":"2025-11-30 23:10:04"}
+{"code":401,"level":"error","message":"Unauthorized","response":{"body":{"errors":[{"field":null,"help":null,"message":"The provided authorization grant is invalid, expired, or revoked"}]},"headers":{"access-control-allow-headers":"Authorization, Content-Type, On-behalf-of, x-sg-elas-acl","access-control-allow-methods":"POST","access-control-allow-origin":"https://sendgrid.api-docs.io","access-control-max-age":"600","cache-control":"no-cache","connection":"keep-alive","content-length":"116","content-security-policy":"frame-ancestors 'none'","content-type":"application/json","date":"Mon, 01 Dec 2025 04:11:30 GMT","referrer-policy":"strict-origin-when-cross-origin","server":"nginx","strict-transport-security":"max-age=31536000; includeSubDomains","x-content-type-options":"no-sniff","x-no-cors-reason":"https://sendgrid.com/docs/Classroom/Basics/API/cors.html"}},"stack":"Error: Unauthorized\n    at C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\node_modules\\@sendgrid\\client\\src\\classes\\client.js:146:29\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","timestamp":"2025-11-30 23:11:32"}
+{"level":"error","message":"Unauthorized","method":"POST","path":"/api/v1/auth/forgot-password","stack":"Error: Unauthorized\n    at C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\node_modules\\@sendgrid\\client\\src\\classes\\client.js:146:29\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","timestamp":"2025-11-30 23:11:32"}
+{"level":"info","message":"\nSIGINT recibido. Cerrando servidor gracefully...","timestamp":"2025-11-30 23:13:45"}
+{"level":"info","message":"SendGrid inicializado correctamente","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"Iniciando servidor...","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"🔌 Intentando conectar a SQL Server...","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"   Servidor: localhost","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"   Base de datos: InmobiliariaDB","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"✓ Conexión exitosa a SQL Server","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"✓ Base de datos: InmobiliariaDB","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"✓ Servidor: JERO\\SQLEXPRESS","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"=================================================","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"🚀 Servidor corriendo en puerto 5000","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"📊 Entorno: development","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"🔗 URL: http://localhost:5000","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"📚 API: http://localhost:5000/api/v1","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"💚 Health: http://localhost:5000/api/v1/health","timestamp":"2025-11-30 23:13:49"}
+{"level":"info","message":"=================================================","timestamp":"2025-11-30 23:13:49"}
+{"code":401,"level":"error","message":"Unauthorized","response":{"body":{"errors":[{"field":null,"help":null,"message":"The provided authorization grant is invalid, expired, or revoked"}]},"headers":{"access-control-allow-headers":"Authorization, Content-Type, On-behalf-of, x-sg-elas-acl","access-control-allow-methods":"POST","access-control-allow-origin":"https://sendgrid.api-docs.io","access-control-max-age":"600","cache-control":"no-cache","connection":"keep-alive","content-length":"116","content-security-policy":"frame-ancestors 'none'","content-type":"application/json","date":"Mon, 01 Dec 2025 04:13:57 GMT","referrer-policy":"strict-origin-when-cross-origin","server":"nginx","strict-transport-security":"max-age=31536000; includeSubDomains","x-content-type-options":"no-sniff","x-no-cors-reason":"https://sendgrid.com/docs/Classroom/Basics/API/cors.html"}},"stack":"Error: Unauthorized\n    at C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\node_modules\\@sendgrid\\client\\src\\classes\\client.js:146:29\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","timestamp":"2025-11-30 23:13:59"}
+{"level":"error","message":"Unauthorized","method":"POST","path":"/api/v1/auth/forgot-password","stack":"Error: Unauthorized\n    at C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\node_modules\\@sendgrid\\client\\src\\classes\\client.js:146:29\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","timestamp":"2025-11-30 23:13:59"}
+{"level":"error","message":"Error en inicio de sesiÃ³n: Credenciales inválidas","stack":"Error: Credenciales inválidas\n    at AuthService.iniciarSesion (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\auth.service.js:151:23)\n    at async iniciarSesion (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\controllers\\auth.controller.js:31:22)","status":401,"timestamp":"2025-11-30 23:14:25"}
+{"level":"error","message":"Error en inicio de sesión: Credenciales inválidas","stack":"Error: Credenciales inválidas\n    at AuthService.iniciarSesion (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\auth.service.js:151:23)\n    at async iniciarSesion (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\controllers\\auth.controller.js:31:22)","status":401,"timestamp":"2025-11-30 23:14:25"}
+{"level":"error","message":"Credenciales inválidas","method":"POST","path":"/api/v1/auth/login","stack":"Error: Credenciales inválidas\n    at AuthService.iniciarSesion (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\services\\auth.service.js:151:23)\n    at async iniciarSesion (C:\\Users\\jerom\\OneDrive\\Documentos\\Inmotech\\Proyecto-InmoTech\\api\\src\\controllers\\auth.controller.js:31:22)","timestamp":"2025-11-30 23:14:25"}
+{"level":"info","message":"Usuario iniciÃ³ sesiÃ³n: admin@gmail.com (Administrativo: true)","timestamp":"2025-11-30 23:14:31"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:14:31"}
+{"level":"info","message":"Acceso administrativo autorizado para usuario: admin@gmail.com","timestamp":"2025-11-30 23:14:31"}
+{"level":"info","message":"🔍 Consultando citas con filtros: {}","timestamp":"2025-11-30 23:14:31"}
+{"level":"info","message":"✅ 0 citas obtenidas exitosamente","timestamp":"2025-11-30 23:14:32"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:14:40"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:15:00"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:15:00"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:15:28"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:15:28"}
+{"level":"info","message":"Inmueble actualizado: 5","timestamp":"2025-11-30 23:15:30"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:16:05"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:16:07"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:16:07"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:16:42"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:16:45"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:16:45"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:17:14"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:17:14"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:17:41"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:17:41"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:17:45"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:17:45"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:04"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:06"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:18:06"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:10"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:19"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:18:19"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:24"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:24"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:18:24"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:33"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:37"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:38"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:18:38"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:43"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:46"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:46"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:18:46"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:49"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:52"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:52"}
+{"level":"info","message":"Acceso autorizado para usuario admin@gmail.com","timestamp":"2025-11-30 23:18:52"}
+{"level":"info","message":"Usuario autenticado: admin@gmail.com (ID: 3)","timestamp":"2025-11-30 23:18:58"}
