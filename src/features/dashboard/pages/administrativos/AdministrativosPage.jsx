@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Eye, Edit, Trash2, UserCheck, UserX, AlertTriangle } from 'lucide-react';
+import { Plus, Eye, Edit, UserCheck, UserX, AlertTriangle } from 'lucide-react';
 import SearchBar from '../../components/SearchBar';
 import StatsCard from '../../components/StatsCard';
 import AdministrativosTable from '../../components/administrativos/AdministrativosTable';
@@ -9,11 +9,9 @@ import ViewAdministrativoModal from '../../components/administrativos/ViewAdmini
 import EditAdministrativoModal from '../../components/administrativos/EditAdministrativoModal';
 import DeleteConfirmModal from '../../../../shared/components/modals/DeleteConfirmModal';
 import StatusChangeConfirmModal from '../../../../shared/components/modals/StatusChangeConfirmModal';
-import ConfirmationDialog from '../../../../shared/components/ui/ConfirmationDialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../shared/components/ui/select';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { useAdministrativos } from '../../../../shared/contexts/AdministrativosContext';
-import administrativosApiService from '../../../../shared/services/administrativosApiService';
 
 const AdministrativosPage = () => {
   const {
@@ -27,25 +25,82 @@ const AdministrativosPage = () => {
 
   const [filteredAdministrativos, setFilteredAdministrativos] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('Todos los estados');
+  const [statusFilter, setStatusFilter] = useState('Todos');
+  const [roleFilter, setRoleFilter] = useState('Todos los roles');
+  const [dateFilter, setDateFilter] = useState('Todos los periodos');
+  const [customDateRange, setCustomDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(4);
+  const [availableRoles, setAvailableRoles] = useState([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isStatusChangeModalOpen, setIsStatusChangeModalOpen] = useState(false);
-  const [isActivateDialogOpen, setIsActivateDialogOpen] = useState(false);
-  const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [selectedAdministrativo, setSelectedAdministrativo] = useState(null);
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
   const [loadingStatusChanges, setLoadingStatusChanges] = useState(new Set());
   const { toast } = useToast();
 
+  // Cargar roles disponibles al montar el componente
+  useEffect(() => {
+    const cargarRolesDisponibles = async () => {
+      try {
+        const rolesApiService = (await import('../../../../shared/services/rolesApiService')).default;
+        const roles = await rolesApiService.obtenerRoles();
+
+        // Filtrar solo roles administrativos activos
+        const rolesAdministrativos = (roles || []).filter(rol => rol.estado !== false);
+
+        setAvailableRoles(rolesAdministrativos);
+      } catch (error) {
+        // Error silencioso - no loggear permisos insuficientes en producción
+        if (error.message && error.message.includes('permisos')) {
+          // Usuario no tiene permisos suficientes para ver roles
+          setAvailableRoles([]);
+          console.log('📝 Nota: Los roles no están disponibles para este usuario. El filtro por rol estará limitado.');
+        } else {
+          // Otro tipo de error, si logear de forma limitada
+          console.warn('⚠️ Error al cargar roles para filtrado:', error.message);
+          setAvailableRoles([]);
+        }
+      }
+    };
+
+    cargarRolesDisponibles();
+  }, []);
+
+  // Funciones auxiliares para filtrado por fecha
+  const getDateRange = (filter) => {
+    const now = new Date();
+    const start = new Date();
+
+    switch (filter) {
+      case 'Hoy':
+        start.setHours(0, 0, 0, 0);
+        return { start: start.toISOString().split('T')[0], end: now.toISOString().split('T')[0] };
+      case 'Esta semana':
+        const day = start.getDay();
+        start.setDate(start.getDate() - day);
+        start.setHours(0, 0, 0, 0);
+        return { start: start.toISOString().split('T')[0], end: now.toISOString().split('T')[0] };
+      case 'Este mes':
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+        return { start: start.toISOString().split('T')[0], end: now.toISOString().split('T')[0] };
+      default:
+        return { start: null, end: null };
+    }
+  };
+
   // Filtrar administrativos
   useEffect(() => {
     let filtered = Array.isArray(administrativos) ? administrativos : [];
 
+    // Filtro de búsqueda de texto
     if (searchTerm) {
       filtered = filtered.filter(admin => {
         const fullName = `${admin.persona?.nombre_completo || ''} ${admin.persona?.apellido_completo || ''}`.toLowerCase().trim();
@@ -60,13 +115,47 @@ const AdministrativosPage = () => {
       });
     }
 
-    if (statusFilter !== 'Todos los estados') {
+    // Filtro por estado laboral
+    if (statusFilter !== 'Todos') {
       filtered = filtered.filter(admin => admin.estado_laboral === statusFilter);
+    }
+
+    // Filtro por rol
+    if (roleFilter !== 'Todos los roles') {
+      filtered = filtered.filter(admin =>
+        admin.persona?.roles?.some(rol => rol.nombre_rol === roleFilter)
+      );
+    }
+
+    // Filtro por fecha de creación
+    if (dateFilter !== 'Todos los periodos') {
+      if (dateFilter === 'Personalizado' && customDateRange.startDate && customDateRange.endDate) {
+        const startDate = new Date(customDateRange.startDate);
+        const endDate = new Date(customDateRange.endDate);
+        endDate.setHours(23, 59, 59, 999); // Fin del día
+
+        filtered = filtered.filter(admin => {
+          const adminCreationDate = new Date(admin.fecha_ingreso || admin.persona?.fecha_registro);
+          return adminCreationDate >= startDate && adminCreationDate <= endDate;
+        });
+      } else {
+        const range = getDateRange(dateFilter);
+        if (range.start && range.end) {
+          const startDate = new Date(range.start);
+          const endDate = new Date(range.end);
+          endDate.setHours(23, 59, 59, 999);
+
+          filtered = filtered.filter(admin => {
+            const adminCreationDate = new Date(admin.fecha_ingreso || admin.persona?.fecha_registro);
+            return adminCreationDate >= startDate && adminCreationDate <= endDate;
+          });
+        }
+      }
     }
 
     setFilteredAdministrativos(filtered);
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, administrativos]);
+  }, [searchTerm, statusFilter, roleFilter, dateFilter, customDateRange, administrativos]);
 
   // Calcular estadísticas
   const administrativosArray = Array.isArray(administrativos) ? administrativos : [];
@@ -126,6 +215,20 @@ const AdministrativosPage = () => {
   };
 
   const handleEditClick = (administrativo) => {
+    // Verificar si el administrativo es super admin o admin
+    const isSuperAdminOrAdmin = administrativo?.persona?.roles?.some(rol =>
+      rol.nombre_rol === 'Super Administrador' || rol.nombre_rol === 'Administrador'
+    );
+
+    if (isSuperAdminOrAdmin) {
+      toast({
+        title: "Acción no permitida",
+        description: "No se puede editar a un Super Administrador o Administrador",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSelectedAdministrativo(administrativo);
     setIsEditModalOpen(true);
   };
@@ -136,9 +239,22 @@ const AdministrativosPage = () => {
   };
 
   const handleStatusChangeRequest = (administrativo, newStatus) => {
-    const estadoNombre = administrativosApiService.mapIdToEstado(newStatus);
+    // Verificar si el administrativo es super admin o admin
+    const isSuperAdminOrAdmin = administrativo?.persona?.roles?.some(rol =>
+      rol.nombre_rol === 'Super Administrador' || rol.nombre_rol === 'Administrador'
+    );
+
+    if (isSuperAdminOrAdmin) {
+      toast({
+        title: "Acción no permitida",
+        description: "No se puede cambiar el estado de un Super Administrador o Administrador",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSelectedAdministrativo(administrativo);
-    setPendingStatusChange({ administrativoId: administrativo.id_administrativo, newStatus: estadoNombre });
+    setPendingStatusChange({ administrativoId: administrativo.id_administrativo, newStatus });
     setLoadingStatusChanges(prev => new Set(prev).add(administrativo.id_administrativo));
     setIsStatusChangeModalOpen(true);
   };
@@ -161,9 +277,10 @@ const AdministrativosPage = () => {
         setSelectedAdministrativo(null);
         setPendingStatusChange(null);
 
+        const fullName = `${selectedAdministrativo.persona?.nombre_completo || ''} ${selectedAdministrativo.persona?.apellido_completo || ''}`.trim();
         toast({
           title: "¡Estado actualizado exitosamente!",
-          description: `El estado laboral ha sido cambiado a ${getStatusLabel(pendingStatusChange.newStatus)}.`,
+          description: `El estado del administrativo ${fullName} ha sido cambiado a ${pendingStatusChange.newStatus}.`,
           variant: "default"
         });
       } catch (error) {
@@ -180,70 +297,6 @@ const AdministrativosPage = () => {
         });
       }
     }
-  };
-
-  const handleActivateRequest = (administrativo) => {
-    setSelectedAdministrativo(administrativo);
-    setIsActivateDialogOpen(true);
-  };
-
-  const handleDeactivateRequest = (administrativo) => {
-    setSelectedAdministrativo(administrativo);
-    setIsDeactivateDialogOpen(true);
-  };
-
-  const handleActivateAdministrativo = async () => {
-    if (selectedAdministrativo) {
-      try {
-        await changeEstadoAdministrativo(selectedAdministrativo.id_administrativo, 'Activo');
-        setIsActivateDialogOpen(false);
-        setSelectedAdministrativo(null);
-        const fullName = `${selectedAdministrativo.persona?.nombre_completo || ''} ${selectedAdministrativo.persona?.apellido_completo || ''}`.trim();
-        toast({
-          title: "¡Administrativo activado exitosamente!",
-          description: `El administrativo ${fullName} ha sido activado.`,
-          variant: "default"
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "No se pudo activar el administrativo",
-          variant: "destructive"
-        });
-      }
-    }
-  };
-
-  const handleDeactivateAdministrativo = async () => {
-    if (selectedAdministrativo) {
-      try {
-        await changeEstadoAdministrativo(selectedAdministrativo.id_administrativo, 'Inactivo');
-        setIsDeactivateDialogOpen(false);
-        setSelectedAdministrativo(null);
-        const fullName = `${selectedAdministrativo.persona?.nombre_completo || ''} ${selectedAdministrativo.persona?.apellido_completo || ''}`.trim();
-        toast({
-          title: "¡Administrativo desactivado exitosamente!",
-          description: `El administrativo ${fullName} ha sido desactivado.`,
-          variant: "default"
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "No se pudo desactivar el administrativo",
-          variant: "destructive"
-        });
-      }
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    const statusLabels = {
-      'Activo': 'Activo',
-      'Inactivo': 'Inactivo',
-      'Suspendido': 'Suspendido',
-      'Retirado': 'Retirado'
-    };
-    return statusLabels[status] || status;
   };
 
   if (loading) {
@@ -283,7 +336,7 @@ const AdministrativosPage = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
       >
         <StatsCard
           title="Total Administrativos"
@@ -305,22 +358,6 @@ const AdministrativosPage = () => {
           title="Inactivos"
           value={stats.inactivos}
           icon={UserX}
-          color="bg-gradient-to-r from-yellow-500 to-yellow-600"
-          textColor="text-yellow-600"
-          bgColor="bg-yellow-50"
-        />
-        <StatsCard
-          title="Suspendidos"
-          value={stats.suspendidos}
-          icon={AlertTriangle}
-          color="bg-gradient-to-r from-orange-500 to-orange-600"
-          textColor="text-orange-600"
-          bgColor="bg-orange-50"
-        />
-        <StatsCard
-          title="Retirados"
-          value={stats.retirados}
-          icon={UserX}
           color="bg-gradient-to-r from-red-500 to-red-600"
           textColor="text-red-600"
           bgColor="bg-red-50"
@@ -332,37 +369,111 @@ const AdministrativosPage = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="flex flex-col sm:flex-row gap-4 items-start sm:items-center"
+        className="space-y-4"
       >
-        <div className="flex-1 max-w-md">
+        {/* Search Bar */}
+        <div className="flex-1 max-w-lg">
           <SearchBar
             placeholder="Buscar por nombre, email, código o departamento..."
             value={searchTerm}
             onChange={setSearchTerm}
           />
         </div>
-        <div className="flex gap-2">
+
+        {/* Filters Row */}
+        <div className="flex flex-wrap gap-3 items-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+          >
+            <Select
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Estado laboral"/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos">Todos</SelectItem>
+                <SelectItem value="Activo">Activos</SelectItem>
+                <SelectItem value="Inactivo">Inactivos</SelectItem>
+              </SelectContent>
+            </Select>
+          </motion.div>
+
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, delay: 0.4 }}
           >
             <Select
-              value={statusFilter}
-              onValueChange={setStatusFilter}
+              value={roleFilter}
+              onValueChange={setRoleFilter}
             >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Todos los estados"/>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Rol"/>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Todos los estados">Todos los estados</SelectItem>
-                <SelectItem value="Activo">Activos</SelectItem>
-                <SelectItem value="Inactivo">Inactivos</SelectItem>
-                <SelectItem value="Suspendido">Suspendidos</SelectItem>
-                <SelectItem value="Retirado">Retirados</SelectItem>
+                <SelectItem value="Todos los roles">Todos los roles</SelectItem>
+                {availableRoles.map(rol => (
+                  <SelectItem key={rol.id} value={rol.nombre}>
+                    {rol.nombre}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: 0.5 }}
+          >
+            <Select
+              value={dateFilter}
+              onValueChange={setDateFilter}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Fecha de ingreso"/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos los periodos">Todos los periodos</SelectItem>
+                <SelectItem value="Hoy">Hoy</SelectItem>
+                <SelectItem value="Esta semana">Esta semana</SelectItem>
+                <SelectItem value="Este mes">Este mes</SelectItem>
+                <SelectItem value="Personalizado">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+          </motion.div>
+
+          {dateFilter === 'Personalizado' && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex gap-2 items-center"
+            >
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700">Desde:</label>
+                <input
+                  type="date"
+                  value={customDateRange.startDate}
+                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                  className="h-10 px-3 rounded-md border border-slate-300 text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700">Hasta:</label>
+                <input
+                  type="date"
+                  value={customDateRange.endDate}
+                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                  className="h-10 px-3 rounded-md border border-slate-300 text-sm"
+                />
+              </div>
+            </motion.div>
+          )}
         </div>
       </motion.div>
 
@@ -378,8 +489,6 @@ const AdministrativosPage = () => {
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
           onStatusChange={handleStatusChangeRequest}
-          onActivate={handleActivateRequest}
-          onDeactivate={handleDeactivateRequest}
           loadingStatusChanges={loadingStatusChanges}
           currentPage={currentPage}
           totalPages={totalPages}
@@ -444,35 +553,6 @@ const AdministrativosPage = () => {
               }
             : null
         }
-      />
-
-      {/* Confirmation Dialogs for Activate/Deactivate */}
-      <ConfirmationDialog
-        isOpen={isActivateDialogOpen}
-        onClose={() => {
-          setIsActivateDialogOpen(false);
-          setSelectedAdministrativo(null);
-        }}
-        onConfirm={handleActivateAdministrativo}
-        title="Activar Administrativo"
-        message={`¿Estás seguro de que deseas activar al administrativo ${selectedAdministrativo?.persona?.primer_nombre || ''} ${selectedAdministrativo?.persona?.primer_apellido || ''}?`}
-        confirmText="Activar"
-        cancelText="Cancelar"
-        variant="success"
-      />
-
-      <ConfirmationDialog
-        isOpen={isDeactivateDialogOpen}
-        onClose={() => {
-          setIsDeactivateDialogOpen(false);
-          setSelectedAdministrativo(null);
-        }}
-        onConfirm={handleDeactivateAdministrativo}
-        title="Desactivar Administrativo"
-        message={`¿Estás seguro de que deseas desactivar al administrativo ${selectedAdministrativo?.persona?.primer_nombre || ''} ${selectedAdministrativo?.persona?.primer_apellido || ''}?`}
-        confirmText="Desactivar"
-        cancelText="Cancelar"
-        variant="danger"
       />
     </div>
   );

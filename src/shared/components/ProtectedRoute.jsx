@@ -27,7 +27,7 @@ const ProtectedRoute = ({
   redirectTo = '/login',
   fallback: FallbackComponent
 }) => {
-  const { isAuthenticated, loading, hasAccess } = useAuth();
+  const { isAuthenticated, loading, hasAccess, user } = useAuth();
   const location = useLocation();
 
   // Mostrar componente de carga mientras verifica autenticación
@@ -61,7 +61,7 @@ const ProtectedRoute = ({
   if (allowedRoles && !hasAccess(allowedRoles)) {
     console.log('🚫 Acceso denegado: Usuario no tiene los roles requeridos', {
       allowedRoles,
-      userRoles: 'roles del usuario' // Esto se mostraría en el contexto
+      userRoles: isAuthenticated ? user?.roles : []
     });
     // Redirigir a página de acceso denegado o dashboard
     return <Navigate to="/dashboard" replace />;
@@ -95,6 +95,63 @@ export const AdminRoute = ({ children, ...props }) => (
  */
 export const EmployeeRoute = ({ children, ...props }) => (
   <ProtectedRoute allowedRoles={["Super Administrador", "Administrador", "Empleado"]} {...props}>
+    {children}
+  </ProtectedRoute>
+);
+
+/**
+ * Componente específico para rutas del dashboard - permite cualquier rol administrativo
+ */
+export const DashboardRoute = ({ children, ...props }) => {
+  const { isAuthenticated, loading, user, getAvailableModules } = useAuth();
+
+  // Mostrar componente de carga mientras verifica autenticación
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando acceso...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no está autenticado, redirigir a login
+  if (!isAuthenticated) {
+    console.log('🔒 Acceso denegado: Usuario no autenticado, redirigiendo a login');
+    return <Navigate to="/login" replace />;
+  }
+
+  // Verificar si el usuario tiene acceso administrativo
+  const availableModules = getAvailableModules();
+  const hasAdministrativeAccess =
+    user?.es_administrativo === true ||
+    user?.roles?.includes('Super Administrador') ||
+    user?.roles?.includes('Administrador') ||
+    availableModules.includes('administrativos');
+
+  if (!hasAdministrativeAccess) {
+    console.log('🚫 Acceso denegado al dashboard: Usuario no tiene permisos administrativos', {
+      es_administrativo: user?.es_administrativo,
+      roles: user?.roles,
+      availableModules,
+      hasAdministrativeAccess
+    });
+    // Redirigir a página de acceso denegado o home
+    return <Navigate to="/" replace />;
+  }
+
+  // Acceso permitido
+  console.log('✅ Acceso permitido al dashboard');
+  return children;
+};
+
+/**
+ * Componente específico para rutas que requieren solo autenticación (usuarios normales)
+ */
+export const AuthenticatedRoute = ({ children, ...props }) => (
+  <ProtectedRoute requireAuth={true} {...props}>
     {children}
   </ProtectedRoute>
 );

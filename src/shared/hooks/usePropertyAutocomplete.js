@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { apiClient } from '../services/api.config';
 
 // Datos extendidos de inmuebles con referencias y propietarios
 const propertiesWithReferences = [
@@ -168,54 +169,89 @@ export function usePropertyAutocomplete() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [filteredProperties, setFilteredProperties] = useState([]);
 
-  // Filtrar propiedades basado en el término de búsqueda
-  const filteredProperties = useMemo(() => {
-    if (!searchTerm.trim()) return [];
-    
-    const term = searchTerm.toLowerCase();
-    return propertiesWithReferences.filter(property => 
-      property.reference.toLowerCase().includes(term) ||
-      property.title.toLowerCase().includes(term) ||
-      property.location.toLowerCase().includes(term) ||
-      property.owner.toLowerCase().includes(term)
-    ).slice(0, 10); // Limitar a 10 resultados
+  // Fetch dinámico contra backend
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchSuggestions = async () => {
+      const term = (searchTerm || '').toString().trim();
+      console.log('🔍 [usePropertyAutocomplete] Buscando inmuebles con término:', term);
+
+      if (!term) {
+        console.log('🔍 [usePropertyAutocomplete] Término vacío, limpiando resultados');
+        setFilteredProperties([]);
+        return;
+      }
+      setIsSearching(true);
+
+      try {
+        console.log('🔍 [usePropertyAutocomplete] Llamando a API:', '/reportes-inmobiliarios/inmuebles/autocomplete');
+        const res = await apiClient.get('/reportes-inmobiliarios/inmuebles/autocomplete', {
+          q: term,
+          limit: 10
+        });
+
+        console.log('🔍 [usePropertyAutocomplete] Respuesta de API:', res);
+        console.log('🔍 [usePropertyAutocomplete] Datos crudos:', res.data);
+
+        const list = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        console.log('🔍 [usePropertyAutocomplete] Lista procesada:', list);
+
+        const mapped = list.map((r) => ({
+          id: r.id_inmueble,
+          reference: r.referencia || r.registro_inmobiliario,
+          title: r.nombre || r.direccion,
+          location: r.ciudad,
+          type: r.categoria || '—',
+          owner: r.propietario || ''
+        }));
+
+        console.log('🔍 [usePropertyAutocomplete] Datos mapeados:', mapped);
+        console.log('🔍 [usePropertyAutocomplete] Total de inmuebles encontrados:', mapped.length);
+
+        if (!cancelled) setFilteredProperties(mapped);
+      } catch (e) {
+        console.error('❌ [usePropertyAutocomplete] Error en búsqueda:', e?.message || e);
+        if (!cancelled) setFilteredProperties([]);
+      } finally {
+        if (!cancelled) setIsSearching(false);
+      }
+    };
+
+    fetchSuggestions();
+    return () => { cancelled = true; };
   }, [searchTerm]);
 
-  // Buscar propiedad por referencia exacta
+  // Buscar por referencia dentro de los resultados actuales
   const getPropertyByReference = (reference) => {
-    return propertiesWithReferences.find(property => 
-      property.reference.toLowerCase() === reference.toLowerCase()
+    return filteredProperties.find(
+      (property) => property.reference?.toLowerCase() === reference?.toLowerCase()
     );
   };
 
-  // Obtener datos del formulario basado en la propiedad seleccionada
   const getFormDataFromProperty = (property) => {
     if (!property) return {};
-
     return {
       ubicacion: property.location,
       tipoInmueble: property.type,
       referencia: property.reference,
       propietario: property.owner,
-      // Mantener otros campos como están
     };
   };
 
-  // Seleccionar propiedad y obtener datos del formulario
   const selectProperty = (property) => {
     setSelectedProperty(property);
     setSearchTerm(property.reference);
     return getFormDataFromProperty(property);
   };
 
-  // Limpiar selección
   const clearSelection = () => {
     setSelectedProperty(null);
     setSearchTerm('');
   };
 
-  // Buscar por referencia y autocompletar
   const searchByReference = (reference) => {
     setSearchTerm(reference);
     const property = getPropertyByReference(reference);
@@ -237,6 +273,6 @@ export function usePropertyAutocomplete() {
     selectProperty,
     clearSelection,
     searchByReference,
-    allProperties: propertiesWithReferences
+    suggestions: filteredProperties // para mantener compatibilidad si se usa 'suggestions'
   };
 }

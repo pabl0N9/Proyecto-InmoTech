@@ -61,6 +61,14 @@ const Cita = sequelize.define('Cita', {
       key: 'id_persona'
     }
   },
+  id_usuario_creador: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Personas',
+      key: 'id_persona'
+    }
+  },
   id_cita_original: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -75,6 +83,33 @@ const Cita = sequelize.define('Cita', {
   },
   motivo_cancelacion: {
     type: DataTypes.TEXT,
+    allowNull: true
+  },
+  motivo_reagendamiento: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  ediciones_realizadas: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
+  ediciones_maximas: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 2
+  },
+  // Auditoría de estados (timestamps de cambios)
+  fecha_confirmacion: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  fecha_cancelacion: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  fecha_completada: {
+    type: DataTypes.DATE,
     allowNull: true
   },
   fecha_creacion: {

@@ -1,7 +1,6 @@
-// Importa rutas centralizadas desde el archivo index
+// Centraliza las rutas para el menu del dashboard
 import { dashboardRoutes } from '../../routes/index';
 
-// Importa íconos de react-icons
 import {
   MdDashboard,
   MdHome,
@@ -14,7 +13,56 @@ import {
   MdWeb
 } from 'react-icons/md';
 
-// Lista de elementos principales del menú de navegación
+/**
+ * Filtra los elementos visibles segun los modulos habilitados
+ */
+export const getFilteredNavigation = (availableModules = []) => {
+  const hasFullAccess =
+    availableModules.includes('inmuebles') ||
+    availableModules.includes('propiedades') ||
+    availableModules.includes('citas') ||
+    availableModules.includes('reportes') ||
+    availableModules.includes('administrativos');
+
+  if (hasFullAccess) {
+    return navigationItems;
+  }
+
+  const filteredItems = [navigationItems[0]];
+
+  if (availableModules.includes('citas') || availableModules.includes('gCitas')) {
+    filteredItems.push(navigationItems.find(item => item.id === 'citas'));
+  }
+
+  if (availableModules.includes('inmuebles') || availableModules.includes('propiedades')) {
+    filteredItems.push(navigationItems.find(item => item.id === 'inmuebles'));
+  }
+
+  if (availableModules.includes('reportes')) {
+    filteredItems.push(navigationItems.find(item => item.id === 'reportes'));
+  }
+
+  const seguridadItem = navigationItems.find(item => item.id === 'seguridad');
+  const subItemsSeguridad = [];
+
+  if (availableModules.includes('usuarios')) {
+    subItemsSeguridad.push(seguridadItem.subItems[0]);
+  }
+  if (availableModules.includes('administrativos') || availableModules.includes('gAdministrativos')) {
+    subItemsSeguridad.push(seguridadItem.subItems[1]);
+  }
+  if (availableModules.includes('roles') || availableModules.includes('gRoles')) {
+    subItemsSeguridad.push(seguridadItem.subItems[2]);
+  }
+
+  if (subItemsSeguridad.length > 0) {
+    filteredItems.push({ ...seguridadItem, subItems: subItemsSeguridad });
+  }
+
+  return filteredItems;
+};
+
+// Lista de elementos principales del menu de navegacion
 export const navigationItems = [
   {
     id: 'dashboard',
@@ -31,15 +79,15 @@ export const navigationItems = [
     subItems: [
       {
         id: 'gestion-inmuebles',
-        title: 'Gestión de Inmuebles',
-        path: dashboardRoutes.properties
+        title: 'Gestion de Inmuebles',
+        path: dashboardRoutes.properties,
       },
       {
         id: 'gestion-propietarios',
-        title: 'Gestión de Propietarios',
-        path: dashboardRoutes.owners
-      }
-    ]
+        title: 'Gestion de Propietarios',
+        path: dashboardRoutes.owners,
+      },
+    ],
   },
   {
     id: 'citas',
@@ -48,13 +96,8 @@ export const navigationItems = [
     isExpandable: true,
     subItems: [
       {
-        id: 'gestion-clientes',
-        title: 'Gestión de Clientes',
-        path: dashboardRoutes.clients || '/citas/clientes',
-      },
-      {
         id: 'gestion-citas',
-        title: 'Gestión de Citas',
+        title: 'Gestion de Citas',
         path: dashboardRoutes.appointments || '/citas/gestion',
       },
     ],
@@ -67,12 +110,12 @@ export const navigationItems = [
     subItems: [
       {
         id: 'gestion-comprador',
-        title: 'Gestión de Comprador',
+        title: 'Gestion de Comprador',
         path: dashboardRoutes.buyers || '/dashboard/buyersManagement',
       },
       {
         id: 'gestion-ventas',
-        title: 'Gestión de Ventas',
+        title: 'Gestion de Ventas',
         path: dashboardRoutes.sales || '/dashboard/salesManagement',
       },
     ],
@@ -85,12 +128,12 @@ export const navigationItems = [
     subItems: [
       {
         id: 'gestion-arrendatario',
-        title: 'Gestión de Arrendatario',
+        title: 'Gestion de Arrendatario',
         path: dashboardRoutes.tenants || '/dashboard/leasesManagement',
       },
       {
         id: 'gestion-arriendos',
-        title: 'Gestión de Arriendos',
+        title: 'Gestion de Arriendos',
         path: dashboardRoutes.rentals || '/dashboard/renantManagement',
       },
     ],
@@ -103,7 +146,7 @@ export const navigationItems = [
     subItems: [
       {
         id: 'gestion-reportes',
-        title: 'Gestión de Reportes',
+        title: 'Gestion de Reportes',
         path: dashboardRoutes.reports || '/reportes/gestion',
       },
     ],
@@ -118,13 +161,12 @@ export const navigationItems = [
         id: 'usuarios',
         title: 'Usuarios',
         path: dashboardRoutes.users || '/seguridad/usuarios',
-      },      
+      },
       {
         id: 'administrativos',
         title: 'Administrativos',
         path: dashboardRoutes.administrativos || '/seguridad/administrativos',
       },
-
       {
         id: 'roles',
         title: 'Roles',
@@ -134,16 +176,14 @@ export const navigationItems = [
   },
 ];
 
-// Elemento para cerrar sesión
 export const logoutItem = {
   id: 'logout',
-  title: 'Cerrar Sesión',
+  title: 'Cerrar Sesion',
   icon: MdLogout,
   action: 'logout',
   isExpandable: false,
 };
 
-// Elemento para ir al sitio público
 export const goToSiteItem = {
   id: 'go-to-site',
   title: 'Ir al Sitio',

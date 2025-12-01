@@ -182,6 +182,32 @@ BEGIN
 END
 GO
 
+-- ---------------------------------------------------------------------------------------------------------------------
+-- Tabla: Permisos
+-- Descripción: Almacena los permisos específicos por módulo para cada rol
+-- Relación: Un rol puede tener múltiples permisos por módulo
+-- ---------------------------------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Permisos]') AND type = 'U')
+BEGIN
+    CREATE TABLE Permisos (
+        id_permiso INT PRIMARY KEY IDENTITY(1,1),
+        id_rol INT NOT NULL,
+        modulo VARCHAR(50) NOT NULL,                    -- Ej: "gInmuebles", "gClientes"
+        permiso VARCHAR(50) NOT NULL,                   -- Ej: "crear", "editar", "eliminar", "ver"
+        estado BIT NOT NULL DEFAULT 1,
+        fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
+
+        CONSTRAINT FK_Permisos_Rol FOREIGN KEY (id_rol) REFERENCES Roles(id_rol) ON DELETE CASCADE,
+        CONSTRAINT UQ_Permiso_Unico UNIQUE (id_rol, modulo, permiso)
+    );
+    PRINT '✅ Tabla Permisos creada';
+END
+GO
+
+-- Índice para búsquedas por rol
+CREATE NONCLUSTERED INDEX IX_Permisos_Rol ON Permisos(id_rol);
+GO
+
 -- Índices para consultas de roles
 CREATE NONCLUSTERED INDEX IX_PersonasRol_Persona ON Personas_rol(id_persona);  -- Obtener roles de una persona
 CREATE NONCLUSTERED INDEX IX_PersonasRol_Rol ON Personas_rol(id_rol);          -- Obtener personas con un rol
@@ -432,6 +458,57 @@ CREATE NONCLUSTERED INDEX IX_Citas_Persona ON Citas(id_persona);                
 CREATE NONCLUSTERED INDEX IX_Citas_ConflictoHorario ON Citas(id_inmueble, fecha_cita, hora_inicio, hora_fin) INCLUDE (id_estado_cita);  -- Verificar disponibilidad
 CREATE NONCLUSTERED INDEX IX_Citas_Creador ON Citas(id_usuario_creador);                      -- Quién creó las citas
 GO
+
+
+
+
+-- =====================================================================================================================
+-- TABLA DE HISTORIAL DE ASIGNACIÓN DE AGENTES
+-- =====================================================================================================================
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[HistorialAsignacionAgentes]') AND type = 'U')
+BEGIN
+    CREATE TABLE HistorialAsignacionAgentes (
+        id_historial INT PRIMARY KEY IDENTITY(1,1),
+
+        -- Relación con cita
+        id_cita INT NOT NULL,
+
+        -- Agentes involucrados
+        id_agente_anterior INT NULL,  -- NULL si es primera asignación
+        id_agente_nuevo INT NOT NULL,
+
+        -- Información de la asignación
+        comentario TEXT NULL,  -- Obligatorio cuando se reasigna
+        estado_asignacion VARCHAR(20) NOT NULL DEFAULT 'Activa',  -- Activa, Reasignada, Cancelada
+
+        -- Usuario que realizó la asignación/reasignación
+        id_usuario_realizo INT NOT NULL,  -- Quién realizó la acción
+
+        -- Fechas
+        fecha_asignacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
+
+        -- Auditoría
+        fecha_creacion DATETIME2(3) NOT NULL DEFAULT GETDATE(),
+
+        CONSTRAINT FK_HistorialAsignacion_Cita FOREIGN KEY (id_cita) REFERENCES Citas(id_cita) ON DELETE CASCADE,
+        CONSTRAINT FK_HistorialAsignacion_AgenteAnterior FOREIGN KEY (id_agente_anterior) REFERENCES Personas(id_persona),
+        CONSTRAINT FK_HistorialAsignacion_AgenteNuevo FOREIGN KEY (id_agente_nuevo) REFERENCES Personas(id_persona),
+        CONSTRAINT FK_HistorialAsignacion_UsuarioRealizo FOREIGN KEY (id_usuario_realizo) REFERENCES Personas(id_persona),
+        CONSTRAINT CHK_HistorialAsignacion_Estado CHECK (estado_asignacion IN ('Activa', 'Reasignada', 'Cancelada'))
+    );
+    PRINT '✅ Tabla HistorialAsignacionAgentes creada - NUEVA FUNCIONALIDAD';
+END
+GO
+
+-- Índices para búsquedas frecuentes
+CREATE NONCLUSTERED INDEX IX_Historial_Cita ON HistorialAsignacionAgentes(id_cita, fecha_asignacion DESC);
+CREATE NONCLUSTERED INDEX IX_Historial_AgenteNuevo ON HistorialAsignacionAgentes(id_agente_nuevo);
+CREATE NONCLUSTERED INDEX IX_Historial_UsuarioRealizo ON HistorialAsignacionAgentes(id_usuario_realizo);
+GO
+
+
+
 
 -- =====================================================================================================================
 -- PASO 6: SISTEMA DE NOTIFICACIONES
@@ -773,6 +850,109 @@ BEGIN
     PRINT '✅ Inmueble de prueba creado (INM-001-TEST)';
 END
 GO
+
+
+
+
+
+-- =====================================================================================================================
+-- PASO 9.5: OPTIMIZACIÓN DE ÍNDICES PARA ENDPOINTS LENTOS
+-- =====================================================================================================================
+-- Este script agrega índices faltantes en columnas FK para mejorar rendimiento de JOINs
+-- Especialmente optimizado para /api/v1/citas, /api/v1/personas, /api/v1/administrativos
+-- Debe ejecutarse DESPUÉS de crear todas las tablas y datos iniciales
+-- =====================================================================================================================
+
+PRINT '';
+PRINT '=====================================================================================================================';
+PRINT 'OPTIMIZACIÓN DE ÍNDICES PARA MEJORAR RENDIMIENTO DE CONSULTAS';
+PRINT '=====================================================================================================================';
+PRINT '';
+
+-- Índices para tabla Citas (FKs más consultadas en endpoints de citas)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Citas') AND name = 'IX_Citas_Inmueble')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Citas_Inmueble ON Citas(id_inmueble);
+    PRINT '✅ Índice agregado: IX_Citas_Inmueble';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_Citas_Inmueble ya existe';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Citas') AND name = 'IX_Citas_Servicio')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Citas_Servicio ON Citas(id_servicio);
+    PRINT '✅ Índice agregado: IX_Citas_Servicio';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_Citas_Servicio ya existe';
+END
+
+-- Índices para tabla Administrativos (optimización de consultas de personal)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Administrativos') AND name = 'IX_Administrativos_Persona')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Administrativos_Persona ON Administrativos(id_persona);
+    PRINT '✅ Índice agregado: IX_Administrativos_Persona';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_Administrativos_Persona ya existe';
+END
+
+-- Índices para tabla Personas_rol (optimización de filtros por roles y estado)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Personas_rol') AND name = 'IX_PersonasRol_Estado')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_PersonasRol_Estado ON Personas_rol(id_persona, estado) WHERE estado = 1;
+    PRINT '✅ Índice agregado: IX_PersonasRol_Estado (filtrado para activos)';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_PersonasRol_Estado ya existe';
+END
+
+-- Índice compuesto para optimización de consultas con joins complejos rol-persona
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Personas_rol') AND name = 'IX_PersonasRol_RolEstado')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_PersonasRol_RolEstado ON Personas_rol(id_rol, estado) INCLUDE (id_persona) WHERE estado = 1;
+    PRINT '✅ Índice agregado: IX_PersonasRol_RolEstado (con columna incluida)';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_PersonasRol_RolEstado ya existe';
+END
+
+-- Índice para consultas de personas con cuenta activa (login y autenticación)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Personas') AND name = 'IX_Personas_EstadoCuenta')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Personas_EstadoCuenta ON Personas(estado, tiene_cuenta) WHERE estado = 1;
+    PRINT '✅ Índice agregado: IX_Personas_EstadoCuenta (filtrado para activos)';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_Personas_EstadoCuenta ya existe';
+END
+
+PRINT '';
+PRINT '🎯 OPTIMIZACIÓN DE ÍNDICES COMPLETADA';
+PRINT '';
+PRINT '📊 Estos índices mejorarán significativamente el rendimiento de:';
+PRINT '   ✓ GET /api/v1/citas         - Joins con persona, inmueble, servicio';
+PRINT '   ✓ GET /api/v1/personas      - Filtrado por rol Usuario y estado activo';
+PRINT '   ✓ GET /api/v1/administrativos - Joins con persona y roles';
+PRINT '   ✓ POST /api/v1/auth/login   - Búsqueda de usuarios con cuenta activa';
+PRINT '';
+PRINT '💡 RECOMENDACIONES:';
+PRINT '   - Monitorear tiempo de respuesta de los endpoints después de aplicar';
+PRINT '   - Usar SET STATISTICS TIME ON para medir mejoras';
+PRINT '   - Considerar actualizar estadísticas: UPDATE STATISTICS [tabla]';
+PRINT '';
+GO
+
+
+
+
 
 -- =====================================================================================================================
 -- PASO 10: VERIFICACIÓN FINAL Y RESUMEN

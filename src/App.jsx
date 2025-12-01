@@ -1,10 +1,11 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
+import { dashboardRoutes } from './routes/index'
 import Navbar from './shared/components/Navbar'
 import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
 import { Toaster } from './shared/components/ui/toaster'
 import DashboardLayout from './shared/components/dashboard/Layout/DashboardLayout'
-import ProtectedRoute, { EmployeeRoute } from './shared/components/ProtectedRoute'
+import ProtectedRoute, { EmployeeRoute, DashboardRoute, AuthenticatedRoute } from './shared/components/ProtectedRoute'
 
 // Pages
 import HomePage from './features/properties/pages/HomePage'
@@ -15,20 +16,22 @@ import AboutPage from './features/about/pages/AboutPage'
 import ServicesPage from './features/services/pages/ServicesPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
-import ResetPasswordPage from './features/auth/pages/ResetPasswordPage'
+import UserAppointmentsPage from './features/appointments/pages/UserAppointmentsPage'
+import ActivateAccountPage from './features/auth/pages/ActivateAccountPage'
+import VerifyEmailPage from './features/auth/pages/VerifyEmailPage'
 
 // Dashboard pages
 import DashboardPage from './features/dashboard/DashboardPage'
-import { SalesManagementPage } from './features/dashboard/pages/sales/pages/SalesManagementPage'
-import { BuyersManagementPage } from './features/dashboard/pages/sales/pages/BuyerManagementPage'
-import { LeasesManagementPage } from './features/dashboard/pages/leases/pages/LeasesManagementPage'
-import { RenantManagementPage } from './features/dashboard/pages/leases/pages/RenantManagementPage'
+import { SalesManagementPage } from './features/dashboard/pages/sales/SalesManagementPage'
+import { BuyersManagementPage } from './features/dashboard/pages/sales/BuyerManagementPage'
+import { LeasesManagementPage } from './features/dashboard/pages/leases/LeasesManagementPage'
+import { RenantManagementPage } from './features/dashboard/pages/leases/RenantManagementPage'
 import AppointmentPage from './features/dashboard/pages/appointment/AppointmentPage'
 import Reports from './features/dashboard/pages/reports/Reports'
 import Roles from './features/dashboard/pages/roles/Roles'
 import AdministrativosPage from './features/dashboard/pages/administrativos/AdministrativosPage'
-import OwnerDashboardPage from './features/dashboard/pages/propertyOwner/OwnerDashboardPage'
-import InmueblesDashboardPage from './features/dashboard/pages/Inmuebles/InmueblesDashboardPage'
+import UsersPage from './features/dashboard/pages/users/UsersPage'
+import ProfilePage from './features/dashboard/pages/Profile/ProfilePage'
 
 function App() {
   return (
@@ -120,129 +123,137 @@ function App() {
           }
         />
         <Route
-          path="/restablecer-contrasena"
+          path="/activar"
+          element={<ActivateAccountPage />}
+        />
+        <Route
+          path="/verificar-correo"
+          element={<VerifyEmailPage />}
+        />
+
+        {/* Authenticated user routes with navbar/footer */}
+        <Route
+          path="/mis-citas"
           element={
-            <>
+            <ProtectedRoute>
               <Navbar />
-              <ResetPasswordPage />
+              <UserAppointmentsPage />
               <Footer />
-            </>
+            </ProtectedRoute>
           }
         />
-        <Route path="/recuperar-password" element={<Navigate to="/restablecer-contrasena" replace />} />
 
         {/* Dashboard routes with sidebar layout */}
         <Route
           path="/dashboard"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <DashboardPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/dashboard/salesManagement"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <SalesManagementPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/dashboard/buyersManagement"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <BuyersManagementPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/dashboard/leasesManagement"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <LeasesManagementPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/dashboard/renantManagement"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <RenantManagementPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/dashboard/citas"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <AppointmentPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/reportes/gestion"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <Reports />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/seguridad/roles"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <Roles />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
           path="/seguridad/administrativos"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
                 <AdministrativosPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
-          path="/dashboard/propietarios"
+          path="/seguridad/usuarios"
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
-                <OwnerDashboardPage />
+                <UsersPage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
         <Route
-          path="/dashboard/inmuebles"
+          path={dashboardRoutes.profile}
           element={
-            <EmployeeRoute>
+            <DashboardRoute>
               <DashboardLayout>
-                <InmueblesDashboardPage />
+                <ProfilePage />
               </DashboardLayout>
-            </EmployeeRoute>
+            </DashboardRoute>
           }
         />
-
       </Routes>
       <Toaster />
     </div>

@@ -152,6 +152,22 @@ const actualizarPerfilSchema = Joi.object({
     .max(20)
     .pattern(/^[0-9\s\+\-]+$/)
     .optional()
+    .messages({
+      'string.min': 'El teléfono debe tener al menos 10 caracteres',
+      'string.max': 'El teléfono no puede exceder 20 caracteres',
+      'string.pattern.base': 'El teléfono solo puede contener números, espacios, + y -'
+    }),
+
+  foto_perfil_url: Joi.string()
+    .uri()
+    .optional()
+    .messages({
+      'string.uri': 'La URL de la imagen no es válida'
+    }),
+
+  foto_public_id: Joi.string()
+    .max(255)
+    .optional()
 })
   .min(1)
   .messages({
@@ -163,6 +179,41 @@ const refreshTokenSchema = Joi.object({
     .required()
     .messages({
       'any.required': 'El token de refresco es obligatorio'
+    })
+});
+
+const verifyEmailSchema = Joi.object({
+  token: Joi.string()
+    .required()
+    .messages({
+      'any.required': 'El token es obligatorio'
+    })
+});
+
+const verifyCodeSchema = Joi.object({
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .required()
+    .messages({
+      'string.email': 'El formato del email es invǭlido',
+      'any.required': 'El email es obligatorio'
+    }),
+  codigo: Joi.string()
+    .length(6)
+    .required()
+    .messages({
+      'string.length': 'El codigo debe tener 6 digitos',
+      'any.required': 'El codigo es obligatorio'
+    })
+});
+
+const resendCodeSchema = Joi.object({
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .required()
+    .messages({
+      'string.email': 'El formato del email es invǭlido',
+      'any.required': 'El email es obligatorio'
     })
 });
 
@@ -208,6 +259,10 @@ module.exports = {
   loginSchema,
   cambiarContrasenaSchema,
   actualizarPerfilSchema,
+  refreshTokenSchema,
+  verifyEmailSchema,
+  verifyCodeSchema,
+  resendCodeSchema
   refreshTokenSchema,
   forgotPasswordSchema,
   resetPasswordSchema

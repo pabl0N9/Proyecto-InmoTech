@@ -17,7 +17,7 @@ const Sidebar = React.forwardRef(({
   onLogout,
   onGoToSite
 }, ref) => {
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, getAvailableModules } = useAuth();
 
   const sidebarVariants = {
     expanded: {
@@ -44,14 +44,31 @@ const Sidebar = React.forwardRef(({
   const navRef = useRef(null);
   const prevExpandedItem = useRef(null);
 
-  // Filter navigation items based on user role
-  const filteredNavigationItems = navigationItems.filter(item => {
-    // Hide 'seguridad' module for 'Empleado' role
-    if (item.id === 'seguridad' && hasRole('Empleado')) {
-      return false;
+  const filteredNavigationItems = React.useMemo(() => {
+    if (!user) {
+      return navigationItems.filter(item => item.id === 'dashboard');
     }
-    return true;
-  });
+
+    const availableModules = getAvailableModules();
+    const moduleSet = new Set(availableModules);
+    const roleNames = user.roles || [];
+
+    if (roleNames.includes('Super Administrador') || roleNames.includes('Administrador')) {
+      return navigationItems;
+    }
+
+    return navigationItems.filter(item => {
+      if (item.id === 'dashboard') {
+        return true;
+      }
+
+      if (item.id === 'seguridad') {
+        return false;
+      }
+
+      return moduleSet.has(item.id);
+    });
+  }, [user, getAvailableModules]);
 
   useEffect(() => {
     if (navRef.current) {

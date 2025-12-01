@@ -13,16 +13,16 @@ const StatsCard = ({
     <motion.div
       whileHover={{ y: -2, scale: 1.02 }}
       transition={{ duration: 0.2 }}
-      className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300"
+      className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300 flex items-center"
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-slate-600 text-sm font-medium mb-1">{title}</p>
-          <p className="text-2xl font-bold text-slate-800">{value}</p>
-        </div>
-        <div className={`p-3 rounded-xl ${bgColor}`}>
+      <div className="flex-shrink-0 mr-4">
+        <div className={`p-3 rounded-lg ${bgColor}`}>
           <Icon className={`w-6 h-6 ${textColor}`} />
         </div>
+      </div>
+      <div className="flex-1">
+        <p className="text-slate-600 text-sm font-medium truncate">{title}</p>
+        <p className="text-2xl font-bold text-slate-800">{value}</p>
       </div>
     </motion.div>
   );

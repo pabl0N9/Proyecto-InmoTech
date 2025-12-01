@@ -17,53 +17,46 @@ router.get('/buscar',
   inmueblesController.buscarInmuebles
 );
 
-// ========================================
-// MIDDLEWARE DE AUTENTICACIÓN
-// ========================================
-router.use(auth.authenticateToken);
+const { authenticateToken, authorizePermissions } = auth;
 
-// ========================================
-// RUTAS AUTENTICADAS (todos los usuarios)
-// ========================================
+// After public routes, apply authentication to the rest
+router.use(authenticateToken);
 
-// ⚠️ IMPORTANTE: Rutas específicas ANTES de rutas con parámetros
-router.get('/:id/disponibilidad',
-  inmueblesController.obtenerDisponibilidad
-);
-
-// Listar todos los inmuebles
-router.get('/',
-  inmueblesController.listarInmuebles
-);
-
-// Obtener un inmueble específico (debe ir DESPUÉS de rutas específicas)
+// Obtener inmueble por ID (requires 'ver' permission)
 router.get('/:id',
+  authorizePermissions('inmuebles', 'ver'),
   inmueblesController.obtenerInmueble
 );
 
-// ========================================
-// MIDDLEWARE DE AUTORIZACIÓN POR ROLES
-// ========================================
-router.use(auth.authorizeRoles(['Super Administrador', 'Administrador', 'Empleado']));
+// Obtener disponibilidad horaria de un inmueble (requires 'ver' permission)
+router.get('/:id/disponibilidad',
+  authorizePermissions('inmuebles', 'ver'),
+  inmueblesController.obtenerDisponibilidad
+);
 
-// ========================================
-// RUTAS CON PERMISOS (Empleado+)
-// ========================================
+// Listar inmuebles con filtros (requires 'ver' permission)
+router.get('/',
+  authorizePermissions('inmuebles', 'ver'),
+  inmueblesController.listarInmuebles
+);
 
-// Crear inmueble
+// Crear inmueble (requires 'crear' permission)
 router.post('/',
+  authorizePermissions('inmuebles', 'crear'),
   validate(crearInmuebleSchema),
   inmueblesController.crearInmueble
 );
 
-// Actualizar inmueble
+// Actualizar inmueble (requires 'editar' permission)
 router.patch('/:id',
+  authorizePermissions('inmuebles', 'editar'),
   validate(actualizarInmuebleSchema),
   inmueblesController.actualizarInmueble
 );
 
-// Eliminar inmueble
+// Eliminar inmueble (requires 'eliminar' permission)
 router.delete('/:id',
+  authorizePermissions('inmuebles', 'eliminar'),
   inmueblesController.eliminarInmueble
 );
 

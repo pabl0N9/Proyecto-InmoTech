@@ -131,13 +131,13 @@ const DetailsStep = ({ formData, errors, updateFormData, onFieldComplete, proper
               <SelectValue placeholder="Selecciona un estado" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="solicitada">Solicitada</SelectItem>
               <SelectItem value="programada">Programada</SelectItem>
               <SelectItem value="confirmada">Confirmada</SelectItem>
-              <SelectItem value="solicitada">Solicitada</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-slate-500 text-sm mt-1">
-            Por defecto se crea como "Programada"
+            Por defecto se crea como "Solicitada"
           </p>
         </div>
       </div>

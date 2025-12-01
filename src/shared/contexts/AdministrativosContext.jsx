@@ -179,11 +179,17 @@ export const AdministrativosProvider = ({ children }) => {
     }
   }, []);
 
-  // Cargar datos iniciales solo si hay autenticación
+  // Cargar datos iniciales solo si hay autenticación, feature habilitada y roles adecuados
   useEffect(() => {
-    // Solo cargar si hay un token de autenticación, está autenticado y es administrativo
-    const token = localStorage.getItem('inmotech_access_token') || sessionStorage.getItem('inmotech_access_token');
-    if (token && isAuthenticated && user?.es_administrativo) {
+    const flagEnabled = import.meta?.env?.VITE_ENABLE_ADMINISTRATIVOS === 'true';
+    const hasRequiredRole = user?.roles?.some(role => {
+      if (typeof role === 'object') {
+        return ['Super Administrador', 'Administrador'].includes(role.nombre_rol || role.rol || role.name);
+      }
+      return ['Super Administrador', 'Administrador'].includes(role);
+    });
+
+    if (isAuthenticated && flagEnabled && hasRequiredRole) {
       loadAdministrativos();
     } else {
       setLoading(false);

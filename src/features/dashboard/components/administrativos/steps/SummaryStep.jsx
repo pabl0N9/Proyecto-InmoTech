@@ -89,15 +89,6 @@ const SummaryStep = ({ formData }) => {
             <p className="text-sm font-medium text-slate-600">Departamento</p>
             <p className="text-sm text-slate-800">{formData.departamento || 'No especificado'}</p>
           </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-slate-600">Salario</p>
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-slate-400" />
-              <p className="text-sm text-slate-800">
-                {formData.salario ? `$${parseFloat(formData.salario).toLocaleString('es-CO')}` : 'No especificado'}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 

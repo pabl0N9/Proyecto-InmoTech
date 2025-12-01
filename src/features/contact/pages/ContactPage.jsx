@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { motion } from "framer-motion"
 import { Button } from "@/shared/components/ui/button"
 import { Card, CardContent } from "@/shared/components/ui/card"
 import { Input } from "@/shared/components/ui/input"
@@ -33,17 +34,42 @@ export default function ContactPage() {
       <section className="relative h-[550px]">
         <img src="/images/contactanos.jpg" alt="Contáctanos" className="w-full h-full object-cover brightness-[0.65]" />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Contáctanos</h1>
-          <p className="text-lg max-w-2xl">Estamos aquí para ayudarte con todas tus necesidades inmobiliarias.</p>
+          <motion.h1
+            className="text-4xl md:text-5xl font-bold tracking-tight mb-4"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            Contáctanos
+          </motion.h1>
+          <motion.p
+            className="text-lg max-w-2xl"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+          >
+            Estamos aquí para ayudarte con todas tus necesidades inmobiliarias.
+          </motion.p>
         </div>
       </section>
 
       {/* Contact Info & Form */}
-      <section className="py-16">
+      <motion.section
+        className="py-16"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+      >
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12">
             {/* Contact Information */}
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true }}
+            >
               <h2 className="text-3xl font-bold text-[#00457B] mb-6">Información de Contacto</h2>
               <p className="text-gray-600 mb-8">
                 Nuestro equipo está disponible para atenderte y responder todas tus preguntas. No dudes en contactarnos
@@ -51,104 +77,149 @@ export default function ContactPage() {
               </p>
 
               <div className="space-y-6">
-                <Card className="border-none shadow-md">
-                  <CardContent className="flex items-start p-6">
-                    <div className="w-12 h-12 rounded-full bg-[#00457B]/10 flex items-center justify-center mr-4 flex-shrink-0">
-                      <MapPin className="h-6 w-6 text-[#00457B]" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-1">Dirección</h3>
-                      <p className="text-gray-600">Carrera 60 # 56-17, Antioquia, Colombia</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  viewport={{ once: true }}
+                >
+                  <Card className="border-none shadow-md">
+                    <CardContent className="flex items-start p-6">
+                      <div className="w-12 h-12 rounded-full bg-[#00457B]/10 flex items-center justify-center mr-4 flex-shrink-0">
+                        <MapPin className="h-6 w-6 text-[#00457B]" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1">Dirección</h3>
+                        <p className="text-gray-600">Cl. 21 #50 - 12 local 105, Guayabal, Medellín, Antioquia</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-                <Card className="border-none shadow-md">
-                  <CardContent className="flex items-start p-6">
-                    <div className="w-12 h-12 rounded-full bg-[#00457B]/10 flex items-center justify-center mr-4 flex-shrink-0">
-                      <Phone className="h-6 w-6 text-[#00457B]" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-1">Teléfono</h3>
-                      <p className="text-gray-600">+57 300 6814 959</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  viewport={{ once: true }}
+                >
+                  <Card className="border-none shadow-md">
+                    <CardContent className="flex items-start p-6">
+                      <div className="w-12 h-12 rounded-full bg-[#00457B]/10 flex items-center justify-center mr-4 flex-shrink-0">
+                        <Phone className="h-6 w-6 text-[#00457B]" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1">Teléfono</h3>
+                        <p className="text-gray-600">+57 300 6814 959</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-                <Card className="border-none shadow-md">
-                  <CardContent className="flex items-start p-6">
-                    <div className="w-12 h-12 rounded-full bg-[#00457B]/10 flex items-center justify-center mr-4 flex-shrink-0">
-                      <Mail className="h-6 w-6 text-[#00457B]" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-1">Correo Electrónico</h3>
-                      <p className="text-gray-600">matriz_inmobiliaria@gmail.com</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.5 }}
+                  viewport={{ once: true }}
+                >
+                  <Card className="border-none shadow-md">
+                    <CardContent className="flex items-start p-6">
+                      <div className="w-12 h-12 rounded-full bg-[#00457B]/10 flex items-center justify-center mr-4 flex-shrink-0">
+                        <Mail className="h-6 w-6 text-[#00457B]" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1">Correo Electrónico</h3>
+                        <p className="text-gray-600">matriz_inmobiliaria@gmail.com</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-                <Card className="border-none shadow-md">
-                  <CardContent className="flex items-start p-6">
-                    <div className="w-12 h-12 rounded-full bg-[#00457B]/10 flex items-center justify-center mr-4 flex-shrink-0">
-                      <Clock className="h-6 w-6 text-[#00457B]" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-1">Horario de Atención</h3>
-                      <p className="text-gray-600">Lunes - Sábado: 8:00 am - 1:00 pm, 2:00 pm - 5:00 pm</p>
-                      <p className="text-gray-600">Domingos: Cerrado</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                  viewport={{ once: true }}
+                >
+                  <Card className="border-none shadow-md">
+                    <CardContent className="flex items-start p-6">
+                      <div className="w-12 h-12 rounded-full bg-[#00457B]/10 flex items-center justify-center mr-4 flex-shrink-0">
+                        <Clock className="h-6 w-6 text-[#00457B]" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1">Horario de Atención</h3>
+                        <p className="text-gray-600">Lunes - Sábado: 8:00 am - 1:00 pm, 2:00 pm - 5:00 pm</p>
+                        <p className="text-gray-600">Domingos: Cerrado</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Contact Form */}
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true }}
+            >
               <h2 className="text-3xl font-bold text-[#00457B] mb-6">Envíanos un Mensaje</h2>
               <p className="text-gray-600 mb-8">
                 Completa el siguiente formulario y nos pondremos en contacto contigo lo antes posible.
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <motion.div
+                  className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  viewport={{ once: true }}
+                >
                   <div className="space-y-2">
                     <label htmlFor="name" className="text-sm font-medium">
                       Nombre completo
                     </label>
-                    <Input 
-                      id="name" 
+                    <Input
+                      id="name"
                       name="name"
-                      placeholder="Tu nombre" 
+                      placeholder="Tu nombre"
                       value={formData.name}
                       onChange={handleChange}
-                      required 
+                      required
                     />
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="email" className="text-sm font-medium">
                       Correo electrónico
                     </label>
-                    <Input 
-                      id="email" 
+                    <Input
+                      id="email"
                       name="email"
-                      type="email" 
-                      placeholder="tu@email.com" 
+                      type="email"
+                      placeholder="tu@email.com"
                       value={formData.email}
                       onChange={handleChange}
-                      required 
+                      required
                     />
                   </div>
-                </div>
+                </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <motion.div
+                  className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  viewport={{ once: true }}
+                >
                   <div className="space-y-2">
                     <label htmlFor="phone" className="text-sm font-medium">
                       Teléfono
                     </label>
-                    <Input 
-                      id="phone" 
+                    <Input
+                      id="phone"
                       name="phone"
-                      placeholder="Tu número de teléfono" 
+                      placeholder="Tu número de teléfono"
                       value={formData.phone}
                       onChange={handleChange}
                     />
@@ -171,88 +242,144 @@ export default function ContactPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
+                </motion.div>
 
-                <div className="space-y-2">
+                <motion.div
+                  className="space-y-2"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.5 }}
+                  viewport={{ once: true }}
+                >
                   <label htmlFor="message" className="text-sm font-medium">
                     Mensaje
                   </label>
-                  <Textarea 
-                    id="message" 
+                  <Textarea
+                    id="message"
                     name="message"
-                    placeholder="Escribe tu mensaje aquí..." 
-                    rows={6} 
+                    placeholder="Escribe tu mensaje aquí..."
+                    rows={6}
                     value={formData.message}
                     onChange={handleChange}
-                    required 
+                    required
                   />
-                </div>
+                </motion.div>
 
-                <Button type="submit" className="w-full bg-[#00457B] hover:bg-[#003b69] text-white">
-                  <Send className="h-4 w-4 mr-2" /> Enviar mensaje
-                </Button>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                  viewport={{ once: true }}
+                >
+                  <Button type="submit" className="w-full bg-[#00457B] hover:bg-[#003b69] text-white">
+                    <Send className="h-4 w-4 mr-2" /> Enviar mensaje
+                  </Button>
+                </motion.div>
               </form>
-            </div>
+            </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Map Section */}
-      <section className="py-16 bg-gray-50">
+      <motion.section
+        className="py-16 bg-gray-50"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+      >
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
             <h2 className="text-3xl font-bold text-[#00457B] mb-4">Nuestra Ubicación</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Visítanos en nuestra oficina central. Estamos ubicados en una zona de fácil acceso.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="h-[400px] rounded-lg overflow-hidden shadow-lg">
-            <img
-              src="/images/ubicacion.jpg"
-              alt="Ubicación de Matriz Inmobiliaria"
-              className="w-full h-full object-cover"
-            />
-          </div>
+          <motion.div
+            className="h-[400px] rounded-lg overflow-hidden shadow-lg"
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            viewport={{ once: true }}
+          >
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.2217213!2d-75.5822481!3d6.2217213!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e4429e8d36e1cd7%3A0xc910202a9a7584f5!2sMatriz%20Inmobiliaria!5e0!3m2!1ses!2sco!4v1699999999999!5m2!1ses!2sco"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen=""
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Ubicación de Matriz Inmobiliaria"
+            ></iframe>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Offices Section */}
-      <section className="py-16">
+      <motion.section
+        className="py-16"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+      >
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
             <h2 className="text-3xl font-bold text-[#00457B] mb-4">Nuestras Oficinas</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Contamos con varias oficinas para atenderte de manera personalizada.
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {offices.map((office, index) => (
-              <Card key={index} className="border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <div className="relative h-48">
-                  <img src={office.image || "/placeholder.svg"} alt={office.name} className="w-full h-full object-cover" />
-                </div>
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-2">{office.name}</h3>
-                  <div className="flex items-start mb-2">
-                    <MapPin className="h-5 w-5 text-[#00457B] mr-2 flex-shrink-0 mt-0.5" />
-                    <p className="text-gray-600">{office.address}</p>
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 + 0.3 }}
+                viewport={{ once: true }}
+              >
+                <Card className="border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <div className="relative h-48">
+                    <img src={office.image || "/placeholder.svg"} alt={office.name} className="w-full h-full object-cover" />
                   </div>
-                  <div className="flex items-center mb-2">
-                    <Phone className="h-5 w-5 text-[#00457B] mr-2 flex-shrink-0" />
-                    <p className="text-gray-600">{office.phone}</p>
-                  </div>
-                  <div className="flex items-center">
-                    <Mail className="h-5 w-5 text-[#00457B] mr-2 flex-shrink-0" />
-                    <p className="text-gray-600">{office.email}</p>
-                  </div>
-                </CardContent>
-              </Card>
+                  <CardContent className="p-6">
+                    <h3 className="text-xl font-bold mb-2">{office.name}</h3>
+                    <div className="flex items-start mb-2">
+                      <MapPin className="h-5 w-5 text-[#00457B] mr-2 flex-shrink-0 mt-0.5" />
+                      <p className="text-gray-600">{office.address}</p>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <Phone className="h-5 w-5 text-[#00457B] mr-2 flex-shrink-0" />
+                      <p className="text-gray-600">{office.phone}</p>
+                    </div>
+                    <div className="flex items-center">
+                      <Mail className="h-5 w-5 text-[#00457B] mr-2 flex-shrink-0" />
+                      <p className="text-gray-600">{office.email}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
     </main>
   )
 }
