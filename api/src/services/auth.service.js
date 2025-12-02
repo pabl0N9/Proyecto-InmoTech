@@ -1,4 +1,4 @@
-const { Persona, Acceso, PersonasRol, Rol, Administrativo } = require('../models');
+﻿const { Persona, Acceso, PersonasRol, Rol, Administrativo } = require('../models');
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
@@ -10,7 +10,7 @@ const VERIFY_INVITE_TYPE = 'signup_verify';
 
 class AuthService {
   /**
-   * Registra un nuevo usuario (requiere verificación de correo)
+   * Registra un nuevo usuario (requiere verificaciÃ³n de correo)
    * @param {Object} userData - Datos del usuario
    * @returns {Promise<Object>} Usuario creado
    */
@@ -24,54 +24,86 @@ class AuthService {
         // Verificar si el email ya existe
         const personaExistente = await Persona.findOne({
           where: { correo: email },
+          include: [{ model: Acceso, as: "acceso", required: false }],
           transaction: t
         });
 
-        if (personaExistente) {
+        let personaObjetivo = personaExistente;
+
+        // Caso 1: El correo ya tiene cuenta activa -> bloquear
+        if (personaExistente && personaExistente.tiene_cuenta) {
           throw new Error('El correo electrónico ya está registrado');
         }
 
-        // Crear persona
-        const nuevaPersona = await Persona.create({
-          tipo_documento: userData.tipo_documento,
-          numero_documento: userData.numero_documento,
-          nombre_completo: userData.nombre_completo,
-          apellido_completo: userData.apellido_completo,
-          correo: email,
-          telefono: userData.telefono,
-          tiene_cuenta: true,
-          estado: true,
-          correo_verificado: false
-        }, { transaction: t });
+        // Caso 2: El correo existe pero era un prospecto (creado al agendar una cita pública)
+        if (personaExistente && !personaExistente.tiene_cuenta) {
+          personaObjetivo = await personaExistente.update({
+            tipo_documento: userData.tipo_documento,
+            numero_documento: userData.numero_documento,
+            nombre_completo: userData.nombre_completo,
+            apellido_completo: userData.apellido_completo,
+            telefono: userData.telefono,
+            tiene_cuenta: true,
+            estado: true,
+            correo_verificado: false
+          }, { transaction: t });
+        }
+
+        // Caso 3: No existe -> crear persona nueva
+        if (!personaObjetivo) {
+          personaObjetivo = await Persona.create({
+            tipo_documento: userData.tipo_documento,
+            numero_documento: userData.numero_documento,
+            nombre_completo: userData.nombre_completo,
+            apellido_completo: userData.apellido_completo,
+            correo: email,
+            telefono: userData.telefono,
+            tiene_cuenta: true,
+            estado: true,
+            correo_verificado: false
+          }, { transaction: t });
+        }
+
+        // Validar que no exista acceso previo colgando
+        if (personaObjetivo.acceso) {
+          throw new Error('El correo electrónico ya está registrado');
+        }
 
         // Crear acceso
         const hashedPassword = await bcryptUtils.hashPassword(password);
         await Acceso.create({
-          id_persona: nuevaPersona.id_persona,
+          id_persona: personaObjetivo.id_persona,
           contrasena: hashedPassword
         }, { transaction: t });
 
-        // Asignar rol por defecto (Usuario)
+        // Asignar rol por defecto (Usuario) solo si no lo tiene
         const rolUsuario = await Rol.findOne({
           where: { nombre_rol: 'Usuario' },
           transaction: t
         });
 
         if (rolUsuario) {
-          await PersonasRol.create({
-            id_persona: nuevaPersona.id_persona,
-            id_rol: rolUsuario.id_rol
-          }, { transaction: t });
+          const yaTieneRol = await PersonasRol.findOne({
+            where: { id_persona: personaObjetivo.id_persona, id_rol: rolUsuario.id_rol },
+            transaction: t
+          });
+
+          if (!yaTieneRol) {
+            await PersonasRol.create({
+              id_persona: personaObjetivo.id_persona,
+              id_rol: rolUsuario.id_rol
+            }, { transaction: t });
+          }
         }
 
         logger.info(`Usuario registrado: ${email}`);
 
         return {
           user: {
-            id: nuevaPersona.id_persona,
-            email: nuevaPersona.correo,
-            nombre_completo: nuevaPersona.nombre_completo,
-            apellido_completo: nuevaPersona.apellido_completo,
+            id: personaObjetivo.id_persona,
+            email: personaObjetivo.correo,
+            nombre_completo: personaObjetivo.nombre_completo,
+            apellido_completo: personaObjetivo.apellido_completo,
             roles: rolUsuario ? [rolUsuario.nombre_rol] : []
           }
         };
@@ -107,14 +139,14 @@ class AuthService {
   }
 
   /**
-   * Inicia sesión de usuario
-   * @param {string} email - Correo electrónico
-   * @param {string} password - Contraseña
+   * Inicia sesiÃ³n de usuario
+   * @param {string} email - Correo electrÃ³nico
+   * @param {string} password - ContraseÃ±a
    * @returns {Promise<Object>} Usuario autenticado con tokens
    */
   async iniciarSesion(email, password) {
     try {
-      // Buscar persona por email y verificar que esté activa
+      // Buscar persona por email y verificar que estÃ© activa
       const persona = await Persona.findOne({
         where: {
           correo: email,
@@ -150,24 +182,24 @@ class AuthService {
       });
 
       if (!persona) {
-        throw new Error('Credenciales inválidas');
+        throw new Error('Credenciales invÃ¡lidas');
       }
 
-      // Verificar contraseña
+      // Verificar contraseÃ±a
       const isValidPassword = await bcryptUtils.verifyPassword(password, persona.acceso.contrasena);
       if (!isValidPassword) {
-        throw new Error('Credenciales inválidas');
+        throw new Error('Credenciales invÃ¡lidas');
       }
 
-      // Validación adicional administrativa
+      // ValidaciÃ³n adicional administrativa
       const es_super_admin_login = persona.roles ?
         persona.roles.some(rol => rol.nombre_rol === 'Super Administrador') : false;
 
       if (!es_super_admin_login && persona.roles && persona.roles.some(rol => rol.es_rol_administrativo) && !persona.administrativo) {
-        throw new Error('Acceso denegado, comunícate con el administrador para resolver este problema');
+        throw new Error('Acceso denegado, comunÃ­cate con el administrador para resolver este problema');
       }
 
-      // Actualizar último acceso
+      // Actualizar Ãºltimo acceso
       await Acceso.update(
         { ultimo_acceso: new Date() },
         { where: { id_persona: persona.id_persona } }
@@ -177,7 +209,7 @@ class AuthService {
       const roles = persona.roles ? persona.roles.map(rol => rol.nombre_rol) : [];
       const esAdminBase = roles.includes('Super Administrador') || roles.includes('Administrador');
 
-      // Bloquear verificación de correo solo a usuarios no administrativos
+      // Bloquear verificaciÃ³n de correo solo a usuarios no administrativos
       if (!esAdminBase && !persona.correo_verificado) {
         const status = await invitacionService.getSignupVerificationStatus(persona.id_persona);
 
@@ -214,7 +246,7 @@ class AuthService {
           throw limitError;
         }
 
-        const verifyError = new Error('Debes verificar tu correo electrónico para iniciar sesión');
+        const verifyError = new Error('Debes verificar tu correo electrÃ³nico para iniciar sesiÃ³n');
         verifyError.code = 'EMAIL_NOT_VERIFIED';
         verifyError.status = 403;
         verifyError.meta = {
@@ -257,7 +289,7 @@ class AuthService {
 
       const tokens = jwtUtils.generateTokens(payload);
 
-      logger.info(`Usuario inició sesión: ${email} (Administrativo: ${es_administrativo})`);
+      logger.info(`Usuario iniciÃ³ sesiÃ³n: ${email} (Administrativo: ${es_administrativo})`);
 
       return {
         user: {
@@ -278,7 +310,7 @@ class AuthService {
       };
 
     } catch (error) {
-      logger.error('Error en inicio de sesión:', error);
+      logger.error('Error en inicio de sesiÃ³n:', error);
       throw error;
     }
   }
@@ -330,7 +362,7 @@ class AuthService {
   }
 
   /**
-   * Verifica correo electrónico usando el token de invitación
+   * Verifica correo electrÃ³nico usando el token de invitaciÃ³n
    */
   async verificarCorreo(token, meta = {}) {
     return invitacionService.verificarCorreo(token, meta);
@@ -381,7 +413,7 @@ class AuthService {
       }
 
       if (!persona.estado) {
-        throw new Error('Usuario inactivo - sesión terminada por seguridad');
+        throw new Error('Usuario inactivo - sesiÃ³n terminada por seguridad');
       }
 
       const tiene_rol_administrativo = persona.roles ?
@@ -393,7 +425,7 @@ class AuthService {
       const es_administrativo = es_super_admin || (tiene_rol_administrativo && persona.administrativo !== null);
 
       if (tiene_rol_administrativo && !es_super_admin && !persona.administrativo) {
-        throw new Error('Acceso administrativo revocado - sesión terminada por seguridad');
+        throw new Error('Acceso administrativo revocado - sesiÃ³n terminada por seguridad');
       }
 
       const permisosConsolidados = persona.roles?.reduce((acc, rol) => {
@@ -431,9 +463,9 @@ class AuthService {
   }
 
   /**
-   * Obtiene el timestamp del último cambio de contraseña
+   * Obtiene el timestamp del Ãºltimo cambio de contraseÃ±a
    * @param {number} userId - ID del usuario
-   * @returns {Promise<Date|null>} Timestamp del último cambio
+   * @returns {Promise<Date|null>} Timestamp del Ãºltimo cambio
    */
   async obtenerUltimoCambioPassword(userId) {
     try {
@@ -445,7 +477,7 @@ class AuthService {
       return acceso ? acceso.ultimo_cambio_password : null;
 
     } catch (error) {
-      logger.error('Error obteniendo último cambio de contraseña:', error);
+      logger.error('Error obteniendo Ãºltimo cambio de contraseÃ±a:', error);
       throw error;
     }
   }
@@ -454,9 +486,11 @@ class AuthService {
     return invitacionService.verificarCodigoSignup({ email, codigo_6d, meta });
   }
 
-  async reenviarCodigoVerificacion(email) {
-    return invitacionService.reenviarSignupPorEmail(email);
+  async reenviarCodigoVerificacion(email, options = {}) {
+    const ignoreLimits = options.ignoreLimits || false;
+    return invitacionService.reenviarSignupPorEmail(email, { ignoreLimit: ignoreLimits });
   }
 }
 
 module.exports = new AuthService();
+

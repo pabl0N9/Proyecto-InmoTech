@@ -27,11 +27,12 @@ class InvitacionService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  async crearInvitacion({ id_persona, creado_por, tipo = INVITE_TYPES.ADMIN, reenvios = 0 }) {
+  async crearInvitacion({ id_persona, creado_por, tipo = INVITE_TYPES.ADMIN, reenvios = 0, rol_asignado = null, es_administrativo = false }) {
     const persona = await Persona.findByPk(id_persona);
     if (!persona) throw new Error('Persona no encontrada');
 
     const inviteType = tipo || INVITE_TYPES.ADMIN;
+    const esAdminInvite = es_administrativo || inviteType === INVITE_TYPES.ADMIN;
 
     const token = this.generarToken();
     const token_hash = this.hashToken(token);
@@ -74,7 +75,9 @@ class InvitacionService {
         token,
         codigo_6d,
         expira_en,
-        activationLink
+        activationLink,
+        rol_asignado: rol_asignado || (esAdminInvite ? 'Administrativo' : null),
+        es_administrativo: esAdminInvite
       });
     }
 
@@ -139,7 +142,7 @@ class InvitacionService {
     return nuevo;
   }
 
-  async reenviarSignupPorEmail(email) {
+  async reenviarSignupPorEmail(email, { ignoreLimit = false } = {}) {
     const persona = await Persona.findOne({ where: { correo: email } });
     if (!persona) throw new Error('No encontramos una cuenta con ese correo');
     if (persona.correo_verificado) throw new Error('Esta cuenta ya fue verificada');
@@ -152,7 +155,7 @@ class InvitacionService {
     const reenviosActuales = ultimaInvitacion?.reenvios || 0;
     const siguienteReenvio = reenviosActuales + 1;
 
-    if (siguienteReenvio >= VERIFICATION_MAX_CODES) {
+    if (!ignoreLimit && siguienteReenvio >= VERIFICATION_MAX_CODES) {
       const limitError = new Error('Has superado el limite de codigos disponibles. Contacta a soporte para validar tu cuenta.');
       limitError.code = 'VERIFICATION_LIMIT';
       throw limitError;
@@ -358,20 +361,6 @@ class InvitacionService {
         { tiene_cuenta: true, correo_verificado: true },
         { where: { id_persona: invitacion.id_persona } }
       );
-
-      // Asegurar rol Usuario asignado
-      const rolUsuario = await Rol.findOne({ where: { nombre_rol: 'Usuario' } });
-      if (rolUsuario) {
-        const yaTieneRol = await PersonasRol.findOne({
-          where: { id_persona: invitacion.id_persona, id_rol: rolUsuario.id_rol }
-        });
-        if (!yaTieneRol) {
-          await PersonasRol.create({
-            id_persona: invitacion.id_persona,
-            id_rol: rolUsuario.id_rol
-          });
-        }
-      }
     } else if (invitacion.tipo === INVITE_TYPES.SIGNUP_VERIFY) {
       return this.verificarCorreo(token, { ip, userAgent });
     }

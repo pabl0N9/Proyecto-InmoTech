@@ -40,6 +40,7 @@ export default function ActivateAccountPage() {
     special: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [codigoError, setCodigoError] = useState('');
 
   const passwordScore = Object.values(passwordStrength).filter(Boolean).length;
   const getPasswordStrengthText = () => strengthLabels[Math.max(0, Math.min(passwordScore - 1, 4))] || strengthLabels[0];
@@ -55,6 +56,7 @@ export default function ActivateAccountPage() {
     const next = [...codigoDigits];
     next[idx] = digit;
     setCodigoDigits(next);
+    setCodigoError('');
 
     if (digit && idx < codeRefs.current.length - 1) {
       codeRefs.current[idx + 1]?.focus();
@@ -86,6 +88,7 @@ export default function ActivateAccountPage() {
     if (!token) return;
     setIsSubmitting(true);
     setMensaje('');
+    setCodigoError('');
     try {
       const res = await invitacionApi.reenviar(token);
       if (res && res.success) {
@@ -161,8 +164,8 @@ export default function ActivateAccountPage() {
     if (!token) return;
     const codigo = codigoDigits.join('');
     if (codigo.length !== 6) {
-      setEstado('error');
-      setMensaje('Ingresa el codigo completo de 6 digitos');
+      setEstado('ready');
+      setCodigoError('Ingresa el codigo completo de 6 digitos');
       return;
     }
     if (password !== confirmPassword) {
@@ -187,8 +190,9 @@ export default function ActivateAccountPage() {
           setTimeout(() => navigate('/'), 800);
           return;
         }
-        setEstado('error');
-        setMensaje(rawMsg);
+        setEstado('ready');
+        setCodigoError('El codigo no es correcto. Intenta nuevamente o solicita un nuevo correo.');
+        codeRefs.current[0]?.focus();
       }
     } catch (err) {
       const rawMsg = err?.data?.message || err.message || 'No se pudo completar la activacion';
@@ -198,8 +202,9 @@ export default function ActivateAccountPage() {
         setTimeout(() => navigate('/'), 800);
         return;
       }
-      setEstado('error');
-      setMensaje(rawMsg);
+      setEstado('ready');
+      setCodigoError('El codigo no es correcto. Intenta nuevamente o solicita un nuevo correo.');
+      codeRefs.current[0]?.focus();
     } finally {
       setIsSubmitting(false);
     }
@@ -368,6 +373,9 @@ export default function ActivateAccountPage() {
                       />
                     ))}
                   </div>
+                  {codigoError && (
+                    <p className="text-sm text-red-600">{codigoError}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

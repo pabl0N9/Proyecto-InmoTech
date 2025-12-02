@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -23,6 +23,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { useToast } from '../../../shared/hooks/use-toast';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import citaApiService from '../../../shared/services/citaApiService';
+import { formatTimeTo12Hour } from '../../../shared/utils/time';
 
 const UserEditAppointmentModal = ({
   isOpen,
@@ -61,17 +62,22 @@ const UserEditAppointmentModal = ({
       const servicioEncontrado = servicios.find(s => s.id === appointment.id_servicio);
       setServicioSeleccionado(servicioEncontrado || servicios[0]);
 
+      const horaNormalizada = appointment.hora_inicio
+        ? normalizeHoraToOption(appointment.hora_inicio) || citaApiService.formatHoraDesdeAPI(appointment.hora_inicio)
+        : '';
+      const fechaNormalizada = normalizeFechaToInput(appointment.fecha_cita || appointment.fecha);
+
       setFormData({
-        fecha_cita: appointment.fecha_cita ? appointment.fecha_cita.split('T')[0] : '',
-        hora_inicio: appointment.hora_inicio ? citaApiService.formatHoraDesdeAPI(appointment.hora_inicio) : '',
+        fecha_cita: fechaNormalizada,
+        hora_inicio: horaNormalizada,
         servicio: servicioEncontrado ? servicioEncontrado.name : servicios[0].name,
         observaciones: appointment.observaciones || '',
         comentario: ''
       });
 
       // Ajustar el mes del calendario a la fecha de la cita
-      if (appointment.fecha_cita) {
-        setCurrentMonth(new Date(appointment.fecha_cita));
+      if (fechaNormalizada) {
+        setCurrentMonth(new Date(fechaNormalizada));
       }
     }
   }, [appointment, isOpen]);
@@ -113,6 +119,72 @@ const UserEditAppointmentModal = ({
     "11:00 am", "11:30 am", "02:00 pm", "02:30 pm", "03:00 pm", "03:30 pm",
     "04:00 pm", "04:30 pm", "05:00 pm", "05:30 pm",
   ];
+
+  const normalizeHoraToOption = (hora) => {
+    if (!hora) return '';
+    const formatted = formatTimeTo12Hour(hora);
+    if (!formatted) return '';
+    const [timePart = '', periodRaw = ''] = formatted.split(' ');
+    const [hour = '00', minutes = '00'] = timePart.split(':');
+    const period = periodRaw.replace(/[^a-z]/gi, '').toLowerCase();
+    return `${hour.padStart(2, '0')}:${minutes.padStart(2, '0')} ${period || 'am'}`;
+  };
+
+  const normalizeFechaToInput = (fecha) => {
+    if (!fecha) return '';
+    if (fecha instanceof Date && !Number.isNaN(fecha.getTime())) {
+      return fecha.toISOString().split('T')[0];
+    }
+    if (typeof fecha === 'string') {
+      const clean = fecha.includes('T') ? fecha.split('T')[0] : fecha;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+      const parsed = new Date(clean);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toISOString().split('T')[0];
+      }
+    }
+    return '';
+  };
+
+  const horaAgendadaOpcion = useMemo(
+    () => normalizeHoraToOption(appointment?.hora_inicio),
+    [appointment?.hora_inicio]
+  );
+
+  const horasOptions = useMemo(() => {
+    const base = [...availableHours];
+    if (horaAgendadaOpcion && !base.includes(horaAgendadaOpcion)) {
+      base.unshift(horaAgendadaOpcion);
+    }
+    return base;
+  }, [horaAgendadaOpcion]);
+
+  const formatearFechaLegible = (dateString) => {
+    if (!dateString) return 'Fecha no especificada';
+
+    if (dateString instanceof Date && !Number.isNaN(dateString.getTime())) {
+      return dateString.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+
+    try {
+      const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
+      const dateObj = new Date(year, (month || 1) - 1, day || 1);
+      if (Number.isNaN(dateObj.getTime())) return 'Fecha no especificada';
+      return dateObj.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Fecha no especificada';
+    }
+  };
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -368,6 +440,9 @@ const UserEditAppointmentModal = ({
   // Contador real de ediciones
   const edicionesRealizadas = appointment?.ediciones_realizadas || 0;
   const maxEdiciones = appointment?.ediciones_maximas || 2;
+  const fechaAgendadaLegible = formatearFechaLegible(appointment?.fecha_cita || appointment?.fecha);
+  const horaAgendadaLegible = normalizeHoraToOption(appointment?.hora_inicio) ||
+    citaApiService.formatHoraDesdeAPI(appointment?.hora_inicio);
 
   if (!isOpen || !appointment) return null;
 
@@ -620,6 +695,19 @@ const UserEditAppointmentModal = ({
                     Nueva Fecha y Hora
                   </h3>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Fecha agendada</p>
+                      <p className="text-sm font-semibold text-slate-800">{fechaAgendadaLegible}</p>
+                    </div>
+                    <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Hora agendada</p>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {horaAgendadaLegible || 'Por confirmar'}
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Calendar */}
                   <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
                     {/* Calendar Header */}
@@ -726,7 +814,7 @@ const UserEditAppointmentModal = ({
                       </div>
 
                       <div className="grid grid-cols-4 gap-3">
-                        {availableHours.map((hour) => (
+                        {horasOptions.map((hour) => (
                           <motion.button
                             key={hour}
                             type="button"

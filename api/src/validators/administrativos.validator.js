@@ -1,9 +1,6 @@
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 
-/**
- * Middleware para manejar errores de validación
- */
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -17,9 +14,6 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-/**
- * Validaciones para registro de administrativo
- */
 const validarRegistroAdmin = [
   body('tipo_documento')
     .isIn(['CC', 'CE', 'NIT', 'Pasaporte', 'TI'])
@@ -61,20 +55,11 @@ const validarRegistroAdmin = [
     .isLength({ min: 7, max: 15 })
     .withMessage('El teléfono debe tener entre 7 y 15 caracteres'),
 
-  body('password')
-    .isLength({ min: 8 })
-    .withMessage('La contraseña debe tener al menos 8 caracteres')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('La contraseña debe contener al menos una letra minúscula, una mayúscula y un número'),
-
   body('id_rol')
     .notEmpty()
     .withMessage('El rol es obligatorio')
     .isInt({ min: 1 })
     .withMessage('El ID del rol debe ser un número válido'),
-
-
-  // Código de empleado eliminado - ahora se genera automáticamente en el backend
 
   body('fecha_ingreso')
     .isISO8601()
@@ -88,24 +73,9 @@ const validarRegistroAdmin = [
       return true;
     }),
 
-  body('cargo')
-    .optional()
-    .trim()
-    .isLength({ min: 0, max: 100 })
-    .withMessage('El cargo debe tener máximo 100 caracteres'),
-
-  body('departamento')
-    .optional()
-    .trim()
-    .isLength({ min: 0, max: 100 })
-    .withMessage('El departamento debe tener máximo 100 caracteres'),
-
   handleValidationErrors
 ];
 
-/**
- * Validaciones para actualización de administrativo
- */
 const validarActualizacionAdmin = [
   param('id')
     .isInt({ min: 1 })
@@ -144,23 +114,9 @@ const validarActualizacionAdmin = [
     .isObject()
     .withMessage('Los datos administrativos deben ser un objeto'),
 
-  body('administrativoData.cargo')
-    .optional()
-    .trim()
-    .isLength({ min: 0, max: 100 })
-    .withMessage('El cargo debe tener máximo 100 caracteres'),
-
-  body('administrativoData.departamento')
-    .optional()
-    .trim()
-    .isLength({ min: 0, max: 100 })
-    .withMessage('El departamento debe tener máximo 100 caracteres'),
   handleValidationErrors
 ];
 
-/**
- * Validaciones para cambio de estado laboral
- */
 const validarCambioEstado = [
   param('id')
     .isInt({ min: 1 })

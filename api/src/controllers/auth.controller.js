@@ -117,7 +117,10 @@ class AuthController {
   async reenviarCodigo(req, res, next) {
     try {
       const { email } = req.validatedData;
-      const data = await authService.reenviarCodigoVerificacion(email);
+      const roles = req.user?.roles || [];
+      const isAdmin = roles.includes('Super Administrador') || roles.includes('Administrador');
+
+      const data = await authService.reenviarCodigoVerificacion(email, { ignoreLimits: isAdmin });
       return res.status(200).json({
         success: true,
         message: 'Hemos enviado un nuevo codigo a tu correo',

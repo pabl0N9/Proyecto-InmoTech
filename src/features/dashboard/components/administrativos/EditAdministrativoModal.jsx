@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Briefcase, FileText, CheckCircle, ChevronLeft, ChevronRight, Edit } from 'lucide-react';
+import { X, User, Briefcase, CheckCircle, ChevronLeft, ChevronRight, Edit } from 'lucide-react';
 import StepIndicator from '../StepIndicator';
 import PersonalEditStep from './steps/PersonalEditStep';
 import LaboralEditStep from './steps/LaboralEditStep';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { useAdministrativos } from '../../../../shared/contexts/AdministrativosContext';
 
-const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) => {
+const EditAdministrativoModal = ({ isOpen, onClose, administrativo }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Paso 1: Información Personal
@@ -18,8 +18,6 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     telefono: '',
 
     // Paso 2: Información Laboral
-    cargo: '',
-    departamento: '',
     rol: null,
   });
   const [errors, setErrors] = useState({});
@@ -27,14 +25,12 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
   const { updateAdministrativo } = useAdministrativos();
   const contentRef = useRef(null);
 
-  // Scroll to top when step changes
   useEffect(() => {
     if (contentRef.current) {
       contentRef.current.scrollTop = 0;
     }
   }, [currentStep]);
 
-  // Initialize form data when administrativo changes
   useEffect(() => {
     if (isOpen && administrativo) {
       setFormData({
@@ -42,8 +38,6 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
         apellidoCompleto: administrativo.persona?.apellido_completo || '',
         email: administrativo.persona?.correo || '',
         telefono: administrativo.persona?.telefono || '',
-        cargo: administrativo.cargo || '',
-        departamento: administrativo.departamento || '',
         rol: administrativo.persona?.roles?.[0]?.id_rol || null,
       });
       setErrors({});
@@ -57,7 +51,6 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     { number: 3, title: 'Confirmar Cambios', icon: CheckCircle }
   ];
 
-  // Función para validar nombre completo
   const validateNombre = (nombre) => {
     if (!nombre.trim()) return 'El nombre completo es requerido';
     if (nombre.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres';
@@ -66,7 +59,6 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     return '';
   };
 
-  // Función para validar email
   const validateEmail = (email) => {
     if (!email.trim()) return 'El email es requerido';
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -75,7 +67,6 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     return '';
   };
 
-  // Función para validar teléfono colombiano
   const validateTelefono = (telefono) => {
     if (!telefono.trim()) return 'El teléfono es requerido';
     const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, '');
@@ -85,24 +76,10 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     return '';
   };
 
-  // Función para validar cargo
-  const validateCargo = (cargo) => {
-    if (cargo && cargo.length > 100) return 'El cargo no puede tener más de 100 caracteres';
-    return '';
-  };
-
-  // Función para validar departamento
-  const validateDepartamento = (departamento) => {
-    if (departamento && departamento.length > 100) return 'El departamento no puede tener más de 100 caracteres';
-    return '';
-  };
-
-  // Función para validar rol
   const validateRol = (rol) => {
     if (!rol) return 'El rol es requerido';
     return '';
   };
-
 
   const validateStep = (step) => {
     let newErrors = {};
@@ -115,9 +92,9 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
         newErrors.telefono = validateTelefono(formData.telefono);
         break;
       case 2:
-        newErrors.cargo = validateCargo(formData.cargo);
-        newErrors.departamento = validateDepartamento(formData.departamento);
         newErrors.rol = validateRol(formData.rol);
+        break;
+      default:
         break;
     }
 
@@ -127,7 +104,7 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
 
   const canProceedToNextStep = (step) => {
     switch (step) {
-      case 1:
+      case 1: {
         const step1Errors = {
           nombreCompleto: validateNombre(formData.nombreCompleto),
           apellidoCompleto: validateNombre(formData.apellidoCompleto),
@@ -139,13 +116,13 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
                formData.email.trim() &&
                formData.telefono.trim() &&
                Object.keys(step1Errors).every(key => !step1Errors[key]);
-      case 2:
+      }
+      case 2: {
         const step2Errors = {
-          cargo: validateCargo(formData.cargo),
-          departamento: validateDepartamento(formData.departamento),
           rol: validateRol(formData.rol),
         };
         return Object.keys(step2Errors).every(key => !step2Errors[key]);
+      }
       default:
         return false;
     }
@@ -157,9 +134,9 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     } else {
       validateStep(currentStep);
       toast({
-        title: "Campos requeridos",
-        description: "Por favor corrige los errores antes de continuar",
-        variant: "destructive"
+        title: 'Campos requeridos',
+        description: 'Por favor corrige los errores antes de continuar',
+        variant: 'destructive'
       });
     }
   };
@@ -179,8 +156,6 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
     } };
     // Validate step 2
     allErrors = { ...allErrors, ...{
-      cargo: validateCargo(formData.cargo),
-      departamento: validateDepartamento(formData.departamento),
       rol: validateRol(formData.rol),
     } };
     setErrors(allErrors);
@@ -190,7 +165,6 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
   const handleSubmit = async () => {
     if (validateAllSteps()) {
       try {
-        // Preparar los datos para el backend según la estructura esperada
         const updateData = {
           personaData: {
             nombre_completo: formData.nombreCompleto,
@@ -198,38 +172,32 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
             correo: formData.email,
             telefono: formData.telefono
           },
-          administrativoData: {
-            cargo: formData.cargo || null,
-            departamento: formData.departamento || null,
-          },
+          administrativoData: {},
           rolId: formData.rol
         };
 
-        console.log("📤 Datos preparados para actualizar administrativo:", updateData);
-
-        // ✅ Actualizar el administrativo usando updateAdministrativo
         await updateAdministrativo(administrativo.id_administrativo, updateData);
 
         toast({
-          title: "¡Administrativo actualizado exitosamente!",
-          description: "Los cambios han sido guardados correctamente.",
-          variant: "default"
+          title: 'Administrativo actualizado exitosamente',
+          description: 'Los cambios han sido guardados correctamente.',
+          variant: 'default'
         });
 
         handleClose();
       } catch (error) {
-        console.error("Error al actualizar administrativo:", error);
+        console.error('Error al actualizar administrativo:', error);
         toast({
-          title: "Error al actualizar el administrativo",
-          description: "No se pudieron guardar los cambios. Por favor, intenta nuevamente.",
-          variant: "destructive"
+          title: 'Error al actualizar el administrativo',
+          description: 'No se pudieron guardar los cambios. Por favor, intenta nuevamente.',
+          variant: 'destructive'
         });
       }
     } else {
       toast({
-        title: "Campos requeridos",
-        description: "Por favor corrige los errores antes de guardar",
-        variant: "destructive"
+        title: 'Campos requeridos',
+        description: 'Por favor corrige los errores antes de guardar',
+        variant: 'destructive'
       });
     }
   };
@@ -241,8 +209,6 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
       apellidoCompleto: '',
       email: '',
       telefono: '',
-      cargo: '',
-      departamento: '',
       rol: null,
     });
     setErrors({});
@@ -252,7 +218,6 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
   const updateFormData = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
 
-    // Validación en tiempo real
     const newErrors = { ...errors };
 
     switch (field) {
@@ -266,14 +231,10 @@ const EditAdministrativoModal = ({ isOpen, onClose, administrativo, onSubmit }) 
       case 'telefono':
         newErrors.telefono = validateTelefono(value);
         break;
-      case 'cargo':
-        newErrors.cargo = validateCargo(value);
-        break;
-      case 'departamento':
-        newErrors.departamento = validateDepartamento(value);
-        break;
       case 'rol':
         newErrors.rol = validateRol(value);
+        break;
+      default:
         break;
     }
 

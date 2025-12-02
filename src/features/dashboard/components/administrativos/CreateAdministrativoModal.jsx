@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Briefcase, FileText, CheckCircle, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { X, User, Briefcase, CheckCircle, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import StepIndicator from '../StepIndicator';
 import PersonalStep from './steps/PersonalStep';
 import LaboralStep from './steps/LaboralStep';
@@ -10,35 +10,17 @@ import SummaryStep from './steps/SummaryStep';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { useAdministrativos } from '../../../../shared/contexts/AdministrativosContext';
 
-const SERVICIO_MAP = {
-  "Visita a Propiedad": 1,
-  "Avalúos": 2,
-  "Gestión de Alquileres": 3,
-  "Asesoría Legal": 4,
-};
-
-
-const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
+const CreateAdministrativoModal = ({ isOpen, onClose }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    // Paso 1: Información Personal
     tipoDocumento: '',
     numeroDocumento: '',
     nombreCompleto: '',
     apellidoCompleto: '',
     email: '',
     telefono: '',
-    password: '',
-
-    // Paso 2: Información Laboral
     fechaIngreso: '',
-    cargo: '',
-    departamento: '',
-
-    // Paso 3: Rol
     rol: '',
-
-    // Paso 4: Resumen
     estado: 'programada'
   });
   const [errors, setErrors] = useState({});
@@ -46,7 +28,6 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
   const { createAdministrativo } = useAdministrativos();
   const contentRef = useRef(null);
 
-  // Scroll to top when step changes
   useEffect(() => {
     if (contentRef.current) {
       contentRef.current.scrollTop = 0;
@@ -60,13 +41,11 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
     { number: 4, title: 'Resumen', icon: CheckCircle }
   ];
 
-  // Función para validar tipo de documento
   const validateTipoDocumento = (tipoDocumento) => {
     if (!tipoDocumento) return 'El tipo de documento es requerido';
     return '';
   };
 
-  // Función para validar número de documento
   const validateNumeroDocumento = (numeroDocumento, tipoDocumento) => {
     if (!numeroDocumento.trim()) return 'El número de documento es requerido';
 
@@ -108,7 +87,6 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
     return '';
   };
 
-  // Función para validar nombre completo
   const validateNombre = (nombre) => {
     if (!nombre.trim()) return 'El nombre completo es requerido';
     if (nombre.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres';
@@ -117,7 +95,6 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
     return '';
   };
 
-  // Función para validar email
   const validateEmail = (email) => {
     if (!email.trim()) return 'El email es requerido';
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -126,7 +103,6 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
     return '';
   };
 
-  // Función para validar teléfono colombiano
   const validateTelefono = (telefono) => {
     if (!telefono.trim()) return 'El teléfono es requerido';
     const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, '');
@@ -136,19 +112,6 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
     return '';
   };
 
-  // Función para validar contraseña
-  const validatePassword = (password) => {
-    if (!password) return 'La contraseña es requerida';
-    if (password.length < 8) return 'La contraseña debe tener al menos 8 caracteres';
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-      return 'La contraseña debe contener al menos una letra minúscula, una mayúscula y un número';
-    }
-    return '';
-  };
-
-
-
-  // Función para validar fecha de ingreso
   const validateFechaIngreso = (fecha) => {
     if (!fecha) return 'La fecha de ingreso es requerida';
     const fechaSeleccionada = new Date(fecha);
@@ -159,21 +122,6 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
     return '';
   };
 
-  // Función para validar cargo
-  const validateCargo = (cargo) => {
-    if (cargo && cargo.length > 100) return 'El cargo no puede tener más de 100 caracteres';
-    return '';
-  };
-
-  // Función para validar departamento
-  const validateDepartamento = (departamento) => {
-    if (departamento && departamento.length > 100) return 'El departamento no puede tener más de 100 caracteres';
-    return '';
-  };
-
-
-
-  // Función para validar rol
   const validateRol = (rol) => {
     if (!rol) return 'Debe seleccionar un rol administrativo';
     return '';
@@ -190,15 +138,14 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
         newErrors.apellidoCompleto = validateNombre(formData.apellidoCompleto);
         newErrors.email = validateEmail(formData.email);
         newErrors.telefono = validateTelefono(formData.telefono);
-        newErrors.password = validatePassword(formData.password);
         break;
       case 2:
         newErrors.fechaIngreso = validateFechaIngreso(formData.fechaIngreso);
-        newErrors.cargo = validateCargo(formData.cargo);
-        newErrors.departamento = validateDepartamento(formData.departamento);
         break;
       case 3:
         newErrors.rol = validateRol(formData.rol);
+        break;
+      default:
         break;
     }
 
@@ -208,15 +155,14 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
 
   const canProceedToNextStep = (step) => {
     switch (step) {
-      case 1:
+      case 1: {
         const step1Errors = {
           tipoDocumento: validateTipoDocumento(formData.tipoDocumento),
           numeroDocumento: validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento),
           nombreCompleto: validateNombre(formData.nombreCompleto),
           apellidoCompleto: validateNombre(formData.apellidoCompleto),
           email: validateEmail(formData.email),
-          telefono: validateTelefono(formData.telefono),
-          password: validatePassword(formData.password)
+          telefono: validateTelefono(formData.telefono)
         };
         return formData.tipoDocumento &&
                formData.numeroDocumento.trim() &&
@@ -224,22 +170,22 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
                formData.apellidoCompleto.trim() &&
                formData.email.trim() &&
                formData.telefono.trim() &&
-               formData.password &&
                Object.keys(step1Errors).every(key => !step1Errors[key]);
-      case 2:
+      }
+      case 2: {
         const step2Errors = {
-          fechaIngreso: validateFechaIngreso(formData.fechaIngreso),
-          cargo: validateCargo(formData.cargo),
-          departamento: validateDepartamento(formData.departamento)
+          fechaIngreso: validateFechaIngreso(formData.fechaIngreso)
         };
         return formData.fechaIngreso &&
                Object.keys(step2Errors).every(key => !step2Errors[key]);
-      case 3:
+      }
+      case 3: {
         const step3Errors = {
           rol: validateRol(formData.rol)
         };
         return formData.rol &&
                Object.keys(step3Errors).every(key => !step3Errors[key]);
+      }
       default:
         return false;
     }
@@ -251,9 +197,9 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
     } else {
       validateStep(currentStep);
       toast({
-        title: "Campos requeridos",
-        description: "Por favor corrige los errores antes de continuar",
-        variant: "destructive"
+        title: 'Campos requeridos',
+        description: 'Por favor corrige los errores antes de continuar',
+        variant: 'destructive'
       });
     }
   };
@@ -264,92 +210,64 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
 
   const validateAllSteps = () => {
     let allErrors = {};
-    // Validate step 1
     allErrors = { ...allErrors, ...{
       tipoDocumento: validateTipoDocumento(formData.tipoDocumento),
       numeroDocumento: validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento),
       nombreCompleto: validateNombre(formData.nombreCompleto),
       apellidoCompleto: validateNombre(formData.apellidoCompleto),
       email: validateEmail(formData.email),
-      telefono: validateTelefono(formData.telefono),
-      password: validatePassword(formData.password)
+      telefono: validateTelefono(formData.telefono)
     } };
-    // Validate step 2
     allErrors = { ...allErrors, ...{
       fechaIngreso: validateFechaIngreso(formData.fechaIngreso),
-      cargo: validateCargo(formData.cargo),
-      departamento: validateDepartamento(formData.departamento)
+      cargo: null,
+      departamento: null
     } };
-    // Validate step 3
     allErrors = { ...allErrors, ...{ rol: validateRol(formData.rol) } };
     setErrors(allErrors);
     return Object.values(allErrors).every(error => !error);
   };
 
   const handleSubmit = async () => {
-    console.log('🚀 INICIO handleSubmit'); // ✅ AGREGAR ESTA LÍNEA
-    
     if (validateAllSteps()) {
-      console.log('✅ Validación exitosa, preparando datos...'); // ✅ AGREGAR ESTA LÍNEA
-      
       try {
-        // Limpiar teléfono de formato antes de enviar
         const telefonoLimpio = formData.telefono.replace(/[\s\-\(\)\+]/g, '');
-                
-        // Preparar los datos para el backend según la estructura esperada
+
         const administrativoData = {
           tipo_documento: formData.tipoDocumento,
-          numero_documento: formData.numeroDocumento.replace(/[\s\-\.]/g, ''), // Limpiar documento también
+          numero_documento: formData.numeroDocumento.replace(/[\s\-\.]/g, ''),
           nombre_completo: formData.nombreCompleto.trim(),
           apellido_completo: formData.apellidoCompleto.trim(),
           email: formData.email.trim().toLowerCase(),
-          telefono: telefonoLimpio, // ✅ Teléfono limpio
-          password: formData.password,
-
+          telefono: telefonoLimpio,
           fecha_ingreso: formData.fechaIngreso,
-          cargo: formData.cargo ? formData.cargo.trim() : null,
-          departamento: formData.departamento ? formData.departamento.trim() : null,
-
-          id_rol: parseInt(formData.rol)
+          cargo: null,
+          departamento: null,
+          id_rol: parseInt(formData.rol, 10)
         };
-  
-        // ✅ AGREGAR CONSOLE.LOG DETALLADO
-        console.log("📤 Datos preparados para crear administrativo:", administrativoData);
-        console.log('🔍 Validación de campos obligatorios:');
-        console.log('- tipo_documento:', administrativoData.tipo_documento);
-        console.log('- numero_documento:', administrativoData.numero_documento);
-        console.log('- nombre_completo:', administrativoData.nombre_completo);
-        console.log('- apellido_completo:', administrativoData.apellido_completo);
-        console.log('- email:', administrativoData.email);
-        console.log('- telefono:', administrativoData.telefono);
-        console.log('- password:', administrativoData.password ? '✅ (existe)' : '❌ (falta)');
 
-        console.log('- fecha_ingreso:', administrativoData.fecha_ingreso);
-        console.log('- id_rol:', administrativoData.id_rol);
-  
-        // ✅ Crear el administrativo usando createAdministrativo
         await createAdministrativo(administrativoData);
-  
+
         toast({
-          title: "¡Administrativo creado exitosamente!",
-          description: "El administrativo ha sido registrado correctamente.",
-          variant: "default"
+          title: 'Administrativo creado exitosamente',
+          description: 'Se envió un correo para que el nuevo administrativo defina su contraseña.',
+          variant: 'default'
         });
-  
+
         handleClose();
       } catch (error) {
-        console.error("Error al crear administrativo:", error);
+        console.error('Error al crear administrativo:', error);
         toast({
-          title: "Error al crear el administrativo",
-          description: error.message || "No se pudo registrar el administrativo. Por favor, intenta nuevamente.",
-          variant: "destructive"
+          title: 'Error al crear el administrativo',
+          description: error.message || 'No se pudo registrar el administrativo. Por favor, intenta nuevamente.',
+          variant: 'destructive'
         });
       }
     } else {
       toast({
-        title: "Campos requeridos",
-        description: "Por favor corrige los errores antes de crear el administrativo",
-        variant: "destructive"
+        title: 'Campos requeridos',
+        description: 'Por favor corrige los errores antes de crear el administrativo',
+        variant: 'destructive'
       });
     }
   };
@@ -363,12 +281,9 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
       apellidoCompleto: '',
       email: '',
       telefono: '',
-      password: '',
-      codigoEmpleado: '',
       fechaIngreso: '',
-      cargo: '',
-      departamento: '',
-
+      cargo: undefined,
+      departamento: undefined,
       rol: '',
       estado: 'programada'
     });
@@ -377,54 +292,37 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
   };
 
   const updateFormData = (field, value) => {
-    let cleanedValue = value;
+    setFormData(prev => ({ ...prev, [field]: value }));
 
-    // Formatear automáticamente el teléfono si es el campo de teléfono
-    if (field === 'telefono') {
-      // El formateo ya se aplica directamente en PersonalStep con Smart
-      // Aquí dejamos el valor tal cual
-    }
-    setFormData(prev => ({ ...prev, [field]: cleanedValue }));
-
-    // Validación en tiempo real
     const newErrors = { ...errors };
 
     switch (field) {
       case 'tipoDocumento':
-        newErrors.tipoDocumento = validateTipoDocumento(cleanedValue);
-        // Revalidar número de documento cuando cambie el tipo
+        newErrors.tipoDocumento = validateTipoDocumento(value);
         if (formData.numeroDocumento) {
-          newErrors.numeroDocumento = validateNumeroDocumento(formData.numeroDocumento, cleanedValue);
+          newErrors.numeroDocumento = validateNumeroDocumento(formData.numeroDocumento, value);
         }
         break;
       case 'numeroDocumento':
-        newErrors.numeroDocumento = validateNumeroDocumento(cleanedValue, formData.tipoDocumento);
+        newErrors.numeroDocumento = validateNumeroDocumento(value, formData.tipoDocumento);
         break;
       case 'nombreCompleto':
       case 'apellidoCompleto':
-        newErrors[field] = validateNombre(cleanedValue);
+        newErrors[field] = validateNombre(value);
         break;
       case 'email':
-        newErrors.email = validateEmail(cleanedValue);
+        newErrors.email = validateEmail(value);
         break;
       case 'telefono':
-        newErrors.telefono = validateTelefono(cleanedValue);
+        newErrors.telefono = validateTelefono(value);
         break;
-      case 'password':
-        newErrors.password = validatePassword(cleanedValue);
-        break;
-
       case 'fechaIngreso':
-        newErrors.fechaIngreso = validateFechaIngreso(cleanedValue);
-        break;
-      case 'cargo':
-        newErrors.cargo = validateCargo(cleanedValue);
-        break;
-      case 'departamento':
-        newErrors.departamento = validateDepartamento(cleanedValue);
+        newErrors.fechaIngreso = validateFechaIngreso(value);
         break;
       case 'rol':
-        newErrors.rol = validateRol(cleanedValue);
+        newErrors.rol = validateRol(value);
+        break;
+      default:
         break;
     }
 
@@ -471,7 +369,6 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
   return ReactDOM.createPortal(
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center">
-        {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -480,7 +377,6 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
           onClick={handleClose}
         />
 
-        {/* Modal */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -488,7 +384,6 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
           transition={{ duration: 0.3 }}
           className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col"
         >
-          {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-slate-200">
             <div>
               <h2 className="text-2xl font-bold text-slate-800">Nuevo Administrativo</h2>
@@ -504,12 +399,10 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
             </motion.button>
           </div>
 
-          {/* Step Indicator */}
           <div className="px-6 py-4 border-b border-slate-200">
             <StepIndicator steps={steps} currentStep={currentStep} />
           </div>
 
-          {/* Content */}
           <div ref={contentRef} className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 min-h-0 ${currentStep === 1 ? 'p-6 pb-2' : 'p-6'}`}>
             <AnimatePresence mode="wait">
               <motion.div
@@ -524,7 +417,6 @@ const CreateAdministrativoModal = ({ isOpen, onClose, onSubmit }) => {
             </AnimatePresence>
           </div>
 
-          {/* Footer */}
           <div className={`flex items-center justify-between border-t border-slate-200 bg-slate-50 flex-shrink-0 ${currentStep === 1 ? 'p-4 pt-3' : 'p-6'}`}>
             <motion.button
               whileHover={{ scale: 1.02 }}

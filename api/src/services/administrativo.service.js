@@ -1,9 +1,9 @@
 const { Persona, Administrativo, Acceso, PersonasRol, Rol } = require('../models');
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
-const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
 const sseService = require('./sse.service');
+const invitacionService = require('./invitacion.service');
 
 class AdministrativoService {
   /**
@@ -18,16 +18,14 @@ class AdministrativoService {
       try {
         const {
           email,
-          password,
           nombre_completo,
           apellido_completo,
           telefono,
           tipo_documento,
           numero_documento,
           fecha_ingreso,
-          cargo,
-          departamento,
-          id_rol
+          id_rol,
+          creado_por
         } = adminData;
 
         // Verificar si el email ya existe
@@ -60,15 +58,9 @@ class AdministrativoService {
           apellido_completo,
           correo: email,
           telefono,
-          tiene_cuenta: true,
+          tiene_cuenta: false,
+          correo_verificado: false,
           estado: true
-        }, { transaction: t });
-
-        // Crear acceso
-        const hashedPassword = await bcryptUtils.hashPassword(password);
-        await Acceso.create({
-          id_persona: nuevaPersona.id_persona,
-          contrasena: hashedPassword
         }, { transaction: t });
 
         // Crear registro administrativo inicialmente con código temporal
@@ -76,8 +68,6 @@ class AdministrativoService {
           id_persona: nuevaPersona.id_persona,
           codigo_empleado: 'TEMP', // Código temporal, será actualizado después
           fecha_ingreso,
-          cargo,
-          departamento,
           estado_laboral: 'Activo'
         }, { transaction: t });
 
@@ -165,6 +155,31 @@ class AdministrativoService {
           }
         ]
       });
+
+      // Enviar invitacion para que defina su contrasena y active el acceso
+      try {
+        const rolNombre = administrativoCompleto?.persona?.roles?.[0]?.nombre_rol || 'Administrativo';
+        const invitacion = await invitacionService.crearInvitacion({
+          id_persona: administrativoCompleto?.persona?.id_persona,
+          creado_por: adminData?.creado_por || null,
+          tipo: 'admin_invite',
+          rol_asignado: rolNombre,
+          es_administrativo: true
+        });
+
+        const invitacionInfo = {
+          expira_en: invitacion?.expira_en || null,
+          total_enviados: (invitacion?.reenvios || 0) + 1
+        };
+
+        if (administrativoCompleto && administrativoCompleto.dataValues) {
+          administrativoCompleto.dataValues.invitacion = invitacionInfo;
+        }
+
+        logger.info(`Invitacion administrativa enviada a ${administrativoCompleto?.persona?.correo || email}`);
+      } catch (inviteError) {
+        logger.warn('No se pudo enviar la invitacion administrativa:', inviteError.message);
+      }
 
       return administrativoCompleto;
     } catch (queryError) {

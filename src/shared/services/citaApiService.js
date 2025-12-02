@@ -199,6 +199,80 @@ class CitaApiService {
     }
   }
 
+  async cancelarMiCita(id, motivo_cancelacion) {
+    try {
+      if (!id) throw new Error("ID de cita es requerido");
+      if (!motivo_cancelacion || motivo_cancelacion.trim().length < 10) {
+        throw new Error("El motivo de cancelaci��n es requerido y debe tener al menos 10 caracteres");
+      }
+
+      const payload = { motivo_cancelacion: motivo_cancelacion.trim() };
+      console.log("Cancelando mi cita:", { id, payload });
+
+      let response;
+      try {
+        response = await apiClient.post(`/citas/user/${id}/cancelar`, payload);
+      } catch (error) {
+        const status = error?.response?.status;
+        if (status === 404 || status === 405) {
+          console.warn("Fallback a ruta general de cancelaci��n");
+          response = await apiClient.post(`/citas/${id}/cancelar`, payload);
+        } else {
+          throw error;
+        }
+      }
+
+      console.log("Respuesta del backend al cancelar mi cita:", response.data);
+
+      const citaCancelada = response.data.data || response.data;
+      return this.transformarCitaDesdeAPI(citaCancelada);
+    } catch (error) {
+      console.error("Error al cancelar mi cita:", error);
+      throw new Error(error.message || "Error al cancelar la cita");
+    }
+  }
+
+  async cancelarMiCitaUsuario(id, motivo_cancelacion) {
+    try {
+      if (!id) throw new Error("ID de cita es requerido");
+      if (!motivo_cancelacion || motivo_cancelacion.trim().length < 10) {
+        throw new Error("El motivo de cancelacion es requerido y debe tener al menos 10 caracteres");
+      }
+
+      const payload = { motivo_cancelacion: motivo_cancelacion.trim() };
+      console.log("Cancelando mi cita (usuario):", { id, payload });
+
+      const endpoints = [
+        `/citas/mis-citas/${id}/cancelar`,
+        `/citas/user/${id}/cancelar`,
+        `/citas/${id}/cancelar`
+      ];
+
+      let lastError;
+      for (const endpoint of endpoints) {
+        try {
+          const response = await apiClient.post(endpoint, payload);
+          console.log("Respuesta del backend al cancelar mi cita:", response.data);
+          const citaCancelada = response.data.data || response.data;
+          return this.transformarCitaDesdeAPI(citaCancelada);
+        } catch (error) {
+          lastError = error;
+          const status = error?.status || error?.response?.status;
+          if (status === 404 || status === 405) {
+            console.warn(`Endpoint ${endpoint} no disponible, intentando siguiente...`);
+            continue;
+          }
+          break;
+        }
+      }
+
+      throw lastError || new Error("No se pudo cancelar la cita");
+    } catch (error) {
+      console.error("Error al cancelar mi cita (usuario):", error);
+      throw new Error(error.message || "Error al cancelar la cita");
+    }
+  }
+
   async reagendarCita(id, datosReagendamiento) {
     try {
       if (!id) throw new Error("ID de cita es requerido");
@@ -436,6 +510,9 @@ class CitaApiService {
       hora_fin: citaAPI.hora_fin,
       observaciones: citaAPI.observaciones,
       motivo_cancelacion: citaAPI.motivo_cancelacion,
+      motivo_reagendamiento: citaAPI.motivo_reagendamiento,
+      comentario_edicion: citaAPI.comentario_edicion || citaAPI.comentario,
+      comentario: citaAPI.comentario,
       
       // Fechas de auditorÃ­a
       fecha_creacion: citaAPI.fecha_creacion,

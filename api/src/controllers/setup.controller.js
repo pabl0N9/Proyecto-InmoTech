@@ -51,6 +51,9 @@ class SetupController {
           // Crear roles si no existen
           await SetupController._crearRolesSiNoExisten(t);
 
+          // Normalizar teléfono para no exceder longitud en BD
+          const telefonoLimpio = (adminData.telefono || '').replace(/[^\d\+]/g, '').slice(0, 15);
+
           // Crear persona
           const nuevaPersona = await Persona.create({
             tipo_documento: adminData.tipo_documento || 'CC',
@@ -58,7 +61,8 @@ class SetupController {
             nombre_completo: adminData.nombre_completo,
             apellido_completo: adminData.apellido_completo,
             correo: adminData.email,
-            telefono: adminData.telefono,
+            telefono: telefonoLimpio,
+            correo_verificado: true,
             tiene_cuenta: true,
             estado: true
           }, { transaction: t });
@@ -75,8 +79,6 @@ class SetupController {
             id_persona: nuevaPersona.id_persona,
             codigo_empleado: adminData.codigo_empleado,
             fecha_ingreso: adminData.fecha_ingreso || new Date(),
-            cargo: 'Super Administrador',
-            departamento: adminData.departamento || 'Tecnología',
             estado_laboral: 'Activo'
           }, { transaction: t });
 
@@ -113,16 +115,14 @@ class SetupController {
               es_administrativo: true,
               administrativo: {
                 id_administrativo: nuevoAdministrativo.id_administrativo,
-                codigo_empleado: nuevoAdministrativo.codigo_empleado,
-                cargo: nuevoAdministrativo.cargo,
-                departamento: nuevoAdministrativo.departamento
+                codigo_empleado: nuevoAdministrativo.codigo_empleado
               }
             },
             ...tokens
           };
 
         } catch (error) {
-          logger.error('Error creando super admin:', error);
+          logger.error('Error creando super admin:', error.original?.message || error.message);
           throw error;
         }
       });

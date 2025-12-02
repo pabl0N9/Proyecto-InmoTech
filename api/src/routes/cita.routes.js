@@ -4,7 +4,7 @@ const router = express.Router();
 const citaController = require('../controllers/cita.controller');
 const { validate, validateQuery } = require('../middlewares/validate.middleware');
 const { createLimiter, strictLimiter } = require('../middlewares/security.middleware');
-const { authenticateToken, authorizePermissions } = require('../middlewares/auth.middleware');
+const { authenticateToken, authorizePermissions, optionalAuth } = require('../middlewares/auth.middleware');
 
 const {
   crearCitaSchema,
@@ -18,7 +18,8 @@ const {
 // POST /api/v1/citas - Crear cita
 router.post(
   '/',
-  authenticateToken,
+  // Permitir cita publica; si hay cookie optionalAuth setea req.user para trazabilidad
+  optionalAuth,
   function(req, res, next) {
     // ✅ Permitir que usuarios autenticados creen citas sin permisos especiales
     // (hace la funcionalidad de agendar citas accesible para usuarios normales)

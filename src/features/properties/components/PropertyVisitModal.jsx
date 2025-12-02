@@ -417,6 +417,7 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
   
       toast({
         title: "¡Visita agendada exitosamente!",
+        description: "Te enviamos una copia a tu correo. Un asesor te llamará o te contactará por email para confirmar.",
         variant: "default",
       });
 

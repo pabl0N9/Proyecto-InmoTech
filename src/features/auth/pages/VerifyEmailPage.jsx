@@ -23,6 +23,7 @@ export default function VerifyEmailPage() {
   const [remainingCodes, setRemainingCodes] = useState(null);
   const [tokenError, setTokenError] = useState('');
   const [info, setInfo] = useState('');
+  const [codigoError, setCodigoError] = useState('');
 
   useEffect(() => {
     codeRefs.current[0]?.focus();
@@ -67,6 +68,7 @@ export default function VerifyEmailPage() {
     const next = [...codigoDigits];
     next[idx] = digit;
     setCodigoDigits(next);
+    setCodigoError('');
 
     if (digit && idx < codeRefs.current.length - 1) {
       codeRefs.current[idx + 1]?.focus();
@@ -89,8 +91,8 @@ export default function VerifyEmailPage() {
       return;
     }
     if (codigo.length !== 6) {
-      setEstado('error');
-      setMensaje('Ingresa los 6 digitos del codigo.');
+      setEstado('idle');
+      setCodigoError('Ingresa los 6 digitos del codigo.');
       return;
     }
 
@@ -104,16 +106,21 @@ export default function VerifyEmailPage() {
         setMensaje('Listo, tu correo quedo verificado. Redirigiendo al inicio de sesion...');
         setTimeout(() => navigate('/login'), 1200);
       } else {
-        setEstado('error');
-        setMensaje(res?.message || 'No pudimos verificar el codigo.');
+        setEstado('idle');
+        setCodigoError(res?.message || 'El codigo no es correcto. Intenta nuevamente o solicita uno nuevo.');
+        codeRefs.current[0]?.focus();
       }
     } catch (err) {
-      setEstado('error');
       const reason = err?.reason || err?.data?.reason;
       if (reason === 'VERIFICATION_LIMIT') {
         setLimitReached(true);
+        setEstado('error');
+        setMensaje(err?.data?.message || err?.message || 'Alcanzaste el limite de codigos.');
+      } else {
+        setEstado('idle');
+        setCodigoError(err?.data?.message || err?.message || 'El codigo no es correcto. Intenta nuevamente o solicita uno nuevo.');
+        codeRefs.current[0]?.focus();
       }
-      setMensaje(err?.data?.message || err?.message || 'No pudimos verificar el codigo.');
     } finally {
       setIsSubmitting(false);
     }
@@ -128,6 +135,7 @@ export default function VerifyEmailPage() {
     setIsResending(true);
     setMensaje('');
     setInfo('');
+    setCodigoError('');
     try {
       const res = await invitacionApi.reenviar(activeToken);
       if (res?.success) {
@@ -269,6 +277,9 @@ export default function VerifyEmailPage() {
                   />
                 ))}
               </div>
+              {codigoError && (
+                <p className="text-sm text-red-600">{codigoError}</p>
+              )}
             </div>
 
             <button

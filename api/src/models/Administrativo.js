@@ -26,14 +26,6 @@ const Administrativo = sequelize.define('Administrativos', {
     type: DataTypes.DATEONLY,
     allowNull: false
   },
-  cargo: {
-    type: DataTypes.STRING(100),
-    allowNull: true
-  },
-  departamento: {
-    type: DataTypes.STRING(100),
-    allowNull: true
-  },
   estado_laboral: {
     type: DataTypes.STRING(50),
     allowNull: false,

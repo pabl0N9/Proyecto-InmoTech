@@ -3,12 +3,30 @@ const personaService = require('../services/persona.service');
 const { isSuperAdministrator } = require('../middlewares/auth.middleware');
 const logger = require('../utils/logger');
 const { Persona } = require('../models');
+const emailService = require('../services/email.service');
 
 class CitaController {
   async crearCita(req, res, next) {
     try {
-      const data = req.body;
+      const data = req.validatedData ? { ...req.validatedData } : { ...req.body };
+
+      if (!data.id_usuario_creador && req.user) {
+        data.id_usuario_creador = req.user.id_persona || req.user.id;
+      }
+
       const nuevaCita = await citaService.crearCita(data);
+
+      if (nuevaCita) {
+        try {
+          await emailService.enviarEmailCitaSolicitada({
+            cita: nuevaCita,
+            correoAlterno: data.email
+          });
+        } catch (emailError) {
+          logger.error(`[EMAIL][CITA] No se pudo enviar el correo de cita solicitada para la cita ${nuevaCita.id_cita || ''}: ${emailError.message}`);
+        }
+      }
+
       return res.status(201).json({ success: true, data: nuevaCita });
     } catch (error) {
       if (error.message.includes('Ya existe una cita')) {
@@ -109,6 +127,14 @@ class CitaController {
 
       const cita = await citaService.confirmarCita(parsedId, id_agente_asignado);
 
+      try {
+        const citaDetallada = await citaService.obtenerCitaPorId(parsedId);
+        await emailService.enviarEmailCitaConfirmada({ cita: citaDetallada });
+        await emailService.enviarEmailCitaConfirmadaAgente({ cita: citaDetallada });
+      } catch (emailError) {
+        logger.error(`[EMAIL][CITA] No se pudo enviar confirmacion de cita ${parsedId}: ${emailError.message}`);
+      }
+
       return res.status(200).json({
         success: true,
         message: 'Cita confirmada exitosamente',
@@ -134,6 +160,12 @@ class CitaController {
       const { motivo_cancelacion } = req.validatedData;
 
       const cita = await citaService.cancelarCita(parsedId, motivo_cancelacion);
+
+      try {
+        await emailService.enviarEmailCitaCancelada({ cita, motivo: motivo_cancelacion });
+      } catch (emailError) {
+        logger.error(`[EMAIL][CITA] No se pudo enviar cancelacion de cita ${parsedId}: ${emailError.message}`);
+      }
 
       return res.status(200).json({
         success: true,
@@ -170,6 +202,13 @@ class CitaController {
         id_agente_asignado: idAgenteFinal,
         id_usuario_realizo: req.user.id_persona
       });
+
+      try {
+        const citaDetallada = await citaService.obtenerCitaPorId(parsedId);
+        await emailService.enviarEmailCitaReagendada({ cita: citaDetallada, motivo: motivo_reagendamiento });
+      } catch (emailError) {
+        logger.error(`[EMAIL][CITA] No se pudo enviar reagendamiento de cita ${parsedId}: ${emailError.message}`);
+      }
 
       return res.status(200).json({
         success: true,
@@ -390,6 +429,13 @@ class CitaController {
         comentario
       );
 
+      try {
+        const citaDetallada = await citaService.obtenerCitaPorId(parsedId);
+        await emailService.enviarEmailCitaAsignada({ cita: citaDetallada });
+      } catch (emailError) {
+        logger.error(`[EMAIL][CITA] No se pudo notificar asignacion de agente en cita ${parsedId}: ${emailError.message}`);
+      }
+
       return res.status(200).json({
         success: true,
         message: 'Agente asignado exitosamente',
@@ -541,8 +587,12 @@ class CitaController {
       }
 
       // Verificar que el estado permita cancelación
+      const estadoRaw = typeof cita.estado === 'string'
+        ? cita.estado
+        : (cita.estado?.nombre_estado || cita.estado?.nombre || '');
+      const estadoNormalizado = (estadoRaw || '').toLowerCase();
       const estadosPermitidos = ['solicitada', 'confirmada', 'programada', 're agendada'];
-      if (!estadosPermitidos.includes(cita.estado?.toLowerCase())) {
+      if (!estadosPermitidos.includes(estadoNormalizado)) {
         return res.status(400).json({
           success: false,
           message: 'Esta cita no puede ser cancelada en su estado actual'
@@ -550,6 +600,12 @@ class CitaController {
       }
 
       const citaCancelada = await citaService.cancelarCita(parsedId, motivo_cancelacion);
+
+      try {
+        await emailService.enviarEmailCitaCancelada({ cita: citaCancelada, motivo: motivo_cancelacion });
+      } catch (emailError) {
+        logger.error(`[EMAIL][CITA] No se pudo notificar cancelacion de cita ${parsedId} al cliente: ${emailError.message}`);
+      }
 
       return res.status(200).json({
         success: true,
@@ -728,6 +784,12 @@ class CitaController {
         ediciones: citaReagendada.ediciones_realizadas,
         ediciones_maximas: citaReagendada.ediciones_maximas
       });
+
+      try {
+        await emailService.enviarEmailCitaReagendada({ cita: citaReagendada, motivo: motivo_reagendamiento });
+      } catch (emailError) {
+        logger.error(`[EMAIL][CITA] No se pudo notificar reagendamiento de cita ${parsedId}: ${emailError.message}`);
+      }
 
       return res.status(200).json({
         success: true,

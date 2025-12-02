@@ -284,8 +284,8 @@ class CitaService {
 
   async cancelarCita(id, motivoCancelacion) {
     try {
-      const cita = await this.obtenerCitaPorId(id);
-
+      // Necesitamos la instancia de Sequelize para poder llamar a update
+      const cita = await Cita.findByPk(id);
       if (!cita) {
         throw new Error('Cita no encontrada');
       }

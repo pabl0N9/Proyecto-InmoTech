@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, User, Mail, Phone, Calendar, Building } from 'lucide-react';
+import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, User, Mail, Phone, Calendar } from 'lucide-react';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import administrativosApiService from '../../../../shared/services/administrativosApiService';
 import AdministrativoStatusSelector from '../../../../shared/components/ui/AdministrativoStatusSelector';
@@ -75,16 +75,6 @@ const AdministrativosTable = ({
     return administrativo?.persona?.telefono || '-';
   };
 
-  // Helper para obtener el cargo
-  const getPosition = (administrativo) => {
-    return administrativo?.cargo || '-';
-  };
-
-  // Helper para obtener el departamento
-  const getDepartment = (administrativo) => {
-    return administrativo?.departamento || '-';
-  };
-
   // Helper para obtener el código de empleado
   const getEmployeeCode = (administrativo) => {
     return administrativo?.codigo_empleado || '-';
@@ -135,10 +125,6 @@ const AdministrativosTable = ({
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Phone className="w-4 h-4" />
             <span>{formatPhoneNumber(getPhone(administrativo))}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Building className="w-4 h-4" />
-            <span>{getPosition(administrativo)} - {getDepartment(administrativo)}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Calendar className="w-4 h-4" />
@@ -197,9 +183,6 @@ const AdministrativosTable = ({
                   Administrativo
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Cargo & Departamento
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Contacto
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -236,10 +219,6 @@ const AdministrativosTable = ({
                           <div className="text-sm text-slate-500">{getEmployeeCode(administrativo)}</div>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-900">{getPosition(administrativo)}</div>
-                      <div className="text-sm text-slate-500">{getDepartment(administrativo)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">

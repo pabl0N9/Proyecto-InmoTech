@@ -133,78 +133,6 @@ BEGIN
 END
 GO
 
-ALTER TABLE Acceso ADD ultimo_cambio_password DATETIME NULL DEFAULT GETDATE();
-GO
-
-
-
-/*
-  Script para habilitar el flujo de invitaciones con código 6D.
-  - Crea tabla Invitaciones
-  - Agrega flag password_change_required a Acceso
-*/
-
--- Tabla Invitaciones
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Invitaciones' AND xtype='U')
-BEGIN
-  CREATE TABLE Invitaciones (
-    id_invitacion INT IDENTITY(1,1) PRIMARY KEY,
-    id_persona INT NOT NULL,
-    tipo VARCHAR(20) NOT NULL DEFAULT 'admin_invite',
-    token_hash VARCHAR(255) NOT NULL UNIQUE,
-    codigo_6d CHAR(6) NOT NULL,
-    expira_en DATETIME NOT NULL,
-    usado_en DATETIME NULL,
-    intentos INT NOT NULL DEFAULT 0,
-    reenvios INT NOT NULL DEFAULT 0,
-    creado_en DATETIME NOT NULL DEFAULT GETDATE(),
-    creado_por INT NULL,
-    ip_uso VARCHAR(64) NULL,
-    ua_uso VARCHAR(255) NULL
-  );
-
-  CREATE INDEX IX_Invitaciones_Persona ON Invitaciones (id_persona);
-  CREATE INDEX IX_Invitaciones_Expira ON Invitaciones (expira_en);
-
-  ALTER TABLE Invitaciones
-    ADD CONSTRAINT FK_Invitaciones_Persona
-    FOREIGN KEY (id_persona) REFERENCES Personas(id_persona);
-END
-GO
-
--- Campos adicionales para el flujo de invitaciones/verificación
-IF COL_LENGTH('Invitaciones', 'tipo') IS NULL
-BEGIN
-  ALTER TABLE Invitaciones
-    ADD tipo VARCHAR(20) NOT NULL CONSTRAINT DF_Invitaciones_tipo DEFAULT 'admin_invite';
-END
-GO
-
-IF COL_LENGTH('Invitaciones', 'reenvios') IS NULL
-BEGIN
-  ALTER TABLE Invitaciones
-    ADD reenvios INT NOT NULL CONSTRAINT DF_Invitaciones_reenvios DEFAULT 0;
-END
-GO
-
--- Flag para correo verificado en Personas
-IF COL_LENGTH('Personas', 'correo_verificado') IS NULL
-BEGIN
-  ALTER TABLE Personas
-    ADD correo_verificado BIT NOT NULL CONSTRAINT DF_Personas_correo_verificado DEFAULT 0;
-END
-GO
-
--- Flag en Acceso para forzar cambio de password
-IF COL_LENGTH('Acceso', 'password_change_required') IS NULL
-BEGIN
-  ALTER TABLE Acceso
-    ADD password_change_required BIT NOT NULL CONSTRAINT DF_Acceso_password_change_required DEFAULT 0;
-END
-GO
-
-
-
 -- ---------------------------------------------------------------------------------------------------------------------
 -- Tabla: Roles
 -- Descripción: Define los roles del sistema con permisos específicos
@@ -742,6 +670,8 @@ SELECT
     -- Datos del administrativo
     a.id_administrativo,
     a.codigo_empleado,
+    a.cargo,
+    a.departamento,
     a.fecha_ingreso,
     a.estado_laboral,
 
@@ -767,7 +697,7 @@ LEFT JOIN Personas_rol pr ON p.id_persona = pr.id_persona AND pr.estado = 1
 LEFT JOIN Roles r ON pr.id_rol = r.id_rol AND r.estado = 1
 WHERE p.estado = 1  -- Solo personas activas
 GROUP BY
-    a.id_administrativo, a.codigo_empleado, a.fecha_ingreso, a.estado_laboral,
+    a.id_administrativo, a.codigo_empleado, a.cargo, a.departamento, a.fecha_ingreso, a.estado_laboral,
     p.id_persona, p.tipo_documento, p.numero_documento, p.correo, p.telefono,
     p.nombre_completo, p.apellido_completo,
     acc.ultimo_acceso;
@@ -853,76 +783,50 @@ BEGIN
 END
 GO
 
--- Script para agregar el campo motivo_reagendamiento a la tabla Citas
--- Ejecutar este script en la base de datos InmobiliariaDB
-
-USE InmobiliariaDB;
-GO
-
--- Verificar si el campo ya existe
-IF NOT EXISTS (
-    SELECT * FROM sys.columns
-    WHERE object_id = OBJECT_ID('Citas')
-    AND name = 'motivo_reagendamiento'
-)
+-- ---------------------------------------------------------------------------------------------------------------------
+-- Seed: Super Administrador (Usuario inicial del sistema)
+-- Importante: CAMBIAR LA CONTRASEÑA EN PRODUCCIÓN
+-- ---------------------------------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM Personas WHERE numero_documento = '999999999')
 BEGIN
-    -- Agregar el campo motivo_reagendamiento con tipo NVARCHAR(MAX) para compatibilidad con índices
-    ALTER TABLE Citas
-    ADD motivo_reagendamiento NVARCHAR(MAX) NULL;
+    -- Insertar Persona
+    INSERT INTO Personas (tipo_documento, numero_documento, nombre_completo, apellido_completo, correo, telefono, tiene_cuenta)
+    VALUES ('CC', '999999999', 'Super', 'Admin', 'admin@inmotech.com', '+57 300 000 0000', 1);
 
-    PRINT '✅ Campo motivo_reagendamiento agregado exitosamente a la tabla Citas';
+    DECLARE @id_super_admin INT = SCOPE_IDENTITY();
+
+    -- Insertar Acceso (contraseña hasheada con bcrypt: "Admin123!")
+    -- ⚠️ IMPORTANTE: En producción, cambiar esta contraseña inmediatamente después del primer login
+    INSERT INTO Acceso (id_persona, contrasena)
+    VALUES (@id_super_admin, '$2b$10$rKvFJZEJfRJdLx6jxL5zMeyPh8s9JZCvC.yMFNyV8HQKZ6yFN.JxC');
+
+    -- Insertar en tabla Administrativos (personal interno)
+    INSERT INTO Administrativos (id_persona, codigo_empleado, fecha_ingreso, cargo, departamento, estado_laboral)
+    VALUES (@id_super_admin, 'ADMIN-001', GETDATE(), 'Super Administrador', 'Tecnología', 'Activo');
+
+    -- Asignar rol Super Administrador
+    DECLARE @id_rol_super INT = (SELECT id_rol FROM Roles WHERE nombre_rol = 'Super Administrador');
+    INSERT INTO Personas_rol (id_persona, id_rol)
+    VALUES (@id_super_admin, @id_rol_super);
+
+    PRINT '';
+    PRINT '✅ Super Administrador creado exitosamente';
+    PRINT '';
+    PRINT '   ╔════════════════════════════════════════════════════╗';
+    PRINT '   ║         CREDENCIALES DE SUPER ADMINISTRADOR        ║';
+    PRINT '   ╠════════════════════════════════════════════════════╣';
+    PRINT '   ║  Email:    admin@inmotech.com                      ║';
+    PRINT '   ║  Password: Admin123!                               ║';
+    PRINT '   ║  Código:   ADMIN-001                               ║';
+    PRINT '   ╚════════════════════════════════════════════════════╝';
+    PRINT '';
+    PRINT '   ⚠️  IMPORTANTE: Cambiar esta contraseña en producción';
+    PRINT '';
 END
 ELSE
 BEGIN
-    PRINT '⚠️  El campo motivo_reagendamiento ya existe en la tabla Citas';
+    PRINT '⚠️  Super Administrador ya existe en la base de datos';
 END
-GO
-
-
--- Crear índice para búsquedas por motivo de reagendamiento (opcional)
--- Nota: En SQL Server, NVARCHAR(MAX) puede ser indexado pero con limitaciones
--- Si hay problemas, este índice puede ser removido
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Citas') AND name = 'IX_Citas_MotivoReagendamiento')
-BEGIN
-    BEGIN TRY
-        CREATE NONCLUSTERED INDEX IX_Citas_MotivoReagendamiento
-        ON Citas(motivo_reagendamiento)
-        WHERE motivo_reagendamiento IS NOT NULL;
-
-        PRINT '✅ Índice IX_Citas_MotivoReagendamiento creado';
-    END TRY
-    BEGIN CATCH
-        PRINT '⚠️  No se pudo crear el índice IX_Citas_MotivoReagendamiento (posiblemente por limitaciones de NVARCHAR(MAX))';
-        PRINT '   El campo funciona correctamente sin índice para este caso de uso.';
-    END CATCH
-END
-ELSE
-BEGIN
-    PRINT '⚠️  El índice IX_Citas_MotivoReagendamiento ya existe';
-END
-GO
-
-PRINT '';
-PRINT '🎯 CAMPO motivo_reagendamiento AGREGADO EXITOSAMENTE';
-PRINT '';
-PRINT '📋 DESCRIPCIÓN DEL CAMPO:';
-PRINT '   - Nombre: motivo_reagendamiento';
-PRINT '   - Tipo: NVARCHAR(MAX) (permite textos largos en Unicode)';
-PRINT '   - Nullable: Sí (NULL cuando no es reagendamiento)';
-PRINT '   - Uso: Almacena el motivo específico de reprogramación';
-PRINT '';
-PRINT '💡 USO EN LA APLICACIÓN:';
-PRINT '   - Se llena cuando se reprograma una cita';
-PRINT '   - Se muestra en la vista de detalles de citas reagendadas';
-PRINT '   - Permite seguimiento específico de reagendamientos';
-PRINT '';
-
-
-ALTER TABLE Citas
-ADD ediciones_realizadas INT NOT NULL DEFAULT 0;
-
-ALTER TABLE Citas
-ADD ediciones_maximas INT NOT NULL DEFAULT 2;
 GO
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -946,6 +850,8 @@ BEGIN
     PRINT '✅ Inmueble de prueba creado (INM-001-TEST)';
 END
 GO
+
+
 
 
 

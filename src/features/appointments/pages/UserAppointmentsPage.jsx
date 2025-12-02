@@ -263,7 +263,7 @@ try {
   const performCancelAppointment = async (appointmentId, motivoCancelacion) => {
     try {
       // Cancel API call
-      await citaApiService.cancelarCita(appointmentId, motivoCancelacion);
+      await citaApiService.cancelarMiCitaUsuario(appointmentId, motivoCancelacion);
 
       // Refresh appointments
       await loadUserAppointments();
@@ -466,30 +466,34 @@ try {
                             <Eye className="h-3 w-3" />
                             Ver
                           </button>
-                          {!hasReachedEditionLimit(appointment) ? (
-                            <button
-                              onClick={() => handleEditAppointment(appointment)}
-                              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                            >
-                              <Edit className="h-3 w-3" />
-                              Reagendar
-                            </button>
-                          ) : (
-                            <button
-                              disabled
-                              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-slate-200 text-slate-400 cursor-not-allowed"
-                            >
-                              <Edit className="h-3 w-3" />
-                              Límite
-                            </button>
+                          {(appointment.estado || '').toLowerCase() !== 'cancelada' && (
+                            <>
+                              {!hasReachedEditionLimit(appointment) ? (
+                                <button
+                                  onClick={() => handleEditAppointment(appointment)}
+                                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                  Reagendar
+                                </button>
+                              ) : (
+                                <button
+                                  disabled
+                                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-slate-200 text-slate-400 cursor-not-allowed"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                  Límite
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleCancelAppointment(appointment)}
+                                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Cancelar
+                              </button>
+                            </>
                           )}
-                          <button
-                            onClick={() => handleCancelAppointment(appointment)}
-                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            Cancelar
-                          </button>
                         </div>
                       </div>
                     </motion.div>
@@ -747,25 +751,29 @@ try {
                         <Eye className="h-4 w-4" />
                         Ver detalles
                       </button>
-                      <button
-                        onClick={() => !editLimitReached && handleEditAppointment(appointment)}
-                        disabled={editLimitReached}
-                        className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                          editLimitReached
-                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                            : 'bg-[#00457B] text-white hover:bg-[#005a9e]'
-                        }`}
-                      >
-                        <Edit className="h-4 w-4" />
-                        {editLimitReached ? 'Sin cupo' : 'Reagendar'}
-                      </button>
-                      <button
-                        onClick={() => handleCancelAppointment(appointment)}
-                        className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Cancelar
-                      </button>
+                      {(appointment.estado || '').toLowerCase() !== 'cancelada' && (
+                        <>
+                          <button
+                            onClick={() => !editLimitReached && handleEditAppointment(appointment)}
+                            disabled={editLimitReached}
+                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                              editLimitReached
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                : 'bg-[#00457B] text-white hover:bg-[#005a9e]'
+                            }`}
+                          >
+                            <Edit className="h-4 w-4" />
+                            {editLimitReached ? 'Sin cupo' : 'Reagendar'}
+                          </button>
+                          <button
+                            onClick={() => handleCancelAppointment(appointment)}
+                            className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Cancelar
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </motion.div>
