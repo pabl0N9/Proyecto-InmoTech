@@ -398,10 +398,6 @@ const UserRescheduleModal = ({ isOpen, onClose, appointment, newDate, onConfirm 
     return true;
   };
 
-  const days = getDaysInMonth(currentMonth);
-
-  if (!isOpen || !appointment || !newDate) return null;
-
   const horasOptions = useMemo(() => {
     const base = [...availableTimes];
     if (formData.hora_inicio && !base.includes(formData.hora_inicio)) {
@@ -409,6 +405,10 @@ const UserRescheduleModal = ({ isOpen, onClose, appointment, newDate, onConfirm 
     }
     return base;
   }, [availableTimes, formData.hora_inicio]);
+
+  const days = getDaysInMonth(currentMonth);
+
+  if (!isOpen || !appointment || !newDate) return null;
 
   return (
     <AnimatePresence>

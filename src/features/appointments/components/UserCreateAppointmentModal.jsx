@@ -187,20 +187,22 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
   };
 
   const parseTime = (timeString) => {
-    const [time, period] = timeString.split(" ");
-    const [hours, minutes] = time.split(":");
-    let hour24 = parseInt(hours);
+    if (!timeString) return null;
+    const [time, periodRaw] = timeString.trim().split(" ");
+    const [hoursStr, minutesStr] = (time || "").split(":");
+    let hours = parseInt(hoursStr, 10);
+    const minutes = parseInt(minutesStr, 10) || 0;
+    const period = (periodRaw || "").toLowerCase();
 
-    if (period === "am" && hour24 !== 12) {
-      hour24 += 12;
-    } else if (period === "pm" && hour24 === 12) {
-      hour24 = 0;
-    }
+    if (period === "pm" && hours !== 12) hours += 12;
+    if (period === "am" && hours === 12) hours = 0;
 
-    const date = new Date();
-    date.setHours(hour24, parseInt(minutes), 0, 0);
-    return date;
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+    return { hours, minutes };
   };
+
+  const formatHHmm = ({ hours, minutes }) =>
+    `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 
   const calcularHoraFin = (horaInicio) => {
     const [horaStr, minutosStr] = horaInicio.split(':');
@@ -240,10 +242,11 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
       };
 
       if (servicioSeleccionado.id === 1) { // Solo validar "Visita a Propiedad"
-        const horaInicio24h = parseTime(formData.hora).toTimeString().substring(0, 5);
-        const horariosDisponibles = await citaApiService.obtenerHorariosDisponibles(convocatoriaData);
+        const horaParseada = parseTime(formData.hora);
+        const horaInicio24h = horaParseada ? formatHHmm(horaParseada) : null;
+        const horariosDisponibles = await citaApiService.obtenerHorariosDisponiblesUsuario(convocatoriaData);
 
-        if (!horariosDisponibles.includes(horaInicio24h)) {
+        if (!horaInicio24h || !horariosDisponibles.includes(horaInicio24h)) {
           toast({
             title: "Horario no disponible",
             description: `El horario ${formData.hora} ya fue ocupado. Por favor selecciona otro horario.`,
@@ -255,7 +258,12 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
       }
 
       // Preparar datos para la cita
-      const horaInicio24h = parseTime(formData.hora).toTimeString().substring(0, 5);
+      const horaParseada = parseTime(formData.hora);
+      const horaInicio24h = horaParseada ? formatHHmm(horaParseada) : null;
+      if (!horaInicio24h) {
+        throw new Error("Hora seleccionada inválida");
+      }
+
       const citaData = {
         tipo_documento: user?.tipo_documento,
         numero_documento: user?.numero_documento,

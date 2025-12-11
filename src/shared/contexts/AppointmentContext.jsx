@@ -101,6 +101,17 @@ export const AppointmentProvider = ({ children }) => {
   const updateAppointment = async (updatedData) => {
     try {
       const id = updatedData.id || updatedData.id_cita;
+      if (updatedData._skipApi) {
+        // Solo actualizar estado local sin llamar al backend (ya actualizado)
+        setAppointments((prev) =>
+          prev.map((apt) => {
+            const aptId = apt.id || apt.id_cita;
+            return aptId === id ? { ...apt, ...updatedData } : apt;
+          })
+        );
+        return updatedData;
+      }
+
       const response = await citaApiService.actualizarCita(id, {
         ...updatedData,
         estado: updatedData.estado

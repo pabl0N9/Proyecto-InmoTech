@@ -269,9 +269,18 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
         telefonoFormateado = formatPhoneNumber(telefonoFormateado, '', false);
       }
 
+      // Reconstruir nombres y apellidos desde los campos separados si vienen
+      const primerNombre = persona.primer_nombre || '';
+      const segundoNombre = persona.segundo_nombre || '';
+      const primerApellido = persona.primer_apellido || '';
+      const segundoApellido = persona.segundo_apellido || '';
+
+      const nombreCompletoReconstruido = [primerNombre, segundoNombre].filter(Boolean).join(' ').trim();
+      const apellidoCompletoReconstruido = [primerApellido, segundoApellido].filter(Boolean).join(' ').trim();
+
       console.log('📝 Datos encontrados:', {
-        nombre: persona.nombre_completo,
-        apellido: persona.apellido_completo,
+        nombre: nombreCompletoReconstruido || persona.nombre_completo,
+        apellido: apellidoCompletoReconstruido || persona.apellido_completo,
         telefono: telefonoFormateado,
         email: persona.correo
       });
@@ -279,8 +288,8 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
       // Actualizar formulario automáticamente
       setFormData(prev => ({
         ...prev,
-        nombre: persona.nombre_completo || prev.nombre,
-        apellido: persona.apellido_completo || prev.apellido,
+        nombre: nombreCompletoReconstruido || persona.nombre_completo || prev.nombre,
+        apellido: apellidoCompletoReconstruido || persona.apellido_completo || prev.apellido,
         telefono: telefonoFormateado,
         email: persona.correo || prev.email
       }));

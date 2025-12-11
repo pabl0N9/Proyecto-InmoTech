@@ -417,8 +417,22 @@ class CitaController {
         });
       }
 
-      const { id_agente_nuevo, comentario } = req.validatedData;
+      const { id_agente_nuevo, comentario, motivo_reagendamiento } = req.validatedData;
       const idUsuarioRealizo = req.user.id; // ✅ Corregido: usar req.user.id en lugar de req.user.id_persona
+
+      // Capturar estado/agente previo para detectar reasignación de cita confirmada
+      const citaAntes = await citaService.obtenerCitaPorId(parsedId);
+      const esReasignacionConfirmada = Boolean(
+        citaAntes &&
+        citaAntes.id_estado_cita === 2 && // Confirmada
+        citaAntes.id_agente_asignado &&
+        citaAntes.id_agente_asignado !== id_agente_nuevo
+      );
+      const esPrimeraAsignacionSolicitada = Boolean(
+        citaAntes &&
+        citaAntes.id_estado_cita === 1 && // Solicitada
+        !citaAntes.id_agente_asignado
+      );
 
       logger.info(`🔄 Asignando agente ${id_agente_nuevo} a cita ${parsedId} por usuario ${idUsuarioRealizo}`);
 
@@ -426,12 +440,19 @@ class CitaController {
         parsedId,
         id_agente_nuevo,
         idUsuarioRealizo,
-        comentario
+        comentario,
+        motivo_reagendamiento
       );
 
       try {
         const citaDetallada = await citaService.obtenerCitaPorId(parsedId);
-        await emailService.enviarEmailCitaAsignada({ cita: citaDetallada });
+        if (esReasignacionConfirmada) {
+          await emailService.enviarEmailCitaAsignada({ cita: citaDetallada });
+          await emailService.enviarEmailCitaConfirmadaAgente({ cita: citaDetallada });
+        }
+        if (esPrimeraAsignacionSolicitada) {
+          await emailService.enviarEmailCitaConfirmadaAgente({ cita: citaDetallada });
+        }
       } catch (emailError) {
         logger.error(`[EMAIL][CITA] No se pudo notificar asignacion de agente en cita ${parsedId}: ${emailError.message}`);
       }

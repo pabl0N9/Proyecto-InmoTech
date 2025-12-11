@@ -17,10 +17,18 @@ class AuthController {
       return res.status(201).json({
         success: true,
         message: 'Registro recibido. Revisa tu correo y confirma tu cuenta en las proximas 24 horas.',
-        data: { user: result.user, verification: result.verification }
+        data: { user: result.user, verification: result.verification, meta: result.meta }
       });
     } catch (error) {
       logger.error('Error en registro de usuario:', error);
+      if (error.status) {
+        return res.status(error.status).json({
+          success: false,
+          message: error.message,
+          reason: error.code || null,
+          data: error.meta || null
+        });
+      }
       next(error);
     }
   }
@@ -58,6 +66,21 @@ class AuthController {
           success: false,
           message: error.message,
           reason: error.code,
+          data: error.meta || null
+        });
+      }
+      if (error.code === 'INVALID_CREDENTIALS') {
+        return res.status(error.status || 401).json({
+          success: false,
+          message: error.message,
+          reason: error.code || 'INVALID_CREDENTIALS'
+        });
+      }
+      if (error.status) {
+        return res.status(error.status).json({
+          success: false,
+          message: error.message,
+          reason: error.code || null,
           data: error.meta || null
         });
       }

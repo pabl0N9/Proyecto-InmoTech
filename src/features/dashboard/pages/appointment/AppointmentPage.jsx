@@ -251,7 +251,19 @@ const CitasPage = () => {
 
         // Actualizar en el contexto local con la respuesta del backend
         // La cita ya está confirmada en el backend
-        updateAppointment(respuesta);
+        updateAppointment({
+          ...respuesta,
+          estado: respuesta.estado || 'confirmada',
+          id_agente_asignado: user.id,
+          agente: respuesta.agente || {
+            id_agente: user.id_agente || user.id_persona || user.id,
+            nombre_completo: user.nombre_completo || user.nombre || '',
+            apellido_completo: user.apellido_completo || user.apellidos || '',
+            numero_documento: user.numero_documento || user.documento || '',
+            correo: user.correo || user.email || user.email_usuario
+          },
+          _skipApi: true
+        });
 
         setIsAcceptDialogOpen(false);
         setSelectedCita(null);

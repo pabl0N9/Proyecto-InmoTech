@@ -58,9 +58,13 @@ const UserViewAppointmentModal = ({ isOpen, onClose, appointment }) => {
   const editNote =
     appointment.motivo_reagendamiento ||
     appointment.comentario_edicion ||
-    appointment.comentario;
+    appointment.comentario ||
+    appointment.motivo_cancelacion ||
+    appointment.motivoCancelacion;
+  const cancelNote = appointment.motivo_cancelacion || appointment.motivoCancelacion;
   const estadoCita = (appointment.estado || '').toLowerCase();
   const estadoDetalle = (appointment.estado_cita?.nombre || '').toLowerCase();
+  const estadoId = appointment.id_estado_cita;
   const wasEdited =
     !!(editNote && editNote.trim && editNote.trim().length > 0) ||
     (appointment?.ediciones_realizadas ?? 0) > 0 ||
@@ -268,7 +272,7 @@ const UserViewAppointmentModal = ({ isOpen, onClose, appointment }) => {
                   )}
 
                   {/* Cancellation */}
-                  {appointment.motivo_cancelacion && (
+                  {(cancelNote || estadoCita.includes('cancel') || estadoDetalle.includes('cancel') || estadoId === 6) && (
                     <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
                       <div className="flex items-start gap-3">
                         <div className="p-2 bg-red-100 rounded-xl mt-1">
@@ -276,7 +280,9 @@ const UserViewAppointmentModal = ({ isOpen, onClose, appointment }) => {
                         </div>
                         <div className="space-y-1">
                           <p className="text-xs uppercase tracking-wide text-red-600">Motivo de cancelacion</p>
-                          <p className="text-red-800">{appointment.motivo_cancelacion}</p>
+                          <p className="text-red-800">
+                            {cancelNote || editNote || 'Motivo no registrado'}
+                          </p>
                         </div>
                       </div>
                     </div>

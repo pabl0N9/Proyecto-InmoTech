@@ -96,12 +96,12 @@ const crearCitaSchema = Joi.object({
     .positive()
     .required(),
 
-  fecha_cita: Joi.date()
-    .iso()
+  fecha_cita: Joi.string()
+    .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .custom(isTodayOrFuture)
     .required()
     .messages({
-      'date.base': 'La fecha de la cita no es válida',
+      'string.pattern.base': 'El formato de fecha debe ser YYYY-MM-DD',
       'date.min': 'La fecha de la cita no puede ser anterior a hoy',
       'any.required': 'La fecha de la cita es obligatoria'
     }),
@@ -132,8 +132,8 @@ const actualizarCitaSchema = Joi.object({
     .valid(1, 2, 3, 4, 5, 6)
     .optional(),
 
-  fecha_cita: Joi.date()
-    .iso()
+  fecha_cita: Joi.string()
+    .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .custom(isTodayOrFuture)
     .optional(),
 

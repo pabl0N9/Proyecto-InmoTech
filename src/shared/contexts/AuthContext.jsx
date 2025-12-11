@@ -15,6 +15,18 @@ const AuthContext = createContext(undefined);
 
 const USER_KEY = 'inmotech_user';
 
+const normalizeUser = (rawUser) => {
+  if (!rawUser) return rawUser;
+  const id =
+    rawUser.id ||
+    rawUser.id_usuario ||
+    rawUser.id_persona ||
+    rawUser.id_agente ||
+    rawUser.id_cliente ||
+    rawUser.user_id;
+  return { ...rawUser, id };
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -31,7 +43,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.getProfile();
 
       if (response.success && response.data) {
-        const userData = response.data;
+        const userData = normalizeUser(response.data);
         setUser(userData);
         setIsAuthenticated(true);
         console.log('Sesión restaurada desde cookies:', userData.correo);
@@ -89,7 +101,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.login(email, password);
 
       if (response.success && response.data) {
-        const userData = response.data.user;
+        const userData = normalizeUser(response.data.user);
 
         sseService.resetForcedDisconnect();
 
@@ -203,9 +215,10 @@ export const AuthProvider = ({ children }) => {
 
       if (response.success && response.data) {
         const updatedUser = { ...user, ...response.data };
-        setUser(updatedUser);
+        const normalized = normalizeUser(updatedUser);
+        setUser(normalized);
 
-        const userDataStr = JSON.stringify(updatedUser);
+        const userDataStr = JSON.stringify(normalized);
         if (localStorage.getItem(USER_KEY)) {
           localStorage.setItem(USER_KEY, userDataStr);
         } else {

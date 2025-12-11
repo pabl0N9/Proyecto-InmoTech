@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, X, Loader } from 'lucide-react';
 import { useToast } from '../../../shared/hooks/use-toast';
+import citaApiService from '../../../shared/services/citaApiService';
 
 const UserCancelAppointmentModal = ({
   isOpen,
@@ -133,11 +134,10 @@ const UserCancelAppointmentModal = ({
                     <span className="font-medium">Fecha:</span> {new Date(appointment.fecha_cita).toLocaleDateString('es-ES')}
                   </p>
                   <p>
-                    <span className="font-medium">Hora:</span> {appointment.hora_inicio ? (
-                      appointment.hora_inicio.includes(':') ?
-                        appointment.hora_inicio.split(':').slice(0, 2).join(':')
-                        : appointment.hora_inicio
-                    ) : 'Por definir'}
+                    <span className="font-medium">Hora:</span>{' '}
+                    {appointment.hora_inicio
+                      ? citaApiService.formatHoraDesdeAPI(appointment.hora_inicio)
+                      : 'Por definir'}
                   </p>
                   {appointment.inmueble && (
                     <p>

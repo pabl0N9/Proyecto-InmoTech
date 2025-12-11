@@ -361,18 +361,21 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
   };
 
   const parseTime = (timeString) => {
-    const [time, period] = timeString.split(" ");
-    const [hours, minutes] = time.split(":");
-    let hour24 = parseInt(hours);
+    if (!timeString) return null;
+    const [time, periodRaw] = timeString.trim().split(" ");
+    const [hoursStr, minutesStr] = (time || "").split(":");
+    let hour24 = parseInt(hoursStr, 10);
+    const minutes = parseInt(minutesStr, 10) || 0;
+    const period = (periodRaw || "").toLowerCase();
 
-    if (period === "am" && hour24 !== 12) {
+    if (period === "pm" && hour24 !== 12) {
       hour24 += 12;
-    } else if (period === "pm" && hour24 === 12) {
+    } else if (period === "am" && hour24 === 12) {
       hour24 = 0;
     }
 
     const date = new Date();
-    date.setHours(hour24, parseInt(minutes), 0, 0);
+    date.setHours(hour24, minutes, 0, 0);
     return date;
   };
 

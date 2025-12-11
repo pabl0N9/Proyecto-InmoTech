@@ -531,6 +531,46 @@ CREATE NONCLUSTERED INDEX IX_Citas_ConflictoHorario ON Citas(id_inmueble, fecha_
 CREATE NONCLUSTERED INDEX IX_Citas_Creador ON Citas(id_usuario_creador);                      -- Quién creó las citas
 GO
 
+-- Índices adicionales para dashboards y disponibilidad
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Citas') AND name = 'IX_Citas_AgenteEstado')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Citas_AgenteEstado
+    ON Citas(id_agente_asignado, id_estado_cita)
+    INCLUDE (fecha_cita, hora_inicio, hora_fin, motivo_reagendamiento, motivo_cancelacion);
+    PRINT '✅ Índice agregado: IX_Citas_AgenteEstado';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_Citas_AgenteEstado ya existe';
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Citas') AND name = 'IX_Citas_FechaServicio')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Citas_FechaServicio
+    ON Citas(fecha_cita, id_servicio)
+    INCLUDE (hora_inicio, hora_fin, id_estado_cita, id_agente_asignado);
+    PRINT '✅ Índice agregado: IX_Citas_FechaServicio';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_Citas_FechaServicio ya existe';
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('Citas') AND name = 'IX_Citas_EstadoSolo')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Citas_EstadoSolo
+    ON Citas(id_estado_cita)
+    INCLUDE (fecha_cita, hora_inicio, id_agente_asignado);
+    PRINT '✅ Índice agregado: IX_Citas_EstadoSolo';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_Citas_EstadoSolo ya existe';
+END
+GO
+
 
 
 
@@ -577,6 +617,26 @@ GO
 CREATE NONCLUSTERED INDEX IX_Historial_Cita ON HistorialAsignacionAgentes(id_cita, fecha_asignacion DESC);
 CREATE NONCLUSTERED INDEX IX_Historial_AgenteNuevo ON HistorialAsignacionAgentes(id_agente_nuevo);
 CREATE NONCLUSTERED INDEX IX_Historial_UsuarioRealizo ON HistorialAsignacionAgentes(id_usuario_realizo);
+GO
+
+-- Índice de cobertura para historial (acelera /historial-asignaciones)
+IF EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('HistorialAsignacionAgentes') AND name = 'IX_Historial_Cita_Cover')
+BEGIN
+    DROP INDEX IX_Historial_Cita_Cover ON HistorialAsignacionAgentes;
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('HistorialAsignacionAgentes') AND name = 'IX_Historial_Cita_Cover')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Historial_Cita_Cover
+    ON HistorialAsignacionAgentes (id_cita, fecha_asignacion DESC)
+    INCLUDE (id_agente_nuevo, id_agente_anterior, estado_asignacion, id_usuario_realizo);
+    PRINT '✅ Índice agregado: IX_Historial_Cita_Cover';
+END
+ELSE
+BEGIN
+    PRINT '⚠️  Índice IX_Historial_Cita_Cover ya existe';
+END
 GO
 
 

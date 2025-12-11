@@ -119,7 +119,10 @@ const servicio = cita.servicio || {};
 const editNote =
   cita.motivo_reagendamiento ||
   cita.comentario_edicion ||
-  cita.comentario;
+  cita.comentario ||
+  cita.motivo_cancelacion || // si solo hay cancelación, úsalo como nota
+  cita.motivoCancelacion;
+const cancelNote = cita.motivo_cancelacion || cita.motivoCancelacion;
 const estadoCita = (cita.estado || '').toLowerCase();
 const estadoDetalle = (cita.estado_detalle?.nombre_estado || '').toLowerCase();
 const wasEdited =
@@ -290,6 +293,26 @@ const infoItems = [
                     <div className="flex-1">
                       <p className="text-sm font-medium text-orange-600 mb-2">Motivo de la Edici&oacute;n *</p>
                       <p className="text-orange-800 leading-relaxed">{editNote || 'Motivo no registrado'}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Motivo de Cancelación */}
+              {cancelNote && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.75 }}
+                  className="bg-red-50 border border-red-200 rounded-xl p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-white shadow-sm">
+                      <FileText className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-red-600 mb-2">Motivo de cancelaci&oacute;n</p>
+                      <p className="text-red-800 leading-relaxed">{cancelNote}</p>
                     </div>
                   </div>
                 </motion.div>

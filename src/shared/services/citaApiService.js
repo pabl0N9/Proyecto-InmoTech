@@ -43,9 +43,16 @@ class CitaApiService {
       if (filtros.estado) params.append("estado", filtros.estado);
       if (filtros.fecha) params.append("fecha", filtros.fecha);
       if (filtros.agente) params.append("agente", filtros.agente);
+      // Cache-bust para evitar datos obsoletos (como motivos de cancelación)
+      params.append("_ts", Date.now());
 
       const endpoint = `/citas${params.toString() ? `?${params.toString()}` : ""}`;
-      const response = await apiClient.get(endpoint);
+      const response = await apiClient.get(endpoint, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
 
       // El GET all puede retornar array directamente o en data
       const citas = Array.isArray(response.data) ? response.data : response.data.data;
@@ -408,9 +415,15 @@ class CitaApiService {
   // ==========================================
 
   formatHoraParaAPI(hora) {
+    // Intentar primero con el normalizador centralizado (acepta ISO, 12h, 24h)
+    const normalizada = formatTimeTo24Hour(hora);
+    if (normalizada) {
+      return normalizada;
+    }
+
     if (!hora) return "09:00";
 
-    const horaLimpia = hora.toLowerCase().replace(/\s+/g, "");
+    const horaLimpia = String(hora).toLowerCase().replace(/\s+/g, "");
     const isPM = horaLimpia.includes("pm");
     const isAM = horaLimpia.includes("am");
 
@@ -421,6 +434,11 @@ class CitaApiService {
 
     if (isPM && horas !== 12) horas += 12;
     if (isAM && horas === 12) horas = 0;
+
+    if (Number.isNaN(horas) || Number.isNaN(minutos)) {
+      console.warn("formatHoraParaAPI: hora no parseable, usando fallback 09:00", hora);
+      return "09:00";
+    }
 
     return `${String(horas).padStart(2, "0")}:${String(minutos || 0).padStart(2, "0")}`;
   }
@@ -509,8 +527,8 @@ class CitaApiService {
       hora_inicio: citaAPI.hora_inicio,
       hora_fin: citaAPI.hora_fin,
       observaciones: citaAPI.observaciones,
-      motivo_cancelacion: citaAPI.motivo_cancelacion,
-      motivo_reagendamiento: citaAPI.motivo_reagendamiento,
+      motivo_cancelacion: citaAPI.motivo_cancelacion || citaAPI.motivoCancelacion || null,
+      motivo_reagendamiento: citaAPI.motivo_reagendamiento || citaAPI.motivoReagendamiento || null,
       comentario_edicion: citaAPI.comentario_edicion || citaAPI.comentario,
       comentario: citaAPI.comentario,
       
@@ -546,7 +564,7 @@ class CitaApiService {
       if (!Array.isArray(agentes)) {
         throw new Error("Formato de respuesta invÃ¡lido para agentes disponibles");
       }
-
+      
       console.log(`â ${agentes.length} agentes disponibles obtenidos`);
       return agentes;
     } catch (error) {
@@ -560,28 +578,30 @@ class CitaApiService {
    * @param {number} idCita - ID de la cita
    * @param {number} idAgenteNuevo - ID del agente a asignar
    * @param {string} comentario - Comentario obligatorio para reasignaciones
+   * @param {string|null} motivoReagendamiento - Motivo de reasignaci?n del agente
    * @returns {Promise<Object>} Cita actualizada con historial
    */
-  async asignarAgente(idCita, idAgenteNuevo, comentario = null) {
+  async asignarAgente(idCita, idAgenteNuevo, comentario = null, motivoReagendamiento = null) {
     try {
       if (!idCita) throw new Error("ID de cita es requerido");
       if (!idAgenteNuevo) throw new Error("ID de agente es requerido");
 
-      console.log(`ð Asignando agente ${idAgenteNuevo} a cita ${idCita}`);
+      console.log(`Asignando agente ${idAgenteNuevo} a cita ${idCita}`);
 
       const payload = {
         id_agente_nuevo: idAgenteNuevo,
-        comentario: comentario
+        comentario: comentario,
+        motivo_reagendamiento: motivoReagendamiento || comentario || null
       };
 
       const response = await apiClient.post(`/citas/${idCita}/asignar-agente`, payload);
 
-      console.log("ð¥ Respuesta del backend al asignar agente:", response.data);
+      console.log("Respuesta del backend al asignar agente:", response.data);
 
       const citaActualizada = response.data.data || response.data;
       return this.transformarCitaDesdeAPI(citaActualizada);
     } catch (error) {
-      console.error("â Error al asignar agente:", error);
+      console.error("Error al asignar agente:", error);
       throw new Error(error.message || "Error al asignar el agente a la cita");
     }
   }
@@ -829,9 +849,16 @@ class CitaApiService {
       if (filtros.estado) params.append("estado", filtros.estado);
       if (filtros.fecha) params.append("fecha", filtros.fecha);
       if (filtros.servicio) params.append("servicio", filtros.servicio);
+      // Cache-bust para evitar respuestas 304 sin cuerpo
+      params.append("_ts", Date.now());
 
       const endpoint = `/citas/mis-citas${params.toString() ? `?${params.toString()}` : ""}`;
-      const response = await apiClient.get(endpoint);
+      const response = await apiClient.get(endpoint, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
 
       const data = response.data.data || response.data;
 

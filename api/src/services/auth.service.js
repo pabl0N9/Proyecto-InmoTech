@@ -7,6 +7,13 @@ const { buildPermissionsResponse } = require('../utils/permissions.helper');
 const invitacionService = require('./invitacion.service');
 
 const VERIFY_INVITE_TYPE = 'signup_verify';
+const createHttpError = (message, status = 400, code = null, meta = null) => {
+  const error = new Error(message);
+  error.status = status;
+  if (code) error.code = code;
+  if (meta) error.meta = meta;
+  return error;
+};
 
 class AuthService {
   /**
@@ -16,6 +23,8 @@ class AuthService {
    */
   async registrarUsuario(userData) {
     let verificationInvite = null;
+    let wasProspecto = false;
+    let wasNew = false;
 
     const result = await sequelize.transaction(async (t) => {
       try {
@@ -32,11 +41,12 @@ class AuthService {
 
         // Caso 1: El correo ya tiene cuenta activa -> bloquear
         if (personaExistente && personaExistente.tiene_cuenta) {
-          throw new Error('El correo electrónico ya está registrado');
+          throw createHttpError('El correo electronico ya esta registrado', 409, 'EMAIL_EXISTS');
         }
 
         // Caso 2: El correo existe pero era un prospecto (creado al agendar una cita pública)
         if (personaExistente && !personaExistente.tiene_cuenta) {
+          wasProspecto = true;
           personaObjetivo = await personaExistente.update({
             tipo_documento: userData.tipo_documento,
             numero_documento: userData.numero_documento,
@@ -51,6 +61,7 @@ class AuthService {
 
         // Caso 3: No existe -> crear persona nueva
         if (!personaObjetivo) {
+          wasNew = true;
           personaObjetivo = await Persona.create({
             tipo_documento: userData.tipo_documento,
             numero_documento: userData.numero_documento,
@@ -66,7 +77,7 @@ class AuthService {
 
         // Validar que no exista acceso previo colgando
         if (personaObjetivo.acceso) {
-          throw new Error('El correo electrónico ya está registrado');
+          throw createHttpError('El correo electronico ya esta registrado', 409, 'EMAIL_EXISTS');
         }
 
         // Crear acceso
@@ -105,6 +116,11 @@ class AuthService {
             nombre_completo: personaObjetivo.nombre_completo,
             apellido_completo: personaObjetivo.apellido_completo,
             roles: rolUsuario ? [rolUsuario.nombre_rol] : []
+          },
+          meta: {
+            wasProspecto,
+            wasNew,
+            needsVerification: true
           }
         };
 
@@ -129,6 +145,10 @@ class AuthService {
 
     return {
       ...result,
+      meta: {
+        ...result.meta,
+        needsVerification: true
+      },
       verification: {
         expira_en: verificationInvite?.expira_en || null,
         total_enviados: (verificationInvite?.reenvios || 0) + 1,
@@ -182,13 +202,13 @@ class AuthService {
       });
 
       if (!persona) {
-        throw new Error('Credenciales invÃ¡lidas');
+        throw createHttpError('Credenciales invalidas', 401, 'INVALID_CREDENTIALS');
       }
 
       // Verificar contraseÃ±a
       const isValidPassword = await bcryptUtils.verifyPassword(password, persona.acceso.contrasena);
       if (!isValidPassword) {
-        throw new Error('Credenciales invÃ¡lidas');
+        throw createHttpError('Credenciales invalidas', 401, 'INVALID_CREDENTIALS');
       }
 
       // ValidaciÃ³n adicional administrativa
@@ -196,7 +216,7 @@ class AuthService {
         persona.roles.some(rol => rol.nombre_rol === 'Super Administrador') : false;
 
       if (!es_super_admin_login && persona.roles && persona.roles.some(rol => rol.es_rol_administrativo) && !persona.administrativo) {
-        throw new Error('Acceso denegado, comunÃ­cate con el administrador para resolver este problema');
+        throw new Error('Acceso denegado, comunicate con el administrador para resolver este problema');
       }
 
       // Actualizar Ãºltimo acceso
@@ -493,4 +513,3 @@ class AuthService {
 }
 
 module.exports = new AuthService();
-
