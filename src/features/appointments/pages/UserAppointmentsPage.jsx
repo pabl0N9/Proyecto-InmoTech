@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, Building, Phone, Mail, AlertCircle, CheckCircle, XCircle, List, Grid, Eye, Edit, Trash2, Filter, BarChart3, TrendingUp, User, Sparkles, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, Building, Phone, Mail, AlertCircle, CheckCircle, XCircle, List, Grid, Eye, Edit, Trash2, Filter, BarChart3, User, Sparkles, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/components/ui/select';
 import { useToast } from '../../../shared/hooks/use-toast';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import citaApiService from '../../../shared/services/citaApiService';
+import sseService from '../../../shared/services/sseService';
 import AppointmentCalendar from '../../../features/dashboard/components/appointment/AppointmentCalendar';
 import UserCancelAppointmentModal from '../components/UserCancelAppointmentModal';
 import UserEditAppointmentModal from '../components/UserEditAppointmentModal';
@@ -28,11 +29,7 @@ const UserAppointmentsPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    loadUserAppointments();
-  }, []);
-
-  const loadUserAppointments = async () => {
+  const loadUserAppointments = useCallback(async () => {
     try {
       setLoading(true);
       const data = await citaApiService.obtenerMisCitas();
@@ -54,7 +51,11 @@ const UserAppointmentsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    loadUserAppointments();
+  }, [loadUserAppointments]);
 
   const getStatusInfo = (status) => {
     const statusConfig = {
@@ -131,6 +132,22 @@ const UserAppointmentsPage = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [filter]);
+
+  // Escucha actualizaciones en tiempo real de la cita para este usuario
+  useEffect(() => {
+    const handleRealtimeUpdate = async (event) => {
+      if (!event?.cliente?.id_persona || !user?.id) return;
+      if (event.cliente.id_persona !== user.id) return;
+
+      await loadUserAppointments();
+      setCalendarKey(prev => prev + 1);
+    };
+
+    sseService.on('appointment_update', handleRealtimeUpdate);
+    return () => {
+      sseService.off('appointment_update', handleRealtimeUpdate);
+    };
+  }, [user?.id, loadUserAppointments]);
 
   // Calculate statistics
   const stats = {
@@ -351,198 +368,47 @@ try {
           </div>
         </div>
 
-        {/* Upcoming Appointments + Stats Section */}
+        {/* Statistics Section */}
         {appointments.length > 0 && (
-          <section className="bg-white rounded-3xl shadow-sm border border-slate-100 px-5 py-5 space-y-5">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-slate-600" />
-              <h2 className="text-lg font-semibold text-slate-800">Próximas Citas</h2>
+          <section className="bg-white rounded-3xl shadow-sm border border-slate-100 px-6 py-6">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="h-5 w-5 text-slate-600" />
+              <h2 className="text-lg font-semibold text-slate-800">Resumen de Citas</h2>
             </div>
-
-            {/* Mini upcoming appointments */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {filteredAppointments
-                .filter(appointment => {
-                  const appointmentDate = new Date(appointment.fecha_cita || appointment.fecha);
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  appointmentDate.setHours(0, 0, 0, 0);
-                  return appointmentDate >= today && appointment.estado !== 'cancelada' && appointment.estado !== 'completada';
-                })
-                .sort((a, b) => new Date(a.fecha_cita || a.fecha) - new Date(b.fecha_cita || b.fecha))
-                .slice(0, 3)
-                .map((appointment, index) => {
-                  const statusInfo = getStatusInfo(appointment.estado);
-                  const StatusIcon = statusInfo.icon;
-                  return (
-                    <motion.div
-                      key={appointment.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                      whileHover={{ y: -3, scale: 1.01 }}
-                      className="bg-white rounded-2xl border-2 border-slate-200 shadow-lg hover:shadow-xl hover:border-slate-300 transition-all duration-300 overflow-hidden"
-                    >
-                      {/* Status badge */}
-                      <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
-                        <div className="flex items-center gap-2">
-                          <div className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${statusInfo.color}`}>
-                            <StatusIcon className="h-3 w-3 mr-1" />
-                            {statusInfo.label}
-                          </div>
-                          <div className="ml-auto">
-                            <span className="text-xs text-slate-500">Cita #{appointment.userAppointmentNumber}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Content layout */}
-                      <div className="p-4 space-y-3">
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 mt-1">
-                            <div className="p-1.5 bg-blue-100 rounded-md">
-                              <Calendar className="h-4 w-4 text-blue-700" />
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-0.5">Fecha</p>
-                            <p className="text-sm font-medium text-slate-700">{formatDate(appointment.fecha_cita)}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 mt-1">
-                            <div className="p-1.5 bg-emerald-100 rounded-md">
-                              <Clock className="h-4 w-4 text-emerald-700" />
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-0.5">Hora</p>
-                            <p className="text-sm font-medium text-slate-700">
-                              {appointment.hora_inicio ? formatHora(appointment.hora_inicio) : 'Por confirmar'}
-                            </p>
-                          </div>
-                        </div>
-
-                        {appointment.inmueble && (
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 mt-1">
-                              <div className="p-1.5 bg-orange-100 rounded-md">
-                                <MapPin className="h-4 w-4 text-orange-700" />
-                              </div>
-                            </div>
-                            <div>
-                              <p className="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-0.5">Ubicación</p>
-                              <p className="text-sm font-medium text-slate-700 truncate">{appointment.inmueble.direccion}</p>
-                              {appointment.inmueble.ciudad && (
-                                <p className="text-xs text-slate-500">{appointment.inmueble.ciudad}</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {appointment.servicio && (
-                          <div className="flex items-start gap-3 pt-3 border-t border-slate-100">
-                            <div className="flex-shrink-0 mt-1">
-                              <div className="p-1.5 bg-purple-100 rounded-md">
-                                <Building className="h-4 w-4 text-purple-700" />
-                              </div>
-                            </div>
-                            <div>
-                              <p className="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-0.5">Servicio</p>
-                              <p className="text-sm font-medium text-slate-700">{appointment.servicio.nombre_servicio}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="bg-slate-50 px-4 py-3 border-t border-slate-200">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => handleViewAppointment(appointment)}
-                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"
-                          >
-                            <Eye className="h-3 w-3" />
-                            Ver
-                          </button>
-                          {(appointment.estado || '').toLowerCase() !== 'cancelada' && (
-                            <>
-                              {!hasReachedEditionLimit(appointment) ? (
-                                <button
-                                  onClick={() => handleEditAppointment(appointment)}
-                                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                                >
-                                  <Edit className="h-3 w-3" />
-                                  Reagendar
-                                </button>
-                              ) : (
-                                <button
-                                  disabled
-                                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-slate-200 text-slate-400 cursor-not-allowed"
-                                >
-                                  <Edit className="h-3 w-3" />
-                                  Límite
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleCancelAppointment(appointment)}
-                                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                                Cancelar
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-            </div>
-
-            {/* Statistics */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
-              <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 shadow-lg shadow-slate-200/40 hover:shadow-slate-300/50 hover:-translate-y-0.5 transition-all duration-200">
-                <div className="absolute inset-0 rounded-2xl border border-white/60 pointer-events-none"></div>
-                <BarChart3 className="h-4 w-4 text-slate-600 mb-1" />
-                <div className="text-xl font-semibold text-slate-800">{stats.total}</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              <div className="text-center p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <BarChart3 className="h-5 w-5 text-slate-600 mx-auto mb-1" />
+                <div className="text-2xl font-bold text-slate-800">{stats.total}</div>
                 <div className="text-xs text-slate-600">Total</div>
               </div>
-              <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-blue-100 bg-white shadow-lg shadow-blue-200/30 hover:shadow-blue-300/40 hover:-translate-y-0.5 transition-all duration-200">
-                <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
-                <AlertCircle className="h-4 w-4 text-blue-600 mb-1" />
-                <div className="text-xl font-semibold text-blue-700">{stats.solicitadas}</div>
+              <div className="text-center p-3 rounded-xl bg-blue-50 border border-blue-200">
+                <AlertCircle className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                <div className="text-2xl font-bold text-blue-700">{stats.solicitadas}</div>
                 <div className="text-xs text-blue-600">Solicitadas</div>
               </div>
-              <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-emerald-100 bg-white shadow-lg shadow-emerald-200/30 hover:shadow-emerald-300/40 hover:-translate-y-0.5 transition-all duration-200">
-                <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
-                <CheckCircle className="h-4 w-4 text-emerald-600 mb-1" />
-                <div className="text-xl font-semibold text-emerald-700">{stats.confirmadas}</div>
+              <div className="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                <CheckCircle className="h-5 w-5 text-emerald-600 mx-auto mb-1" />
+                <div className="text-2xl font-bold text-emerald-700">{stats.confirmadas}</div>
                 <div className="text-xs text-emerald-600">Confirmadas</div>
               </div>
-              <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-amber-100 bg-white shadow-lg shadow-amber-200/30 hover:shadow-amber-300/40 hover:-translate-y-0.5 transition-all duration-200">
-                <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
-                <Clock className="h-4 w-4 text-amber-600 mb-1" />
-                <div className="text-xl font-semibold text-amber-700">{stats.programadas}</div>
+              <div className="text-center p-3 rounded-xl bg-amber-50 border border-amber-200">
+                <Clock className="h-5 w-5 text-amber-600 mx-auto mb-1" />
+                <div className="text-2xl font-bold text-amber-700">{stats.programadas}</div>
                 <div className="text-xs text-amber-600">Programadas</div>
               </div>
-              <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-violet-100 bg-white shadow-lg shadow-violet-200/30 hover:shadow-violet-300/40 hover:-translate-y-0.5 transition-all duration-200">
-                <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
-                <CheckCircle className="h-4 w-4 text-violet-600 mb-1" />
-                <div className="text-xl font-semibold text-violet-700">{stats.completadas}</div>
+              <div className="text-center p-3 rounded-xl bg-violet-50 border border-violet-200">
+                <CheckCircle className="h-5 w-5 text-violet-600 mx-auto mb-1" />
+                <div className="text-2xl font-bold text-violet-700">{stats.completadas}</div>
                 <div className="text-xs text-violet-600">Completadas</div>
               </div>
-              <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-red-100 bg-white shadow-lg shadow-red-200/30 hover:shadow-red-300/40 hover:-translate-y-0.5 transition-all duration-200">
-                <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
-                <XCircle className="h-4 w-4 text-red-600 mb-1" />
-                <div className="text-xl font-semibold text-red-700">{stats.canceladas}</div>
+              <div className="text-center p-3 rounded-xl bg-red-50 border border-red-200">
+                <XCircle className="h-5 w-5 text-red-600 mx-auto mb-1" />
+                <div className="text-2xl font-bold text-red-700">{stats.canceladas}</div>
                 <div className="text-xs text-red-600">Canceladas</div>
               </div>
-              <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-orange-100 bg-white shadow-lg shadow-orange-200/30 hover:shadow-orange-300/40 hover:-translate-y-0.5 transition-all duration-200">
-                <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
-                <AlertCircle className="h-4 w-4 text-orange-600 mb-1" />
-                <div className="text-xl font-semibold text-orange-700">{stats.reagendadas}</div>
+              <div className="text-center p-3 rounded-xl bg-orange-50 border border-orange-200">
+                <AlertCircle className="h-5 w-5 text-orange-600 mx-auto mb-1" />
+                <div className="text-2xl font-bold text-orange-700">{stats.reagendadas}</div>
                 <div className="text-xs text-orange-600">Re Agendadas</div>
               </div>
             </div>
