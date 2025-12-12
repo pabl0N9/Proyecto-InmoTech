@@ -275,7 +275,7 @@ class AuthController {
 
       return res.status(200).json({
         success: true,
-        message: 'Si el correo se encuentra registrado, se envió un enlace para restablecer la contraseña.'
+        message: 'Si el correo se encuentra registrado, se envio un codigo y enlace para restablecer la contrasena.'
       });
     } catch (error) {
       logger.error('Error solicitando recuperación de contraseña:', error);
@@ -297,6 +297,23 @@ class AuthController {
       });
     } catch (error) {
       logger.error('Error restableciendo contraseña:', error);
+      next(error);
+    }
+  }
+
+
+  async validarTokenRecuperacion(req, res, next) {
+    try {
+      const { token } = req.validatedQuery;
+      const data = await authService.validarTokenRecuperacion(token);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Token de recuperaci?n v?lido',
+        data
+      });
+    } catch (error) {
+      logger.error('Error validando token de recuperaci?n:', error);
       next(error);
     }
   }

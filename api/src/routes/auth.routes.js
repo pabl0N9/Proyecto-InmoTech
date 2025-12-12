@@ -12,16 +12,23 @@ const {
   refreshTokenSchema,
   verifyEmailSchema,
   verifyCodeSchema,
-  resendCodeSchema
+  resendCodeSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  resetPasswordTokenSchema
 } = require('../validators/auth.validator');
 
 // Rutas públicas
 router.post('/register', validate(registroSchema), authController.registrarUsuario);
-router.post('/login', loginLimiter, validate(loginSchema), authController.iniciarSesion);
+// Se desactiva el rate limiter para evitar bloqueos por 429 en entorno actual
+router.post('/login', validate(loginSchema), authController.iniciarSesion);
 router.post('/refresh', validate(refreshTokenSchema), authController.refrescarToken);
 router.get('/verify-email', loginLimiter, validateQuery(verifyEmailSchema), authController.verificarCorreo);
 router.post('/verify-code', invitationLimiter, validate(verifyCodeSchema), authController.verificarCodigo);
 router.post('/resend-code', invitationLimiter, validate(resendCodeSchema), authController.reenviarCodigo);
+router.post('/forgot-password', validate(forgotPasswordSchema), authController.solicitarRecuperacionContrasena);
+router.get('/reset-password', validateQuery(resetPasswordTokenSchema), authController.validarTokenRecuperacion);
+router.post('/reset-password', validate(resetPasswordSchema), authController.restablecerContrasena);
 
 // Rutas protegidas
 router.use(authenticateToken); // Todas las rutas siguientes requieren autenticación

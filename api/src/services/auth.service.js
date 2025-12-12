@@ -1,5 +1,6 @@
 ﻿const crypto = require('crypto');
-const { Persona, Acceso, PersonasRol, Rol, Administrativo } = require('../models');
+const { Op } = require('sequelize');
+const { Persona, Acceso, PersonasRol, Rol, Administrativo, Permiso } = require('../models');
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
@@ -7,6 +8,7 @@ const logger = require('../utils/logger');
 const { buildPermissionsResponse } = require('../utils/permissions.helper');
 const invitacionService = require('./invitacion.service');
 const personaService = require('./persona.service');
+const emailService = require('./email.service');
 
 const VERIFY_INVITE_TYPE = 'signup_verify';
 
@@ -18,6 +20,7 @@ const buildEmailCondition = (email) =>
 
 const PASSWORD_RESET_TTL = 60 * 60 * 1000;
 const passwordResetTokens = new Map();
+const PASSWORD_RESET_URL_BASE = process.env.PASSWORD_RESET_URL_BASE || 'http://localhost:5173/restablecer-contrasena';
 
 class AuthService {
   /**
@@ -31,6 +34,7 @@ class AuthService {
     const result = await sequelize.transaction(async (t) => {
       try {
         const { email, password } = userData;
+        const normalizedEmail = normalizeEmail(email);
 
         // Verificar si el email ya existe
         const personaExistente = await Persona.findOne({
@@ -119,6 +123,84 @@ class AuthService {
   }
 
   /**
+   * Solicita envío de enlace de recuperación de contraseña
+   * Envía un correo con el mismo template de verificación, pero apuntando al flujo de reset.
+   */
+  async solicitarRecuperacionContrasena(email) {
+    const normalizedEmail = normalizeEmail(email);
+
+    const persona = await Persona.findOne({
+      where: buildEmailCondition(normalizedEmail),
+      attributes: ['id_persona', 'correo', 'nombre_completo']
+    });
+
+    // Evitar enumerar correos: responder siempre 200 aunque no exista
+    if (!persona) {
+      logger.warn(`Solicitud de recuperación para correo no registrado: ${normalizedEmail}`);
+      return;
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const expira_en = new Date(Date.now() + PASSWORD_RESET_TTL);
+
+    passwordResetTokens.set(tokenHash, {
+      id_persona: persona.id_persona,
+      correo: persona.correo,
+      expira_en
+    });
+
+    const resetLink = `${PASSWORD_RESET_URL_BASE}?token=${encodeURIComponent(token)}`;
+
+    await emailService.enviarEmailResetPassword({
+      email: persona.correo,
+      nombre_completo: persona.nombre_completo,
+      expira_en,
+      resetLink
+    });
+  }
+
+  /**
+   * Restablece la contraseña usando el token enviado por correo
+   */
+  async restablecerContrasena(token, newPassword) {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const data = passwordResetTokens.get(tokenHash);
+
+    if (!data || (data.expira_en && new Date() > data.expira_en)) {
+      passwordResetTokens.delete(tokenHash);
+      const err = new Error('Token de recuperacion invalido o expirado');
+      err.status = 400;
+      throw err;
+    }
+
+    const hashedPassword = await bcryptUtils.hashPassword(newPassword);
+    await Acceso.update(
+      { contrasena: hashedPassword },
+      { where: { id_persona: data.id_persona } }
+    );
+
+    passwordResetTokens.delete(tokenHash);
+  }
+
+  async validarTokenRecuperacion(token) {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const data = passwordResetTokens.get(tokenHash);
+
+    if (!data || (data.expira_en && new Date() > data.expira_en)) {
+      passwordResetTokens.delete(tokenHash);
+      const err = new Error('Token de recuperacion invalido o expirado');
+      err.status = 400;
+      throw err;
+    }
+
+    return {
+      email: data.correo,
+      expira_en: data.expira_en
+    };
+  }
+
+  /**
    * Inicia sesiÃ³n de usuario
    * @param {string} email - Correo electrÃ³nico
    * @param {string} password - contraseña
@@ -126,37 +208,32 @@ class AuthService {
    */
   async iniciarSesion(email, password) {
     try {
+      const normalizedEmail = normalizeEmail(email);
+
       // Buscar persona por email y verificar que esté activa
       const persona = await Persona.findOne({
         where: {
-          correo: email,
-          estado: true
+          estado: true,
+          [Op.and]: buildEmailCondition(normalizedEmail)
         },
+        attributes: [
+          'id_persona',
+          'correo',
+          'estado',
+          'correo_verificado'
+        ],
         include: [
           {
             model: Acceso,
             as: 'acceso',
-            required: true
+            required: true,
+            attributes: ['id_persona', 'contrasena']
           },
           {
             model: Rol,
             as: 'roles',
             through: { attributes: [] },
-            attributes: ['id_rol', 'nombre_rol', 'es_rol_administrativo'],
-            include: [
-              {
-                model: require('../models').Permiso,
-                as: 'permisos',
-                where: { estado: true },
-                required: false
-              }
-            ]
-          },
-          {
-            model: Administrativo,
-            as: 'administrativo',
-            required: false,
-            where: { estado_laboral: 'Activo' }
+            attributes: ['id_rol', 'nombre_rol', 'es_rol_administrativo']
           }
         ]
       });
@@ -179,7 +256,24 @@ class AuthService {
       const es_super_admin_login = persona.roles ?
         persona.roles.some(rol => rol.nombre_rol === 'Super Administrador') : false;
 
-      if (!es_super_admin_login && persona.roles && persona.roles.some(rol => rol.es_rol_administrativo) && !persona.administrativo) {
+      let adminData = null;
+      try {
+        adminData = await Administrativo.findOne({
+          where: { id_persona: persona.id_persona }
+        });
+      } catch (adminErr) {
+        logger.warn('No se pudo obtener administrativo (continuando sin bloquear):', {
+          message: adminErr.message,
+          original: adminErr.original?.message
+        });
+      }
+
+      const adminActivo = adminData &&
+        (adminData.estado_laboral === 'Activo' ||
+         adminData.estado_laboral === true ||
+         adminData.estado_laboral === 1);
+
+      if (!es_super_admin_login && persona.roles && persona.roles.some(rol => rol.es_rol_administrativo) && !adminActivo) {
         throw new Error('Acceso denegado, comunícate con el administrador para resolver este problema');
       }
 
@@ -249,19 +343,36 @@ class AuthService {
       const es_super_admin = persona.roles ?
         persona.roles.some(rol => rol.nombre_rol === 'Super Administrador') : false;
 
-      const es_administrativo = es_super_admin || (tiene_rol_administrativo && persona.administrativo !== null);
+      const es_administrativo = es_super_admin || (tiene_rol_administrativo && adminActivo);
 
-      // Consolidar permisos de todos los roles del usuario
-      const permisosConsolidados = persona.roles?.reduce((acc, rol) => {
-        rol.permisos?.forEach(p => {
-          if (!acc[p.modulo]) {
-            acc[p.modulo] = {};
-          }
-          acc[p.modulo][p.permiso] = true;
-        });
-        return acc;
-      }, {}) || {};
-      const permisos = buildPermissionsResponse(permisosConsolidados);
+      // Consolidar permisos (si la tabla existe). Si no, evitamos romper el login.
+      const rolesIds = persona.roles?.map(rol => rol.id_rol) || [];
+      let permisos = {};
+
+      if (rolesIds.length > 0) {
+        try {
+          const permisosRegistros = await Permiso.findAll({
+            where: {
+              id_rol: { [Op.in]: rolesIds },
+              estado: true
+            },
+            raw: true
+          });
+
+          const permisosConsolidados = permisosRegistros.reduce((acc, permiso) => {
+            if (!acc[permiso.modulo]) {
+              acc[permiso.modulo] = {};
+            }
+            acc[permiso.modulo][permiso.permiso] = true;
+            return acc;
+          }, {});
+
+          permisos = buildPermissionsResponse(permisosConsolidados);
+        } catch (permErr) {
+          logger.warn('Tabla Permisos no encontrada o no accesible, se continua sin permisos detallados');
+          permisos = {};
+        }
+      }
 
       // Generar tokens
       const payload = {
@@ -280,23 +391,28 @@ class AuthService {
           id: persona.id_persona,
           email: persona.correo,
           correo: persona.correo,
-          nombre_completo: persona.nombre_completo,
-          apellido_completo: persona.apellido_completo,
-          tipo_documento: persona.tipo_documento,
-          numero_documento: persona.numero_documento,
-          telefono: persona.telefono,
-          foto_perfil_url: persona.foto_perfil_url,
-          foto_public_id: persona.foto_public_id,
+          nombre_completo: persona.nombre_completo || null,
+          apellido_completo: persona.apellido_completo || null,
+          tipo_documento: persona.tipo_documento || null,
+          numero_documento: persona.numero_documento || null,
+          telefono: persona.telefono || null,
+          foto_perfil_url: persona.foto_perfil_url || null,
+          foto_public_id: persona.foto_public_id || null,
           roles: roles,
           es_administrativo: es_administrativo,
           permisos: permisos,
-          ultimo_cambio_password: persona.acceso.ultimo_cambio_password
+          ultimo_cambio_password: persona.acceso?.ultimo_cambio_password
         },
         ...tokens
       };
 
     } catch (error) {
       logger.error('Error en inicio de sesiÃ³n:', error);
+      logger.error('Error en inicio de sesión (detallado):', {
+        message: error.message,
+        original: error.original?.message,
+        sql: error.original?.sql
+      });
       throw error;
     }
   }
@@ -363,6 +479,21 @@ class AuthService {
     try {
       const persona = await Persona.findOne({
         where: { id_persona: userId },
+        attributes: [
+          'id_persona',
+          'correo',
+          'estado',
+          'correo_verificado',
+          'tipo_documento',
+          'numero_documento',
+          'telefono',
+          'nombre_completo',
+          'apellido_completo',
+          'foto_perfil_url',
+          'foto_public_id',
+          'tiene_cuenta',
+          'fecha_registro'
+        ],
         include: [
           {
             model: Acceso,
@@ -374,22 +505,7 @@ class AuthService {
             model: Rol,
             as: 'roles',
             through: { attributes: [] },
-            attributes: ['id_rol', 'nombre_rol', 'descripcion', 'es_rol_administrativo'],
-            include: [
-              {
-                model: require('../models').Permiso,
-                as: 'permisos',
-                where: { estado: true },
-                required: false
-              }
-            ]
-          },
-          {
-            model: Administrativo,
-            as: 'administrativo',
-            required: false,
-            where: { estado_laboral: 'Activo' },
-            attributes: ['id_administrativo', 'estado_laboral']
+            attributes: ['id_rol', 'nombre_rol', 'descripcion', 'es_rol_administrativo']
           }
         ]
       });
@@ -408,33 +524,62 @@ class AuthService {
       const es_super_admin = persona.roles ?
         persona.roles.some(rol => rol.nombre_rol === 'Super Administrador') : false;
 
-      const es_administrativo = es_super_admin || (tiene_rol_administrativo && persona.administrativo !== null);
+      let adminData = null;
+      try {
+        adminData = await Administrativo.findOne({
+          where: { id_persona: persona.id_persona }
+        });
+      } catch (adminErr) {
+        logger.warn('No se pudo obtener administrativo (continuando sin bloquear):', {
+          message: adminErr.message,
+          original: adminErr.original?.message
+        });
+      }
 
-      if (tiene_rol_administrativo && !es_super_admin && !persona.administrativo) {
+      const adminActivo = adminData &&
+        (adminData.estado_laboral === 'Activo' ||
+         adminData.estado_laboral === true ||
+         adminData.estado_laboral === 1);
+
+      const es_administrativo = es_super_admin || (tiene_rol_administrativo && adminActivo);
+
+      if (tiene_rol_administrativo && !es_super_admin && !adminActivo) {
         throw new Error('Acceso administrativo revocado - sesión terminada por seguridad');
       }
 
-      const permisosConsolidados = persona.roles?.reduce((acc, rol) => {
-        rol.permisos?.forEach(p => {
-          if (!acc[p.modulo]) {
-            acc[p.modulo] = {};
-          }
-          acc[p.modulo][p.permiso] = true;
+      let permisos = {};
+      const rolesIds = persona.roles?.map(rol => rol.id_rol) || [];
+
+      if (rolesIds.length > 0) {
+        const registrosPermisos = await Permiso.findAll({
+          where: {
+            id_rol: { [Op.in]: rolesIds },
+            estado: true
+          },
+          raw: true
         });
-        return acc;
-      }, {}) || {};
-      const permisos = buildPermissionsResponse(permisosConsolidados);
+
+        const permisosConsolidados = registrosPermisos.reduce((acc, permiso) => {
+          if (!acc[permiso.modulo]) {
+            acc[permiso.modulo] = {};
+          }
+          acc[permiso.modulo][permiso.permiso] = true;
+          return acc;
+        }, {});
+
+        permisos = buildPermissionsResponse(permisosConsolidados);
+      }
 
       return {
         id_persona: persona.id_persona,
-        tipo_documento: persona.tipo_documento,
-        numero_documento: persona.numero_documento,
-        nombre_completo: persona.nombre_completo,
-        apellido_completo: persona.apellido_completo,
+        tipo_documento: persona.tipo_documento || null,
+        numero_documento: persona.numero_documento || null,
+        nombre_completo: persona.nombre_completo || null,
+        apellido_completo: persona.apellido_completo || null,
         correo: persona.correo,
-        telefono: persona.telefono,
-        foto_perfil_url: persona.foto_perfil_url,
-        foto_public_id: persona.foto_public_id,
+        telefono: persona.telefono || null,
+        foto_perfil_url: persona.foto_perfil_url || null,
+        foto_public_id: persona.foto_public_id || null,
         fecha_registro: persona.fecha_registro,
         estado: persona.estado,
         correo_verificado: persona.correo_verificado,

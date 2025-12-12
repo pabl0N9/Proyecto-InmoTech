@@ -232,25 +232,36 @@ const resetPasswordSchema = Joi.object({
     .min(10)
     .required()
     .messages({
-      'string.min': 'El token de recuperación no es válido',
-      'any.required': 'El token de recuperación es obligatorio'
+      'string.min': 'El token de recuperacion no es valido',
+      'any.required': 'El token de recuperacion es obligatorio'
     }),
   password: Joi.string()
     .min(8)
     .max(100)
-    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#.])[A-Za-z\d@$!%*?&#.]+$/)
     .required()
     .messages({
-      'string.min': 'La contraseña debe tener al menos 8 caracteres',
-      'string.pattern.base': 'La contraseña debe contener al menos una minúscula, una mayúscula, un número y un carácter especial',
-      'any.required': 'La contraseña es obligatoria'
+      'string.min': 'La contrasena debe tener al menos 8 caracteres',
+      'string.pattern.base': 'La contrasena debe contener al menos una minuscula, una mayuscula, un numero y un caracter especial',
+      'any.required': 'La contrasena es obligatoria'
     }),
   confirmPassword: Joi.string()
     .valid(Joi.ref('password'))
     .required()
     .messages({
-      'any.only': 'Las contraseñas no coinciden',
-      'any.required': 'La confirmación de contraseña es obligatoria'
+      'any.only': 'Las contrasenas no coinciden',
+      'any.required': 'La confirmacion de contrasena es obligatoria'
+    })
+});
+
+
+const resetPasswordTokenSchema = Joi.object({
+  token: Joi.string()
+    .min(10)
+    .required()
+    .messages({
+      'string.min': 'El token de recuperacion no es valido',
+      'any.required': 'El token de recuperacion es obligatorio'
     })
 });
 
@@ -262,8 +273,8 @@ module.exports = {
   refreshTokenSchema,
   verifyEmailSchema,
   verifyCodeSchema,
-  resendCodeSchema
-  refreshTokenSchema,
+  resendCodeSchema,
   forgotPasswordSchema,
-  resetPasswordSchema
+  resetPasswordSchema,
+  resetPasswordTokenSchema
 };
