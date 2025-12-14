@@ -2,7 +2,10 @@ import { Routes, Route } from 'react-router-dom'
 import Navbar from './shared/components/Navbar'
 import Footer from './shared/components/Footer'
 import ScrollToTop from './shared/components/ScrollToTop'
+import BackToTopButton from './shared/components/BackToTopButton'
 import { Toaster } from './shared/components/ui/toaster'
+import DashboardLayout from './shared/components/dashboard/Layout/DashboardLayout'
+import ProtectedRoute, { EmployeeRoute, DashboardRoute, AuthenticatedRoute } from './shared/components/ProtectedRoute'
 
 // Pages
 import HomePage from './features/properties/pages/HomePage'
@@ -13,82 +16,272 @@ import AboutPage from './features/about/pages/AboutPage'
 import ServicesPage from './features/services/pages/ServicesPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
-import DashboardPage from './features/properties/pages/DashboardPage'
-import AdminIndexPage from './features/properties/pages/AdminIndexPage'
-import AdminDashboardPage from './features/properties/pages/AdminDashboardPage'
+import UserAppointmentsPage from './features/appointments/pages/UserAppointmentsPage'
+import ActivateAccountPage from './features/auth/pages/ActivateAccountPage'
+import VerifyEmailPage from './features/auth/pages/VerifyEmailPage'
+
+// Dashboard pages
+import DashboardPage from './features/dashboard/DashboardPage'
+import { SalesManagementPage } from './features/dashboard/pages/sales/SalesManagementPage'
+import { BuyersManagementPage } from './features/dashboard/pages/sales/BuyerManagementPage'
+import { LeasesManagementPage } from './features/dashboard/pages/leases/LeasesManagementPage'
+import { RenantManagementPage } from './features/dashboard/pages/leases/RenantManagementPage'
+import AppointmentPage from './features/dashboard/pages/appointment/AppointmentPage'
+import Reports from './features/dashboard/pages/reports/Reports'
+import Roles from './features/dashboard/pages/roles/Roles'
+import AdministrativosPage from './features/dashboard/pages/administrativos/AdministrativosPage'
+import UsersPage from './features/dashboard/pages/users/UsersPage'
+import { ReportsProvider } from './shared/contexts/ReportsContext.jsx'
+import InmueblesDashboardPage from './features/dashboard/pages/Inmuebles/InmueblesDashboardPage'
+import PropertyOwnersManagement from './features/dashboard/pages/propertyOwner/OwnerDashboardPage'
+import ProfilePage from './features/dashboard/pages/Profile/ProfilePage'
 
 function App() {
   return (
     <div className="min-h-screen flex flex-col">
       <ScrollToTop />
       <Routes>
+
         {/* Public routes with navbar and footer */}
-        <Route path="/" element={
-          <>
-            <Navbar />
-            <HomePage />
-            <Footer />
-          </>
-        } />
-        <Route path="/inmuebles" element={
-          <>
-            <Navbar />
-            <PropertiesPage />
-            <Footer />
-          </>
-        } />
-        <Route path="/inmuebles/:id" element={
-          <>
-            <Navbar />
-            <PropertyDetailsPage />
-            <Footer />
-          </>
-        } />
-        <Route path="/contactanos" element={
-          <>
-            <Navbar />
-            <ContactPage />
-            <Footer />
-          </>
-        } />
-        <Route path="/nosotros" element={
-          <>
-            <Navbar />
-            <AboutPage />
-            <Footer />
-          </>
-        } />
-        <Route path="/servicios" element={
-          <>
-            <Navbar />
-            <ServicesPage />
-            <Footer />
-          </>
-        } />
+        <Route
+          path="/"
+          element={
+            <>
+              <Navbar />
+              <HomePage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/inmuebles"
+          element={
+            <>
+              <Navbar />
+              <PropertiesPage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/inmuebles/:id"
+          element={
+            <>
+              <Navbar />
+              <PropertyDetailsPage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/contactanos"
+          element={
+            <>
+              <Navbar />
+              <ContactPage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/nosotros"
+          element={
+            <>
+              <Navbar />
+              <AboutPage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/servicios"
+          element={
+            <>
+              <Navbar />
+              <ServicesPage />
+              <Footer />
+            </>
+          }
+        />
 
         {/* Auth routes with navbar/footer */}
-        <Route path="/login" element={
-          <>
-            <Navbar />
-            <LoginPage />
-            <Footer />
-          </>
-        } />
-        <Route path="/registro" element={
-          <>
-            <Navbar />
-            <RegisterPage />
-            <Footer />
-          </>
-        } />
+        <Route
+          path="/login"
+          element={
+            <>
+              <Navbar />
+              <LoginPage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/registro"
+          element={
+            <>
+              <Navbar />
+              <RegisterPage />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/activar"
+          element={<ActivateAccountPage />}
+        />
+        <Route
+          path="/verificar-correo"
+          element={<VerifyEmailPage />}
+        />
 
-        {/* Dashboard routes without navbar/footer */}
-        <Route path="/dashboard" element={<DashboardPage />} />
+        {/* Authenticated user routes with navbar/footer */}
+        <Route
+          path="/mis-citas"
+          element={
+            <AuthenticatedRoute>
+              <Navbar />
+              <UserAppointmentsPage />
+              <Footer />
+            </AuthenticatedRoute>
+          }
+        />
 
-        {/* Admin routes without navbar/footer */}
-        <Route path="/admin" element={<AdminIndexPage />} />
-        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+        {/* Dashboard routes with sidebar layout */}
+        <Route
+          path="/dashboard"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <DashboardPage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/dashboard/salesManagement"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <SalesManagementPage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/dashboard/buyersManagement"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <BuyersManagementPage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/dashboard/leasesManagement"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <LeasesManagementPage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/dashboard/renantManagement"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <RenantManagementPage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/dashboard/citas"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <AppointmentPage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/dashboard/profile"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <ProfilePage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/reportes/gestion"
+          element={
+            <DashboardRoute>
+              <ReportsProvider>
+                <DashboardLayout>
+                  <Reports />
+                </DashboardLayout>
+              </ReportsProvider>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/inmuebles/gestion"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <InmueblesDashboardPage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/inmuebles/propietarios"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <PropertyOwnersManagement />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/seguridad/roles"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <Roles />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/seguridad/administrativos"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <AdministrativosPage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/seguridad/usuarios"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <UsersPage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+
       </Routes>
+      <BackToTopButton />
       <Toaster />
     </div>
   )

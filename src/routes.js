@@ -1,10 +1,14 @@
 export const routes = {
     home: '/',
     about: '/nosotros',
-    services: '/servicios', 
+    services: '/servicios',
     properties: '/inmuebles',
     propertyDetails: '/inmuebles/:id',
-    contact: '/contactanos'
+    contact: '/contactanos',
+    userAppointments: '/mis-citas',
+
+    //Dashboard
+
   };
   
   export const navigationLinks = [

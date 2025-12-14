@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Eye,
@@ -13,22 +13,38 @@ import {
   Sparkles,
   Trophy,
   Shield,
+  AlertCircle,
 } from "lucide-react";
+import { useAuth } from "../../../shared/contexts/AuthContext";
+import { useToast } from "../../../shared/hooks/use-toast";
+import usersApiService from "../../../shared/services/usersApiService";
 
 // Nota: Necesitarás crear o adaptar estos componentes de UI para tu proyecto
 import { Button } from "../../../shared/components/ui/button";
 import { Input } from "../../../shared/components/ui/input";
 import { Label } from "../../../shared/components/ui/label";
 import { Checkbox } from "../../../shared/components/ui/checkbox";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../shared/components/ui/select";
 
 export default function RegistroPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { register } = useAuth();
+  const { toast } = useToast();
+
+  // Estados para validaciones en tiempo real
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState(null); // null = no verificado, true = disponible, false = ocupado
+  const emailTimeoutRef = useRef(null); // Ref para debouncing de email
 
   const [formData, setFormData] = useState({
-    nombre: "",
+    tipo_documento: "",
+    numero_documento: "",
+    nombre_completo: "",
+    apellido_completo: "",
     email: "",
     telefono: "",
     password: "",
@@ -44,32 +60,309 @@ export default function RegistroPage() {
     special: false,
   });
 
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  // Funciones de validación
+  const validateTipoDocumento = (tipo) => {
+    if (!tipo) return 'El tipo de documento es obligatorio';
+    const tiposValidos = ['CC', 'CE', 'NIT', 'PASAPORTE', 'TI'];
+    if (!tiposValidos.includes(tipo)) return 'Tipo de documento inválido';
+    return '';
+  };
+
+  const validateNumeroDocumento = (numero, tipo) => {
+    if (!numero || !numero.trim()) return 'El número de documento es obligatorio';
+    const numeroLimpio = numero.replace(/[\s\-\.]/g, '');
+
+    switch (tipo) {
+      case 'CC':
+        if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
+          return 'La cédula debe tener entre 8 y 10 dígitos numéricos';
+        }
+        break;
+      case 'CE':
+        if (!/^[0-9]{6,10}$/.test(numeroLimpio)) {
+          return 'La cédula de extranjería debe tener entre 6 y 10 dígitos numéricos';
+        }
+        break;
+      case 'NIT':
+        if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
+          return 'El NIT debe tener entre 8 y 10 dígitos numéricos';
+        }
+        break;
+      case 'PASAPORTE':
+        if (numeroLimpio.length < 6 || numeroLimpio.length > 20) {
+          return 'El pasaporte debe tener entre 6 y 20 caracteres alfanuméricos';
+        }
+        if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) {
+          return 'El pasaporte solo puede contener letras y números';
+        }
+        break;
+      case 'TI':
+        if (!/^[0-9]{10,11}$/.test(numeroLimpio)) {
+          return 'La tarjeta de identidad debe tener 10 u 11 dígitos numéricos';
+        }
+        break;
+      default:
+        return 'Primero selecciona un tipo de documento';
+    }
+    return '';
+  };
+
+  const validateNombreCompleto = (nombre) => {
+    if (!nombre || !nombre.trim()) return 'El nombre completo es obligatorio';
+    const nombreTrim = nombre.trim();
+    if (nombreTrim.length < 2) return 'El nombre debe tener al menos 2 caracteres';
+    if (nombreTrim.length > 50) return 'El nombre no puede tener más de 50 caracteres';
+    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(nombreTrim)) {
+      return 'El nombre solo puede contener letras y espacios';
+    }
+    return '';
+  };
+
+  const validateApellidoCompleto = (apellido) => {
+    if (!apellido || !apellido.trim()) return 'El apellido completo es obligatorio';
+    const apellidoTrim = apellido.trim();
+    if (apellidoTrim.length < 2) return 'El apellido debe tener al menos 2 caracteres';
+    if (apellidoTrim.length > 50) return 'El apellido no puede tener más de 50 caracteres';
+    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(apellidoTrim)) {
+      return 'El apellido solo puede contener letras y espacios';
+    }
+    return '';
+  };
+
+  const validateEmail = (email) => {
+    if (!email || !email.trim()) return 'El correo electrónico es obligatorio';
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) return 'Ingresa un correo electrónico válido';
+    if (email.length > 254) return 'El correo electrónico es demasiado largo';
+    return '';
+  };
+
+  const validateTelefono = (telefono) => {
+    if (!telefono || !telefono.trim()) return 'El teléfono es obligatorio';
+    // Formato colombiano: opcionalmente +57 o 57, luego 3 seguido de 9 dígitos
+    const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, '');
+    // Permitir formatos: +573XXXXXXXXX, 573XXXXXXXXX, o 3XXXXXXXXX
+    if (!/(?:\+57|57)?3\d{9}$/.test(telefonoLimpio)) {
+      return 'El teléfono debe seguir el formato colombiano (ej: +57 3XX XXX XXXX o 3XX XXX XXXX)';
+    }
+    // Verificar recuento de dígitos
+    const digitosNumericos = telefonoLimpio.replace(/\D/g, '');
+    if (telefonoLimpio.startsWith('+57') && digitosNumericos.length !== 12) {
+      return 'Con prefijo +57 debe incluir exactamente 12 dígitos';
+    }
+    if (telefonoLimpio.includes('57') && !telefonoLimpio.startsWith('+') && digitosNumericos.length !== 11) {
+      return 'Con prefijo 57 debe incluir exactamente 11 dígitos';
+    }
+    if (!telefonoLimpio.includes('57') && digitosNumericos.length !== 10) {
+      return 'Sin prefijo internacional debe tener exactamente 10 dígitos';
+    }
+    return '';
+  };
+
+  // Función para validar todos los campos
+  const validateAllFields = () => {
+    const errors = {
+      tipo_documento: validateTipoDocumento(formData.tipo_documento),
+      numero_documento: validateNumeroDocumento(formData.numero_documento, formData.tipo_documento),
+      nombre_completo: validateNombreCompleto(formData.nombre_completo),
+      apellido_completo: validateApellidoCompleto(formData.apellido_completo),
+      email: validateEmail(formData.email),
+      telefono: validateTelefono(formData.telefono),
+    };
+    return errors;
+  };
+
+  // Función para verificar email con debouncing
+  const checkEmailAvailability = useCallback(async (email) => {
+    if (!email || !validateEmail(email)) {
+      setEmailAvailable(null);
+      return;
+    }
+
+    try {
+      setCheckingEmail(true);
+      const response = await usersApiService.verificarCorreoExistente(email);
+      setEmailAvailable(!response.data.existe); // true si no existe (disponible)
+    } catch (error) {
+      console.error('Error verificando email:', error);
+      setEmailAvailable(null);
+    } finally {
+      setCheckingEmail(false);
+    }
+  }, []);
+
+  // Función para validar un campo específico y actualizar errores
+  const validateField = (fieldName, value = null) => {
+    const val = value !== null ? value : formData[fieldName];
+    let error = '';
+
+    switch (fieldName) {
+      case 'tipo_documento':
+        error = validateTipoDocumento(val);
+        break;
+      case 'numero_documento':
+        error = validateNumeroDocumento(val, formData.tipo_documento);
+        break;
+      case 'nombre_completo':
+        error = validateNombreCompleto(val);
+        break;
+      case 'apellido_completo':
+        error = validateApellidoCompleto(val);
+        break;
+      case 'email':
+        error = validateEmail(val);
+        break;
+      case 'telefono':
+        error = validateTelefono(val);
+        break;
+    }
+
+    setFieldErrors(prev => ({ ...prev, [fieldName]: error }));
+    return error;
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const newValue = type === "checkbox" ? checked : value;
+
     setFormData({
       ...formData,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: newValue,
     });
 
     if (name === "password") {
       setPasswordStrength({
-        length: value.length >= 8,
-        uppercase: /[A-Z]/.test(value),
-        lowercase: /[a-z]/.test(value),
-        number: /[0-9]/.test(value),
-        special: /[^A-Za-z0-9]/.test(value),
+        length: newValue.length >= 8,
+        uppercase: /[A-Z]/.test(newValue),
+        lowercase: /[a-z]/.test(newValue),
+        number: /[0-9]/.test(newValue),
+        special: /[^A-Za-z0-9]/.test(newValue),
       });
     }
+
+    // Validación en tiempo real con debouncing para email
+    if (name === 'email') {
+      // Limpiar timeout anterior
+      if (emailTimeoutRef.current) {
+        clearTimeout(emailTimeoutRef.current);
+      }
+
+      // Resetear estado
+      setEmailAvailable(null);
+
+      // Si el email tiene contenido, verificar formato y disponibilidad después de 500ms
+      if (newValue && newValue.trim()) {
+        emailTimeoutRef.current = setTimeout(() => {
+          const emailError = validateEmail(newValue);
+          if (!emailError) {
+            // Email válido, verificar disponibilidad
+            checkEmailAvailability(newValue);
+          } else {
+            // Email inválido, mostrar error de formato
+            setEmailAvailable(false); // Esto activará el mensaje de error
+          }
+        }, 500);
+      }
+
+      validateField(name, newValue);
+    }
+
+    // Validación en tiempo real para teléfono
+    if (name === 'telefono') {
+      validateField(name, newValue);
+    }
+
+    // Revalidar número de documento si cambia el tipo
+    if (name === 'numero_documento' && formData.tipo_documento) {
+      if (newValue.length >= 5) { // Solo validar cuando haya suficientes caracteres
+        validateField('numero_documento', newValue);
+      }
+    }
+  };
+
+  const handleSelectChange = (fieldName, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [fieldName]: value,
+    }));
+
+    validateField(fieldName, value);
+
+    // Si cambia el tipo de documento, revalidar el número si existe
+    if (fieldName === 'tipo_documento' && formData.numero_documento) {
+      validateField('numero_documento', formData.numero_documento);
+    }
+  };
+
+  const handleBlur = (fieldName) => {
+    // Validar al perder foco
+    validateField(fieldName);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
-    setTimeout(() => {
+    try {
+      console.log('📝 Registrando nuevo usuario...');
+
+      // Preparar datos para el registro
+      const userData = {
+        tipo_documento: formData.tipo_documento,
+        numero_documento: formData.numero_documento,
+        nombre_completo: formData.nombre_completo,
+        apellido_completo: formData.apellido_completo,
+        email: formData.email,
+        telefono: formData.telefono,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword
+      };
+
+      const res = await register(userData);
+
+      let token = res?.verification?.token;
+
+      // Fallback: solicitar un nuevo token si no vino en la respuesta
+      if (!token) {
+        try {
+          const resend = await authService.resendVerificationCode(userData.email.trim().toLowerCase());
+          token = resend?.data?.token || token;
+        } catch (err) {
+          console.warn('No se pudo obtener token de verificacion tras registro:', err);
+        }
+      }
+
+      toast({
+        title: "Verifica tu correo",
+        description: "Te enviamos un codigo de 6 digitos a tu correo. Ingresalo para activar tu cuenta.",
+        variant: "success",
+      });
+      if (token) {
+        navigate(`/verificar-correo?token=${encodeURIComponent(token)}`);
+      } else {
+        toast({
+          title: "Link de verificación",
+          description: "No pudimos generar el enlace de verificación. Intenta reenviar desde el login.",
+          variant: "destructive",
+        });
+        navigate("/login");
+      }
+
+    } catch (error) {
+      console.error('❌ Error en registro:', error);
+      const errorMessage = error.message || 'Error al crear la cuenta. Inténtalo de nuevo.';
+      setError(errorMessage);
+      toast({
+        title: "Error en el registro",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      navigate("/dashboard");
-    }, 1500);
+    }
   };
 
   const getPasswordStrengthScore = () => {
@@ -154,7 +447,7 @@ export default function RegistroPage() {
       <div className="w-full max-w-md space-y-8 min-h-[830px] flex flex-col justify-center">
           {/* Logo móvil */}
           <div className="lg:hidden text-center">
-            <img src="/images/logo-matriz-sin-fondo-negro.png" alt="Matriz Inmobiliaria" width={160} height={50} className="mx-auto" />
+            <img src="/images/logo-matriz-sin-fondo-negro.png" alt="Matriz Inmobiliaria" width={210} height={50} className="mx-auto" />
           </div>
 
           {/* Header */}
@@ -166,22 +459,121 @@ export default function RegistroPage() {
           {/* Formulario principal */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="nombre" className="text-gray-700 font-medium flex items-center">
-                  <User className="h-4 w-4 mr-2 text-[#00457B]" />
-                  Nombre completo
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="nombre"
-                    name="nombre"
-                    placeholder="Tu nombre completo"
-                    className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
-                    value={formData.nombre}
-                    onChange={handleChange}
-                    required
-                  />t
-                  <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+              {/* Campos de documento */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tipo_documento" className="text-gray-700 font-medium flex items-center">
+                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Tipo de documento
+                  </Label>
+                  <div className="relative">
+                    <Select
+                      value={formData.tipo_documento}
+                      onValueChange={(value) => handleSelectChange('tipo_documento', value)}
+                    >
+                      <SelectTrigger className={`h-12 pl-12 pr-4 rounded-xl border-2 transition-all duration-200 w-full ${fieldErrors.tipo_documento ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]'}`}>
+                        <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 z-10 pointer-events-none" />
+                        <SelectValue placeholder="Selecciona un tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
+                        <SelectItem value="CE">Cédula de Extranjería</SelectItem>
+                        <SelectItem value="NIT">NIT</SelectItem>
+                        <SelectItem value="PASAPORTE">Pasaporte</SelectItem>
+                        <SelectItem value="TI">Tarjeta de Identidad</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {fieldErrors.tipo_documento && (
+                      <div className="flex items-center mt-1 text-red-600">
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        <span className="text-sm">{fieldErrors.tipo_documento}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="numero_documento" className="text-gray-700 font-medium flex items-center">
+                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Número de documento
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="numero_documento"
+                      name="numero_documento"
+                      placeholder="Número de documento"
+                      className={`h-12 pl-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.numero_documento ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]'}`}
+                      value={formData.numero_documento}
+                      onChange={handleChange}
+                      onBlur={() => handleBlur('numero_documento')}
+                      maxLength={formData.tipo_documento === 'PASAPORTE' ? 20 : formData.tipo_documento === 'TI' ? 11 : 10}
+                      required
+                    />
+                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                  </div>
+                  {fieldErrors.numero_documento && (
+                    <div className="flex items-center mt-1 text-red-600">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      <span className="text-sm">{fieldErrors.numero_documento}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Campos de nombre y apellido */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nombre_completo" className="text-gray-700 font-medium flex items-center">
+                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Nombre completo
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="nombre_completo"
+                      name="nombre_completo"
+                      placeholder="Tu nombre completo"
+                      className={`h-12 pl-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.nombre_completo ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]'}`}
+                      value={formData.nombre_completo}
+                      onChange={handleChange}
+                      onBlur={() => handleBlur('nombre_completo')}
+                      maxLength={50}
+                      required
+                    />
+                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                  </div>
+                  {fieldErrors.nombre_completo && (
+                    <div className="flex items-center mt-1 text-red-600">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      <span className="text-sm">{fieldErrors.nombre_completo}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="apellido_completo" className="text-gray-700 font-medium flex items-center">
+                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Apellido completo
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="apellido_completo"
+                      name="apellido_completo"
+                      placeholder="Tu apellido completo"
+                      className={`h-12 pl-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.apellido_completo ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]'}`}
+                      value={formData.apellido_completo}
+                      onChange={handleChange}
+                      onBlur={() => handleBlur('apellido_completo')}
+                      maxLength={50}
+                      required
+                    />
+                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                  </div>
+                  {fieldErrors.apellido_completo && (
+                    <div className="flex items-center mt-1 text-red-600">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      <span className="text-sm">{fieldErrors.apellido_completo}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -196,13 +588,44 @@ export default function RegistroPage() {
                     name="email"
                     type="email"
                     placeholder="tu@email.com"
-                    className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                    className={`h-12 pl-12 pr-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]'}`}
                     value={formData.email}
                     onChange={handleChange}
+                    onBlur={() => handleBlur('email')}
+                    maxLength={254}
                     required
                   />
                   <Mail className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                  {/* Indicador de verificación */}
+                  {checkingEmail && (
+                    <Loader2 className="absolute right-4 top-3.5 h-5 w-5 text-blue-500 animate-spin" />
+                  )}
+                  {!checkingEmail && emailAvailable !== null && (
+                    emailAvailable ? (
+                      <CheckCircle2 className="absolute right-4 top-3.5 h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="absolute right-4 top-3.5 h-5 w-5 text-red-500" />
+                    )
+                  )}
                 </div>
+                {fieldErrors.email && (
+                  <div className="flex items-center mt-1 text-red-600">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    <span className="text-sm">{fieldErrors.email}</span>
+                  </div>
+                )}
+                {!checkingEmail && emailAvailable === false && !fieldErrors.email && (
+                  <div className="flex items-center mt-1 text-red-600">
+                    <XCircle className="h-4 w-4 mr-1" />
+                    <span className="text-sm">Este correo electrónico ya está registrado</span>
+                  </div>
+                )}
+                {!checkingEmail && emailAvailable === true && !fieldErrors.email && (
+                  <div className="flex items-center mt-1 text-green-600">
+                    <CheckCircle2 className="h-4 w-4 mr-1" />
+                    <span className="text-sm">Correo electrónico disponible</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -216,13 +639,21 @@ export default function RegistroPage() {
                     name="telefono"
                     type="tel"
                     placeholder="Tu número de teléfono"
-                    className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                    className={`h-12 pl-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.telefono ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]'}`}
                     value={formData.telefono}
                     onChange={handleChange}
+                    onBlur={() => handleBlur('telefono')}
+                    maxLength={15} // Permitir hasta 15 caracteres para formatos con espacios y +57
                     required
                   />
                   <Phone className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                 </div>
+                {fieldErrors.telefono && (
+                  <div className="flex items-center mt-1 text-red-600">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    <span className="text-sm">{fieldErrors.telefono}</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -422,3 +853,4 @@ export default function RegistroPage() {
     </div>
   );
 }
+
