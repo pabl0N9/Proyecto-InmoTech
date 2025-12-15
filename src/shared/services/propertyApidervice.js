@@ -94,7 +94,10 @@ const extractImageSource = (item) => {
       item.path,
       item.fileUrl,
       item.imagen_url,
-      item.imagenUrl
+      item.imagenUrl,
+      item.image,
+      item.foto,
+      item.foto_url
     ];
 
     const matched = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
@@ -166,7 +169,21 @@ export const mapInmuebleFromApi = (inmueble = {}) => {
       : cleanText(estadoFrontendRaw, 'Disponible');
   const rawAmenities = inmueble.comodidades || inmueble.caracteristicas || [];
   const comodidades = normalizeAmenities(rawAmenities);
-  const imagenes = sanitizeImages(inmueble.imagenes || inmueble.metadata?.raw?.imagenes || []);
+  let imagenes = sanitizeImages(
+    inmueble.imagenes ||
+      inmueble.metadata?.raw?.imagenes ||
+      inmueble.imagenes_json ||
+      inmueble.imagenesRaw ||
+      []
+  );
+  if (!imagenes.length) {
+    imagenes = sanitizeImages([
+      inmueble.imagen_principal,
+      inmueble.imagen_portada,
+      inmueble.portada,
+      inmueble.imagen_destacada
+    ]);
+  }
 
   let operacion = inmueble.operacion || 'Sin definir';
   if (operacion === 'Sin definir') {

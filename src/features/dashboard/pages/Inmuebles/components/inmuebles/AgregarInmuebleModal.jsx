@@ -3,6 +3,7 @@ import { Loader2, Plus, Trash2, AlertCircle, Building2, MapPin, Layers, UserChec
 import ownersApiService from '../../../../../../shared/services/ownersApiService';
 import { WizardModalLayout } from '../common/wizardModalLayout';
 import CreateOwnerModal from '../owners/CreateOwnerModal';
+import { inmueblesAPI } from '../../../../../../shared/services/propertyApidervice';
 
 const PROPERTY_TYPES = ['Casa', 'Apartamento', 'Local', 'Oficina', 'Bodega', 'Lote', 'Finca', 'Otro'];
 const OPERATION_OPTIONS = ['Venta', 'Arriendo', 'Venta y Arriendo'];
@@ -102,6 +103,8 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
   const [customAmenity, setCustomAmenity] = useState({ nombre: '', cantidad: 1 });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [checkingRegistro, setCheckingRegistro] = useState(false);
+  const [registroDisponible, setRegistroDisponible] = useState(true);
 
   const selectedOwner = useMemo(
     () => owners.find((owner) => String(owner.id) === String(selectedOwnerId)),
@@ -204,6 +207,53 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
     }
   };
 
+  useEffect(() => {
+    if (!form.registro.trim()) {
+      setRegistroDisponible(true);
+      setErrors((prev) => {
+        const updated = { ...prev };
+        if (updated.registro === 'Este registro ya existe') {
+          delete updated.registro;
+        }
+        return updated;
+      });
+      return;
+    }
+
+    const registroValue = form.registro.trim();
+    const timeoutId = setTimeout(async () => {
+      setCheckingRegistro(true);
+      try {
+        const { items = [] } = await inmueblesAPI.getInmuebles(1, 200, {
+          registro: registroValue,
+          registro_inmobiliario: registroValue,
+          busqueda: registroValue
+        });
+        const exists = items.some(
+          (item) =>
+            (item.registro || '').toLowerCase() === registroValue.toLowerCase() ||
+            (item.registro_inmobiliario || '').toLowerCase() === registroValue.toLowerCase()
+        );
+        setRegistroDisponible(!exists);
+        setErrors((prev) => {
+          const updated = { ...prev };
+          if (exists) {
+            updated.registro = 'Este registro ya existe';
+          } else if (updated.registro === 'Este registro ya existe') {
+            delete updated.registro;
+          }
+          return updated;
+        });
+      } catch (error) {
+        console.error('Error validando registro:', error);
+      } finally {
+        setCheckingRegistro(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [form.registro]);
+
   const handleAmenityToggle = (amenityId) => {
     setAmenities((prev) =>
       prev.map((amenity) =>
@@ -292,6 +342,7 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
 
     if (stepIndex === 0) {
       if (!form.registro.trim()) validationErrors.registro = 'El registro es obligatorio';
+      if (!registroDisponible) validationErrors.registro = 'Este registro ya existe';
       if (!form.titulo.trim()) validationErrors.titulo = 'El título es obligatorio';
       if (!form.descripcion.trim()) validationErrors.descripcion = 'La descripción es obligatoria';
       if (form.operacion === 'Venta' && !form.precioVenta) validationErrors.precioVenta = 'Ingresa el precio de venta';
@@ -322,6 +373,11 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
   const handleFinalSubmit = async () => {
     try {
       setSaving(true);
+      if (!registroDisponible) {
+        setErrors((prev) => ({ ...prev, registro: 'Este registro ya existe' }));
+        setSaving(false);
+        return;
+      }
       const ownerSummary = await resolvePropietario();
       const selectedAmenities = amenities
         .filter((amenity) => amenity.seleccionada)
@@ -410,6 +466,18 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
             onChange={handleFieldChange}
             className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
           />
+          {!registroDisponible && (
+            <div className="mt-1 flex items-center gap-1 text-xs text-red-600">
+              <AlertCircle className="h-4 w-4" />
+              <span>El registro ya existe. Usa uno diferente.</span>
+            </div>
+          )}
+          {checkingRegistro && (
+            <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Verificando registro...</span>
+            </div>
+          )}
         </div>
         <div>
           <label className="text-sm text-slate-600 flex justify-between">

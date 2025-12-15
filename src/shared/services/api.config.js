@@ -15,15 +15,24 @@ const API_CONFIG = {
 class ApiClient {
   constructor() {
     this.maxRetries = 2;
+    this.accessToken = null;
+    this.refreshToken = null;
   }
 
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  // Placeholders: tokens viven en cookies httpOnly
-  setTokens() {}
-  clearTokens() {}
+  // Manejo simple de tokens para adjuntar Authorization en cada request
+  setTokens(accessToken, refreshToken) {
+    this.accessToken = accessToken || null;
+    this.refreshToken = refreshToken || null;
+  }
+
+  clearTokens() {
+    this.accessToken = null;
+    this.refreshToken = null;
+  }
 
   async request(endpoint, options = {}, retryCount = 0) {
     const url = new URL(`${API_CONFIG.BASE_URL}${endpoint}`);
@@ -44,6 +53,7 @@ class ApiClient {
       headers: {
         ...API_CONFIG.HEADERS,
         ...(options.headers || {}),
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
       },
       credentials: 'include',
       signal: controller.signal,
