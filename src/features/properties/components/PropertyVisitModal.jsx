@@ -15,7 +15,9 @@ import {
   DollarSign,
   Info,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Save,
+  Clock as ClockIcon
 } from 'lucide-react';
 import { formatPhoneNumber } from '../../../shared/utils/phoneFormatter';
 import { useToast } from '../../../shared/hooks/use-toast';
@@ -361,21 +363,18 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
   };
 
   const parseTime = (timeString) => {
-    if (!timeString) return null;
-    const [time, periodRaw] = timeString.trim().split(" ");
-    const [hoursStr, minutesStr] = (time || "").split(":");
-    let hour24 = parseInt(hoursStr, 10);
-    const minutes = parseInt(minutesStr, 10) || 0;
-    const period = (periodRaw || "").toLowerCase();
+    const [time, period] = timeString.split(" ");
+    const [hours, minutes] = time.split(":");
+    let hour24 = parseInt(hours);
 
-    if (period === "pm" && hour24 !== 12) {
+    if (period === "am" && hour24 !== 12) {
       hour24 += 12;
-    } else if (period === "am" && hour24 === 12) {
+    } else if (period === "pm" && hour24 === 12) {
       hour24 = 0;
     }
 
     const date = new Date();
-    date.setHours(hour24, minutes, 0, 0);
+    date.setHours(hour24, parseInt(minutes), 0, 0);
     return date;
   };
 
@@ -420,7 +419,6 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
   
       toast({
         title: "¡Visita agendada exitosamente!",
-        description: "Te enviamos una copia a tu correo. Un asesor te llamará o te contactará por email para confirmar.",
         variant: "default",
       });
 

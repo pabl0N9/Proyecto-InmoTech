@@ -24,6 +24,25 @@ class InmueblesController {
   }
 
   /**
+   * Obtener inmueble público por ID (sin auth)
+   */
+  async obtenerInmueblePublic(req, res, next) {
+    try {
+      const { id } = req.params;
+      const inmueble = await inmueblesService.obtenerPorId(parseInt(id));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Inmueble obtenido exitosamente',
+        data: inmueble
+      });
+    } catch (error) {
+      logger.error('Error obteniendo inmueble público:', error);
+      next(error);
+    }
+  }
+
+  /**
    * Listar inmuebles con filtros
    */
   async listarInmuebles(req, res, next) {
@@ -32,7 +51,7 @@ class InmueblesController {
       const opciones = {
         pagina: parseInt(req.query.pagina) || 1,
         limite: parseInt(req.query.limite) || 20,
-        ordenarPor: req.query.ordenar_por || 'fecha_registro',
+        ordenarPor: req.query.ordenar_por || 'id_inmueble',
         orden: req.query.orden || 'DESC'
       };
 
@@ -64,6 +83,44 @@ class InmueblesController {
       });
     } catch (error) {
       logger.error('Error obteniendo inmueble:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Obtener inmueble por registro inmobiliario
+   */
+  async obtenerInmueblePorRegistro(req, res, next) {
+    try {
+      const { registro } = req.params;
+      const inmueble = await inmueblesService.obtenerPorRegistro(registro);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Inmueble obtenido exitosamente',
+        data: inmueble
+      });
+    } catch (error) {
+      logger.error('Error obteniendo inmueble por registro:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Obtener inmueble público por registro (sin auth)
+   */
+  async obtenerInmueblePublicPorRegistro(req, res, next) {
+    try {
+      const { registro } = req.params;
+      const inmueble = await inmueblesService.obtenerPorRegistro(registro);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Inmueble obtenido exitosamente',
+        data: inmueble
+      });
+    } catch (error) {
+      logger.error('Error obteniendo inmueble público por registro:', error);
       next(error);
     }
   }
@@ -163,7 +220,7 @@ class InmueblesController {
       const opciones = {
         pagina: parseInt(pagina),
         limite: parseInt(limite),
-        ordenarPor: 'fecha_registro',
+        ordenarPor: 'id_inmueble',
         orden: 'DESC'
       };
 

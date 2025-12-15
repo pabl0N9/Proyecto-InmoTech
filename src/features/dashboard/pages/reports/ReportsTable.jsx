@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
-import { EyeIcon, EditIcon, DownloadIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { EyeIcon, EditIcon, DownloadIcon, ChevronLeftIcon, ChevronRightIcon, FileText, MapPin, Building, User, Calendar, BarChart3, CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react'
 
 export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
   const [sortField, setSortField] = useState(null)
@@ -9,51 +9,8 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
 
-  // Datos de ejemplo basados en la imagen
-  const defaultReports = [
-    {
-      id: 'J004',
-      ubicacion: 'Los Ríos',
-      tipoInmueble: 'Apartamento',
-      referencia: 'J004',
-      propietario: 'Dario Jaramillo',
-      tipoReporte: 'Baño reparar',
-      fecha: '19/03/2025',
-      estado: 'En proceso'
-    },
-    {
-      id: 'J002',
-      ubicacion: 'San Jorge',
-      tipoInmueble: 'Apartamento',
-      referencia: 'J002',
-      propietario: 'Esteban Jáuregui',
-      tipoReporte: 'Techos',
-      fecha: '19/03/2025',
-      estado: 'Cotizando'
-    },
-    {
-      id: 'J003',
-      ubicacion: 'Azuay',
-      tipoInmueble: 'Local',
-      referencia: 'J003',
-      propietario: 'Daniela Orellana',
-      tipoReporte: 'Baños',
-      fecha: '19/03/2025',
-      estado: 'Sin novedades'
-    },
-    {
-      id: 'J001',
-      ubicacion: 'Los Ríos',
-      tipoInmueble: 'PENT',
-      referencia: 'J001',
-      propietario: 'Paola Dávila',
-      tipoReporte: 'Cocina',
-      fecha: '19/03/2025',
-      estado: 'Sin novedades'
-    }
-  ]
-
-  const reportsData = reports.length > 0 ? reports : defaultReports
+  // Usar exclusivamente los datos recibidos (sin mocks)
+  const reportsData = Array.isArray(reports) ? reports : []
 
   // Función para obtener el color del estado
   const getStatusColor = (estado) => {
@@ -66,9 +23,50 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
         return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'Sin novedades':
         return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'Pendiente':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'Cancelado':
+        return 'bg-red-100 text-red-800 border-red-200'
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
+  }
+
+  // Función para obtener información del estado con icono
+  const getStatusInfo = (estado) => {
+    const statusConfig = {
+      'Completado': {
+        color: 'bg-green-50 text-green-700 border border-green-100',
+        icon: CheckCircle,
+        label: 'Completado'
+      },
+      'En proceso': {
+        color: 'bg-blue-50 text-blue-700 border border-blue-100',
+        icon: Clock,
+        label: 'En Proceso'
+      },
+      'Cotizando': {
+        color: 'bg-yellow-50 text-yellow-700 border border-yellow-100',
+        icon: AlertCircle,
+        label: 'Cotizando'
+      },
+      'Sin novedades': {
+        color: 'bg-gray-50 text-gray-700 border border-gray-100',
+        icon: AlertCircle,
+        label: 'Sin Novedades'
+      },
+      'Pendiente': {
+        color: 'bg-yellow-50 text-yellow-700 border border-yellow-100',
+        icon: AlertCircle,
+        label: 'Pendiente'
+      },
+      'Cancelado': {
+        color: 'bg-red-50 text-red-700 border border-red-100',
+        icon: XCircle,
+        label: 'Cancelado'
+      }
+    };
+    return statusConfig[estado] || statusConfig['Pendiente'];
   }
 
   // Función para manejar el ordenamiento
@@ -118,6 +116,107 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
   React.useEffect(() => {
     setCurrentPage(1)
   }, [sortedReports.length])
+
+  // Calcular estadísticas
+  const stats = {
+    total: reportsData.length,
+    pendientes: reportsData.filter(r => r.estado === 'Pendiente').length,
+    enProceso: reportsData.filter(r => r.estado === 'En proceso').length,
+    completados: reportsData.filter(r => r.estado === 'Completado').length,
+    cancelados: reportsData.filter(r => r.estado === 'Cancelado').length,
+    cotizando: reportsData.filter(r => r.estado === 'Cotizando').length,
+    sinNovedades: reportsData.filter(r => r.estado === 'Sin novedades').length
+  }
+
+  // Componente para tarjeta de reporte
+  const ReportCard = ({ report, index }) => {
+    const statusInfo = getStatusInfo(report.estado)
+    const StatusIcon = statusInfo.icon
+
+    return (
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm px-6 py-5 flex flex-col gap-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Reporte</div>
+            <div className="text-2xl font-bold text-slate-900">#{report.id}</div>
+            <div className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold shadow-sm ${statusInfo.color}`}>
+              <StatusIcon className="h-4 w-4" />
+              <span className="tracking-wide">{statusInfo.label}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+              Ubicación
+            </p>
+            <div className="flex items-center gap-2 text-sm text-slate-700">
+              <MapPin className="h-4 w-4 text-[#00457B]" />
+              <span className="capitalize">{report.ubicacion}</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+              Propiedad & Propietario
+            </p>
+            <div className="flex items-center gap-2 text-sm text-slate-700 mb-1">
+              <Building className="h-4 w-4 text-[#00457B]" />
+              <span className="capitalize">{report.tipoInmueble}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-700">
+              <User className="h-4 w-4 text-[#00457B]" />
+              <span>{report.propietario}</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+              Tipo de Reporte & Fecha
+            </p>
+            <div className="flex items-center gap-2 text-sm text-slate-700 mb-1">
+              <FileText className="h-4 w-4 text-[#00457B]" />
+              <span className="capitalize">{report.tipoReporte}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-700">
+              <Calendar className="h-4 w-4 text-[#00457B]" />
+              <span>{report.fecha}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-slate-500">
+            Gestiona este reporte para revisar detalles, editar información o descargar el PDF.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => onView?.(report)}
+              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+            >
+              <EyeIcon className="h-4 w-4" />
+              Ver detalles
+            </button>
+            <button
+              onClick={() => onEdit?.(report)}
+              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-[#00457B] text-white hover:bg-[#005a9e] transition-colors"
+            >
+              <EditIcon className="h-4 w-4" />
+              Editar
+            </button>
+            <button
+              onClick={() => onDownloadPDF?.(report)}
+              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+            >
+              <DownloadIcon className="h-4 w-4" />
+              Descargar PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Componente para vista móvil (tarjetas)
   const MobileCard = ({ report }) => (
@@ -202,166 +301,72 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
   )
 
   return (
-    <div className="bg-white shadow-sm rounded-lg">
-      {/* Vista Desktop - Tabla optimizada */}
-      <div className="hidden lg:block">
-        <table className="w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <SortableHeader field="id" className="w-16">ID</SortableHeader>
-              <SortableHeader field="ubicacion" className="w-24">Ubicación</SortableHeader>
-              <SortableHeader field="tipoInmueble" className="w-20">Tipo</SortableHeader>
-              <SortableHeader field="propietario" className="w-32">Propietario</SortableHeader>
-              <SortableHeader field="tipoReporte" className="w-28">Reporte</SortableHeader>
-              <SortableHeader field="fecha" className="w-24">Fecha</SortableHeader>
-              <SortableHeader field="estado" className="w-24">Estado</SortableHeader>
-              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {currentReports.map((report) => (
-              <tr key={report.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-3 py-4 text-sm font-medium text-gray-900">
-                  {report.id}
-                </td>
-                <td className="px-3 py-4 text-sm text-gray-900">
-                  <div className="capitalize">{report.ubicacion}</div>
-                </td>
-                <td className="px-3 py-4 text-sm text-gray-900 capitalize">
-                  {report.tipoInmueble}
-                </td>
-                <td className="px-3 py-4 text-sm text-gray-900">
-                  {report.propietario}
-                </td>
-                <td className="px-3 py-4 text-sm text-gray-900">
-                  <div className="max-w-xs">
-                    {report.tipoReporte}
-                  </div>
-                </td>
-                <td className="px-3 py-4 text-sm text-gray-900">
-                  {report.fecha}
-                </td>
-                <td className="px-3 py-4">
-                  <Badge className={`${getStatusColor(report.estado)} border text-xs`}>
-                    {report.estado}
-                  </Badge>
-                </td>
-                <td className="px-3 py-4 text-right text-sm font-medium">
-                  <div className="flex items-center justify-end space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onView?.(report)}
-                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1"
-                      title="Ver reporte"
-                    >
-                      <EyeIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEdit?.(report)}
-                      className="text-green-600 hover:text-green-800 hover:bg-green-50 p-1"
-                      title="Editar reporte"
-                    >
-                      <EditIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDownloadPDF?.(report)}
-                      className="text-purple-600 hover:text-purple-800 hover:bg-purple-50 p-1"
-                      title="Descargar PDF"
-                    >
-                      <DownloadIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="space-y-6">
+      {/* Estadísticas */}
+      {reportsData.length > 0 && (
+        <section className="bg-white rounded-3xl shadow-sm border border-slate-100 px-5 py-5 space-y-5">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-slate-600" />
+            <h2 className="text-lg font-semibold text-slate-800">Estadísticas de Reportes</h2>
+          </div>
 
-      {/* Vista Tablet - Tabla simplificada */}
-      <div className="hidden md:block lg:hidden">
-        <table className="w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <SortableHeader field="id">ID</SortableHeader>
-              <SortableHeader field="ubicacion">Ubicación</SortableHeader>
-              <SortableHeader field="propietario">Propietario</SortableHeader>
-              <SortableHeader field="estado">Estado</SortableHeader>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {currentReports.map((report) => (
-              <tr key={report.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-4 text-sm font-medium text-gray-900">
-                  {report.id}
-                </td>
-                <td className="px-4 py-4 text-sm text-gray-900">
-                  <div className="capitalize">{report.ubicacion}</div>
-                  <div className="text-xs text-gray-500 capitalize">{report.tipoReporte}</div>
-                </td>
-                <td className="px-4 py-4 text-sm text-gray-900">
-                  <div>{report.propietario}</div>
-                  <div className="text-xs text-gray-500">{report.fecha}</div>
-                </td>
-                <td className="px-4 py-4">
-                  <Badge className={`${getStatusColor(report.estado)} border text-xs`}>
-                    {report.estado}
-                  </Badge>
-                </td>
-                <td className="px-4 py-4 text-right text-sm font-medium">
-                  <div className="flex items-center justify-end space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onView?.(report)}
-                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1"
-                    >
-                      <EyeIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEdit?.(report)}
-                      className="text-green-600 hover:text-green-800 hover:bg-green-50 p-1"
-                    >
-                      <EditIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDownloadPDF?.(report)}
-                      className="text-purple-600 hover:text-purple-800 hover:bg-purple-50 p-1"
-                    >
-                      <DownloadIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 shadow-lg shadow-slate-200/40 hover:shadow-slate-300/50 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/60 pointer-events-none"></div>
+              <BarChart3 className="h-4 w-4 text-slate-600 mb-1" />
+              <div className="text-xl font-semibold text-slate-800">{stats.total}</div>
+              <div className="text-xs text-slate-600">Total</div>
+            </div>
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-yellow-100 bg-white shadow-lg shadow-yellow-200/30 hover:shadow-yellow-300/40 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
+              <AlertCircle className="h-4 w-4 text-yellow-600 mb-1" />
+              <div className="text-xl font-semibold text-yellow-700">{stats.pendientes}</div>
+              <div className="text-xs text-yellow-600">Pendientes</div>
+            </div>
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-blue-100 bg-white shadow-lg shadow-blue-200/30 hover:shadow-blue-300/40 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
+              <Clock className="h-4 w-4 text-blue-600 mb-1" />
+              <div className="text-xl font-semibold text-blue-700">{stats.enProceso}</div>
+              <div className="text-xs text-blue-600">En Proceso</div>
+            </div>
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-green-100 bg-white shadow-lg shadow-green-200/30 hover:shadow-green-300/40 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
+              <CheckCircle className="h-4 w-4 text-green-600 mb-1" />
+              <div className="text-xl font-semibold text-green-700">{stats.completados}</div>
+              <div className="text-xs text-green-600">Completados</div>
+            </div>
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-red-100 bg-white shadow-lg shadow-red-200/30 hover:shadow-red-300/40 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
+              <XCircle className="h-4 w-4 text-red-600 mb-1" />
+              <div className="text-xl font-semibold text-red-700">{stats.cancelados}</div>
+              <div className="text-xs text-red-600">Cancelados</div>
+            </div>
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-amber-100 bg-white shadow-lg shadow-amber-200/30 hover:shadow-amber-300/40 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
+              <AlertCircle className="h-4 w-4 text-amber-600 mb-1" />
+              <div className="text-xl font-semibold text-amber-700">{stats.cotizando}</div>
+              <div className="text-xs text-amber-600">Cotizando</div>
+            </div>
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-gray-100 bg-white shadow-lg shadow-gray-200/30 hover:shadow-gray-300/40 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
+              <AlertCircle className="h-4 w-4 text-gray-600 mb-1" />
+              <div className="text-xl font-semibold text-gray-700">{stats.sinNovedades}</div>
+              <div className="text-xs text-gray-600">Sin Novedades</div>
+            </div>
+          </div>
+        </section>
+      )}
 
-      {/* Vista Móvil - Tarjetas */}
-      <div className="md:hidden space-y-4 p-4">
-        {currentReports.map((report) => (
-          <MobileCard key={report.id} report={report} />
+      {/* Lista de reportes en tarjetas */}
+      <div className="space-y-4">
+        {currentReports.map((report, index) => (
+          <ReportCard key={report.id} report={report} index={index} />
         ))}
       </div>
-      
+
       {/* Paginador - Responsive */}
       {sortedReports.length > 0 && (
-        <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+        <div className="bg-white px-4 py-3 border-t border-slate-100 sm:px-6 rounded-3xl shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex-1 flex justify-between sm:hidden">
               <Button
@@ -383,7 +388,7 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-slate-700">
                   Mostrando{' '}
                   <span className="font-medium">{startIndex + 1}</span>
                   {' '}a{' '}
@@ -402,11 +407,11 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
                     disabled={currentPage === 1}
                     variant="outline"
                     size="sm"
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50"
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </Button>
-                  
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <Button
                       key={page}
@@ -416,19 +421,19 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
                       className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                         currentPage === page
                           ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
                       }`}
                     >
                       {page}
                     </Button>
                   ))}
-                  
+
                   <Button
                     onClick={goToNextPage}
                     disabled={currentPage === totalPages}
                     variant="outline"
                     size="sm"
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50"
                   >
                     <ChevronRightIcon className="h-5 w-5" />
                   </Button>
@@ -438,13 +443,19 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
           </div>
         </div>
       )}
-      
+
       {/* Estado vacío */}
       {sortedReports.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-500">
-            No se encontraron reportes
+        <div className="text-center py-16 bg-white rounded-3xl shadow-sm border border-slate-100">
+          <div className="mb-6">
+            <FileText className="mx-auto h-16 w-16 text-slate-400" />
           </div>
+          <h3 className="text-xl font-semibold text-slate-800 mb-3">
+            ¡No hay reportes registrados aún!
+          </h3>
+          <p className="text-slate-600 mb-6 max-w-md mx-auto">
+            Los reportes aparecerán aquí una vez que se registren en el sistema.
+          </p>
         </div>
       )}
     </div>

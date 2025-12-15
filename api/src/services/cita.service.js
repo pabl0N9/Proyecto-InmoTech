@@ -23,6 +23,39 @@ class CitaService {
   async crearCita(dataCita) {
     const result = await sequelize.transaction(async (t) => {
       try {
+        const asBadRequest = (message) => {
+          const err = new Error(message);
+          err.status = 400;
+          return err;
+        };
+
+        const idServicio = Number(dataCita.id_servicio);
+        if (!idServicio) throw asBadRequest('El servicio es requerido');
+
+        const servicio = await ServicioCita.findByPk(idServicio, { transaction: t });
+        if (!servicio) throw asBadRequest('Servicio no encontrado');
+
+        const nombreServicio = (servicio.nombre_servicio || '').toLowerCase();
+        const requiereInmueble = ['propiedad', 'inmueble', 'visita'].some((kw) => nombreServicio.includes(kw));
+
+        let idInmueble = dataCita.id_inmueble !== undefined && dataCita.id_inmueble !== null
+          ? Number(dataCita.id_inmueble)
+          : null;
+
+        if (requiereInmueble) {
+          if (!idInmueble) throw asBadRequest('El inmueble es requerido para este servicio');
+          const inmueble = await Inmueble.findByPk(idInmueble, { transaction: t });
+          if (!inmueble) throw asBadRequest('Inmueble no encontrado');
+        } else if (idInmueble) {
+          const inmueble = await Inmueble.findByPk(idInmueble, { transaction: t });
+          if (!inmueble) throw asBadRequest('Inmueble no encontrado');
+        } else {
+          idInmueble = null;
+        }
+
+        dataCita.id_inmueble = idInmueble;
+        dataCita.id_servicio = idServicio;
+
         // ✅ Usar directamente nombre_completo y apellido_completo como vienen del frontend
         const nombre_completo = dataCita.nombre_completo || '';
         const apellido_completo = dataCita.apellido_completo || '';
@@ -55,11 +88,11 @@ class CitaService {
           }, { transaction: t });
         }
 
-        // 3. Validación para evitar cita duplicada (misma persona, inmueble, fecha, hora inicio-fin que se solapen)
         const citaExistente = await Cita.findOne({
           where: {
             id_persona: persona.id_persona,
-            id_inmueble: dataCita.id_inmueble,
+            ...(dataCita.id_inmueble !== null ? { id_inmueble: dataCita.id_inmueble } : {}),
+            id_servicio: idServicio,
             fecha_cita: dataCita.fecha_cita,
             hora_inicio: dataCita.hora_inicio,
             hora_fin: dataCita.hora_fin
@@ -68,7 +101,7 @@ class CitaService {
         });
 
         if (citaExistente) {
-          throw new Error('Ya existe una cita con la misma información para este usuario');
+          throw asBadRequest('Ya existe una cita con la misma informacion para este usuario');
         }
 
         // 4. Crear la cita si no existe duplicado
@@ -1089,3 +1122,5 @@ class CitaService {
 }
 
 module.exports = new CitaService();
+
+

@@ -8,41 +8,50 @@ const Reporte = sequelize.define('Reportes', {
     autoIncrement: true,
     field: 'id_reporte'
   },
+  id_inmueble: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
   tipo_reporte: {
     type: DataTypes.STRING(50),
-    allowNull: false,
-    validate: {
-      isIn: [['CITAS_POR_FECHA', 'CITAS_POR_AGENTE', 'CITAS_POR_ESTADO', 'CITAS_POR_INMUEBLE', 'RENDIMIENTO_AGENTE']]
-    }
+    allowNull: false
   },
   titulo: {
     type: DataTypes.STRING(200),
-    allowNull: false
+    allowNull: true
   },
   descripcion: {
     type: DataTypes.TEXT,
     allowNull: true
   },
-  parametros: {
-    type: DataTypes.TEXT,
+  prioridad: {
+    type: DataTypes.STRING(20),
     allowNull: true
   },
-  datos: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  id_generado_por: {
-    type: DataTypes.INTEGER,
+  estado: {
+    type: DataTypes.STRING(50),
     allowNull: false,
-    references: {
-      model: 'Personas',
-      key: 'id_persona'
+    defaultValue: 'Pendiente',
+    validate: {
+      isIn: [['Pendiente', 'En Proceso', 'Completado', 'Cancelado']]
     }
   },
-  fecha_generacion: {
+  id_persona_reporta: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  fecha_creacion: {
     type: DataTypes.DATE,
     allowNull: false,
     defaultValue: sequelize.literal('GETDATE()')
+  },
+  fecha_resolucion: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  observaciones_resolucion: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   tableName: 'Reportes',

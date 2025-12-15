@@ -18,7 +18,7 @@ const Cita = sequelize.define('Cita', {
   },
   id_inmueble: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'Inmuebles',
       key: 'id_inmueble'

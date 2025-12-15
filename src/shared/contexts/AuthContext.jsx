@@ -214,7 +214,13 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.updateProfile(profileData);
 
       if (response.success && response.data) {
-        const updatedUser = { ...user, ...response.data };
+        // Mezclar respuesta del backend con los datos enviados para asegurar foto inmediata
+        const updatedUser = {
+          ...user,
+          ...response.data,
+          foto_perfil_url: response.data?.foto_perfil_url || profileData.foto_perfil_url || user?.foto_perfil_url || null,
+          foto_public_id: response.data?.foto_public_id || profileData.foto_public_id || user?.foto_public_id || null
+        };
         const normalized = normalizeUser(updatedUser);
         setUser(normalized);
 

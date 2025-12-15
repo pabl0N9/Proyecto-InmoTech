@@ -21,12 +21,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const ViewReportModal = ({ 
-  isOpen, 
-  onClose, 
-  report,
-  onEdit
-}) => {
+function ViewReportModal({ isOpen, onClose, report, onEdit }) {
   if (!isOpen || !report) return null;
 
   // Función para formatear la fecha
@@ -112,6 +107,73 @@ const ViewReportModal = ({
 
   const resumen = calcularResumen();
 
+  // NUEVO: items de información visual estilo Citas
+  const infoItems = [
+    {
+      key: 'ubicacion',
+      icon: MapPinIcon,
+      label: 'Ubicación',
+      value: report.ubicacion || 'No definido',
+      color: 'text-teal-600',
+      bgColor: 'bg-teal-50'
+    },
+    {
+      key: 'tipoInmueble',
+      icon: HomeIcon,
+      label: 'Tipo de Inmueble',
+      value: report.tipoInmueble || 'No definido',
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-50'
+    },
+    {
+      key: 'referencia',
+      icon: FileTextIcon,
+      label: 'Referencia',
+      value: report.referencia || 'No definido',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
+    },
+    {
+      key: 'propietario',
+      icon: UserIcon,
+      label: 'Propietario',
+      value: report.propietario || 'No definido',
+      color: 'text-green-600',
+      bgColor: 'bg-green-50'
+    },
+    {
+      key: 'tipoReporte',
+      icon: FileTextIcon,
+      label: 'Título del Reporte',
+      value: report.tipoReporte || 'No definido',
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50'
+    },
+    {
+      key: 'responsable',
+      icon: UserIcon,
+      label: 'Responsable del Reporte',
+      value: report.responsable || 'No asignado',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50'
+    },
+    {
+      key: 'estado',
+      icon: CalendarIcon,
+      label: 'Estado',
+      value: report.estado || 'No definido',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
+    },
+    {
+      key: 'fecha',
+      icon: CalendarIcon,
+      label: 'Fecha de Creación',
+      value: formatDate(report.fecha),
+      color: 'text-red-600',
+      bgColor: 'bg-red-50'
+    }
+  ];
   const modalContent = (
     <AnimatePresence>
       {isOpen && (
@@ -131,7 +193,7 @@ const ViewReportModal = ({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50 flex-shrink-0">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
               <div className="flex items-center gap-4">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <EyeIcon className="w-6 h-6 text-blue-600" />
@@ -175,7 +237,7 @@ const ViewReportModal = ({
             {/* Content */}
             <div className="p-6 max-h-[calc(90vh-200px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
               <div className="space-y-6">
-                {/* Información básica del reporte */}
+                {/* Información Principal - estilo Citas */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -184,75 +246,37 @@ const ViewReportModal = ({
                 >
                   <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                     <HomeIcon className="w-5 h-5 text-slate-600" />
-                    Información Básica del Reporte
+                    Información Principal
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          <MapPinIcon className="w-4 h-4 inline mr-1" />
-                          Ubicación
-                        </label>
-                        <div className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm">
-                          {report.ubicacion || 'No definido'}
+                    {infoItems.map((item, index) => (
+                      <motion.div
+                        key={item.key}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className={`p-4 rounded-xl border ${item.bgColor} border-opacity-50`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 rounded-lg bg-white shadow-sm">
+                            <item.icon className={`w-5 h-5 ${item.color}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-600 mb-1">{item.label}</p>
+                            {item.key === 'estado' ? (
+                              <Badge className={`${getStatusColor(report.estado)} text-xs rounded-full px-2`}>
+                                {report.estado || 'No definido'}
+                              </Badge>
+                            ) : (
+                              <p className="text-slate-800 font-semibold break-words">{item.value}</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          <HomeIcon className="w-4 h-4 inline mr-1" />
-                          Tipo de Inmueble
-                        </label>
-                        <div className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm">
-                          {report.tipoInmueble || 'No definido'}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          <FileTextIcon className="w-4 h-4 inline mr-1" />
-                          Referencia
-                        </label>
-                        <div className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm">
-                          {report.referencia || 'No definido'}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          <UserIcon className="w-4 h-4 inline mr-1" />
-                          Propietario
-                        </label>
-                        <div className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm">
-                          {report.propietario || 'No definido'}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          <FileTextIcon className="w-4 h-4 inline mr-1" />
-                          Título del Reporte
-                        </label>
-                        <div className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm">
-                          {report.tipoReporte || 'No definido'}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          <UserIcon className="w-4 h-4 inline mr-1" />
-                          Responsable del Reporte
-                        </label>
-                        <div className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm">
-                          {report.responsable || 'No asignado'}
-                        </div>
-                      </div>
-                    </div>
+                      </motion.div>
+                    ))}
                   </div>
-                  
+
                   <div className="mt-4">
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       <FileTextIcon className="w-4 h-4 inline mr-1" />
@@ -310,7 +334,7 @@ const ViewReportModal = ({
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                           {report.imagenes.map((imagen, index) => (
-                            <div key={index} className="relative group bg-white border border-slate-200 rounded-lg overflow-hidden">
+                            <div key={imagen.id_imagen || imagen.id || `img-${index}`} className="relative group bg-white border border-slate-200 rounded-lg overflow-hidden">
                               <div className="aspect-video bg-slate-100">
                                 <img
                                   src={imagen.url || imagen.preview}
@@ -352,7 +376,7 @@ const ViewReportModal = ({
                         </h4>
                         <div className="space-y-2">
                           {report.archivos.map((archivo, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                            <div key={archivo.id_archivo || archivo.id || `file-${index}`} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
                               <div className="flex items-center space-x-2">
 
                                 <FileIcon className="w-6 h-6 text-slate-400" />
@@ -423,9 +447,11 @@ const ViewReportModal = ({
                     </div>
 
                     <div className="space-y-3">
-                      {rubrosActivos.map((rubro, index) => (
+                      {rubrosActivos.map((rubro, index) => {
+                        const rubroKey = rubro.id_rubro || rubro.id || `rubro-${index}`;
+                        return (
                         <motion.div
-                          key={rubro.id}
+                          key={rubroKey}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.1 }}
@@ -454,46 +480,67 @@ const ViewReportModal = ({
                           {/* Seguimientos del Rubro */}
                           {rubro.seguimientos && rubro.seguimientos.length > 0 && (
                             <div className="p-3">
-                              <h5 className="font-medium text-slate-800 mb-2 text-sm">Seguimientos:</h5>
+                              <div className="flex items-center justify-between mb-2">
+                                <h5 className="font-medium text-slate-800 text-sm flex items-center">
+                                  <ClipboardListIcon className="w-4 h-4 mr-2 text-blue-600" />
+                                  Seguimientos
+                                  <Badge className="ml-2 bg-blue-50 text-blue-700 border border-blue-200 text-xs rounded-full px-2">
+                                    {rubro.seguimientos.length}
+                                  </Badge>
+                                </h5>
+                              </div>
                               <div className="space-y-2">
-                                {rubro.seguimientos.map((seguimiento, segIndex) => (
-                                  <div key={seguimiento.id} className="bg-slate-50 rounded-lg p-2 border border-slate-200">
+                                {rubro.seguimientos.map((seguimiento, segIndex) => {
+                                  const seguimientoKey = seguimiento.id_seguimiento_rubro || seguimiento.id || `seg-${rubroKey}-${segIndex}`;
+                                  return (
+                                  <div key={seguimientoKey} className="bg-white rounded-lg p-3 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 bg-blue-100 border border-blue-200 rounded-full flex items-center justify-center">
+                                          <span className="text-xs font-semibold text-blue-700">#{segIndex + 1}</span>
+                                        </div>
+                                        <span className="text-sm font-medium text-slate-800">Seguimiento {segIndex + 1}</span>
+                                      </div>
+                                      <Badge className={`${getFollowUpStatusColor(seguimiento.estado)} text-[11px] rounded-full px-2`}>
+                                        {seguimiento.estado || 'Sin estado'}
+                                      </Badge>
+                                    </div>
+                                
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                                       <div>
                                         <span className="font-medium text-slate-700">Descripción:</span>
                                         <p className="text-slate-900">{seguimiento.descripcion || 'Sin descripción'}</p>
                                       </div>
-                                      <div>
-                                        <span className="font-medium text-slate-700">Estado:</span>
-                                        <div className="mt-1">
-                                          <Badge className={`${getFollowUpStatusColor(seguimiento.estado)} text-xs`}>
-                                            {seguimiento.estado || 'Sin estado'}
-                                          </Badge>
+                                      <div className="flex items-center gap-2">
+                                        <CalendarIcon className="w-3 h-3 text-slate-500" />
+                                        <div>
+                                          <span className="font-medium text-slate-700">Fecha:</span>
+                                          <p className="text-slate-900">{seguimiento.fecha || 'Sin fecha'}</p>
                                         </div>
                                       </div>
-                                      <div>
-                                        <span className="font-medium text-slate-700">Responsable:</span>
-                                        <p className="text-slate-900">{seguimiento.responsable || 'No asignado'}</p>
-                                      </div>
-                                      <div>
-                                        <span className="font-medium text-slate-700">Fecha:</span>
-                                        <p className="text-slate-900">{seguimiento.fecha || 'Sin fecha'}</p>
+                                      <div className="flex items-center gap-2">
+                                        <UserIcon className="w-3 h-3 text-slate-500" />
+                                        <div>
+                                          <span className="font-medium text-slate-700">Responsable:</span>
+                                          <p className="text-slate-900">{seguimiento.responsable || 'No asignado'}</p>
+                                        </div>
                                       </div>
                                     </div>
+                                
                                     {seguimiento.subSeguimientos > 0 && (
-                                      <div className="mt-1 pt-1 border-t border-slate-200">
-                                        <span className="text-xs text-slate-600">
+                                      <div className="mt-2 pt-2 border-t border-slate-200">
+                                        <span className="text-[11px] text-slate-600">
                                           Sub-seguimientos: {seguimiento.subSeguimientos}
                                         </span>
                                       </div>
                                     )}
                                   </div>
-                                ))}
+                                )})}
                               </div>
                             </div>
                           )}
                         </motion.div>
-                      ))}
+                      )})}
                     </div>
                   </motion.div>
                 )}

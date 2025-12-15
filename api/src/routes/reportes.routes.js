@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const reportesController = require('../controllers/reportes.controller');
-
-// ✅ CORRECTO
 const { validate, validateQuery } = require('../middlewares/validate.middleware');
 const auth = require('../middlewares/auth.middleware');
 
@@ -14,13 +12,13 @@ const {
   listarReportesSchema
 } = require('../validators/reportes.validator');
 
-// ✅ CORRECCIÓN: Cambiar auth.authenticate por auth.authenticateToken
+// Autenticación obligatoria
 router.use(auth.authenticateToken);
 
-// ✅ TEMPORALMENTE: Quitar middleware de roles para debugging
-// router.use(auth.authorizeRoles(['Super Administrador', 'Administrador', 'Empleado']));
+// Acceso base: ver reportes (usa permisos, Admin/SuperAdmin pasan)
+router.use(auth.authorizePermissions('reportes', ['read']));
 
-// Estadísticas del dashboard - Solo requiere autenticación por ahora
+// Estadísticas del dashboard (ruta específica antes de :id)
 router.get('/dashboard-stats',
   reportesController.obtenerEstadisticasDashboard
 );
@@ -33,18 +31,21 @@ router.get('/',
 
 // Crear reporte manual
 router.post('/',
+  auth.authorizePermissions('reportes', ['create']),
   validate(crearReporteSchema),
   reportesController.crearReporte
 );
 
 // Generar reporte de citas
 router.post('/citas',
+  auth.authorizePermissions('reportes', ['create']),
   validate(generarReporteCitasSchema),
   reportesController.generarReporteCitas
 );
 
 // Generar reporte de inmuebles
 router.post('/inmuebles',
+  auth.authorizePermissions('reportes', ['create']),
   validate(generarReporteInmueblesSchema),
   reportesController.generarReporteInmuebles
 );
@@ -56,6 +57,7 @@ router.get('/:id',
 
 // Actualizar estado del reporte
 router.patch('/:id/estado',
+  auth.authorizePermissions('reportes', ['update']),
   validate(actualizarEstadoReporteSchema),
   reportesController.actualizarEstado
 );
@@ -67,6 +69,7 @@ router.get('/:id/descargar',
 
 // Eliminar reporte
 router.delete('/:id',
+  auth.authorizePermissions('reportes', ['delete']),
   reportesController.eliminarReporte
 );
 

@@ -35,7 +35,8 @@ export const dashboardRoutes = {
   security: '/seguridad',
   users: '/seguridad/usuarios',
   roles: '/seguridad/roles',
-  administrativos: '/seguridad/administrativos'
+  administrativos: '/seguridad/administrativos',
+  profile: '/dashboard/profile'
 };
 
 // Combinación de todas las rutas para acceso fácil

@@ -1,27 +1,41 @@
 const express = require('express');
 const router = express.Router();
 const inmueblesController = require('../controllers/inmuebles.controller');
-
-// ✅ CORRECTO
 const { validate, validateQuery } = require('../middlewares/validate.middleware');
 const auth = require('../middlewares/auth.middleware');
-
 const {
   crearInmuebleSchema,
   actualizarInmuebleSchema,
   buscarInmueblesSchema
 } = require('../validators/inmuebles.validator');
 
-// Rutas públicas (no requieren autenticación)
+// ========================================
+// RUTAS PÚBLICAS (sin autenticación)
+// ========================================
 router.get('/buscar',
   validateQuery(buscarInmueblesSchema),
   inmueblesController.buscarInmuebles
+);
+
+// Rutas públicas para landing (solo lectura)
+router.get('/public/:id',
+  inmueblesController.obtenerInmueblePublic
+);
+
+router.get('/public/registro/:registro',
+  inmueblesController.obtenerInmueblePublicPorRegistro
 );
 
 const { authenticateToken, authorizePermissions } = auth;
 
 // After public routes, apply authentication to the rest
 router.use(authenticateToken);
+
+// Obtener inmueble por ID (requires 'ver' permission)
+router.get('/por-registro/:registro',
+  authorizePermissions('inmuebles', 'ver'),
+  inmueblesController.obtenerInmueblePorRegistro
+);
 
 // Obtener inmueble por ID (requires 'ver' permission)
 router.get('/:id',

@@ -22,15 +22,19 @@ import VerifyEmailPage from './features/auth/pages/VerifyEmailPage'
 
 // Dashboard pages
 import DashboardPage from './features/dashboard/DashboardPage'
-import { SalesManagementPage } from './features/dashboard/pages/sales/pages/SalesManagementPage'
-import { BuyersManagementPage } from './features/dashboard/pages/sales/pages/BuyerManagementPage'
-import { LeasesManagementPage } from './features/dashboard/pages/leases/pages/LeasesManagementPage'
-import { RenantManagementPage } from './features/dashboard/pages/leases/pages/RenantManagementPage'
+import { SalesManagementPage } from './features/dashboard/pages/sales/SalesManagementPage'
+import { BuyersManagementPage } from './features/dashboard/pages/sales/BuyerManagementPage'
+import { LeasesManagementPage } from './features/dashboard/pages/leases/LeasesManagementPage'
+import { RenantManagementPage } from './features/dashboard/pages/leases/RenantManagementPage'
 import AppointmentPage from './features/dashboard/pages/appointment/AppointmentPage'
 import Reports from './features/dashboard/pages/reports/Reports'
 import Roles from './features/dashboard/pages/roles/Roles'
 import AdministrativosPage from './features/dashboard/pages/administrativos/AdministrativosPage'
 import UsersPage from './features/dashboard/pages/users/UsersPage'
+import { ReportsProvider } from './shared/contexts/ReportsContext.jsx'
+import InmueblesDashboardPage from './features/dashboard/pages/Inmuebles/InmueblesDashboardPage'
+import PropertyOwnersManagement from './features/dashboard/pages/propertyOwner/OwnerDashboardPage'
+import ProfilePage from './features/dashboard/pages/Profile/ProfilePage'
 
 function App() {
   return (
@@ -204,11 +208,43 @@ function App() {
           }
         />
         <Route
-          path="/reportes/gestion"
+          path="/dashboard/profile"
           element={
             <DashboardRoute>
               <DashboardLayout>
-                <Reports />
+                <ProfilePage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/reportes/gestion"
+          element={
+            <DashboardRoute>
+              <ReportsProvider>
+                <DashboardLayout>
+                  <Reports />
+                </DashboardLayout>
+              </ReportsProvider>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/inmuebles/gestion"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <InmueblesDashboardPage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path="/inmuebles/propietarios"
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <PropertyOwnersManagement />
               </DashboardLayout>
             </DashboardRoute>
           }

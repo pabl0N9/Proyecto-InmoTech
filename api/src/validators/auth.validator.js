@@ -151,6 +151,13 @@ const actualizarPerfilSchema = Joi.object({
     .min(10)
     .max(20)
     .pattern(/^[0-9\s\+\-]+$/)
+    .optional(),
+
+  foto_perfil_url: Joi.string()
+    .uri()
+    .optional(),
+
+  foto_public_id: Joi.string()
     .optional()
 })
   .min(1)

@@ -89,7 +89,12 @@ const crearCitaSchema = Joi.object({
   id_inmueble: Joi.number()
     .integer()
     .positive()
-    .required(),
+    .allow(null)
+    .optional()
+    .messages({
+      'number.base': 'El inmueble debe ser un número o null',
+      'number.positive': 'El inmueble debe ser un número positivo'
+    }),
 
   id_servicio: Joi.number()
     .integer()

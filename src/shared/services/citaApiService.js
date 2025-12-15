@@ -79,8 +79,11 @@ class CitaApiService {
         apellido_completo: citaData.cliente?.apellido_completo || citaData.apellido_completo,
         email: citaData.cliente?.correo || citaData.email || null,
         telefono: citaData.cliente?.telefono || citaData.telefono,
-        id_inmueble: citaData.inmueble?.id_inmueble || citaData.id_inmueble || 1,
-        id_servicio: citaData.servicio?.id_servicio || citaData.id_servicio || 1,
+        id_inmueble: citaData.inmueble?.id_inmueble ?? citaData.id_inmueble ?? null,
+        id_servicio:
+          citaData.servicio?.id_servicio ??
+          citaData.id_servicio ??
+          this.mapServicioToId(citaData.servicio),
         fecha_cita: citaData.fecha_cita,
         hora_inicio: this.formatHoraParaAPI(citaData.hora_inicio || '09:00'),
         hora_fin: this.formatHoraParaAPI(citaData.hora_fin || '10:00'),
@@ -116,8 +119,8 @@ class CitaApiService {
         apellido_completo: citaData.cliente?.apellido_completo || citaData.apellido_completo,
         email: citaData.cliente?.correo || citaData.email || null,
         telefono: citaData.cliente?.telefono || citaData.telefono,
-        id_inmueble: citaData.inmueble?.id_inmueble || citaData.id_inmueble || 1,
-        id_servicio: citaData.servicio?.id_servicio || citaData.id_servicio || 1,
+        id_inmueble: citaData.inmueble?.id_inmueble ?? citaData.id_inmueble ?? null,
+        id_servicio: citaData.servicio?.id_servicio ?? citaData.id_servicio,
         fecha_cita: citaData.fecha_cita,
         hora_inicio: this.formatHoraParaAPI(citaData.hora_inicio || '09:00'),
         hora_fin: this.formatHoraParaAPI(citaData.hora_fin || '10:00'),
@@ -905,4 +908,3 @@ export const actualizarEstadoCita = async (idCita, idEstadoCita) => {
     throw error;
   }
 };
-

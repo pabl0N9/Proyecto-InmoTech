@@ -168,6 +168,14 @@ class AuthService {
         payload.telefono = profileData.telefono.replace(/\D/g, '');
       }
 
+      if (profileData.foto_perfil_url) {
+        payload.foto_perfil_url = profileData.foto_perfil_url;
+      }
+
+      if (profileData.foto_public_id) {
+        payload.foto_public_id = profileData.foto_public_id;
+      }
+
       const response = await apiClient.patch('/auth/me', payload);
 
       console.log('✅ Perfil actualizado');

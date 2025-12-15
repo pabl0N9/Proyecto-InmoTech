@@ -1,189 +1,135 @@
-import { useState, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react";
+import { inmueblesAPI } from "@/shared/services/propertyApidervice";
 
-// Mock data para propiedades
-const mockProperties = [
-  {
-    id: 1,
-    title: "Casa Moderna en El Poblado",
-    price: "$850,000",
-    location: "El Poblado, Medellín",
-    area: "280 m²",
-    bedrooms: 4,
-    bathrooms: 3,
-    image: "/property-1.jpg",
-    status: "Venta",
-    type: "casa",
-    featured: true,
-  },
-  {
-    id: 2,
-    title: "Apartamento de Lujo",
-    price: "$450,000",
-    location: "Laureles, Medellín",
-    area: "150 m²",
-    bedrooms: 3,
-    bathrooms: 2,
-    image: "/property-2.jpg",
-    status: "Venta",
-    type: "apartamento",
-    featured: false,
-  },
-  {
-    id: 3,
-    title: "Penthouse con Vista Panorámica",
-    price: "$1,200,000",
-    location: "Envigado, Antioquia",
-    area: "320 m²",
-    bedrooms: 4,
-    bathrooms: 4,
-    image: "/property-3.jpg",
-    status: "Venta",
-    type: "apartamento",
-    featured: true,
-  },
-  {
-    id: 4,
-    title: "Casa Campestre",
-    price: "$750,000",
-    location: "Llanogrande, Rionegro",
-    area: "450 m²",
-    bedrooms: 5,
-    bathrooms: 4,
-    image: "/property-4.jpg",
-    status: "Venta",
-    type: "casa",
-    featured: false,
-  },
-  {
-    id: 5,
-    title: "Apartamento Amoblado",
-    price: "$2,500/mes",
-    location: "Belén, Medellín",
-    area: "95 m²",
-    bedrooms: 2,
-    bathrooms: 2,
-    image: "/property-5.jpg",
-    status: "Alquiler",
-    type: "apartamento",
-    featured: true,
-  },
-  {
-    id: 6,
-    title: "Local Comercial",
-    price: "$350,000",
-    location: "Centro, Medellín",
-    area: "120 m²",
-    bedrooms: 0,
-    bathrooms: 1,
-    image: "/property-6.jpg",
-    status: "Venta",
-    type: "local-comercial",
-    featured: false,
-  },
-  {
-    id: 7,
-    title: "Oficina Ejecutiva",
-    price: "$3,000/mes",
-    location: "El Poblado, Medellín",
-    area: "85 m²",
-    bedrooms: 0,
-    bathrooms: 2,
-    image: "/property-7.jpg",
-    status: "Alquiler",
-    type: "oficina",
-    featured: false,
-  },
-  {
-    id: 8,
-    title: "Casa Familiar",
-    price: "$520,000",
-    location: "Sabaneta, Antioquia",
-    area: "220 m²",
-    bedrooms: 4,
-    bathrooms: 3,
-    image: "/property-8.jpg",
-    status: "Venta",
-    type: "casa",
-    featured: false,
-  },
-  {
-    id: 9,
-    title: "Apartamento con Terraza",
-    price: "$380,000",
-    location: "Envigado, Antioquia",
-    area: "130 m²",
-    bedrooms: 3,
-    bathrooms: 2,
-    image: "/property-9.jpg",
-    status: "Venta",
-    type: "apartamento",
-    featured: false,
-  },
-]
+const formatPrice = (value) => {
+  if (value === null || value === undefined) return "";
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "";
+  return number.toLocaleString("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0
+  });
+};
 
 export function useProperties() {
-  const [properties, setProperties] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
-    type: "all",
-    location: "all",
-    maxPrice: "all",
-    status: "all",
+    type: "Todos los tipos",
+    location: "Todas las ubicaciones",
+    status: "Todos",
     search: ""
-  })
+  });
 
-  // Simular carga de datos
   useEffect(() => {
-    const loadProperties = async () => {
+    const load = async () => {
       try {
-        setLoading(true)
-        // Simular delay de API
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        setProperties(mockProperties)
+        setLoading(true);
+        const allItems = [];
+        let page = 1;
+        const limit = 100;
+        const maxPages = 3;
+
+        while (page <= maxPages) {
+          const { items, pagination } = await inmueblesAPI.getPublicInmuebles({ pagina: page, limite: limit });
+          allItems.push(...(items || []));
+          const totalPages = pagination?.paginas_totales || pagination?.totalPages || 1;
+          if (page >= totalPages) break;
+          page += 1;
+        }
+
+        // normalizar valores usados en la UI
+        const normalized = allItems.map((item) => {
+          const operacionLower = (item.operacion || "").toLowerCase();
+          const statusLower = (item.estado || "").toLowerCase();
+          const hasVenta = operacionLower.includes("venta") || statusLower.includes("venta");
+          const hasArriendo = operacionLower.includes("arriendo") || statusLower.includes("arriendo");
+          let operationTag = "otros";
+          if (hasVenta && hasArriendo) {
+            operationTag = "venta y arriendo";
+          } else if (hasVenta) {
+            operationTag = "venta";
+          } else if (hasArriendo) {
+            operationTag = "arriendo";
+          }
+
+          return {
+            ...item,
+            operationTag,
+            priceLabel: item.precio_venta
+              ? formatPrice(item.precio_venta)
+              : item.precio_arriendo
+                ? `${formatPrice(item.precio_arriendo)}/mes`
+                : formatPrice(item.precio || 0),
+            locationLabel: [item.ciudad, item.departamento].filter(Boolean).join(", "),
+            mainImage: item.imagenes?.[0]?.url || item.imagenes?.[0] || "/images/property/propiedad-1.jpg"
+          };
+        });
+        setProperties(normalized);
+        setError(null);
       } catch (err) {
-        setError("Error al cargar las propiedades")
+        console.error("Error cargando propiedades públicas:", err);
+        setError(err.message || "No se pudieron cargar los inmuebles.");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    loadProperties()
-  }, [])
+    load();
+  }, []);
 
-  // Filtrar propiedades
-  const filteredProperties = properties.filter(property => {
-    const matchesType = filters.type === "all" || property.type === filters.type
-    const matchesLocation = filters.location === "all" || 
-      property.location.toLowerCase().includes(filters.location.toLowerCase())
-    const matchesStatus = filters.status === "all" || property.status === filters.status
-    const matchesSearch = !filters.search || 
-      property.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-      property.location.toLowerCase().includes(filters.search.toLowerCase())
+  const filteredProperties = useMemo(() => {
+    return properties.filter((property) => {
+      const matchesType =
+        filters.type === "Todos los tipos" ||
+        (property.tipo || property.categoria || "").toLowerCase() === filters.type.toLowerCase();
 
-    return matchesType && matchesLocation && matchesStatus && matchesSearch
-  })
+      const matchesLocation =
+        filters.location === "Todas las ubicaciones" ||
+        property.locationLabel.toLowerCase().includes(filters.location.toLowerCase());
 
-  // Obtener propiedades destacadas
-  const featuredProperties = properties.filter(property => property.featured)
+      const matchesStatus = (() => {
+        if (filters.status === "Todos") return true;
+        const tag = (property.operationTag || property.operacion || property.estado || "").toLowerCase();
+        if (filters.status === "venta") {
+          return tag.includes("venta");
+        }
+        if (filters.status === "arriendo") {
+          return tag.includes("arriendo");
+        }
+        return true;
+      })();
 
-  // Obtener propiedad por ID
-  const getPropertyById = (id) => {
-    return properties.find(property => property.id === parseInt(id))
-  }
+      const term = filters.search.trim().toLowerCase();
+      const matchesSearch =
+        term.length === 0 ||
+        (property.titulo || "").toLowerCase().includes(term) ||
+        (property.direccion || "").toLowerCase().includes(term) ||
+        property.locationLabel.toLowerCase().includes(term);
 
-  // Obtener propiedades similares
-  const getSimilarProperties = (propertyId, limit = 3) => {
-    const currentProperty = getPropertyById(propertyId)
-    if (!currentProperty) return []
+      return matchesType && matchesLocation && matchesStatus && matchesSearch;
+    });
+  }, [properties, filters]);
 
-    return properties
-      .filter(property => 
-        property.id !== propertyId && 
-        (property.type === currentProperty.type || property.location === currentProperty.location)
+  const featuredProperties = useMemo(() => {
+    return filteredProperties.slice(0, 6);
+  }, [filteredProperties]);
+
+  const getPropertyById = (id) => properties.find((p) => p.id === Number(id));
+
+  const getSimilarProperties = (id, limit = 3) => {
+    const current = getPropertyById(id);
+    if (!current) return filteredProperties.slice(0, limit);
+    return filteredProperties
+      .filter(
+        (p) =>
+          p.id !== current.id &&
+          ((p.tipo && p.tipo === current.tipo) || p.ciudad === current.ciudad)
       )
-      .slice(0, limit)
-  }
+      .slice(0, limit);
+  };
 
   return {
     properties: filteredProperties,
@@ -196,5 +142,5 @@ export function useProperties() {
     getPropertyById,
     getSimilarProperties,
     totalCount: filteredProperties.length
-  }
+  };
 }

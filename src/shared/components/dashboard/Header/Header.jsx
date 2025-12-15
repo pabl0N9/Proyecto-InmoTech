@@ -2,20 +2,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MdNotifications, MdKeyboardArrowDown } from 'react-icons/md';
 import NotificationDropdown from './NotificationDropdown';
+import ProfileDropdown from './ProfileDropdown';
 import ViewAppointmentModal from '../../../../features/dashboard/components/appointment/ViewAppointmentModal';
 import ConfirmationDialog from '../../../components/ui/ConfirmationDialog';
 import { useAppointments } from '../../../contexts/AppointmentContext';
 import { useToast } from '../../../hooks/use-toast';
 import { useAuth } from '../../../contexts/AuthContext';
+import SettingsModal from '../Header/SettingsModal';
 
 const Header = () => {
-  const { appointments, updateAppointmentStatus } = useAppointments();
+  const { appointments, updateAppointmentStatus, logout } = useAppointments();
   const { user } = useAuth();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const notificationButtonRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -138,6 +141,10 @@ const Header = () => {
       return fullName.trim().charAt(0).toUpperCase();
     }
     return 'U';
+  };
+
+  const getUserAvatar = () => {
+    return user?.foto_perfil_url || user?.foto || user?.avatarUrl || '';
   };
 
   useEffect(() => {
@@ -274,9 +281,18 @@ const Header = () => {
           >
             <motion.div
               whileHover={{ scale: 1.1 }}
-              className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold flex items-center justify-center uppercase text-sm shadow-md"
+              className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold flex items-center justify-center uppercase text-sm shadow-md overflow-hidden"
             >
-              {getUserInitial()}
+              {getUserAvatar() ? (
+                <img
+                  src={getUserAvatar()}
+                  alt={getUserFullName()}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                getUserInitial()
+              )}
             </motion.div>
             <motion.span
               animate={{ rotate: isUserMenuOpen ? 180 : 0 }}
@@ -287,23 +303,19 @@ const Header = () => {
             </motion.span>
           </motion.button>
 
-          <AnimatePresence>
-            {isUserMenuOpen && (
-              <motion.div
-                ref={userMenuDropdownRef}
-                initial={{ opacity: 0, y: -8, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-                className="absolute right-0 mt-3 w-52 bg-white/95 backdrop-blur-xl border border-gray-200/70 rounded-xl shadow-2xl overflow-hidden z-[9999]"
-              >
-                <div className="px-4 py-4">
-                  <p className="text-sm font-semibold text-gray-800 mb-1">{getUserFullName()}</p>
-                  <p className="text-xs text-gray-500">{getUserRole()}</p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <ProfileDropdown
+            isOpen={isUserMenuOpen}
+            onClose={() => setIsUserMenuOpen(false)}
+            triggerRef={userMenuButtonRef}
+            onOpenSettings={() => {
+              setIsUserMenuOpen(false);
+              setIsSettingsModalOpen(true);
+            }}
+            userFullName={getUserFullName()}
+            userRole={getUserRole()}
+            userInitial={getUserInitial()}
+            userAvatar={getUserAvatar()}
+          />
         </div>
       </div>
 
@@ -345,6 +357,12 @@ const Header = () => {
         confirmText="Rechazar"
         cancelText="Cancelar"
         variant="destructive"
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
       />
     </motion.header>
   );

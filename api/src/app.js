@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const corsOptions = require('./config/cors');
+const path = require('path');
 const routes = require('./routes');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler.middleware');
 const { generalLimiter, sanitizeInput } = require('./middlewares/security.middleware');
@@ -15,7 +16,8 @@ const app = express();
 
 app.use(helmet({
   contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
 app.use(cors(corsOptions));
@@ -41,6 +43,9 @@ if (process.env.NODE_ENV === 'development') {
 app.use(sanitizeInput);
 
 app.use(generalLimiter);
+
+// Servir archivos estáticos de imágenes subidas
+app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
 
 app.get('/', (req, res) => {
   res.json({
