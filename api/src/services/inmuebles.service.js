@@ -3,15 +3,9 @@ const {
   Persona,
   PropiedadInmueble,
   Comodidad,
-
-  InmuebleComodidad
-} = require('../models');
-
   InmuebleComodidad,
-  InmuebleImagen,
+  InmuebleImagen
 } = require('../models');
-const fs = require('fs');
-const path = require('path');
 
 const { sequelize } = require('../config/database');
 const { Op } = require('sequelize');
@@ -124,6 +118,18 @@ const mapInmuebleResponse = (inmueble) => {
           : persona.numero_documento
       };
     });
+  }
+
+  if (plain.imagenes) {
+    plain.imagenes = plain.imagenes.map((img) => ({
+      id_imagen: img.id_imagen,
+      nombre_archivo: img.nombre_archivo,
+      ruta_archivo: img.ruta_archivo,
+      titulo: img.titulo,
+      descripcion: img.descripcion,
+      es_principal: img.es_principal,
+      orden: img.orden
+    }));
   }
 
   return plain;
