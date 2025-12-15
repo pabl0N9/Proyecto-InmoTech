@@ -248,11 +248,29 @@ const ProfilePage = () => {
             {/* Profile Photo */}
             <div className="flex flex-col items-center space-y-4">
               <div className="relative">
+<<<<<<< HEAD
                 <img
                   src={imagePreview || `https://ui-avatars.com/api/?name=${(formData.nombre_completo || '').split(' ')[0]}+${(formData.apellidos || '').split(' ')[0] || ''}&background=0D8ABC&color=fff&size=128`}
                   alt="Foto de perfil"
                   className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
                 />
+=======
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Foto de perfil"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <img
+                    src={`https://ui-avatars.com/api/?name=${(formData.nombre_completo || '').split(' ')[0]}+${(formData.apellidos || '').split(' ')[0] || ''}&background=0D8ABC&color=fff&size=128`}
+                    alt="Foto de perfil"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                 <motion.button
                   type="button"
                   whileHover={{ scale: 1.1 }}

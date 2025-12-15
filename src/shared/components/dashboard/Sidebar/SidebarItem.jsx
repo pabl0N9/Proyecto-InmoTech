@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 const SidebarItem = ({ item, isCollapsed, isExpanded, isActive, activeSubItem, onItemClick, onSubItemClick }) => {
   const hasSubItems = item.subItems && item.subItems.length > 0
 
+<<<<<<< HEAD
   const handleClick = () => {
     if (item.title === "Gestión de Inmuebles") {
       // Redirect to InmueblesDashboardPage
@@ -13,6 +14,8 @@ const SidebarItem = ({ item, isCollapsed, isExpanded, isActive, activeSubItem, o
     }
   };
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   return (
     <div className="relative">
       {/* Item Principal */}
@@ -23,7 +26,11 @@ const SidebarItem = ({ item, isCollapsed, isExpanded, isActive, activeSubItem, o
           backgroundColor: isActive ? 'rgba(59, 130, 246, 0.25)' : 'rgba(59, 130, 246, 0.08)'
         }}
         whileTap={{ scale: 0.98 }}
+<<<<<<< HEAD
         onClick={handleClick}
+=======
+        onClick={() => onItemClick(item)}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         className={`
           flex items-center justify-between px-4 py-1 md:py-2 mx-2 rounded-xl cursor-pointer transition-all duration-300 group relative overflow-hidden
           ${

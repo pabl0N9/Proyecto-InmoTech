@@ -14,10 +14,13 @@ import {
   Trophy,
   Shield,
   AlertCircle,
+  AlertCircle,
 } from "lucide-react";
 import { useAuth } from "../../../shared/contexts/AuthContext";
 import { useToast } from "../../../shared/hooks/use-toast";
 import usersApiService from "../../../shared/services/usersApiService";
+import { useAuth } from "../../../shared/contexts/AuthContext";
+import { useToast } from "../../../shared/hooks/use-toast";
 
 // Nota: Necesitarás crear o adaptar estos componentes de UI para tu proyecto
 import { Button } from "../../../shared/components/ui/button";
@@ -25,13 +28,17 @@ import { Input } from "../../../shared/components/ui/input";
 import { Label } from "../../../shared/components/ui/label";
 import { Checkbox } from "../../../shared/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../shared/components/ui/select";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../shared/components/ui/select";
 
-export default function RegistroPage() {
+export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { register } = useAuth();
+  const { toast } = useToast();
   const { register } = useAuth();
   const { toast } = useToast();
 
@@ -45,11 +52,15 @@ export default function RegistroPage() {
     numero_documento: "",
     nombre_completo: "",
     apellido_completo: "",
+    tipo_documento: "",
+    numero_documento: "",
+    nombre_completo: "",
+    apellido_completo: "",
     email: "",
     telefono: "",
     password: "",
     confirmPassword: "",
-    terminos: false,
+    terminos: false
   });
 
   const [passwordStrength, setPasswordStrength] = useState({
@@ -254,9 +265,20 @@ export default function RegistroPage() {
     const { name, value, type, checked } = e.target;
     const newValue = type === "checkbox" ? checked : value;
 
+    let nextValue = type === "checkbox" ? checked : value;
+
+    if (name === "numero_documento") {
+      nextValue = value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    }
+
+    if (name === "telefono") {
+      nextValue = value.replace(/[^\d+\-\s]/g, "");
+    }
+
     setFormData({
       ...formData,
       [name]: newValue,
+      [name]: nextValue,
     });
 
     if (name === "password") {
@@ -275,6 +297,12 @@ export default function RegistroPage() {
 
     if (name === 'confirmPassword') {
       validateField('confirmPassword', newValue);
+        length: nextValue.length >= 8,
+        uppercase: /[A-Z]/.test(nextValue),
+        lowercase: /[a-z]/.test(nextValue),
+        number: /[0-9]/.test(nextValue),
+        special: /[^A-Za-z0-9]/.test(nextValue),
+      });
     }
 
     // Validación en tiempo real con debouncing para email
@@ -355,6 +383,7 @@ export default function RegistroPage() {
 
     setIsLoading(true);
     setError("");
+    setError("");
 
     try {
       console.log('📝 Registrando nuevo usuario...');
@@ -402,6 +431,41 @@ export default function RegistroPage() {
       }
 
     } catch (error) {
+      console.error('❌ Error en registro:', error);
+      const errorMessage = error.message || 'Error al crear la cuenta. Inténtalo de nuevo.';
+      setError(errorMessage);
+      toast({
+        title: "Error en el registro",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+    try {
+      console.log('📝 Registrando nuevo usuario...');
+
+      // Preparar datos para el registro
+      const userData = {
+        tipo_documento: formData.tipo_documento,
+        numero_documento: formData.numero_documento.trim().toUpperCase(),
+        nombre_completo: formData.nombre_completo.trim(),
+        apellido_completo: formData.apellido_completo.trim(),
+        email: formData.email.trim().toLowerCase(),
+        telefono: formData.telefono.replace(/[^\d+\-\s]/g, '').trim(),
+        password: formData.password,
+        confirmPassword: formData.confirmPassword
+      };
+
+      await register(userData);
+
+      console.log('✅ Registro exitoso, redirigiendo a la página principal...');
+      toast({
+        title: "¡Registro exitoso!",
+        description: "Tu cuenta ha sido creada correctamente. Bienvenido a Matriz Inmobiliaria.",
+        variant: "success",
+      });
+      navigate("/");
+
+    } catch (error) {
       console.error('Error en registro:', error);
       const serverErrors = error.data?.errors;
       const errorMessage = serverErrors
@@ -416,12 +480,10 @@ export default function RegistroPage() {
     } finally {
       setIsLoading(false);
     }
+    }
   };
 
-  const getPasswordStrengthScore = () => {
-    return Object.values(passwordStrength).filter(Boolean).length;
-  };
-
+  const getPasswordStrengthScore = () => Object.values(passwordStrength).filter(Boolean).length;
   const getPasswordStrengthColor = () => {
     const score = getPasswordStrengthScore();
     if (score <= 2) return "bg-red-500";
@@ -429,32 +491,28 @@ export default function RegistroPage() {
     if (score <= 4) return "bg-blue-500";
     return "bg-green-500";
   };
-
   const getPasswordStrengthText = () => {
     const score = getPasswordStrengthScore();
-    if (score <= 2) return "Débil";
+    if (score <= 2) return "D�bil";
     if (score <= 3) return "Regular";
     if (score <= 4) return "Buena";
     return "Excelente";
   };
-
   return (
-    <div className="flex flex-1 ">
-      {/* Panel izquierdo */}
+    <div className="flex flex-1">
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#00457B] via-[#0056A3] to-[#0066CC] relative overflow-hidden">
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative z-10 flex flex-col justify-center items-center p-12 text-white mx-auto">
           <div className="max-w-md text-center space-y-8">
             <div className="space-y-4">
               <h1 className="text-3xl font-bold leading-tight">
-                Únete a la
+                �nete a la
                 <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-                  Revolución Inmobiliaria
+                  Revoluci�n Inmobiliaria
                 </span>
               </h1>
-              <p className="text-lg text-blue-100">Más de 10,000 profesionales confían en nosotros</p>
+              <p className="text-lg text-blue-100">M�s de 10,000 profesionales conf�an en nosotros</p>
             </div>
-
             <div className="space-y-6">
               <div className="flex items-center space-x-4 bg-white/10 backdrop-blur-sm rounded-2xl p-4">
                 <div className="bg-gradient-to-r from-yellow-400 to-orange-400 p-3 rounded-xl">
@@ -465,7 +523,6 @@ export default function RegistroPage() {
                   <p className="text-blue-100 text-sm">Acceso a todas las funciones</p>
                 </div>
               </div>
-
               <div className="flex items-center space-x-4 bg-white/10 backdrop-blur-sm rounded-2xl p-4">
                 <div className="bg-gradient-to-r from-green-400 to-emerald-400 p-3 rounded-xl">
                   <Trophy className="h-6 w-6 text-white" />
@@ -475,7 +532,6 @@ export default function RegistroPage() {
                   <p className="text-blue-100 text-sm">Asistencia cuando la necesites</p>
                 </div>
               </div>
-
               <div className="flex items-center space-x-4 bg-white/10 backdrop-blur-sm rounded-2xl p-4">
                 <div className="bg-gradient-to-r from-purple-400 to-pink-400 p-3 rounded-xl">
                   <Shield className="h-6 w-6 text-white" />
@@ -488,28 +544,19 @@ export default function RegistroPage() {
             </div>
           </div>
         </div>
-
-        {/* Elementos decorativos */}
         <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
         <div className="absolute bottom-20 left-20 w-24 h-24 bg-yellow-300/20 rounded-full blur-xl"></div>
         <div className="absolute top-1/3 right-10 w-16 h-16 bg-orange-300/20 rounded-full blur-lg"></div>
       </div>
-
-      {/* Panel derecho - Formulario */}
       <div className="w-full lg:w-3/5 flex items-center justify-center p-8 bg-gradient-to-br from-gray-50 to-white">
-      <div className="w-full max-w-md space-y-8 min-h-[830px] flex flex-col justify-center">
-          {/* Logo móvil */}
+        <div className="w-full max-w-md space-y-8 min-h-[830px] flex flex-col justify-center">
           <div className="lg:hidden text-center">
             <img src="/images/logo-matriz-sin-fondo-negro.png" alt="Matriz Inmobiliaria" width={210} height={50} className="mx-auto" />
           </div>
-
-          {/* Header */}
           <div className="text-center space-y-2">
             <h2 className="text-3xl font-bold text-gray-900">Crea tu cuenta</h2>
             <p className="text-gray-600">Comienza tu viaje inmobiliario hoy mismo</p>
           </div>
-
-          {/* Formulario principal */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 gap-4">
               {/* Campos de documento */}
@@ -532,7 +579,7 @@ export default function RegistroPage() {
                         <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
                         <SelectItem value="CE">Cédula de Extranjería</SelectItem>
                         <SelectItem value="NIT">NIT</SelectItem>
-                        <SelectItem value="PAS">Pasaporte</SelectItem>
+                        <SelectItem value="PASAPORTE">Pasaporte</SelectItem>
                         <SelectItem value="TI">Tarjeta de Identidad</SelectItem>
                       </SelectContent>
                     </Select>
@@ -627,13 +674,98 @@ export default function RegistroPage() {
                       <span className="text-sm">{fieldErrors.apellido_completo}</span>
                     </div>
                   )}
+              {/* Campos de documento */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tipo_documento" className="text-gray-700 font-medium flex items-center">
+                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Tipo de documento
+                  </Label>
+                  <div className="relative">
+                    <Select
+                      value={formData.tipo_documento}
+                      defaultValue="CC"
+                      onValueChange={(value) => setFormData({ ...formData, tipo_documento: value })}
+                    >
+                      <SelectTrigger className="h-12 pl-12 pr-4 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200 w-full">
+                        <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 z-10 pointer-events-none" />
+                        <SelectValue placeholder="Selecciona un tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
+                        <SelectItem value="CE">Cédula de Extranjería</SelectItem>
+                        <SelectItem value="NIT">NIT</SelectItem>
+                        <SelectItem value="PAS">Pasaporte</SelectItem>
+                        <SelectItem value="TI">Tarjeta de Identidad</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="numero_documento" className="text-gray-700 font-medium flex items-center">
+                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Número de documento
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="numero_documento"
+                      name="numero_documento"
+                      placeholder="Tu número de documento"
+                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      value={formData.numero_documento}
+                      onChange={handleChange}
+                      required
+                    />
+                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                  </div>
                 </div>
               </div>
 
+              {/* Campos de nombre y apellido */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nombre_completo" className="text-gray-700 font-medium flex items-center">
+                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Nombre completo
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="nombre_completo"
+                      name="nombre_completo"
+                      placeholder="Tu nombre completo"
+                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      value={formData.nombre_completo}
+                      onChange={handleChange}
+                      required
+                    />
+                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="apellido_completo" className="text-gray-700 font-medium flex items-center">
+                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
+                    Apellido completo
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="apellido_completo"
+                      name="apellido_completo"
+                      placeholder="Tu apellido completo"
+                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                      value={formData.apellido_completo}
+                      onChange={handleChange}
+                      required
+                    />
+                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                  </div>
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-gray-700 font-medium flex items-center">
                   <Mail className="h-4 w-4 mr-2 text-[#00457B]" />
-                  Correo electrónico
+                  Correo electr�nico
                 </Label>
                 <div className="relative">
                   <Input
@@ -680,11 +812,10 @@ export default function RegistroPage() {
                   </div>
                 )}
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="telefono" className="text-gray-700 font-medium flex items-center">
                   <Phone className="h-4 w-4 mr-2 text-[#00457B]" />
-                  Teléfono
+                  Tel�fono
                 </Label>
                 <div className="relative">
                   <Input
@@ -708,29 +839,25 @@ export default function RegistroPage() {
                   </div>
                 )}
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-gray-700 font-medium flex items-center">
                   <Lock className="h-4 w-4 mr-2 text-[#00457B]" />
-                  Contraseña
+                  Contrase�a
                 </Label>
                 <div className="relative">
                   <Input
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="��������"
                     className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                     value={formData.password}
                     onChange={handleChange}
+                    onBlur={() => handleBlur("password")}
                     required
                   />
                   <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                  <button
-                    type="button"
-                    className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
+                  <button type="button" className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors" onClick={() => setShowPassword((prev) => !prev)}>
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
@@ -738,91 +865,46 @@ export default function RegistroPage() {
                   <p className="text-sm text-red-500 mt-1">{fieldErrors.password}</p>
                 )}
               </div>
-
-              {/* Indicador de fortaleza de contraseña */}
               {formData.password && (
                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-xl border border-gray-200">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-gray-700">Fortaleza de contraseña:</span>
-                    <span
-                      className={`text-sm font-semibold ${
-                        getPasswordStrengthScore() <= 2
-                          ? "text-red-600"
-                          : getPasswordStrengthScore() <= 3
-                            ? "text-yellow-600"
-                            : getPasswordStrengthScore() <= 4
-                              ? "text-blue-600"
-                              : "text-green-600"
-                      }`}
-                    >
+                    <span className="text-sm font-medium text-gray-700">Fortaleza de contrase�a:</span>
+                    <span className={`text-sm font-semibold ${getPasswordStrengthScore() <= 2 ? "text-red-600" : getPasswordStrengthScore() <= 3 ? "text-yellow-600" : getPasswordStrengthScore() <= 4 ? "text-blue-600" : "text-green-600"}`}>
                       {getPasswordStrengthText()}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-                    <div
-                      className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthColor()}`}
-                      style={{ width: `${(getPasswordStrengthScore() / 5) * 100}%` }}
-                    ></div>
+                    <div className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthColor()}`} style={{ width: `${(getPasswordStrengthScore() / 5) * 100}%` }}></div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="flex items-center">
-                      {passwordStrength.length ? (
-                        <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" />
-                      ) : (
-                        <XCircle className="h-3 w-3 text-red-500 mr-1" />
-                      )}
-                      <span className="text-gray-600">8+ caracteres</span>
-                    </div>
-                    <div className="flex items-center">
-                      {passwordStrength.uppercase ? (
-                        <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" />
-                      ) : (
-                        <XCircle className="h-3 w-3 text-red-500 mr-1" />
-                      )}
-                      <span className="text-gray-600">Mayúscula</span>
-                    </div>
-                    <div className="flex items-center">
-                      {passwordStrength.number ? (
-                        <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" />
-                      ) : (
-                        <XCircle className="h-3 w-3 text-red-500 mr-1" />
-                      )}
-                      <span className="text-gray-600">Número</span>
-                    </div>
-                    <div className="flex items-center">
-                      {passwordStrength.special ? (
-                        <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" />
-                      ) : (
-                        <XCircle className="h-3 w-3 text-red-500 mr-1" />
-                      )}
-                      <span className="text-gray-600">Símbolo</span>
-                    </div>
+                    {[{ key: "length", label: "8+ caracteres" }, { key: "uppercase", label: "May�scula" }, { key: "number", label: "N�mero" }, { key: "special", label: "S�mbolo" }].map(({ key, label }) => (
+                      <div className="flex items-center" key={key}>
+                        {passwordStrength[key] ? <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" /> : <XCircle className="h-3 w-3 text-red-500 mr-1" />}
+                        <span className="text-gray-600">{label}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
-
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword" className="text-gray-700 font-medium flex items-center">
                   <Lock className="h-4 w-4 mr-2 text-[#00457B]" />
-                  Confirmar contraseña
+                  Confirmar contrase�a
                 </Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="��������"
                     className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
                     value={formData.confirmPassword}
                     onChange={handleChange}
+                    onBlur={() => handleBlur("confirmPassword")}
                     required
                   />
                   <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                  <button
-                    type="button"
-                    className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
+                  <button type="button" className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors" onClick={() => setShowConfirmPassword((prev) => !prev)}>
                     {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
@@ -847,28 +929,26 @@ export default function RegistroPage() {
                   )}
               </div>
             </div>
-
             <div className="flex items-start space-x-3 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
               <Checkbox
                 id="terminos"
                 name="terminos"
                 checked={formData.terminos}
-                onCheckedChange={(checked) => setFormData({ ...formData, terminos: checked })}
+                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, terminos: checked }))}
                 className="h-5 w-5 mt-0.5 border-2 border-[#00457B] text-[#00457B] rounded-md"
                 required
               />
               <Label htmlFor="terminos" className="text-gray-700 font-medium text-sm leading-relaxed">
-                Acepto los{" "}
+                Acepto los
                 <a href="/terminos" className="text-[#00457B] hover:text-[#003b69] font-semibold underline">
-                  términos y condiciones
-                </a>{" "}
-                y la{" "}
+                  t�rminos y condiciones
+                </a>
+                y la
                 <a href="/privacidad" className="text-[#00457B] hover:text-[#003b69] font-semibold underline">
-                  política de privacidad
+                  pol�tica de privacidad
                 </a>
               </Label>
             </div>
-
             <Button
               type="submit"
               className="w-full h-12 bg-gradient-to-r from-[#00457B] to-[#0056A3] hover:from-[#003b69] hover:to-[#004a8f] rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 group"
@@ -886,31 +966,35 @@ export default function RegistroPage() {
                 </div>
               )}
             </Button>
+            {error && (
+              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+                <AlertCircle className="h-4 w-4" />
+                <span>{error}</span>
+              </div>
+            )}
           </form>
-
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500 font-medium">     </span>
+              <span className="px-4 bg-white text-gray-500 font-medium"> </span>
             </div>
           </div>
           <div className="text-center space-y-4">
             <p className="text-gray-600">
-              ¿Ya tienes una cuenta?{" "}
+              �Ya tienes una cuenta?
               <a href="/login" className="text-[#00457B] font-semibold hover:text-[#003b69] transition-colors">
-                Inicia sesión
+                Inicia sesi�n
               </a>
             </p>
-            <p className="text-xs text-gray-500">
-              © {new Date().getFullYear()} Matriz Inmobiliaria. Todos los derechos reservados.
-            </p>
+            <p className="text-xs text-gray-500">� {new Date().getFullYear()} Matriz Inmobiliaria. Todos los derechos reservados.</p>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 

@@ -37,6 +37,22 @@ const STATUS_COLORS = ['#0ea5e9', '#6366f1', '#f97316', '#f43f5e', '#22c55e'];
 const HEATMAP_DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const HEATMAP_HOURS = [8, 10, 12, 14, 16, 18];
 
+const DEFAULT_STATS = {
+  highlights: [
+    { id: 'citas', module: 'citas', label: 'Citas', value: 0, delta: 0, helper: 'Sin datos disponibles' },
+    { id: 'usuarios', module: 'usuarios', label: 'Usuarios', value: 0, delta: 0 },
+    { id: 'administrativos', module: 'administrativos', label: 'Administrativos', value: 0, delta: 0 },
+    { id: 'roles', module: 'roles', label: 'Roles', value: 0, delta: 0 }
+  ],
+  citas: { porEstado: [], porMes: [] },
+  usuarios: { porRol: [] },
+  administrativos: { porEstado: [] },
+  roles: { porPermiso: [] },
+  agendaHoy: [],
+  heatmap: [],
+  modulesAccess: {}
+};
+
 const HIGHLIGHT_THEMES = {
   citas: { gradient: 'from-sky-500 to-indigo-500', icon: MdCalendarToday },
   usuarios: { gradient: 'from-emerald-500 to-green-600', icon: MdPeople },
@@ -244,6 +260,10 @@ const DashboardPage = () => {
       setStats(response);
     } catch (err) {
       setError(err.message || 'No se pudieron cargar las estadísticas');
+
+
+      setStats(DEFAULT_STATS);
+
     } finally {
       setLoading(false);
     }

@@ -3,8 +3,16 @@ const {
   Persona,
   PropiedadInmueble,
   Comodidad,
+
   InmuebleComodidad
 } = require('../models');
+
+  InmuebleComodidad,
+  InmuebleImagen,
+} = require('../models');
+const fs = require('fs');
+const path = require('path');
+
 const { sequelize } = require('../config/database');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');

@@ -1,9 +1,15 @@
+<<<<<<< HEAD
 const { body, param, query, validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 
 /**
  * Middleware para manejar errores de validación
  */
+=======
+const { body, param, validationResult } = require('express-validator');
+const logger = require('../utils/logger');
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -17,9 +23,12 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
+<<<<<<< HEAD
 /**
  * Validaciones para registro de administrativo
  */
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 const validarRegistroAdmin = [
   body('tipo_documento')
     .isIn(['CC', 'CE', 'NIT', 'Pasaporte', 'TI'])
@@ -61,21 +70,27 @@ const validarRegistroAdmin = [
     .isLength({ min: 7, max: 15 })
     .withMessage('El teléfono debe tener entre 7 y 15 caracteres'),
 
+<<<<<<< HEAD
   body('password')
     .isLength({ min: 8 })
     .withMessage('La contraseña debe tener al menos 8 caracteres')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('La contraseña debe contener al menos una letra minúscula, una mayúscula y un número'),
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   body('id_rol')
     .notEmpty()
     .withMessage('El rol es obligatorio')
     .isInt({ min: 1 })
     .withMessage('El ID del rol debe ser un número válido'),
 
+<<<<<<< HEAD
 
   // Código de empleado eliminado - ahora se genera automáticamente en el backend
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   body('fecha_ingreso')
     .isISO8601()
     .withMessage('La fecha de ingreso debe tener formato ISO 8601')
@@ -88,6 +103,7 @@ const validarRegistroAdmin = [
       return true;
     }),
 
+<<<<<<< HEAD
   body('cargo')
     .optional()
     .trim()
@@ -106,6 +122,11 @@ const validarRegistroAdmin = [
 /**
  * Validaciones para actualización de administrativo
  */
+=======
+  handleValidationErrors
+];
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 const validarActualizacionAdmin = [
   param('id')
     .isInt({ min: 1 })
@@ -144,6 +165,7 @@ const validarActualizacionAdmin = [
     .isObject()
     .withMessage('Los datos administrativos deben ser un objeto'),
 
+<<<<<<< HEAD
   body('administrativoData.cargo')
     .optional()
     .trim()
@@ -161,6 +183,11 @@ const validarActualizacionAdmin = [
 /**
  * Validaciones para cambio de estado laboral
  */
+=======
+  handleValidationErrors
+];
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 const validarCambioEstado = [
   param('id')
     .isInt({ min: 1 })

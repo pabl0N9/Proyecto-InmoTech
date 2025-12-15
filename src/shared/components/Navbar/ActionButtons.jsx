@@ -74,6 +74,10 @@ const ActionButtons = ({ className = '', onButtonClick }) => {
     const displayInfo = user.nombre_completo ? `${displayName} (${user.email})` : user.email;
     const shouldShowDashboard = hasDashboardAccess();
     const userInitials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+<<<<<<< HEAD
+=======
+    const avatarUrl = user?.foto_perfil_url || user?.foto || user?.avatarUrl || null;
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
     return (
       <div className={`hidden md:flex items-center ${className}`}>
@@ -84,8 +88,22 @@ const ActionButtons = ({ className = '', onButtonClick }) => {
             className="flex items-center space-x-3 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/30 text-white rounded-full hover:bg-white/20 transition-all duration-300 shadow-lg"
           >
             {/* User Avatar Circle */}
+<<<<<<< HEAD
             <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm">
               {userInitials || <User className="h-4 w-4" />}
+=======
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm overflow-hidden">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                userInitials || <User className="h-4 w-4" />
+              )}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             </div>
 
             {/* User Name and Chevron */}
@@ -108,8 +126,22 @@ const ActionButtons = ({ className = '', onButtonClick }) => {
               {/* User Info */}
               <div className="px-4 py-3 border-b border-gray-100">
                 <div className="flex items-center space-x-3">
+<<<<<<< HEAD
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-sm font-bold text-white">
                     {userInitials || <User className="h-5 w-5" />}
+=======
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-sm font-bold text-white overflow-hidden">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      userInitials || <User className="h-5 w-5" />
+                    )}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">

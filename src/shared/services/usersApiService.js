@@ -44,7 +44,12 @@ class UsersApiService {
    */
   async getUsers(params = {}) {
     try {
+<<<<<<< HEAD
       const responseParams = { ...params, rol: 'Usuario' };
+=======
+      const responseParams = { ...params };
+      delete responseParams.estado;
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
       const response = await apiClient.get('/personas', { params: responseParams });
 

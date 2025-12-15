@@ -158,6 +158,7 @@ class PersonasController {
       const personaData = req.validatedData;
       const { password, confirmPassword, ...personaDataSinPassword } = personaData;
 
+<<<<<<< HEAD
       // Normalizar nombres completos si el frontend envía campos separados
       const nombreCompleto =
         personaDataSinPassword.nombre_completo ||
@@ -181,6 +182,9 @@ class PersonasController {
       };
 
       const persona = await personasService.crearPersonaAdmin(payloadPersona, password);
+=======
+      const persona = await personasService.crearPersonaAdmin(personaDataSinPassword, password);
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
       // Si no se proporcionó contraseña, generar invitación administrativa para que cree su acceso
       if (!password) {

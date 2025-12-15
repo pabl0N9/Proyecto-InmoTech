@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import usersApiService from '../services/usersApiService';
 import invitacionApiService from '../services/invitacionApiService';
+<<<<<<< HEAD
+=======
+import authService from '../services/authService';
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from './AuthContext';
 
@@ -270,7 +274,11 @@ export const UsersProvider = ({ children }) => {
     try {
       // Para cuentas con correo sin verificar, usa el flujo de verificación de correo
       if (user.correo && user.correo_verificado === false) {
+<<<<<<< HEAD
         await require('../services/authService').default.resendVerificationCode(user.correo);
+=======
+        await authService.resendVerificationCode(user.correo);
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       } else {
         await invitacionApiService.crearInvitacion(user.id_persona);
       }

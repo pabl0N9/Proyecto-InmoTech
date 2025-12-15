@@ -3,7 +3,10 @@ import { Loader2, Plus, Trash2, AlertCircle, Building2, MapPin, Layers, UserChec
 import ownersApiService from '../../../../../../shared/services/ownersApiService';
 import { WizardModalLayout } from '../common/wizardModalLayout';
 import CreateOwnerModal from '../owners/CreateOwnerModal';
+<<<<<<< HEAD
 import { inmueblesAPI } from '../../../../../../shared/services/propertyApidervice';
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
 const PROPERTY_TYPES = ['Casa', 'Apartamento', 'Local', 'Oficina', 'Bodega', 'Lote', 'Finca', 'Otro'];
 const OPERATION_OPTIONS = ['Venta', 'Arriendo', 'Venta y Arriendo'];

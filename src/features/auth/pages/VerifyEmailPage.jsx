@@ -23,6 +23,10 @@ export default function VerifyEmailPage() {
   const [remainingCodes, setRemainingCodes] = useState(null);
   const [tokenError, setTokenError] = useState('');
   const [info, setInfo] = useState('');
+<<<<<<< HEAD
+=======
+  const [codigoError, setCodigoError] = useState('');
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   useEffect(() => {
     codeRefs.current[0]?.focus();
@@ -67,6 +71,10 @@ export default function VerifyEmailPage() {
     const next = [...codigoDigits];
     next[idx] = digit;
     setCodigoDigits(next);
+<<<<<<< HEAD
+=======
+    setCodigoError('');
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
     if (digit && idx < codeRefs.current.length - 1) {
       codeRefs.current[idx + 1]?.focus();
@@ -89,8 +97,13 @@ export default function VerifyEmailPage() {
       return;
     }
     if (codigo.length !== 6) {
+<<<<<<< HEAD
       setEstado('error');
       setMensaje('Ingresa los 6 digitos del codigo.');
+=======
+      setEstado('idle');
+      setCodigoError('Ingresa los 6 digitos del codigo.');
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return;
     }
 
@@ -104,6 +117,7 @@ export default function VerifyEmailPage() {
         setMensaje('Listo, tu correo quedo verificado. Redirigiendo al inicio de sesion...');
         setTimeout(() => navigate('/login'), 1200);
       } else {
+<<<<<<< HEAD
         setEstado('error');
         setMensaje(res?.message || 'No pudimos verificar el codigo.');
       }
@@ -114,13 +128,34 @@ export default function VerifyEmailPage() {
         setLimitReached(true);
       }
       setMensaje(err?.data?.message || err?.message || 'No pudimos verificar el codigo.');
+=======
+        setEstado('idle');
+        setCodigoError(res?.message || 'El codigo no es correcto. Intenta nuevamente o solicita uno nuevo.');
+        codeRefs.current[0]?.focus();
+      }
+    } catch (err) {
+      const reason = err?.reason || err?.data?.reason;
+      if (reason === 'VERIFICATION_LIMIT') {
+        setLimitReached(true);
+        setEstado('error');
+        setMensaje(err?.data?.message || err?.message || 'Alcanzaste el limite de codigos.');
+      } else {
+        setEstado('idle');
+        setCodigoError(err?.data?.message || err?.message || 'El codigo no es correcto. Intenta nuevamente o solicita uno nuevo.');
+        codeRefs.current[0]?.focus();
+      }
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleResend = async () => {
+<<<<<<< HEAD
     if (!activeToken && !email) {
+=======
+    if (!activeToken) {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       setEstado('error');
       setMensaje('Link invalido. Abre el enlace de tu correo para verificar.');
       return;
@@ -128,6 +163,7 @@ export default function VerifyEmailPage() {
     setIsResending(true);
     setMensaje('');
     setInfo('');
+<<<<<<< HEAD
     try {
       let res = null;
       if (activeToken) {
@@ -135,6 +171,11 @@ export default function VerifyEmailPage() {
       } else if (email) {
         res = await authService.resendVerificationCode(email.trim().toLowerCase());
       }
+=======
+    setCodigoError('');
+    try {
+      const res = await invitacionApi.reenviar(activeToken);
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       if (res?.success) {
         const total = res.data?.total_enviados || 0;
         const max = res.data?.max_codigos || 5;
@@ -274,6 +315,12 @@ export default function VerifyEmailPage() {
                   />
                 ))}
               </div>
+<<<<<<< HEAD
+=======
+              {codigoError && (
+                <p className="text-sm text-red-600">{codigoError}</p>
+              )}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             </div>
 
             <button
@@ -303,7 +350,11 @@ export default function VerifyEmailPage() {
             <button
               type="button"
               onClick={handleResend}
+<<<<<<< HEAD
               disabled={isResending || limitReached || (!activeToken && !email)}
+=======
+              disabled={isResending || limitReached || !activeToken}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-[#00457B] border border-[#00457B] hover:bg-blue-50 disabled:opacity-50"
             >
               {isResending ? (

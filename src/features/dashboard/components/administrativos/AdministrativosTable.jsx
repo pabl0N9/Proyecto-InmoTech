@@ -1,6 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+<<<<<<< HEAD
 import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, User, Mail, Phone, Calendar, Building } from 'lucide-react';
+=======
+import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, User, Mail, Phone, Calendar } from 'lucide-react';
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import administrativosApiService from '../../../../shared/services/administrativosApiService';
 import AdministrativoStatusSelector from '../../../../shared/components/ui/AdministrativoStatusSelector';
@@ -75,6 +79,7 @@ const AdministrativosTable = ({
     return administrativo?.persona?.telefono || '-';
   };
 
+<<<<<<< HEAD
   // Helper para obtener el cargo
   const getPosition = (administrativo) => {
     return administrativo?.cargo || '-';
@@ -85,6 +90,8 @@ const AdministrativosTable = ({
     return administrativo?.departamento || '-';
   };
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   // Helper para obtener el código de empleado
   const getEmployeeCode = (administrativo) => {
     return administrativo?.codigo_empleado || '-';
@@ -137,10 +144,13 @@ const AdministrativosTable = ({
             <span>{formatPhoneNumber(getPhone(administrativo))}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-600">
+<<<<<<< HEAD
             <Building className="w-4 h-4" />
             <span>{getPosition(administrativo)} - {getDepartment(administrativo)}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-600">
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             <Calendar className="w-4 h-4" />
             <span>Ingreso: {getHireDate(administrativo)}</span>
           </div>
@@ -197,9 +207,12 @@ const AdministrativosTable = ({
                   Administrativo
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+<<<<<<< HEAD
                   Cargo & Departamento
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   Contacto
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -238,10 +251,13 @@ const AdministrativosTable = ({
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+<<<<<<< HEAD
                       <div className="text-sm text-slate-900">{getPosition(administrativo)}</div>
                       <div className="text-sm text-slate-500">{getDepartment(administrativo)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                       <div className="flex items-center gap-2">
                         <Mail className="w-4 h-4 text-slate-400" />
                         <span className="text-sm text-slate-900">{getEmail(administrativo)}</span>

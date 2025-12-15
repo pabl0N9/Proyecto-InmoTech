@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // Centraliza las rutas para el menu del dashboard
+=======
+// Centraliza las rutas para el menú del dashboard
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 import { dashboardRoutes } from '../../routes/index';
 
 import {
@@ -14,6 +18,7 @@ import {
 } from 'react-icons/md';
 
 /**
+<<<<<<< HEAD
  * Filtra los elementos visibles segun los modulos habilitados
  */
 export const getFilteredNavigation = (availableModules = []) => {
@@ -25,16 +30,35 @@ export const getFilteredNavigation = (availableModules = []) => {
     availableModules.includes('administrativos');
 
   if (hasFullAccess) {
+=======
+ * Filtra los elementos visibles según los módulos habilitados
+ */
+export const getFilteredNavigation = (availableModules = []) => {
+  if (
+    availableModules.includes('inmuebles') ||
+    availableModules.includes('citas') ||
+    availableModules.includes('reportes') ||
+    availableModules.includes('administrativos')
+  ) {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     return navigationItems;
   }
 
   const filteredItems = [navigationItems[0]];
 
+<<<<<<< HEAD
   if (availableModules.includes('citas') || availableModules.includes('gCitas')) {
     filteredItems.push(navigationItems.find(item => item.id === 'citas'));
   }
 
   if (availableModules.includes('inmuebles') || availableModules.includes('propiedades')) {
+=======
+  if (availableModules.includes('citas')) {
+    filteredItems.push(navigationItems.find(item => item.id === 'citas'));
+  }
+
+  if (availableModules.includes('inmuebles')) {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     filteredItems.push(navigationItems.find(item => item.id === 'inmuebles'));
   }
 
@@ -48,10 +72,17 @@ export const getFilteredNavigation = (availableModules = []) => {
   if (availableModules.includes('usuarios')) {
     subItemsSeguridad.push(seguridadItem.subItems[0]);
   }
+<<<<<<< HEAD
   if (availableModules.includes('administrativos') || availableModules.includes('gAdministrativos')) {
     subItemsSeguridad.push(seguridadItem.subItems[1]);
   }
   if (availableModules.includes('roles') || availableModules.includes('gRoles')) {
+=======
+  if (availableModules.includes('administrativos')) {
+    subItemsSeguridad.push(seguridadItem.subItems[1]);
+  }
+  if (availableModules.includes('roles')) {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     subItemsSeguridad.push(seguridadItem.subItems[2]);
   }
 
@@ -62,7 +93,11 @@ export const getFilteredNavigation = (availableModules = []) => {
   return filteredItems;
 };
 
+<<<<<<< HEAD
 // Lista de elementos principales del menu de navegacion
+=======
+// Ítems principales del menú lateral
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 export const navigationItems = [
   {
     id: 'dashboard',
@@ -80,14 +115,24 @@ export const navigationItems = [
       {
         id: 'gestion-inmuebles',
         title: 'Gestion de Inmuebles',
+<<<<<<< HEAD
         path: dashboardRoutes.properties,
+=======
+        path: dashboardRoutes.properties
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       },
       {
         id: 'gestion-propietarios',
         title: 'Gestion de Propietarios',
+<<<<<<< HEAD
         path: dashboardRoutes.owners,
       },
     ],
+=======
+        path: dashboardRoutes.owners
+      }
+    ]
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   },
   {
     id: 'citas',

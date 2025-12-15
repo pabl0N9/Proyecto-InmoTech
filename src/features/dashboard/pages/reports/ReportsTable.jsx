@@ -1,7 +1,11 @@
 import React, { useState } from 'react'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
+<<<<<<< HEAD
 import { EyeIcon, EditIcon, DownloadIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+=======
+import { EyeIcon, EditIcon, DownloadIcon, ChevronLeftIcon, ChevronRightIcon, FileText, MapPin, Building, User, Calendar, BarChart3, CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react'
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
 export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
   const [sortField, setSortField] = useState(null)
@@ -23,11 +27,58 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
         return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'Sin novedades':
         return 'bg-gray-100 text-gray-800 border-gray-200'
+<<<<<<< HEAD
+=======
+      case 'Pendiente':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'Cancelado':
+        return 'bg-red-100 text-red-800 border-red-200'
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
 
+<<<<<<< HEAD
+=======
+  // Función para obtener información del estado con icono
+  const getStatusInfo = (estado) => {
+    const statusConfig = {
+      'Completado': {
+        color: 'bg-green-50 text-green-700 border border-green-100',
+        icon: CheckCircle,
+        label: 'Completado'
+      },
+      'En proceso': {
+        color: 'bg-blue-50 text-blue-700 border border-blue-100',
+        icon: Clock,
+        label: 'En Proceso'
+      },
+      'Cotizando': {
+        color: 'bg-yellow-50 text-yellow-700 border border-yellow-100',
+        icon: AlertCircle,
+        label: 'Cotizando'
+      },
+      'Sin novedades': {
+        color: 'bg-gray-50 text-gray-700 border border-gray-100',
+        icon: AlertCircle,
+        label: 'Sin Novedades'
+      },
+      'Pendiente': {
+        color: 'bg-yellow-50 text-yellow-700 border border-yellow-100',
+        icon: AlertCircle,
+        label: 'Pendiente'
+      },
+      'Cancelado': {
+        color: 'bg-red-50 text-red-700 border border-red-100',
+        icon: XCircle,
+        label: 'Cancelado'
+      }
+    };
+    return statusConfig[estado] || statusConfig['Pendiente'];
+  }
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   // Función para manejar el ordenamiento
   const handleSort = (field) => {
     if (sortField === field) {
@@ -76,6 +127,110 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
     setCurrentPage(1)
   }, [sortedReports.length])
 
+<<<<<<< HEAD
+=======
+  // Calcular estadísticas
+  const stats = {
+    total: reportsData.length,
+    pendientes: reportsData.filter(r => r.estado === 'Pendiente').length,
+    enProceso: reportsData.filter(r => r.estado === 'En proceso').length,
+    completados: reportsData.filter(r => r.estado === 'Completado').length,
+    cancelados: reportsData.filter(r => r.estado === 'Cancelado').length,
+    cotizando: reportsData.filter(r => r.estado === 'Cotizando').length,
+    sinNovedades: reportsData.filter(r => r.estado === 'Sin novedades').length
+  }
+
+  // Componente para tarjeta de reporte
+  const ReportCard = ({ report, index }) => {
+    const statusInfo = getStatusInfo(report.estado)
+    const StatusIcon = statusInfo.icon
+
+    return (
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm px-6 py-5 flex flex-col gap-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Reporte</div>
+            <div className="text-2xl font-bold text-slate-900">#{report.id}</div>
+            <div className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold shadow-sm ${statusInfo.color}`}>
+              <StatusIcon className="h-4 w-4" />
+              <span className="tracking-wide">{statusInfo.label}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+              Ubicación
+            </p>
+            <div className="flex items-center gap-2 text-sm text-slate-700">
+              <MapPin className="h-4 w-4 text-[#00457B]" />
+              <span className="capitalize">{report.ubicacion}</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+              Propiedad & Propietario
+            </p>
+            <div className="flex items-center gap-2 text-sm text-slate-700 mb-1">
+              <Building className="h-4 w-4 text-[#00457B]" />
+              <span className="capitalize">{report.tipoInmueble}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-700">
+              <User className="h-4 w-4 text-[#00457B]" />
+              <span>{report.propietario}</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+              Tipo de Reporte & Fecha
+            </p>
+            <div className="flex items-center gap-2 text-sm text-slate-700 mb-1">
+              <FileText className="h-4 w-4 text-[#00457B]" />
+              <span className="capitalize">{report.tipoReporte}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-700">
+              <Calendar className="h-4 w-4 text-[#00457B]" />
+              <span>{report.fecha}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-slate-500">
+            Gestiona este reporte para revisar detalles, editar información o descargar el PDF.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => onView?.(report)}
+              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+            >
+              <EyeIcon className="h-4 w-4" />
+              Ver detalles
+            </button>
+            <button
+              onClick={() => onEdit?.(report)}
+              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-[#00457B] text-white hover:bg-[#005a9e] transition-colors"
+            >
+              <EditIcon className="h-4 w-4" />
+              Editar
+            </button>
+            <button
+              onClick={() => onDownloadPDF?.(report)}
+              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+            >
+              <DownloadIcon className="h-4 w-4" />
+              Descargar PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   // Componente para vista móvil (tarjetas)
   const MobileCard = ({ report }) => (
     <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
@@ -159,6 +314,7 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
   )
 
   return (
+<<<<<<< HEAD
     <div className="bg-white shadow-sm rounded-lg">
       {/* Vista Desktop - Tabla optimizada */}
       <div className="hidden lg:block">
@@ -319,6 +475,74 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
       {/* Paginador - Responsive */}
       {sortedReports.length > 0 && (
         <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+=======
+    <div className="space-y-6">
+      {/* Estadísticas */}
+      {reportsData.length > 0 && (
+        <section className="bg-white rounded-3xl shadow-sm border border-slate-100 px-5 py-5 space-y-5">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-slate-600" />
+            <h2 className="text-lg font-semibold text-slate-800">Estadísticas de Reportes</h2>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 shadow-lg shadow-slate-200/40 hover:shadow-slate-300/50 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/60 pointer-events-none"></div>
+              <BarChart3 className="h-4 w-4 text-slate-600 mb-1" />
+              <div className="text-xl font-semibold text-slate-800">{stats.total}</div>
+              <div className="text-xs text-slate-600">Total</div>
+            </div>
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-yellow-100 bg-white shadow-lg shadow-yellow-200/30 hover:shadow-yellow-300/40 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
+              <AlertCircle className="h-4 w-4 text-yellow-600 mb-1" />
+              <div className="text-xl font-semibold text-yellow-700">{stats.pendientes}</div>
+              <div className="text-xs text-yellow-600">Pendientes</div>
+            </div>
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-blue-100 bg-white shadow-lg shadow-blue-200/30 hover:shadow-blue-300/40 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
+              <Clock className="h-4 w-4 text-blue-600 mb-1" />
+              <div className="text-xl font-semibold text-blue-700">{stats.enProceso}</div>
+              <div className="text-xs text-blue-600">En Proceso</div>
+            </div>
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-green-100 bg-white shadow-lg shadow-green-200/30 hover:shadow-green-300/40 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
+              <CheckCircle className="h-4 w-4 text-green-600 mb-1" />
+              <div className="text-xl font-semibold text-green-700">{stats.completados}</div>
+              <div className="text-xs text-green-600">Completados</div>
+            </div>
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-red-100 bg-white shadow-lg shadow-red-200/30 hover:shadow-red-300/40 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
+              <XCircle className="h-4 w-4 text-red-600 mb-1" />
+              <div className="text-xl font-semibold text-red-700">{stats.cancelados}</div>
+              <div className="text-xs text-red-600">Cancelados</div>
+            </div>
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-amber-100 bg-white shadow-lg shadow-amber-200/30 hover:shadow-amber-300/40 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
+              <AlertCircle className="h-4 w-4 text-amber-600 mb-1" />
+              <div className="text-xl font-semibold text-amber-700">{stats.cotizando}</div>
+              <div className="text-xs text-amber-600">Cotizando</div>
+            </div>
+            <div className="relative rounded-2xl px-3 py-3 flex flex-col items-center justify-center text-center border-2 border-gray-100 bg-white shadow-lg shadow-gray-200/30 hover:shadow-gray-300/40 hover:-translate-y-0.5 transition-all duration-200">
+              <div className="absolute inset-0 rounded-2xl border border-white/70 pointer-events-none"></div>
+              <AlertCircle className="h-4 w-4 text-gray-600 mb-1" />
+              <div className="text-xl font-semibold text-gray-700">{stats.sinNovedades}</div>
+              <div className="text-xs text-gray-600">Sin Novedades</div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Lista de reportes en tarjetas */}
+      <div className="space-y-4">
+        {currentReports.map((report, index) => (
+          <ReportCard key={report.id} report={report} index={index} />
+        ))}
+      </div>
+
+      {/* Paginador - Responsive */}
+      {sortedReports.length > 0 && (
+        <div className="bg-white px-4 py-3 border-t border-slate-100 sm:px-6 rounded-3xl shadow-sm">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           <div className="flex items-center justify-between">
             <div className="flex-1 flex justify-between sm:hidden">
               <Button
@@ -340,7 +564,11 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
+<<<<<<< HEAD
                 <p className="text-sm text-gray-700">
+=======
+                <p className="text-sm text-slate-700">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   Mostrando{' '}
                   <span className="font-medium">{startIndex + 1}</span>
                   {' '}a{' '}
@@ -359,11 +587,19 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
                     disabled={currentPage === 1}
                     variant="outline"
                     size="sm"
+<<<<<<< HEAD
                     className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </Button>
                   
+=======
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50"
+                  >
+                    <ChevronLeftIcon className="h-5 w-5" />
+                  </Button>
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <Button
                       key={page}
@@ -373,19 +609,31 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
                       className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                         currentPage === page
                           ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+<<<<<<< HEAD
                           : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+=======
+                          : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                       }`}
                     >
                       {page}
                     </Button>
                   ))}
+<<<<<<< HEAD
                   
+=======
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   <Button
                     onClick={goToNextPage}
                     disabled={currentPage === totalPages}
                     variant="outline"
                     size="sm"
+<<<<<<< HEAD
                     className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+=======
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50"
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   >
                     <ChevronRightIcon className="h-5 w-5" />
                   </Button>
@@ -395,6 +643,7 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
           </div>
         </div>
       )}
+<<<<<<< HEAD
       
       {/* Estado vacío */}
       {sortedReports.length === 0 && (
@@ -402,6 +651,21 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
           <div className="text-gray-500">
             No se encontraron reportes
           </div>
+=======
+
+      {/* Estado vacío */}
+      {sortedReports.length === 0 && (
+        <div className="text-center py-16 bg-white rounded-3xl shadow-sm border border-slate-100">
+          <div className="mb-6">
+            <FileText className="mx-auto h-16 w-16 text-slate-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-slate-800 mb-3">
+            ¡No hay reportes registrados aún!
+          </h3>
+          <p className="text-slate-600 mb-6 max-w-md mx-auto">
+            Los reportes aparecerán aquí una vez que se registren en el sistema.
+          </p>
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         </div>
       )}
     </div>

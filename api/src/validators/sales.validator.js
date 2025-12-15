@@ -1,7 +1,12 @@
 const Joi = require('joi');
 
 const paymentMethods = ['efectivo', 'transferencia', 'credito', 'mixto'];
+<<<<<<< HEAD
 const saleStatuses = ['Activa', 'Pendiente', 'Finalizada', 'Cancelada'];
+=======
+// Permitimos estados de flujo y de pago (Pagado/Vencido) para soportar UI actual
+const saleStatuses = ['Activa', 'Pendiente', 'Finalizada', 'Cancelada', 'Pagado', 'Vencido'];
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
 const createSaleSchema = Joi.object({
   id_inmueble: Joi.number().integer().required(),
@@ -23,7 +28,11 @@ const updateSaleSchema = Joi.object({
 
 const createTrackingSchema = Joi.object({
   id_estado_venta: Joi.number().integer().required(),
+<<<<<<< HEAD
   id_persona: Joi.number().integer().required(),
+=======
+  id_comprador: Joi.number().integer().required(),
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   fecha_estado_seguimiento: Joi.date().iso().required(),
   descripcion: Joi.string().max(500).allow('', null)
 });

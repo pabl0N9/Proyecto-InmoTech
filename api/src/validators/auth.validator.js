@@ -151,6 +151,7 @@ const actualizarPerfilSchema = Joi.object({
     .min(10)
     .max(20)
     .pattern(/^[0-9\s\+\-]+$/)
+<<<<<<< HEAD
     .optional()
     .messages({
       'string.min': 'El teléfono debe tener al menos 10 caracteres',
@@ -167,6 +168,15 @@ const actualizarPerfilSchema = Joi.object({
 
   foto_public_id: Joi.string()
     .max(255)
+=======
+    .optional(),
+
+  foto_perfil_url: Joi.string()
+    .uri()
+    .optional(),
+
+  foto_public_id: Joi.string()
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     .optional()
 })
   .min(1)
@@ -217,6 +227,7 @@ const resendCodeSchema = Joi.object({
     })
 });
 
+<<<<<<< HEAD
 const forgotPasswordSchema = Joi.object({
   email: Joi.string()
     .email({ tlds: { allow: false } })
@@ -265,6 +276,8 @@ const resetPasswordTokenSchema = Joi.object({
     })
 });
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 module.exports = {
   registroSchema,
   loginSchema,
@@ -273,8 +286,12 @@ module.exports = {
   refreshTokenSchema,
   verifyEmailSchema,
   verifyCodeSchema,
+<<<<<<< HEAD
   resendCodeSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   resetPasswordTokenSchema
+=======
+  resendCodeSchema
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 };

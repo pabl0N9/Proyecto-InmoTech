@@ -27,11 +27,19 @@ class InvitacionService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
+<<<<<<< HEAD
   async crearInvitacion({ id_persona, creado_por, tipo = INVITE_TYPES.ADMIN, reenvios = 0 }) {
+=======
+  async crearInvitacion({ id_persona, creado_por, tipo = INVITE_TYPES.ADMIN, reenvios = 0, rol_asignado = null, es_administrativo = false }) {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     const persona = await Persona.findByPk(id_persona);
     if (!persona) throw new Error('Persona no encontrada');
 
     const inviteType = tipo || INVITE_TYPES.ADMIN;
+<<<<<<< HEAD
+=======
+    const esAdminInvite = es_administrativo || inviteType === INVITE_TYPES.ADMIN;
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
     const token = this.generarToken();
     const token_hash = this.hashToken(token);
@@ -74,7 +82,13 @@ class InvitacionService {
         token,
         codigo_6d,
         expira_en,
+<<<<<<< HEAD
         activationLink
+=======
+        activationLink,
+        rol_asignado: rol_asignado || (esAdminInvite ? 'Administrativo' : null),
+        es_administrativo: esAdminInvite
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       });
     }
 
@@ -139,7 +153,11 @@ class InvitacionService {
     return nuevo;
   }
 
+<<<<<<< HEAD
   async reenviarSignupPorEmail(email) {
+=======
+  async reenviarSignupPorEmail(email, { ignoreLimit = false } = {}) {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     const persona = await Persona.findOne({ where: { correo: email } });
     if (!persona) throw new Error('No encontramos una cuenta con ese correo');
     if (persona.correo_verificado) throw new Error('Esta cuenta ya fue verificada');
@@ -152,7 +170,11 @@ class InvitacionService {
     const reenviosActuales = ultimaInvitacion?.reenvios || 0;
     const siguienteReenvio = reenviosActuales + 1;
 
+<<<<<<< HEAD
     if (siguienteReenvio >= VERIFICATION_MAX_CODES) {
+=======
+    if (!ignoreLimit && siguienteReenvio >= VERIFICATION_MAX_CODES) {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       const limitError = new Error('Has superado el limite de codigos disponibles. Contacta a soporte para validar tu cuenta.');
       limitError.code = 'VERIFICATION_LIMIT';
       throw limitError;
@@ -358,6 +380,7 @@ class InvitacionService {
         { tiene_cuenta: true, correo_verificado: true },
         { where: { id_persona: invitacion.id_persona } }
       );
+<<<<<<< HEAD
 
       // Asegurar rol Usuario asignado
       const rolUsuario = await Rol.findOne({ where: { nombre_rol: 'Usuario' } });
@@ -372,6 +395,8 @@ class InvitacionService {
           });
         }
       }
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     } else if (invitacion.tipo === INVITE_TYPES.SIGNUP_VERIFY) {
       return this.verificarCorreo(token, { ip, userAgent });
     }

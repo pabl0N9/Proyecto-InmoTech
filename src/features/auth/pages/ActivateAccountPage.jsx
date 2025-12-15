@@ -40,6 +40,10 @@ export default function ActivateAccountPage() {
     special: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+<<<<<<< HEAD
+=======
+  const [codigoError, setCodigoError] = useState('');
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   const passwordScore = Object.values(passwordStrength).filter(Boolean).length;
   const getPasswordStrengthText = () => strengthLabels[Math.max(0, Math.min(passwordScore - 1, 4))] || strengthLabels[0];
@@ -55,6 +59,10 @@ export default function ActivateAccountPage() {
     const next = [...codigoDigits];
     next[idx] = digit;
     setCodigoDigits(next);
+<<<<<<< HEAD
+=======
+    setCodigoError('');
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
     if (digit && idx < codeRefs.current.length - 1) {
       codeRefs.current[idx + 1]?.focus();
@@ -86,6 +94,10 @@ export default function ActivateAccountPage() {
     if (!token) return;
     setIsSubmitting(true);
     setMensaje('');
+<<<<<<< HEAD
+=======
+    setCodigoError('');
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     try {
       const res = await invitacionApi.reenviar(token);
       if (res && res.success) {
@@ -161,8 +173,13 @@ export default function ActivateAccountPage() {
     if (!token) return;
     const codigo = codigoDigits.join('');
     if (codigo.length !== 6) {
+<<<<<<< HEAD
       setEstado('error');
       setMensaje('Ingresa el codigo completo de 6 digitos');
+=======
+      setEstado('ready');
+      setCodigoError('Ingresa el codigo completo de 6 digitos');
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return;
     }
     if (password !== confirmPassword) {
@@ -187,8 +204,14 @@ export default function ActivateAccountPage() {
           setTimeout(() => navigate('/'), 800);
           return;
         }
+<<<<<<< HEAD
         setEstado('error');
         setMensaje(rawMsg);
+=======
+        setEstado('ready');
+        setCodigoError('El codigo no es correcto. Intenta nuevamente o solicita un nuevo correo.');
+        codeRefs.current[0]?.focus();
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       }
     } catch (err) {
       const rawMsg = err?.data?.message || err.message || 'No se pudo completar la activacion';
@@ -198,8 +221,14 @@ export default function ActivateAccountPage() {
         setTimeout(() => navigate('/'), 800);
         return;
       }
+<<<<<<< HEAD
       setEstado('error');
       setMensaje(rawMsg);
+=======
+      setEstado('ready');
+      setCodigoError('El codigo no es correcto. Intenta nuevamente o solicita un nuevo correo.');
+      codeRefs.current[0]?.focus();
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     } finally {
       setIsSubmitting(false);
     }
@@ -368,6 +397,12 @@ export default function ActivateAccountPage() {
                       />
                     ))}
                   </div>
+<<<<<<< HEAD
+=======
+                  {codigoError && (
+                    <p className="text-sm text-red-600">{codigoError}</p>
+                  )}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                 </div>
 
                 <div className="space-y-2">

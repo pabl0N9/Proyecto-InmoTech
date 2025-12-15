@@ -23,8 +23,13 @@ export const publicNavigationLinks = [
 // Rutas del dashboard (de navigationData.js original)
 export const dashboardRoutes = {
   dashboard: '/dashboard',
+<<<<<<< HEAD
   properties: '/dashboard/inmuebles',
   owners: '/dashboard/propietarios',
+=======
+  properties: '/inmuebles/gestion',
+  owners: '/inmuebles/propietarios',
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   appointments: '/dashboard/citas',
   clients: '/dashboard/citas/clientes',
   sales: '/dashboard/salesManagement',

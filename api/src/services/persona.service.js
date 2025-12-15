@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 const { Persona, Acceso, PersonasRol, Rol, PropiedadInmueble } = require('../models');
+=======
+const { Persona, Acceso, PersonasRol, Rol } = require('../models');
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 const { sequelize } = require('../config/database');
 const { Op } = require('sequelize');
 const bcryptUtils = require('../utils/bcrypt');
@@ -160,6 +164,7 @@ class PersonaService {
       const nombres = splitFullName(persona.nombre_completo || '');
       const apellidos = splitFullName(persona.apellido_completo || '');
 
+<<<<<<< HEAD
       // Si tiene rol Propietario, traer sus inmuebles actuales
       let inmuebles = [];
       try {
@@ -195,6 +200,8 @@ class PersonaService {
         logger.warn(`No se pudieron cargar inmuebles para persona ${personaId}: ${propError.message}`);
       }
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return {
         id_persona: persona.id_persona,
         tipo_documento: persona.tipo_documento,
@@ -208,8 +215,12 @@ class PersonaService {
         fecha_registro: persona.fecha_registro,
         foto_perfil_url: persona.foto_perfil_url,
         foto_public_id: persona.foto_public_id,
+<<<<<<< HEAD
         roles: persona.roles || [],
         inmuebles
+=======
+        roles: persona.roles || []
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       };
     } catch (error) {
       logger.error('Error obteniendo perfil:', error);
@@ -405,7 +416,10 @@ class PersonaService {
         tiene_cuenta,
         estado
       } = filtros;
+<<<<<<< HEAD
       const rolFiltro = filtros.rol || filtros.rol_nombre || null;
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
       const {
         pagina = 1,
@@ -443,6 +457,7 @@ class PersonaService {
             through: { attributes: [] },
             attributes: ['id_rol', 'nombre_rol'],
             required: false
+<<<<<<< HEAD
           },
           {
             model: PropiedadInmueble,
@@ -450,6 +465,8 @@ class PersonaService {
             required: false,
             where: rolFiltro === 'Propietario' ? { es_propietario_actual: true } : undefined,
             attributes: ['id_inmueble', 'es_propietario_actual']
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           }
         ],
         order: [[ordenarPor, orden]],
@@ -460,6 +477,7 @@ class PersonaService {
       // Filtrar elementos undefined/null
       const validPersons = allPersonsResult.filter(p => p != null);
 
+<<<<<<< HEAD
       // Filtrar personas por rol: default 'Usuario'; si se solicita 'Propietario', solo esos
       const personasFiltradas = validPersons.filter(persona => {
         const roles = persona.roles || [];
@@ -476,12 +494,19 @@ class PersonaService {
         }
 
         return true;
+=======
+      // Filtrar personas con rol 'Usuario' o sin rol (para mostrar invitaciones pendientes)
+      const personasFiltradas = validPersons.filter(persona => {
+        if (!persona.roles || persona.roles.length === 0) return true;
+        return persona.roles.some(rol => rol.nombre_rol === 'Usuario');
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       });
 
       // Aplicar paginación manual en memoria
       const totalPersonasFiltradas = personasFiltradas.length;
       const personasPaginadas = personasFiltradas.slice(offset, offset + limite);
 
+<<<<<<< HEAD
       // Si se solicitan propietarios, adjuntar inmuebles asignados (propietario actual)
       let propiedadesPorPersona = {};
       if (rolFiltro === 'Propietario' && personasPaginadas.length > 0) {
@@ -536,6 +561,8 @@ class PersonaService {
         }
       }
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return {
         personas: personasPaginadas.map(persona => ({
           id_persona: persona.id_persona,
@@ -549,8 +576,12 @@ class PersonaService {
           correo_verificado: persona.correo_verificado,
           estado: persona.estado,
           fecha_registro: persona.fecha_registro,
+<<<<<<< HEAD
           roles: persona.roles || [],
           inmuebles: propiedadesPorPersona[persona.id_persona] || []
+=======
+          roles: persona.roles || []
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         })),
         paginacion: {
           total: totalPersonasFiltradas,
@@ -561,6 +592,7 @@ class PersonaService {
       };
     } catch (error) {
       logger.error('Error listando personas:', error);
+<<<<<<< HEAD
 
       // Evitar 500 en dashboard: devolver estructura vacía con valores por defecto
       const paginaSafe = filtros?.pagina || 1;
@@ -575,6 +607,9 @@ class PersonaService {
           paginas_totales: 0
         }
       };
+=======
+      throw error;
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     }
   }
 
@@ -598,6 +633,7 @@ class PersonaService {
         // Crear persona
         const persona = await this.crearOActualizar(datosPersona, t);
 
+<<<<<<< HEAD
                 const rolDestino = personaData.rol || 'Usuario';
         const rolModelo = await Rol.findOne({
           where: { nombre_rol: rolDestino },
@@ -607,17 +643,36 @@ class PersonaService {
         if (rolModelo) {
           const yaTieneRol = await PersonasRol.findOne({
             where: { id_persona: persona.id_persona, id_rol: rolModelo.id_rol },
+=======
+        // Asignar rol Usuario siempre que se cree desde admin
+        const rolUsuario = await Rol.findOne({
+          where: { nombre_rol: 'Usuario' },
+          transaction: t
+        });
+
+        if (rolUsuario) {
+          const yaTieneRol = await PersonasRol.findOne({
+            where: { id_persona: persona.id_persona, id_rol: rolUsuario.id_rol },
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             transaction: t
           });
 
           if (!yaTieneRol) {
             await PersonasRol.create({
               id_persona: persona.id_persona,
+<<<<<<< HEAD
               id_rol: rolModelo.id_rol
+=======
+              id_rol: rolUsuario.id_rol
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             }, { transaction: t });
           }
         }
 
+<<<<<<< HEAD
+=======
+        // Si se proporciona password, crear acceso
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         if (password) {
           const hashedPassword = await bcryptUtils.hashPassword(password);
 
@@ -629,18 +684,26 @@ class PersonaService {
 
           logger.info(`Usuario administrativo creado con acceso: ${persona.correo || persona.nombre_completo}`);
         } else {
+<<<<<<< HEAD
           logger.info(`Persona administrativa creada (sin cuenta, con rol ${rolDestino}): ${persona.nombre_completo}`);
+=======
+          logger.info(`Persona administrativa creada (sin cuenta, con rol Usuario): ${persona.nombre_completo}`);
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         }
 
         return persona;
 
       } catch (error) {
         logger.error('Error creando persona administrativa:', error);
+<<<<<<< HEAD
         // Evitar 500 en frontend: devolver payload mínimo si la BD no está completa
         return {
           ...personaData,
           id_persona: null
         };
+=======
+        throw error;
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       }
     });
 
@@ -660,7 +723,11 @@ class PersonaService {
       return persona;
     } catch (error) {
       logger.error('Error al buscar persona por documento:', error);
+<<<<<<< HEAD
       return null;
+=======
+      throw error;
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     }
   }
 

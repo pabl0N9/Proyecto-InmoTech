@@ -26,6 +26,7 @@ const Administrativo = sequelize.define('Administrativos', {
     type: DataTypes.DATEONLY,
     allowNull: false
   },
+<<<<<<< HEAD
   cargo: {
     type: DataTypes.STRING(100),
     allowNull: true
@@ -34,6 +35,8 @@ const Administrativo = sequelize.define('Administrativos', {
     type: DataTypes.STRING(100),
     allowNull: true
   },
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   estado_laboral: {
     type: DataTypes.STRING(50),
     allowNull: false,

@@ -5,7 +5,11 @@ import { User, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardRoutes } from '../../../../routes/index';
 
+<<<<<<< HEAD
 const ProfileDropdown = ({ isOpen, onClose, triggerRef, onOpenSettings, userFullName, userRole, userInitial }) => {
+=======
+const ProfileDropdown = ({ isOpen, onClose, triggerRef, onOpenSettings, userFullName, userRole, userInitial, userAvatar }) => {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   const dropdownRef = useRef(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const [isPositioned, setIsPositioned] = useState(false);
@@ -72,8 +76,22 @@ const ProfileDropdown = ({ isOpen, onClose, triggerRef, onOpenSettings, userFull
       >
         <div className="p-4 border-b border-slate-200/70">
           <div className="flex items-center gap-3">
+<<<<<<< HEAD
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold flex items-center justify-center uppercase text-base shadow-md">
               {userInitial}
+=======
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold flex items-center justify-center uppercase text-base shadow-md overflow-hidden">
+              {userAvatar ? (
+                <img
+                  src={userAvatar}
+                  alt={userFullName}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                userInitial
+              )}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-800 truncate">{userFullName}</p>

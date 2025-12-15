@@ -220,6 +220,7 @@ class RenantService {
   }
 
   async getAllRenants(filters = {}) {
+<<<<<<< HEAD
     try {
       const renantWhere = {};
       if (filters.status) renantWhere.estado = filters.status;
@@ -241,6 +242,19 @@ class RenantService {
       }
       throw error;
     }
+=======
+    const renantWhere = {};
+    if (filters.status) renantWhere.estado = filters.status;
+    if (filters.tipo_arrendatario) renantWhere.tipo_arrendatario = filters.tipo_arrendatario;
+
+    const renants = await Renant.findAll({
+      where: Object.keys(renantWhere).length ? renantWhere : undefined,
+      attributes: RENANT_ATTRS,
+      include: [{ association: 'persona', attributes: PERSONA_ATTRS }]
+    });
+
+    return renants.map((r) => this.normalizeRenant(r));
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   }
 
   async updateRenant(id, updateData) {

@@ -223,6 +223,7 @@ export function LeasesManagementPage() {
           </motion.button>
         </motion.div>
 
+<<<<<<< HEAD
         {/* STATS CARDS */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -279,6 +280,8 @@ export function LeasesManagementPage() {
           </div>
         </motion.div>
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         {/* SEARCH AND FILTERS */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -332,6 +335,7 @@ export function LeasesManagementPage() {
           transition={{ duration: 0.5, delay: 0.3 }}
         >
           {/* TABLA REORGANIZADA */}
+<<<<<<< HEAD
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             {/* CABECERA DE TABLA */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
@@ -356,6 +360,26 @@ export function LeasesManagementPage() {
                   {isLoading ? (
                     <tr>
                       <td colSpan={6} className="px-4 py-8 text-center text-slate-500 border-b">
+=======
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
+            {/* CABECERA DE TABLA */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Información Personal</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Documento</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Inmueble Asignado</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Contacto</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Estado</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                         <div className="flex items-center justify-center gap-2">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                           Cargando arrendatarios...
@@ -364,7 +388,11 @@ export function LeasesManagementPage() {
                     </tr>
                   ) : filteredTenants.length === 0 ? (
                     <tr>
+<<<<<<< HEAD
                       <td colSpan={6} className="px-4 py-8 text-center text-slate-500 border-b">
+=======
+                      <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                         <div className="flex flex-col items-center gap-2">
                           <Users className="w-8 h-8 text-slate-400" />
                           <p>No se encontraron arrendatarios con el criterio seleccionado.</p>
@@ -373,9 +401,15 @@ export function LeasesManagementPage() {
                     </tr>
                   ) : (
                     filteredTenants.map((tenant) => (
+<<<<<<< HEAD
                       <tr key={tenant.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                         {/* INFORMACIÓN PERSONAL */}
                         <td className="px-4 py-4">
+=======
+                      <tr key={tenant.id} className="hover:bg-slate-50 transition-colors">
+                        {/* INFORMACIÓN PERSONAL */}
+                        <td className="px-6 py-4">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex items-center gap-3">
                             <div className="bg-blue-100 rounded-full p-2">
                               <Users className="w-4 h-4 text-blue-600" />
@@ -393,7 +427,11 @@ export function LeasesManagementPage() {
                         </td>
 
                         {/* DOCUMENTO */}
+<<<<<<< HEAD
                         <td className="px-4 py-4 text-center">
+=======
+                        <td className="px-6 py-4 text-center">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="space-y-1">
                             <span className="text-xs text-slate-500 block">Tipo</span>
                             <span className="text-sm font-medium text-slate-700 block">{tenant.tipoDocumento}</span>
@@ -403,7 +441,11 @@ export function LeasesManagementPage() {
                         </td>
 
                         {/* INMUEBLE ASIGNADO */}
+<<<<<<< HEAD
                         <td className="px-4 py-4">
+=======
+                        <td className="px-6 py-4">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           {tenant.inmueblesArrendados && tenant.inmueblesArrendados.length > 0 ? (
                             <div className="flex items-center gap-3">
                               <div className="bg-green-100 rounded-full p-2">
@@ -427,7 +469,11 @@ export function LeasesManagementPage() {
                         </td>
 
                         {/* CONTACTO */}
+<<<<<<< HEAD
                         <td className="px-4 py-4 text-center">
+=======
+                        <td className="px-6 py-4 text-center">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex flex-col items-center justify-center space-y-1">
                             <div className="flex items-center gap-1 text-slate-600">
                               <Phone className="w-3 h-3" />
@@ -442,7 +488,11 @@ export function LeasesManagementPage() {
                         </td>
 
                         {/* ESTADO */}
+<<<<<<< HEAD
                         <td className="px-4 py-4 text-center">
+=======
+                        <td className="px-6 py-4 text-center">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex flex-col items-center justify-center space-y-2">
                             <span
                               className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${
@@ -464,7 +514,11 @@ export function LeasesManagementPage() {
                         </td>
 
                         {/* ACCIONES */}
+<<<<<<< HEAD
                         <td className="px-4 py-4">
+=======
+                        <td className="px-6 py-4">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex flex-col gap-2 items-center">
                             <motion.button
                               whileHover={{ scale: 1.05 }}
@@ -514,4 +568,8 @@ export function LeasesManagementPage() {
       {renderDeleteModal()}
     </>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

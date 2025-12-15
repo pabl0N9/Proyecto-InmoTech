@@ -179,6 +179,7 @@ export const AdministrativosProvider = ({ children }) => {
     }
   }, []);
 
+<<<<<<< HEAD
   // Cargar datos iniciales solo si hay autenticación, feature habilitada y roles adecuados
   useEffect(() => {
     const flagEnabled = import.meta?.env?.VITE_ENABLE_ADMINISTRATIVOS === 'true';
@@ -190,6 +191,13 @@ export const AdministrativosProvider = ({ children }) => {
     });
 
     if (isAuthenticated && flagEnabled && hasRequiredRole) {
+=======
+  // Cargar datos iniciales solo si hay autenticación y roles adecuados
+  useEffect(() => {
+    // Solo cargar si está autenticado y tiene rol Super Administrador o Administrador
+    const hasRequiredRole = user?.roles?.some(role => ['Super Administrador', 'Administrador'].includes(role));
+    if (isAuthenticated && hasRequiredRole) {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       loadAdministrativos();
     } else {
       setLoading(false);

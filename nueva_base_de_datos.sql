@@ -2912,3 +2912,67 @@ PRINT '=========================================================================
 PRINT '                                    🎉 BASE DE DATOS LISTA PARA USAR 🎉';
 PRINT '=====================================================================================================================';
 GO
+
+
+-- Añadir la FK al vendedor (tabla Personas)
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns WHERE Name = N'id_vendedor' AND Object_ID = Object_ID(N'Ventas')
+)
+BEGIN
+    ALTER TABLE Ventas ADD id_vendedor INT NULL;
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Ventas_Vendedor' AND parent_object_id = OBJECT_ID(N'Ventas')
+)
+BEGIN
+    ALTER TABLE Ventas WITH CHECK
+    ADD CONSTRAINT FK_Ventas_Vendedor
+        FOREIGN KEY (id_vendedor) REFERENCES Personas(id_persona);
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes WHERE name = N'IX_Ventas_Vendedor' AND object_id = OBJECT_ID(N'Ventas')
+)
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Ventas_Vendedor ON Ventas(id_vendedor);
+END
+GO
+
+-- Campos “congelados” del vendedor al momento de la venta (opcional, pero útiles para mostrar detalle)
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'tipo_doc_vendedor' AND Object_ID = Object_ID(N'Ventas'))
+    ALTER TABLE Ventas ADD tipo_doc_vendedor VARCHAR(20) NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'numero_doc_vendedor' AND Object_ID = Object_ID(N'Ventas'))
+    ALTER TABLE Ventas ADD numero_doc_vendedor VARCHAR(50) NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'nombre_vendedor' AND Object_ID = Object_ID(N'Ventas'))
+    ALTER TABLE Ventas ADD nombre_vendedor VARCHAR(200) NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'correo_vendedor' AND Object_ID = Object_ID(N'Ventas'))
+    ALTER TABLE Ventas ADD correo_vendedor VARCHAR(150) NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'telefono_vendedor' AND Object_ID = Object_ID(N'Ventas'))
+    ALTER TABLE Ventas ADD telefono_vendedor VARCHAR(50) NULL;
+GO
+
+--Estos son los nuevos estados de ventas 
+
+BEGIN TRAN;
+
+-- Limpia la tabla
+DELETE FROM Estados_venta;
+DBCC CHECKIDENT('Estados_venta', RESEED, 0);
+GO
+
+-- Inserta los estados solicitados
+INSERT INTO Estados_venta (nombre_estado, descripcion, orden, es_estado_final, estado)
+VALUES
+  ('Pagado',         'Pago completado',                  1, 1, 1),
+  ('Debe',           'Pago pendiente',                   2, 0, 1),
+  ('En espera',      'Esperando confirmación/pago',      3, 0, 1),
+  ('Cancelado',      'Proceso cancelado',                4, 1, 1),
+  ('Iniciada',       'Proceso de venta iniciado',        5, 0, 1),
+  ('En negociación', 'En negociación con el cliente',    6, 0, 1),
+  ('Completada',     'Venta completada exitosamente',    7, 1, 1)
+
+COMMIT;
+GO

@@ -1,9 +1,15 @@
 const { Persona, Administrativo, Acceso, PersonasRol, Rol } = require('../models');
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
+<<<<<<< HEAD
 const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
 const sseService = require('./sse.service');
+=======
+const logger = require('../utils/logger');
+const sseService = require('./sse.service');
+const invitacionService = require('./invitacion.service');
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
 class AdministrativoService {
   /**
@@ -18,16 +24,24 @@ class AdministrativoService {
       try {
         const {
           email,
+<<<<<<< HEAD
           password,
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           nombre_completo,
           apellido_completo,
           telefono,
           tipo_documento,
           numero_documento,
           fecha_ingreso,
+<<<<<<< HEAD
           cargo,
           departamento,
           id_rol
+=======
+          id_rol,
+          creado_por
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         } = adminData;
 
         // Verificar si el email ya existe
@@ -60,6 +74,7 @@ class AdministrativoService {
           apellido_completo,
           correo: email,
           telefono,
+<<<<<<< HEAD
           tiene_cuenta: true,
           estado: true
         }, { transaction: t });
@@ -71,13 +86,23 @@ class AdministrativoService {
           contrasena: hashedPassword
         }, { transaction: t });
 
+=======
+          tiene_cuenta: false,
+          correo_verificado: false,
+          estado: true
+        }, { transaction: t });
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         // Crear registro administrativo inicialmente con código temporal
         const nuevoAdministrativo = await Administrativo.create({
           id_persona: nuevaPersona.id_persona,
           codigo_empleado: 'TEMP', // Código temporal, será actualizado después
           fecha_ingreso,
+<<<<<<< HEAD
           cargo,
           departamento,
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           estado_laboral: 'Activo'
         }, { transaction: t });
 
@@ -166,6 +191,34 @@ class AdministrativoService {
         ]
       });
 
+<<<<<<< HEAD
+=======
+      // Enviar invitacion para que defina su contrasena y active el acceso
+      try {
+        const rolNombre = administrativoCompleto?.persona?.roles?.[0]?.nombre_rol || 'Administrativo';
+        const invitacion = await invitacionService.crearInvitacion({
+          id_persona: administrativoCompleto?.persona?.id_persona,
+          creado_por: adminData?.creado_por || null,
+          tipo: 'admin_invite',
+          rol_asignado: rolNombre,
+          es_administrativo: true
+        });
+
+        const invitacionInfo = {
+          expira_en: invitacion?.expira_en || null,
+          total_enviados: (invitacion?.reenvios || 0) + 1
+        };
+
+        if (administrativoCompleto && administrativoCompleto.dataValues) {
+          administrativoCompleto.dataValues.invitacion = invitacionInfo;
+        }
+
+        logger.info(`Invitacion administrativa enviada a ${administrativoCompleto?.persona?.correo || email}`);
+      } catch (inviteError) {
+        logger.warn('No se pudo enviar la invitacion administrativa:', inviteError.message);
+      }
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return administrativoCompleto;
     } catch (queryError) {
       logger.warn('Error obteniendo administrativo completo para respuesta, pero el registro fue exitoso:', queryError);

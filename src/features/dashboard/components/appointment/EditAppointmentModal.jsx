@@ -1,9 +1,17 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useRef } from 'react';
+=======
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, User, Phone, Mail, Calendar, Clock, Home, FileText, Hash } from 'lucide-react';
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
+<<<<<<< HEAD
+=======
+import { formatTimeTo12Hour } from '../../../../shared/utils/time';
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../shared/components/ui/select';
 import ConfirmationDialog from '../../../../shared/components/ui/ConfirmationDialog';
 
@@ -50,6 +58,7 @@ const servicios = [
   { id_servicio: 4, nombre_servicio: 'Asesoría Legal' }
 ];
 
+<<<<<<< HEAD
   const availableHours = [
     '08:00 am', '08:30 am', '09:00 am', '09:30 am', '10:00 am', '10:30 am',
     '11:00 am', '11:30 am', '2:00 pm', '2:30 pm', '3:00 pm', '3:30 pm',
@@ -92,6 +101,72 @@ const servicios = [
         estado: cita.estado?.toLowerCase() || cita.estado_detalle?.nombre_estado?.toLowerCase() || 'programada',
         
         // ✅ IMPORTANTE: Mantener IDs para el envío
+=======
+  const availableHours = useMemo(() => [
+    '08:00 am', '08:30 am', '09:00 am', '09:30 am', '10:00 am', '10:30 am',
+    '11:00 am', '11:30 am', '02:00 pm', '02:30 pm', '03:00 pm', '03:30 pm',
+    '04:00 pm', '04:30 pm', '05:00 pm', '05:30 pm'
+  ], []);
+
+  const normalizeFechaToInput = (fecha) => {
+    if (!fecha) return '';
+    if (fecha instanceof Date && !Number.isNaN(fecha.getTime())) {
+      return fecha.toISOString().split('T')[0];
+    }
+    if (typeof fecha === 'string') {
+      const clean = fecha.includes('T') ? fecha.split('T')[0] : fecha;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+      const parsed = new Date(clean);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toISOString().split('T')[0];
+      }
+    }
+    return '';
+  };
+
+  const normalizeHoraToOption = (hora) => {
+    if (!hora) return '';
+    const formatted = formatTimeTo12Hour(hora);
+    if (!formatted) return '';
+    const [timePart = '', periodRaw = ''] = formatted.split(' ');
+    const [hour = '00', minutes = '00'] = timePart.split(':');
+    const period = periodRaw.replace(/[^a-z]/gi, '').toLowerCase();
+    return `${hour.padStart(2, '0')}:${minutes.padStart(2, '0')} ${period || 'am'}`;
+  };
+
+  const horaAgendadaOpcion = useMemo(
+    () => normalizeHoraToOption(cita?.hora_inicio || cita?.hora),
+    [cita?.hora, cita?.hora_inicio]
+  );
+
+  const horaOptions = useMemo(() => {
+    const base = [...availableHours];
+    if (horaAgendadaOpcion && !base.includes(horaAgendadaOpcion)) {
+      base.unshift(horaAgendadaOpcion);
+    }
+    return base;
+  }, [availableHours, horaAgendadaOpcion]);
+
+  useEffect(() => {
+    if (cita) {
+      const cliente = cita.cliente || {};
+      const servicio = cita.servicio || {};
+      const fechaNormalizada = normalizeFechaToInput(cita.fecha_cita || cita.fecha);
+      const horaNormalizada = normalizeHoraToOption(cita.hora_inicio || cita.hora);
+
+      setFormData({
+        nombre: cliente.nombre_completo || '',
+        apellido: cliente.apellido_completo || '',
+        telefono: cliente.telefono || '',
+        email: cliente.correo || '',
+        tipoDocumento: cliente.tipo_documento || '',
+        numeroDocumento: cliente.numero_documento || '',
+        fecha: fechaNormalizada,
+        hora: horaNormalizada,
+        servicio: servicio.nombre_servicio || '',
+        notas: cita.observaciones || '',
+        estado: cita.estado?.toLowerCase() || cita.estado_detalle?.nombre_estado?.toLowerCase() || 'programada',
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         id: cita.id_cita || cita.id,
         id_cita: cita.id_cita || cita.id,
         id_servicio: servicio.id_servicio || cita.id_servicio,
@@ -225,11 +300,21 @@ const validateApellido = (apellido) => {
   const validateFecha = (fecha) => {
     if (!fecha) return 'La fecha es requerida';
 
+<<<<<<< HEAD
     const fechaSeleccionada = new Date(fecha);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
     // Para edición, permitir fechas pasadas pero mostrar advertencia
+=======
+    const fechaNormalizada = normalizeFechaToInput(fecha);
+    if (!fechaNormalizada) return 'Ingresa una fecha v??lida';
+
+    const fechaSeleccionada = new Date(fechaNormalizada);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     if (fechaSeleccionada < hoy) {
       // Solo advertir, no bloquear
     }
@@ -241,6 +326,7 @@ const validateApellido = (apellido) => {
   const validateHora = (hora) => {
     if (!hora) return 'La hora es requerida';
 
+<<<<<<< HEAD
     // Verificar que la hora esté en la lista de horas disponibles
     if (!availableHours.includes(hora)) {
       return 'Selecciona una hora válida de la lista';
@@ -248,6 +334,12 @@ const validateApellido = (apellido) => {
 
     // Si la hora está en la lista, es válida (ya que todas las horas en availableHours
     // están en intervalos de 30 minutos y dentro del horario laboral)
+=======
+    const opcionNormalizada = normalizeHoraToOption(hora);
+    if (!opcionNormalizada) return 'Selecciona una hora v??lida';
+    if (!horaOptions.includes(opcionNormalizada)) return 'Selecciona una hora v??lida de la lista';
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     return '';
   };
 
@@ -317,8 +409,13 @@ const validateApellido = (apellido) => {
         id: formData.id_cita || formData.id || cita?.id_cita || cita?.id,
         id_cita: formData.id_cita || formData.id || cita?.id_cita || cita?.id,
         id_persona: formData.id_persona || cita?.id_persona,
+<<<<<<< HEAD
         id_inmueble: formData.id_inmueble || cita?.id_inmueble || 1,
         id_servicio: formData.id_servicio,
+=======
+        id_inmueble: formData.id_inmueble ?? cita?.id_inmueble ?? null,
+        id_servicio: formData.id_servicio || cita?.id_servicio || cita?.servicio?.id_servicio,
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         
         // ✅ Datos del cliente - campos separados
         tipo_documento: formData.tipoDocumento,
@@ -329,8 +426,13 @@ const validateApellido = (apellido) => {
         email: formData.email,
         
         // Datos de la cita
+<<<<<<< HEAD
         fecha_cita: formData.fecha,
         hora_inicio: formData.hora,
+=======
+        fecha_cita: normalizeFechaToInput(formData.fecha),
+        hora_inicio: normalizeHoraToOption(formData.hora),
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         observaciones: formData.notas,
         estado: formData.estado,
         
@@ -637,7 +739,10 @@ const validateApellido = (apellido) => {
                     type="date"
                     value={formData.fecha}
                     onChange={(e) => updateFormData('fecha', e.target.value)}
+<<<<<<< HEAD
                     min={new Date().toISOString().split('T')[0]}
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors ${
                       errors.fecha ? 'border-red-500' : 'border-slate-300'
                     }`}
@@ -662,7 +767,11 @@ const validateApellido = (apellido) => {
                       <SelectValue placeholder="Selecciona una hora" />
                     </SelectTrigger>
                     <SelectContent>
+<<<<<<< HEAD
                       {availableHours.map(hour => (
+=======
+                      {horaOptions.map(hour => (
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                         <SelectItem key={hour} value={hour}>{hour}</SelectItem>
                       ))}
                     </SelectContent>
@@ -685,9 +794,13 @@ const validateApellido = (apellido) => {
                     // ✅ Encontrar el servicio seleccionado para obtener su ID
                     const servicioSeleccionado = servicios.find(s => s.nombre_servicio === value);
                     updateFormData('servicio', value);
+<<<<<<< HEAD
                     if (servicioSeleccionado) {
                       setFormData(prev => ({ ...prev, id_servicio: servicioSeleccionado.id_servicio }));
                     }
+=======
+                    setFormData(prev => ({ ...prev, id_servicio: servicioSeleccionado?.id_servicio || prev.id_servicio || cita?.id_servicio || cita?.servicio?.id_servicio || null }));
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   }}
                 >
                   <SelectTrigger className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors ${
@@ -793,4 +906,12 @@ const validateApellido = (apellido) => {
   );
 };
 
+<<<<<<< HEAD
 export default EditAppointmentModal;
+=======
+export default EditAppointmentModal;
+
+
+
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

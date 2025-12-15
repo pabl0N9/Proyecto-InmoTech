@@ -1,5 +1,9 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { buyersApiService } from "../../../../shared/services/buyersApiService";
+<<<<<<< HEAD
+=======
+import { inmueblesAPI } from "../../../../shared/services/propertyApidervice";
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
 // Lista de campos que deben ser obligatorios para el registro
 const requiredFields = [
@@ -8,8 +12,13 @@ const requiredFields = [
     // Comprador
     "compradorTipoDocumento", "compradorDocumento", "compradorNombreCompleto", "compradorCorreo", "compradorTelefono",
     // Inmueble
+<<<<<<< HEAD
     "inmuebleTipo", "inmuebleRegistro", "inmuebleNombre", "inmuebleArea", "inmuebleHabitaciones", "inmuebleBanos",
     "inmueblePais", "inmuebleDepartamento", "inmuebleCiudad", "inmuebleDireccion", "inmuebleEstado",
+=======
+    "inmuebleTipo", "inmuebleRegistro", "inmuebleNombre",
+    "inmueblePais", "inmuebleDepartamento", "inmuebleCiudad", "inmuebleDireccion",
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     // Venta
     "fechaVenta", "medioPago", "inmueblePrecio",
 ];
@@ -55,14 +64,20 @@ const initial = {
     inmuebleTipo: "",
     inmuebleRegistro: "",
     inmuebleNombre: "",
+<<<<<<< HEAD
     inmuebleArea: "",
     inmuebleHabitaciones: "",
     inmuebleBanos: "",
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     inmueblePais: "Colombia",
     inmuebleDepartamento: "",
     inmuebleCiudad: "",
     inmuebleBarrio: "",
+<<<<<<< HEAD
     inmuebleEstrato: "",
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     inmuebleDireccion: "",
     inmueblePrecio: "",
     inmuebleGaraje: false,
@@ -94,6 +109,7 @@ export default function SalesForm({ onClose, onSubmit }) {
         message: "",
         error: null,
     });
+<<<<<<< HEAD
 
     // Campos estrictamente numéricos (solo dígitos)
     const strictNumericFields = [
@@ -101,6 +117,17 @@ export default function SalesForm({ onClose, onSubmit }) {
     ];
 
     // Campos que requieren formato de miles (moneda)
+=======
+    const [inmuebleLookupState, setInmuebleLookupState] = useState({
+        loading: false,
+        message: "",
+        error: null,
+    });
+
+    // Campos estrictamente numéricos (solo dígitos)
+    const strictNumericFields = [];
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     const currencyFields = ["inmueblePrecio"];
 
     // Campos para validaciones de formato
@@ -122,10 +149,16 @@ export default function SalesForm({ onClose, onSubmit }) {
             "compradorCorreo", "compradorTelefono",
         ],
         3: [
+<<<<<<< HEAD
             "inmuebleTipo", "inmuebleRegistro", "inmuebleNombre", "inmuebleArea", 
             "inmuebleHabitaciones", "inmuebleBanos", "inmueblePais", 
             "inmuebleDepartamento", "inmuebleCiudad", "inmuebleBarrio", 
             "inmuebleEstrato", "inmuebleDireccion", "inmuebleGaraje", "inmuebleEstado"
+=======
+            "inmuebleTipo", "inmuebleRegistro", "inmuebleNombre",
+            "inmueblePais", "inmuebleDepartamento", "inmuebleCiudad",
+            "inmuebleBarrio", "inmuebleDireccion", "inmuebleGaraje"
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         ],
         4: [
             "fechaVenta", "medioPago", "inmueblePrecio"
@@ -163,18 +196,27 @@ export default function SalesForm({ onClose, onSubmit }) {
             inmuebleTipo: "Tipo de Inmueble", 
             inmuebleRegistro: "No. Registro Catastral",
             inmuebleNombre: "Nombre/Título Comercial", 
+<<<<<<< HEAD
             inmuebleArea: "Área Total",
             inmuebleHabitaciones: "No. Habitaciones", 
             inmuebleBanos: "No. Baños",
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             inmueblePais: "País", 
             inmuebleDepartamento: "Departamento/Estado",
             inmuebleCiudad: "Ciudad", 
             inmuebleBarrio: "Barrio/Zona",
+<<<<<<< HEAD
             inmuebleEstrato: "Estrato Socioeconómico", 
             inmuebleDireccion: "Dirección Completa",
             inmueblePrecio: "Precio de Venta (COP)", 
             inmuebleGaraje: "¿Tiene Garaje?",
             inmuebleEstado: "Estado del Inmueble",
+=======
+            inmuebleDireccion: "Dirección Completa",
+            inmueblePrecio: "Precio de Venta (COP)", 
+            inmuebleGaraje: "¿Tiene Garaje?",
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
             // Venta
             fechaVenta: "Fecha de Venta",
@@ -320,13 +362,104 @@ export default function SalesForm({ onClose, onSubmit }) {
         }
     };
 
+<<<<<<< HEAD
+=======
+    const setFieldValue = (name, value) => {
+        valuesRef.current[name] = value ?? "";
+        displayValuesRef.current[name] = value ?? "";
+        const el = elRefs.current[name];
+        if (el) {
+            if (el.type === "checkbox") {
+                el.checked = !!value;
+            } else {
+                try { el.value = value ?? ""; } catch (_err) { /* ignore */ }
+            }
+        }
+        if (errors[name]) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
+    };
+
+    const autofillInmueble = (inmueble, { skipEstado = false } = {}) => {
+        if (!inmueble) return;
+
+        setFieldValue("inmuebleTipo", inmueble.categoria || inmueble.tipo || "");
+        setFieldValue("inmuebleNombre", inmueble.titulo || "");
+        setFieldValue("inmuebleRegistro", inmueble.registro || "");
+        setFieldValue("inmuebleDireccion", inmueble.direccion || "");
+        setFieldValue("inmuebleBarrio", inmueble.barrio || "");
+        setFieldValue("inmuebleCiudad", inmueble.ciudad || "");
+        setFieldValue("inmuebleDepartamento", inmueble.departamento || "");
+        setFieldValue("inmueblePais", inmueble.pais || "Colombia");
+
+        if (!skipEstado) {
+            const estadoTexto = inmueble.estado_bool === false ? "No disponible" : "Disponible";
+            setFieldValue("inmuebleEstado", estadoTexto === "Disponible" ? "Disponible" : "En Negociacion");
+        }
+
+        const precio =
+            inmueble.precio_venta ??
+            inmueble.precio_arriendo ??
+            inmueble.precio ??
+            "";
+        if (precio !== "" && precio !== null && precio !== undefined) {
+            const clean = String(precio).replace(/[^0-9]/g, "");
+            valuesRef.current.inmueblePrecio = clean;
+            const formatted = formatNumberWithThousandsSeparator(clean);
+            displayValuesRef.current.inmueblePrecio = formatted;
+            const priceEl = elRefs.current["inmueblePrecio"];
+            if (priceEl) priceEl.value = formatted;
+        }
+    };
+
+    const handleInmuebleLookup = useCallback(async (registro = "") => {
+        const cleanRegistro = (registro || "").trim();
+        if (!cleanRegistro) return;
+
+        setInmuebleLookupState({ loading: true, message: "", error: null });
+
+        try {
+            const inmueble = await inmueblesAPI.getInmuebleByRegistro(cleanRegistro);
+
+            if (inmueble && inmueble.id) {
+                autofillInmueble(inmueble, { skipEstado: true });
+                setInmuebleLookupState({
+                    loading: false,
+                    message: "Datos del inmueble completados automáticamente.",
+                    error: null,
+                });
+            } else {
+                setInmuebleLookupState({
+                    loading: false,
+                    message: "",
+                    error: "No encontramos un inmueble con ese registro.",
+                });
+            }
+        } catch (error) {
+            setInmuebleLookupState({
+                loading: false,
+                message: "",
+                error: error?.message || "No fue posible buscar el inmueble.",
+            });
+        }
+    }, []);
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     // Funciones de validación de formato
     const isValidName = (value) => /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]*$/.test(value);
     const isValidNumeric = (value) => /^\d*$/.test(value);
     const isValidEmail = (value) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value);
 
     // Manejador de blur para validación MEJORADO
+<<<<<<< HEAD
     const handleInputBlur = (e) => {
+=======
+    const handleInputBlur = async (e) => {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         const { name } = e.target;
         const value = valuesRef.current[name] || ""; 
         
@@ -374,6 +507,7 @@ export default function SalesForm({ onClose, onSubmit }) {
                 else if (emailFields.includes(name) && !isValidEmail(value)) {
                     errorMessage = `El correo electrónico debe ser válido.`;
                 } 
+<<<<<<< HEAD
                 else if (strictNumericFields.includes(name)) {
                     if (!isValidNumeric(value)) {
                         errorMessage = `Solo se permiten números enteros.`;
@@ -403,6 +537,8 @@ export default function SalesForm({ onClose, onSubmit }) {
                         }
                     }
                 }
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             }
 
             // Aplicar o limpiar error
@@ -415,6 +551,13 @@ export default function SalesForm({ onClose, onSubmit }) {
             return newErrors;
         });
 
+<<<<<<< HEAD
+=======
+        // Lookup de inmueble por registro para autocompletar
+        if (name === "inmuebleRegistro" && !errorMessage && value.trim().length > 0) {
+            await handleInmuebleLookup(value);
+        }
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         // Lógica de búsqueda de comprador
         if (name === COMPRADOR_DOC || name === "compradorTipoDocumento") {
             const currentTipo = valuesRef.current.compradorTipoDocumento || "";
@@ -695,6 +838,7 @@ export default function SalesForm({ onClose, onSubmit }) {
                 else if (strictNumericFields.includes(fieldName) && !isValidNumeric(value)) { 
                     error = `Solo se permiten números enteros.`;
                 }
+<<<<<<< HEAD
                 
                 // Validaciones específicas para campos numéricos
                 if (!error && strictNumericFields.includes(fieldName)) {
@@ -712,6 +856,8 @@ export default function SalesForm({ onClose, onSubmit }) {
                         error = `El número de baños debe ser razonable (0-10)`;
                     }
                 }
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             }
             
             // Actualizar errores
@@ -1027,6 +1173,7 @@ export default function SalesForm({ onClose, onSubmit }) {
                                     ]}
                                 />
                                 <Field name="inmuebleRegistro" placeholder="No. de matrícula inmobiliaria" />
+<<<<<<< HEAD
                                 <div className="md:col-span-2">
                                     <Field name="inmuebleNombre" placeholder="Ej: Apartamento 501, Edificio La Torre" />
                                 </div>
@@ -1035,6 +1182,28 @@ export default function SalesForm({ onClose, onSubmit }) {
                                 <Field name="inmuebleBanos" placeholder="Cantidad de baños. Solo números enteros (0-10)." />
                                 <Field name="inmuebleEstrato" placeholder="Estrato (1-6). Solo números enteros." />
 
+=======
+                                {(inmuebleLookupState.loading || inmuebleLookupState.error || inmuebleLookupState.message) && (
+                                    <div className="md:col-span-2">
+                                        <p
+                                            className={`text-sm ${
+                                                inmuebleLookupState.loading
+                                                    ? "text-blue-600"
+                                                    : inmuebleLookupState.error
+                                                    ? "text-red-600"
+                                                    : "text-green-700"
+                                            }`}
+                                        >
+                                            {inmuebleLookupState.loading && "Buscando inmueble..."}
+                                            {!inmuebleLookupState.loading && inmuebleLookupState.error && inmuebleLookupState.error}
+                                            {!inmuebleLookupState.loading && !inmuebleLookupState.error && inmuebleLookupState.message}
+                                        </p>
+                                    </div>
+                                )}
+                                <div className="md:col-span-2">
+                                    <Field name="inmuebleNombre" placeholder="Ej: Apartamento 501, Edificio La Torre" />
+                                </div>
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                 <Field name="inmueblePais" placeholder="País" />
                                 <Field name="inmuebleDepartamento" placeholder="Departamento o Estado" />
                                 <Field name="inmuebleCiudad" placeholder="Ciudad" />
@@ -1044,6 +1213,7 @@ export default function SalesForm({ onClose, onSubmit }) {
                                 </div>
 
                                 <Field name="inmuebleGaraje" type="checkbox" />
+<<<<<<< HEAD
                                 <Field
                                     name="inmuebleEstado"
                                     as="select"
@@ -1053,6 +1223,8 @@ export default function SalesForm({ onClose, onSubmit }) {
                                         { value: "Vendido", label: "Vendido/Transferido" },
                                     ]}
                                 />
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                             </div>
                         </div>
                     )}
@@ -1130,4 +1302,9 @@ export default function SalesForm({ onClose, onSubmit }) {
             </div>
         </div>
     );
+<<<<<<< HEAD
 }
+=======
+}
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

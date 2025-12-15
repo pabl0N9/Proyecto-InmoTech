@@ -4,7 +4,11 @@ const router = express.Router();
 const citaController = require('../controllers/cita.controller');
 const { validate, validateQuery } = require('../middlewares/validate.middleware');
 const { createLimiter, strictLimiter } = require('../middlewares/security.middleware');
+<<<<<<< HEAD
 const { authenticateToken, authorizePermissions } = require('../middlewares/auth.middleware');
+=======
+const { authenticateToken, authorizePermissions, optionalAuth } = require('../middlewares/auth.middleware');
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
 const {
   crearCitaSchema,
@@ -18,7 +22,12 @@ const {
 // POST /api/v1/citas - Crear cita
 router.post(
   '/',
+<<<<<<< HEAD
   authenticateToken,
+=======
+  // Permitir cita publica; si hay cookie optionalAuth setea req.user para trazabilidad
+  optionalAuth,
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   function(req, res, next) {
     // ✅ Permitir que usuarios autenticados creen citas sin permisos especiales
     // (hace la funcionalidad de agendar citas accesible para usuarios normales)
@@ -205,7 +214,12 @@ router.post(
   strictLimiter,
   validate(Joi.object({
     id_agente_nuevo: Joi.number().integer().required(),
+<<<<<<< HEAD
     comentario: Joi.string().max(500).allow('').optional() // Permitir vacío para primera asignación
+=======
+    comentario: Joi.string().max(500).allow('').optional(), // Permitir vac?o para primera asignaci?n
+    motivo_reagendamiento: Joi.string().min(5).max(500).allow('').optional()
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   })),
   citaController.asignarAgente
 );

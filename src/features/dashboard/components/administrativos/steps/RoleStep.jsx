@@ -10,6 +10,7 @@ const RoleStep = ({ formData, errors, updateFormData }) => {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
+<<<<<<< HEAD
         const roles = await rolesApiService.obtenerRoles();
         // Excluir roles específicos: Super Administrador, Usuario (Cliente) y Propietario
         const rolesExcluidos = ['Super Administrador', 'Usuario', 'Propietario'];
@@ -24,6 +25,14 @@ const RoleStep = ({ formData, errors, updateFormData }) => {
           return parseInt(a.id, 10) - parseInt(b.id, 10);
         });
         setRoles(rolesSorted);
+=======
+        const all = await rolesApiService.obtenerRoles();
+        const excluidos = ['Super Administrador', 'Administrador', 'Usuario', 'Propietario'];
+        const filtrados = all
+          .filter(rol => !excluidos.includes(rol.nombre_rol))
+          .sort((a, b) => (a.nombre_rol || '').localeCompare(b.nombre_rol || ''));
+        setRoles(filtrados);
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       } catch (error) {
         console.error('Error cargando roles:', error);
       } finally {
@@ -41,7 +50,10 @@ const RoleStep = ({ formData, errors, updateFormData }) => {
         <p className="text-slate-600 text-sm">Selecciona el rol que tendrá este administrativo en el sistema</p>
       </div>
 
+<<<<<<< HEAD
       {/* Selección de Rol */}
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       <div className="space-y-2">
         <Label htmlFor="rol" className="text-sm font-medium text-slate-700">
           Rol Administrativo *
@@ -51,18 +63,26 @@ const RoleStep = ({ formData, errors, updateFormData }) => {
           onValueChange={(value) => updateFormData('rol', value)}
           disabled={loading}
         >
+<<<<<<< HEAD
           <SelectTrigger className={`h-10 ${errors.rol ? 'border-red-500' : ''}`}>
             <SelectValue placeholder={loading ? "Cargando roles..." : "Seleccionar rol"} />
+=======
+          <SelectTrigger className={`h-11 ${errors.rol ? 'border-red-500' : ''}`}>
+            <SelectValue placeholder={loading ? 'Cargando roles...' : 'Seleccionar rol'} />
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           </SelectTrigger>
           <SelectContent>
             {roles.map((rol) => (
               <SelectItem key={rol.id_rol || rol.id} value={(rol.id_rol || rol.id).toString()}>
                 {rol.nombre_rol}
+<<<<<<< HEAD
                 {rol.descripcion && (
                   <span className="text-xs text-slate-500 ml-2">
                     - {rol.descripcion}
                   </span>
                 )}
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
               </SelectItem>
             ))}
           </SelectContent>
@@ -71,6 +91,7 @@ const RoleStep = ({ formData, errors, updateFormData }) => {
           <p className="text-sm text-red-600">{errors.rol}</p>
         )}
       </div>
+<<<<<<< HEAD
 
       {/* Información del rol seleccionado */}
       {formData.rol && roles.length > 0 && (
@@ -128,6 +149,8 @@ const RoleStep = ({ formData, errors, updateFormData }) => {
           )}
         </div>
       </div>
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     </div>
   );
 };

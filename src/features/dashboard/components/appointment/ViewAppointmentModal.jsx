@@ -116,6 +116,23 @@ const ViewAppointmentModal = ({ isOpen, onClose, cita }) => {
 const cliente = cita.cliente || {};
 const inmueble = cita.inmueble || {};
 const servicio = cita.servicio || {};
+<<<<<<< HEAD
+=======
+const editNote =
+  cita.motivo_reagendamiento ||
+  cita.comentario_edicion ||
+  cita.comentario ||
+  cita.motivo_cancelacion || // si solo hay cancelación, úsalo como nota
+  cita.motivoCancelacion;
+const cancelNote = cita.motivo_cancelacion || cita.motivoCancelacion;
+const estadoCita = (cita.estado || '').toLowerCase();
+const estadoDetalle = (cita.estado_detalle?.nombre_estado || '').toLowerCase();
+const wasEdited =
+  !!(editNote && editNote.trim && editNote.trim().length > 0) ||
+  (cita?.ediciones_realizadas ?? 0) > 0 ||
+  estadoCita === 're agendada' ||
+  estadoDetalle === 're agendada';
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
 // ✅ CORREGIDO: Ahora todos los valores son strings, no objetos
 const infoItems = [
@@ -265,7 +282,11 @@ const infoItems = [
               )}
 
               {/* Motivo de Reagendamiento */}
+<<<<<<< HEAD
               {cita.motivo_reagendamiento && (
+=======
+              {wasEdited && (
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -277,8 +298,33 @@ const infoItems = [
                       <FileText className="w-5 h-5 text-orange-600" />
                     </div>
                     <div className="flex-1">
+<<<<<<< HEAD
                       <p className="text-sm font-medium text-orange-600 mb-2">Motivo de Reagendamiento</p>
                       <p className="text-orange-800 leading-relaxed">{cita.motivo_reagendamiento}</p>
+=======
+                      <p className="text-sm font-medium text-orange-600 mb-2">Motivo de la Edici&oacute;n *</p>
+                      <p className="text-orange-800 leading-relaxed">{editNote || 'Motivo no registrado'}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Motivo de Cancelación */}
+              {cancelNote && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.75 }}
+                  className="bg-red-50 border border-red-200 rounded-xl p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-white shadow-sm">
+                      <FileText className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-red-600 mb-2">Motivo de cancelaci&oacute;n</p>
+                      <p className="text-red-800 leading-relaxed">{cancelNote}</p>
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                     </div>
                   </div>
                 </motion.div>

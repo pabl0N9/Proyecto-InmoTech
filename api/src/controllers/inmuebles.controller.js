@@ -24,6 +24,28 @@ class InmueblesController {
   }
 
   /**
+<<<<<<< HEAD
+=======
+   * Obtener inmueble público por ID (sin auth)
+   */
+  async obtenerInmueblePublic(req, res, next) {
+    try {
+      const { id } = req.params;
+      const inmueble = await inmueblesService.obtenerPorId(parseInt(id));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Inmueble obtenido exitosamente',
+        data: inmueble
+      });
+    } catch (error) {
+      logger.error('Error obteniendo inmueble público:', error);
+      next(error);
+    }
+  }
+
+  /**
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
    * Listar inmuebles con filtros
    */
   async listarInmuebles(req, res, next) {
@@ -69,6 +91,47 @@ class InmueblesController {
   }
 
   /**
+<<<<<<< HEAD
+=======
+   * Obtener inmueble por registro inmobiliario
+   */
+  async obtenerInmueblePorRegistro(req, res, next) {
+    try {
+      const { registro } = req.params;
+      const inmueble = await inmueblesService.obtenerPorRegistro(registro);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Inmueble obtenido exitosamente',
+        data: inmueble
+      });
+    } catch (error) {
+      logger.error('Error obteniendo inmueble por registro:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Obtener inmueble público por registro (sin auth)
+   */
+  async obtenerInmueblePublicPorRegistro(req, res, next) {
+    try {
+      const { registro } = req.params;
+      const inmueble = await inmueblesService.obtenerPorRegistro(registro);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Inmueble obtenido exitosamente',
+        data: inmueble
+      });
+    } catch (error) {
+      logger.error('Error obteniendo inmueble público por registro:', error);
+      next(error);
+    }
+  }
+
+  /**
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
    * Obtener disponibilidad horaria de un inmueble
    */
   async obtenerDisponibilidad(req, res, next) {
@@ -156,7 +219,12 @@ class InmueblesController {
         precio_min: precio_min ? parseFloat(precio_min) : undefined,
         precio_max: precio_max ? parseFloat(precio_max) : undefined,
         area_min: area_min ? parseFloat(area_min) : undefined,
+<<<<<<< HEAD
         categoria
+=======
+        categoria,
+        estado: true
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       };
 
       const opciones = {

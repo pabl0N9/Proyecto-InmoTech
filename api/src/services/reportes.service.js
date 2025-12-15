@@ -1,5 +1,6 @@
 const { Reporte, Persona } = require('../models');
 const { sequelize } = require('../config/database');
+<<<<<<< HEAD
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 const { normalizePermissionsStructure, normalizeModuleKey, normalizePermissionKey } = require('../utils/permissions.helper');
@@ -578,6 +579,11 @@ class ReportesService {
     return highlights;
   }
 
+=======
+const logger = require('../utils/logger');
+
+class ReportesService {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   /**
    * Crear un nuevo reporte
    * @param {Object} reporteData - Datos del reporte
@@ -634,11 +640,19 @@ class ReportesService {
 
       if (tipo_reporte) whereClause.tipo_reporte = tipo_reporte;
       if (estado) whereClause.estado = estado;
+<<<<<<< HEAD
       if (id_generado_por) whereClause.id_generado_por = id_generado_por;
       if (fecha_desde || fecha_hasta) {
         whereClause.fecha_generacion = {};
         if (fecha_desde) whereClause.fecha_generacion[Op.gte] = fecha_desde;
         if (fecha_hasta) whereClause.fecha_generacion[Op.lte] = fecha_hasta;
+=======
+      if (id_generado_por) whereClause.id_responsable = id_generado_por;
+      if (fecha_desde || fecha_hasta) {
+        whereClause.fecha_generacion = {};
+        if (fecha_desde) whereClause.fecha_generacion[sequelize.Op.gte] = fecha_desde;
+        if (fecha_hasta) whereClause.fecha_generacion[sequelize.Op.lte] = fecha_hasta;
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       }
 
       const { count, rows } = await Reporte.findAndCountAll({
@@ -646,7 +660,11 @@ class ReportesService {
         include: [
           {
             model: Persona,
+<<<<<<< HEAD
             as: 'generadoPor',
+=======
+            as: 'reportadoPor',
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             attributes: ['id_persona', 'primer_nombre', 'primer_apellido']
           }
         ],
@@ -682,7 +700,11 @@ class ReportesService {
         include: [
           {
             model: Persona,
+<<<<<<< HEAD
             as: 'generadoPor',
+=======
+            as: 'reportadoPor',
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             attributes: ['id_persona', 'primer_nombre', 'primer_apellido', 'correo']
           }
         ]
@@ -906,6 +928,7 @@ class ReportesService {
   }
 
   /**
+<<<<<<< HEAD
    * Obtener estadísticas para el dashboard
    * @param {Object} userPermissions - Permisos del usuario
    * @param {Array} userRoles - Roles del usuario
@@ -991,6 +1014,8 @@ class ReportesService {
   }
 
   /**
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
    * Función auxiliar para contar elementos por campo
    * @param {Array} array - Array de objetos
    * @param {string} campo - Campo a contar

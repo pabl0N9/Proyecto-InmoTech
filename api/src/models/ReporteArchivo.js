@@ -16,6 +16,7 @@ const ReporteArchivo = sequelize.define('ReporteArchivo', {
       key: 'id_reporte'
     }
   },
+<<<<<<< HEAD
   url_archivo: {
     type: DataTypes.STRING(500),
     allowNull: false
@@ -26,6 +27,23 @@ const ReporteArchivo = sequelize.define('ReporteArchivo', {
   }
 }, {
   tableName: 'Reporte_Archivo',
+=======
+  nombre: {
+    type: DataTypes.STRING(200),
+    allowNull: false
+  },
+  url: {
+    type: DataTypes.STRING(500),
+    allowNull: false
+  },
+  fecha_creacion: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: sequelize.literal('GETDATE()')
+  }
+}, {
+  tableName: 'ArchivosReportes',
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   timestamps: false
 });
 

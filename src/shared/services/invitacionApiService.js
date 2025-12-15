@@ -2,8 +2,12 @@ import { apiClient } from './api.config';
 
 class InvitacionApiService {
   async validar(token) {
+<<<<<<< HEAD
     // Pasamos el token directamente como query (apiClient.get espera un objeto plano)
     return apiClient.get('/auth/verify-email', { token });
+=======
+    return apiClient.get('/invitaciones/validar', { params: { token } });
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   }
 
   async aceptar({ token, codigo_6d, password }) {
@@ -19,7 +23,11 @@ class InvitacionApiService {
   }
 
   async verificarCorreo(token) {
+<<<<<<< HEAD
     return apiClient.get('/auth/verify-email', { token });
+=======
+    return apiClient.get('/auth/verify-email', { params: { token } });
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   }
 }
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { ReportsHeader } from './ReportsHeader'
 import { ReportsTable } from './ReportsTable'
+<<<<<<< HEAD
 import CreateReportModal from '../../components/reports/CreateReportModal'
 import ViewReportModal from '../../components/reports/ViewReportModal'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -10,13 +11,39 @@ import reportesInmobiliariosService from '../../services/reportesInmobiliarios.s
 import authService from '../../../../shared/services/authService'
 
 const Reports = () => {
+=======
+import ReportsKanban from './ReportsKanban'
+import CreateReportModal from '../../components/reports/CreateReportModal'
+import ViewReportModal from '../../components/reports/ViewReportModal'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useReports, ReportsProvider } from '../../../../shared/contexts/ReportsContext.jsx'
+import { useAuth } from '../../../../shared/contexts/AuthContext'
+import reportesInmobiliariosService from '../../services/reportesInmobiliarios.service'
+import authService from '../../../../shared/services/authService'
+import { useToast } from '../../../../shared/hooks/use-toast'
+import { uploadToCloudinary } from '../../../../shared/services/cloudinary'
+import { Grid3X3, List } from 'lucide-react'
+import * as XLSX from 'xlsx'
+
+const ReportsContent = () => {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedReport, setSelectedReport] = useState(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+<<<<<<< HEAD
   const { createReport, updateReport, deleteReport } = useReports()
   const { user } = useAuth()
+=======
+  const [viewMode, setViewMode] = useState('board')
+  const [showCancelled, setShowCancelled] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('Todos los estados')
+  const [todayOnly, setTodayOnly] = useState(false)
+  const { createReport, updateReport, deleteReport } = useReports()
+  const { user } = useAuth()
+  const { toast } = useToast()
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   // Estado para datos reales del backend
   const [dbReports, setDbReports] = useState([])
@@ -61,11 +88,85 @@ const Reports = () => {
     )
   )
 
+<<<<<<< HEAD
+=======
+  // MOVER AQUI: helper hoisteado para evitar TDZ
+  function normalizeEstado(raw) {
+    const s = String(raw || '').toLowerCase().trim()
+    if (s === 'pendiente') return 'Pendiente'
+    if (s === 'en proceso' || s === 'en_proceso' || s === 'enproceso') return 'En Proceso'
+    if (s === 'completado' || s === 'completo') return 'Completado'
+    if (s === 'cancelado') return 'Cancelado'
+    return 'Pendiente'
+  }
+
+  // NUEVO: aplicar filtros combinados (cancelados, estado)
+  const todayStr = new Date().toLocaleDateString('es-ES')
+  const displayedReports = filteredReports
+    .filter(r => showCancelled ? true : normalizeEstado(r.estado) !== 'Cancelado')
+    .filter(r => statusFilter === 'Todos los estados' ? true : normalizeEstado(r.estado) === statusFilter)
+    .filter(r => todayOnly ? (r.fecha === todayStr) : true)
+
+  // Helper: obtiene ID numérico robusto del backend desde distintos formatos
+  const getBackendId = (item) => {
+    return Number(
+      item?.id_reporte ??
+      item?.referencia ??
+      (item?.id || '').toString().replace(/\D/g, '')
+    )
+  }
+
+  // NUEVO: formatear 'responsable' traído del backend
+  const formatResponsableName = (r) => {
+    if (!r) return '';
+    if (typeof r === 'string') return r.trim();
+    if (r?.nombre_completo) return String(r.nombre_completo).replace(/\s+/g, ' ').trim();
+    const nombres = [r?.primer_nombre, r?.segundo_nombre, r?.nombres, r?.nombre].filter(Boolean).join(' ');
+    const apellidos = [r?.primer_apellido, r?.segundo_apellido, r?.apellidos, r?.apellido, r?.apellido_completo].filter(Boolean).join(' ');
+    const full = [nombres, apellidos].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+    return full || r?.correo || r?.email || '';
+  }
+
+  // NUEVO: cambiar estado desde Kanban y persistir en backend
+  const handleChangeEstado = async (report, nuevoEstado) => {
+    try {
+      const backendId =
+        getBackendId(report) ||
+        getBackendId(selectedReport)
+
+      if (!backendId) {
+        throw new Error('No se pudo determinar el ID del reporte para actualizar estado.')
+      }
+
+      const estadoNormalizado = normalizeEstado(nuevoEstado)
+      await reportesInmobiliariosService.actualizarReporte(
+        backendId,
+        { estado: estadoNormalizado },
+        ''
+      )
+      await fetchReports()
+      toast({
+        title: 'Estado actualizado',
+        description: `El reporte pasó a ${estadoNormalizado}`,
+        variant: 'success',
+      })
+    } catch (err) {
+      setDbError(err?.message || 'Error al actualizar estado')
+      toast({
+        title: 'Error',
+        description: err?.message || 'No se pudo actualizar el estado.',
+        variant: 'error',
+      })
+    }
+  }
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   const handleNewReport = () => {
     setSelectedReport(null)
     setIsCreateModalOpen(true)
   }
 
+<<<<<<< HEAD
   const handleViewReport = (report) => {
     setSelectedReport(report)
     setIsViewModalOpen(true)
@@ -84,6 +185,117 @@ const Reports = () => {
     if (s === 'completado' || s === 'completo') return 'Completado'
     return 'Pendiente'
   }
+=======
+  // Fetch detailed report for viewing with inmueble data enrichment
+  const handleViewReport = async (report) => {
+    try {
+      const reportId = Number(report.id_reporte ?? report.referencia ?? (report.id || '').toString().replace(/\D/g, ''))
+      if (!reportId) {
+        throw new Error('ID de reporte inválido para ver detalles')
+      }
+
+      const detailedReport = await reportesInmobiliariosService.obtenerReporte(reportId)
+
+      // Add inmueble fields from shallow report or backend data
+      detailedReport.ubicacion = report.ubicacion || detailedReport.inmueble_ciudad || ''
+      detailedReport.tipoInmueble = report.tipoInmueble || detailedReport.inmueble_categoria || ''
+      detailedReport.propietario = report.propietario || detailedReport.reporta_nombre || ''
+      detailedReport.referencia = report.referencia || detailedReport.referencia || reportId
+      detailedReport.tipoReporte = report.tipoReporte || detailedReport.tipo_reporte || ''
+      detailedReport.estado = report.estado || detailedReport.estado || 'Pendiente'
+      detailedReport.fecha = report.fecha || (detailedReport.fecha_creacion ? new Date(detailedReport.fecha_creacion).toLocaleDateString('es-ES') : '')
+      detailedReport.responsable = report.responsable || detailedReport.responsable || 'No asignado'
+      detailedReport.descripcion = detailedReport.descripcion || ''
+      detailedReport.seguimientoGeneral = detailedReport.seguimiento_general || ''
+
+      // Fetch rubros and follow-ups
+      const rubros = await reportesInmobiliariosService.listarRubros(reportId)
+      const rubrosConSeguimientos = await Promise.all(
+        rubros.map(async (rubro) => {
+          const seguimientosRaw = await reportesInmobiliariosService.listarSeguimientosRubro(reportId, rubro.id_rubro ?? rubro.id)
+          const seguimientos = (seguimientosRaw || []).map(s => ({
+            ...s,
+            responsable: formatResponsableName(s.responsable)
+          }))
+          return { ...rubro, seguimientos }
+        })
+      )
+      detailedReport.rubros = rubrosConSeguimientos
+
+      setSelectedReport(detailedReport)
+      setIsViewModalOpen(true)
+    }
+    catch (error) {
+      setDbError(error.message || 'Error al cargar detalles del reporte')
+      toast({
+        title: 'Error',
+        description: error.message || 'Error al cargar datos para ver',
+        variant: 'error',
+      })
+    }
+  }
+
+  const handleEditReport = async (report) => {
+    try {
+      const reportId = Number(report.id_reporte ?? report.referencia ?? (report.id || '').toString().replace(/\D/g, ''))
+      if (!reportId) {
+        throw new Error('ID de reporte inválido para editar')
+      }
+      const detailedReport = await reportesInmobiliariosService.obtenerReporte(reportId)
+      const rubros = await reportesInmobiliariosService.listarRubros(reportId)
+
+      // For each rubro, fetch follow-ups
+      const rubrosConSeguimientos = await Promise.all(
+        rubros.map(async (rubro) => {
+          const seguimientosRaw = await reportesInmobiliariosService.listarSeguimientosRubro(reportId, rubro.id_rubro ?? rubro.id)
+          const seguimientos = (seguimientosRaw || []).map(s => ({
+            ...s,
+            responsable: formatResponsableName(s.responsable)
+          }))
+          return { ...rubro, seguimientos }
+        })
+      )
+
+      // Append rubros with follow-ups to the detailed report
+      detailedReport.rubros = rubrosConSeguimientos
+
+      // Add inmueble fields from shallow report or backend data
+      detailedReport.ubicacion = report.ubicacion || detailedReport.inmueble_ciudad || ''
+      detailedReport.tipoInmueble = report.tipoInmueble || detailedReport.inmueble_categoria || ''
+      detailedReport.propietario = report.propietario || detailedReport.reporta_nombre || ''
+      detailedReport.referencia = report.referencia || detailedReport.referencia || reportId
+      detailedReport.tipoReporte = report.tipoReporte || detailedReport.tipo_reporte || ''
+      detailedReport.estado = report.estado || detailedReport.estado || 'Pendiente'
+      detailedReport.fecha = report.fecha || (detailedReport.fecha_creacion ? new Date(detailedReport.fecha_creacion).toLocaleDateString('es-ES') : '')
+      detailedReport.responsable = report.responsable || detailedReport.responsable || 'No asignado'
+      detailedReport.descripcion = detailedReport.descripcion || ''
+      detailedReport.seguimientoGeneral = detailedReport.seguimiento_general || ''
+
+      setSelectedReport(detailedReport)
+      setIsEditModalOpen(true)
+    } catch (err) {
+      setDbError(err.message || 'Error al cargar datos detallados para edición')
+      toast({
+        title: 'Error',
+        description: err.message || 'Error al cargar datos para edición',
+        variant: 'error',
+      })
+    }
+  }
+
+  // Helper: convertir File a Data URL (base64) para persistir
+  const fileToDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      try {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = (e) => reject(e)
+        reader.readAsDataURL(file)
+      } catch (e) {
+        reject(e)
+      }
+    })
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   const handleCreateReport = async (reportData) => {
     try {
@@ -103,6 +315,7 @@ const Reports = () => {
         return
       }
 
+<<<<<<< HEAD
       await reportesInmobiliariosService.crearReporte(payload, payload.seguimiento_general)
       setIsCreateModalOpen(false)
       // Refresh the reports list immediately after creation
@@ -131,11 +344,208 @@ const Reports = () => {
       seguimiento_general: reportData.seguimientoGeneral || ''
     }
 
+=======
+      // Crear reporte y obtener el ID real del backend
+      const createdReport = await reportesInmobiliariosService.crearReporte(payload, payload.seguimiento_general)
+      const backendId = Number(createdReport?.id_reporte ?? createdReport?.id)
+
+      // Persistir rubros y sus seguimientos (solo activos)
+      const rubrosToSave = (reportData.rubros || []).filter(r => r.activo !== false)
+      for (const r of rubrosToSave) {
+        const activos = (r.seguimientos || []).filter(s => s.activo !== false)
+        const completados = activos.filter(s => normalizeEstado(s.estado) === 'Completado').length
+        const progreso = activos.length > 0 ? Math.round((completados / activos.length) * 100) : 0
+
+        const rubroPayload = {
+          nombre: (r.nombre || '').trim() || 'Rubro sin nombre',
+          descripcion: (r.descripcion || '').trim(),
+          estado: normalizeEstado(r.estado || 'Pendiente'),
+          progreso
+        }
+
+        const savedRubro = await reportesInmobiliariosService.crearRubro(backendId, rubroPayload)
+        const rubroId = Number(savedRubro?.id_rubro ?? savedRubro?.id)
+
+        // Toast de creación de rubro
+        toast({
+          title: 'Rubro creado',
+          description: `Se creó "${rubroPayload.nombre}" correctamente.`,
+          variant: 'success',
+        })
+
+        // Guardar seguimientos del rubro
+        for (const seg of activos) {
+          const segPayload = {
+            descripcion: (seg.descripcion || '').trim(),
+            estado: normalizeEstado(seg.estado || 'Pendiente')
+          }
+          await reportesInmobiliariosService.crearSeguimientoRubro(backendId, rubroId, segPayload)
+
+          // Toast de creación de seguimiento
+          toast({
+            title: 'Seguimiento agregado',
+            description: `Seguimiento en "${rubroPayload.nombre}" agregado correctamente.`,
+            variant: 'success',
+          })
+        }
+      }
+
+      // Persistir imágenes
+      const imagenes = Array.isArray(reportData.imagenes) ? reportData.imagenes : []
+      for (const img of imagenes) {
+        const fileObj = img.file
+        if (!fileObj) continue
+
+        const upload = await uploadToCloudinary(fileObj, { folder: `reportes/${backendId}/imagenes` })
+        await reportesInmobiliariosService.agregarImagen(backendId, { url: upload.secure_url })
+        toast({
+          title: 'Imagen guardada',
+          description: `${img.name || 'Imagen'} guardada correctamente.`,
+          variant: 'success',
+        })
+      }
+
+      // Persistir archivos
+      const archivos = Array.isArray(reportData.archivos) ? reportData.archivos : []
+      for (const f of archivos) {
+        const nombre = (f.name || f.nombre || 'Archivo').toString()
+        const fileObj = f.file
+        if (!fileObj) continue
+
+        const upload = await uploadToCloudinary(fileObj, { folder: `reportes/${backendId}/archivos` })
+        await reportesInmobiliariosService.agregarArchivo(backendId, { nombre, url: upload.secure_url })
+        toast({
+          title: 'Archivo guardado',
+          description: `${nombre} guardado correctamente.`,
+          variant: 'success',
+        })
+      }
+
+      setIsCreateModalOpen(false)
+      await fetchReports()
+
+      // Toast final del reporte
+      toast({
+        title: 'Reporte creado',
+        description: 'El reporte, rubros, seguimientos, imágenes y archivos fueron guardados.',
+        variant: 'success',
+      })
+    } catch (err) {
+      setDbError(`Error al crear el reporte: ${err?.message || 'desconocido'}`)
+      toast({
+        title: 'Error',
+        description: err?.message || 'No se pudo crear el reporte o adjuntos.',
+        variant: 'error',
+      })
+    }
+  }
+
+  // EDIT: lanzar error si no hay ID, para que el modal no muestre “éxito” por error
+  const handleUpdateReport = async (reportData) => {
+    const backendId =
+      getBackendId(reportData) ||
+      getBackendId(selectedReport)
+  
+    if (!backendId) {
+      throw new Error('No se pudo determinar el ID del reporte para actualizar.')
+    }
+  
+    // 1) Actualizar campos del reporte (sin borrar nada)
+    const patchPayload = {
+      estado: normalizeEstado(reportData.estado),
+      descripcion: (reportData.descripcion || '').trim(),
+      seguimiento_general: (reportData.seguimientoGeneral || '').trim()
+    }
+  
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     await reportesInmobiliariosService.actualizarReporte(
       backendId,
       patchPayload,
       patchPayload.seguimiento_general
     )
+<<<<<<< HEAD
+=======
+  
+    // 2) Upsert de rubros y sus seguimientos
+    const rubrosToProcess = (reportData.rubros || [])
+  
+    for (const r of rubrosToProcess) {
+      const activos = (r.seguimientos || []).filter(s => s.activo !== false)
+      const completados = activos.filter(s => normalizeEstado(s.estado) === 'Completado').length
+      const progreso = activos.length > 0 ? Math.round((completados / activos.length) * 100) : 0
+  
+      const rubroPayload = {
+        nombre: (r.nombre || '').trim() || 'Rubro sin nombre',
+        descripcion: (r.descripcion || '').trim(),
+        estado: normalizeEstado(r.activo === false ? 'Cancelado' : (r.estado || 'Pendiente')),
+        progreso
+      }
+  
+      // Crear o actualizar rubro según tenga backendId
+      let rubroBackendId = Number(r.backendId ?? 0)
+      if (rubroBackendId > 0) {
+        await reportesInmobiliariosService.actualizarRubro(backendId, rubroBackendId, rubroPayload)
+      } else {
+        const created = await reportesInmobiliariosService.crearRubro(backendId, rubroPayload)
+        rubroBackendId = Number(created?.id_rubro ?? created?.id)
+      }
+  
+      // Upsert de seguimientos del rubro
+      const segsToProcess = (r.seguimientos || [])
+      for (const s of segsToProcess) {
+        const segPayload = {
+          descripcion: (s.descripcion || '').trim(),
+          estado: normalizeEstado(s.activo === false ? 'Cancelado' : (s.estado || 'Pendiente'))
+        }
+  
+        const segBackendId = Number(s.backendId ?? 0)
+        if (segBackendId > 0) {
+          await reportesInmobiliariosService.actualizarSeguimientoRubro(
+            backendId,
+            rubroBackendId,
+            segBackendId,
+            segPayload
+          )
+        } else {
+          await reportesInmobiliariosService.crearSeguimientoRubro(
+            backendId,
+            rubroBackendId,
+            segPayload
+          )
+        }
+      }
+    }
+  
+    // Subir nuevas imágenes añadidas en edición (solo si traen File)
+    const imagenes = Array.isArray(reportData.imagenes) ? reportData.imagenes : []
+    for (const img of imagenes) {
+      if (img.file) {
+        const upload = await uploadToCloudinary(img.file, { folder: `reportes/${backendId}/imagenes` })
+        await reportesInmobiliariosService.agregarImagen(backendId, { url: upload.secure_url })
+        toast({
+          title: 'Imagen guardada',
+          description: `${img.name || 'Imagen'} guardada correctamente.`,
+          variant: 'success',
+        })
+      }
+    }
+  
+    // Subir nuevos archivos añadidos en edición (solo si traen File)
+    const archivos = Array.isArray(reportData.archivos) ? reportData.archivos : []
+    for (const f of archivos) {
+      if (f.file) {
+        const nombre = (f.name || f.nombre || 'Archivo').toString()
+        const upload = await uploadToCloudinary(f.file, { folder: `reportes/${backendId}/archivos` })
+        await reportesInmobiliariosService.agregarArchivo(backendId, { nombre, url: upload.secure_url })
+        toast({
+          title: 'Archivo guardado',
+          description: `${nombre} guardado correctamente.`,
+          variant: 'success',
+        })
+      }
+    }
+  
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     setIsEditModalOpen(false)
     setSelectedReport(null)
     await fetchReports()
@@ -597,10 +1007,84 @@ const Reports = () => {
     };
   }
 
+<<<<<<< HEAD
   const handleDownloadExcel = () => {}
 
   return (
     <div className='space-y-6'>
+=======
+  const handleDownloadExcel = () => {
+    // Función para generar y descargar Excel
+    const generateExcel = () => {
+      // Crear datos para Excel
+      const excelData = displayedReports.map(report => ({
+        'ID': report.id,
+        'Ubicación': report.ubicacion,
+        'Tipo de Inmueble': report.tipoInmueble,
+        'Propietario': report.propietario,
+        'Tipo de Reporte': report.tipoReporte,
+        'Fecha': report.fecha,
+        'Estado': report.estado,
+        'Referencia': report.referencia || report.id
+      }))
+
+      // Crear workbook y worksheet
+      const ws = XLSX.utils.json_to_sheet(excelData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Reportes')
+
+      // Configurar ancho de columnas
+      const colWidths = [
+        { wch: 10 }, // ID
+        { wch: 20 }, // Ubicación
+        { wch: 15 }, // Tipo de Inmueble
+        { wch: 25 }, // Propietario
+        { wch: 20 }, // Tipo de Reporte
+        { wch: 12 }, // Fecha
+        { wch: 15 }, // Estado
+        { wch: 15 }  // Referencia
+      ]
+      ws['!cols'] = colWidths
+
+      // Generar nombre del archivo
+      const fileName = `reportes_${new Date().toISOString().split('T')[0]}.xlsx`
+
+      // Descargar archivo
+      XLSX.writeFile(wb, fileName)
+    }
+
+    try {
+      // Verificar si XLSX está disponible
+      if (typeof XLSX === 'undefined') {
+        // Si no está disponible, mostrar mensaje de error
+        toast({
+          title: 'Error',
+          description: 'La funcionalidad de Excel no está disponible. Por favor, contacte al administrador.',
+          variant: 'error',
+        })
+        return
+      }
+
+      generateExcel()
+
+      toast({
+        title: 'Excel generado',
+        description: 'El archivo Excel se ha descargado correctamente.',
+        variant: 'success',
+      })
+    } catch (error) {
+      console.error('Error generando Excel:', error)
+      toast({
+        title: 'Error',
+        description: 'No se pudo generar el archivo Excel.',
+        variant: 'error',
+      })
+    }
+  }
+
+  return (
+    <div className='p-6 space-y-6'>
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       {dbLoading && <div className='p-4 text-slate-600'>Cargando reportes…</div>}
       {dbError && <div className='p-4 text-red-600'>{dbError}</div>}
 
@@ -610,6 +1094,7 @@ const Reports = () => {
         onNewReport={handleNewReport}
         onDownloadPDF={handleDownloadReportPDF}
         onDownloadExcel={handleDownloadExcel}
+<<<<<<< HEAD
         reports={filteredReports}
       />
 
@@ -619,6 +1104,48 @@ const Reports = () => {
         onEdit={handleEditReport}
         onDownloadPDF={handleDownloadReportPDF}
       />
+=======
+        reports={displayedReports}
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
+        showCancelled={showCancelled}
+        onToggleShowCancelled={() => setShowCancelled(v => !v)}
+      />
+
+      <div className='flex items-center justify-end gap-3'>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setViewMode(viewMode === 'table' ? 'board' : 'table')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+            viewMode === 'board'
+              ? 'bg-green-600 text-white shadow-lg'
+              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-green-300'
+          }`}
+        >
+          {viewMode === 'table' ? <Grid3X3 className="w-4 h-4" /> : <List className="w-4 h-4" />}
+          {viewMode === 'table' ? 'Vista Kanban' : 'Vista Tabla'}
+        </motion.button>
+      </div>
+
+      {viewMode === 'board' ? (
+        <ReportsKanban
+          reports={displayedReports}
+          onView={handleViewReport}
+          onEdit={handleEditReport}
+          onCreate={handleNewReport}
+          onChangeEstado={handleChangeEstado}
+          showCancelled={showCancelled}
+        />
+      ) : (
+        <ReportsTable
+          reports={displayedReports}
+          onView={handleViewReport}
+          onEdit={handleEditReport}
+          onDownloadPDF={handleDownloadReportPDF}
+        />
+      )}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
       <CreateReportModal
         isOpen={isCreateModalOpen}
@@ -651,4 +1178,14 @@ const Reports = () => {
   )
 }
 
+<<<<<<< HEAD
 export default Reports
+=======
+export default function Reports() {
+  return (
+    <ReportsProvider>
+      <ReportsContent />
+    </ReportsProvider>
+  )
+}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

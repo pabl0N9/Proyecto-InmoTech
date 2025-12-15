@@ -10,7 +10,10 @@ const LaboralStep = ({ formData, errors, updateFormData }) => {
         <p className="text-slate-600 text-sm">Ingresa los datos laborales del nuevo administrativo</p>
       </div>
 
+<<<<<<< HEAD
       {/* Fecha de Ingreso */}
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       <div className="space-y-2">
         <Label htmlFor="fechaIngreso" className="text-sm font-medium text-slate-700">
           Fecha de Ingreso *
@@ -20,12 +23,18 @@ const LaboralStep = ({ formData, errors, updateFormData }) => {
           type="date"
           value={formData.fechaIngreso}
           onChange={(e) => updateFormData('fechaIngreso', e.target.value)}
+<<<<<<< HEAD
           className={`h-10 ${errors.fechaIngreso ? 'border-red-500' : ''}`}
+=======
+          className={`h-11 rounded-xl ${errors.fechaIngreso ? 'border-red-500' : ''}`}
+          max={new Date().toISOString().split('T')[0]}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         />
         {errors.fechaIngreso && (
           <p className="text-sm text-red-600">{errors.fechaIngreso}</p>
         )}
         <p className="text-xs text-slate-500">
+<<<<<<< HEAD
           El código de empleado se generará automáticamente según el rol asignado.
         </p>
       </div>
@@ -66,6 +75,11 @@ const LaboralStep = ({ formData, errors, updateFormData }) => {
           )}
         </div>
       </div>
+=======
+          No se permiten fechas futuras. El código de empleado se generará automáticamente.
+        </p>
+      </div>
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     </div>
   );
 };

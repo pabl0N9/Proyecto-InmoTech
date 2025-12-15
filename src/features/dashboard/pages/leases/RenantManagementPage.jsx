@@ -250,6 +250,7 @@ export function RenantManagementPage() {
             {statusMessage.message}
           </div>
         )}
+<<<<<<< HEAD
 
         {/* STATS CARDS */}
         <motion.div
@@ -307,6 +308,8 @@ export function RenantManagementPage() {
           </div>
         </motion.div>
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         {/* SEARCH AND FILTERS */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -345,6 +348,7 @@ export function RenantManagementPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
+<<<<<<< HEAD
           {/* TABLA CON NUEVO ESTILO - SIN COLUMNA ID */}
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             {/* CABECERA DE TABLA */}
@@ -371,6 +375,27 @@ export function RenantManagementPage() {
                   {isLoading ? (
                     <tr>
                       <td colSpan="7" className="px-4 py-8 text-center text-slate-500 border-b">
+=======
+          {/* TABLA CON ESTILO UNIFICADO */}
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Inquilino</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Inmueble</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Registro</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Inicio / Fin</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Valor Mensual</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Estado</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-8 text-center text-slate-500">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                         <div className="flex flex-col items-center gap-2">
                           <Home className="w-8 h-8 text-slate-400 animate-pulse" />
                           <p>Cargando arriendos...</p>
@@ -381,10 +406,17 @@ export function RenantManagementPage() {
                     filteredRents.map((r) => (
                       <tr
                         key={r.id}
+<<<<<<< HEAD
                         className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                       >
                         {/* INQUILINO */}
                         <td className="px-4 py-3">
+=======
+                        className="hover:bg-slate-50 transition-colors"
+                      >
+                        {/* INQUILINO */}
+                        <td className="px-6 py-4">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex items-center gap-3 justify-center">
                             <div className="bg-blue-100 rounded-lg p-2">
                               <Users className="w-4 h-4 text-blue-600" />
@@ -397,7 +429,11 @@ export function RenantManagementPage() {
                         </td>
                         
                         {/* INMUEBLE */}
+<<<<<<< HEAD
                         <td className="px-4 py-3 text-center">
+=======
+                        <td className="px-6 py-4 text-center">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex items-center gap-2 justify-center">
                             <Home className="w-4 h-4 text-slate-400" />
                             <span className="text-slate-700">{r.tipoInmueble}</span>
@@ -405,10 +441,17 @@ export function RenantManagementPage() {
                         </td>
                         
                         {/* REGISTRO */}
+<<<<<<< HEAD
                         <td className="px-4 py-3 text-center text-slate-600 text-sm">{r.registroInmobiliario}</td>
                         
                         {/* FECHAS */}
                         <td className="px-4 py-3 text-center">
+=======
+                        <td className="px-6 py-4 text-center text-slate-600 text-sm">{r.registroInmobiliario}</td>
+                        
+                        {/* FECHAS */}
+                        <td className="px-6 py-4 text-center">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex flex-col items-center">
                             <span className="text-sm text-slate-700">{r.fechaInicio}</span>
                             <span className="text-xs text-slate-500">a {r.fechaFinal}</span>
@@ -416,6 +459,7 @@ export function RenantManagementPage() {
                         </td>
                         
                         {/* VALOR MENSUAL */}
+<<<<<<< HEAD
                         <td className="px-4 py-3 text-center font-semibold text-purple-700">{r.valorMensual}</td>
                         
                         {/* ESTADO */}
@@ -423,6 +467,15 @@ export function RenantManagementPage() {
                         
                         {/* ACCIONES */}
                         <td className="px-4 py-3 text-center">
+=======
+                        <td className="px-6 py-4 text-center font-semibold text-purple-700">{r.valorMensual}</td>
+                        
+                        {/* ESTADO */}
+                        <td className="px-6 py-4 text-center">{getEstadoBadge(r.estado)}</td>
+                        
+                        {/* ACCIONES */}
+                        <td className="px-6 py-4 text-center">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex gap-2 justify-center">
                             <motion.button
                               whileHover={{ scale: 1.1 }}

@@ -3,15 +3,59 @@ const { Cita } = require('../models');
 const { Inmueble } = require('../models');
 const { ServicioCita } = require('../models');
 const { EstadoCita } = require('../models');
-const { sequelize, Op } = require('../config/database');
+const { sequelize } = require('../config/database');
+const { Op } = require('sequelize');
 const { isSuperAdministrator } = require('../middlewares/auth.middleware');
 const logger = require('../utils/logger');
+
+const normalizarFechaCita = (fecha) => {
+  if (!fecha) return fecha;
+  if (typeof fecha === 'string') return fecha;
+
+  const parsed = new Date(fecha);
+  if (Number.isNaN(parsed.getTime())) return fecha;
+
+  return parsed.toISOString().slice(0, 10);
+};
 
 class CitaService {
 
   async crearCita(dataCita) {
     const result = await sequelize.transaction(async (t) => {
       try {
+        const asBadRequest = (message) => {
+          const err = new Error(message);
+          err.status = 400;
+          return err;
+        };
+
+        const idServicio = Number(dataCita.id_servicio);
+        if (!idServicio) throw asBadRequest('El servicio es requerido');
+
+        const servicio = await ServicioCita.findByPk(idServicio, { transaction: t });
+        if (!servicio) throw asBadRequest('Servicio no encontrado');
+
+        const nombreServicio = (servicio.nombre_servicio || '').toLowerCase();
+        const requiereInmueble = ['propiedad', 'inmueble', 'visita'].some((kw) => nombreServicio.includes(kw));
+
+        let idInmueble = dataCita.id_inmueble !== undefined && dataCita.id_inmueble !== null
+          ? Number(dataCita.id_inmueble)
+          : null;
+
+        if (requiereInmueble) {
+          if (!idInmueble) throw asBadRequest('El inmueble es requerido para este servicio');
+          const inmueble = await Inmueble.findByPk(idInmueble, { transaction: t });
+          if (!inmueble) throw asBadRequest('Inmueble no encontrado');
+        } else if (idInmueble) {
+          const inmueble = await Inmueble.findByPk(idInmueble, { transaction: t });
+          if (!inmueble) throw asBadRequest('Inmueble no encontrado');
+        } else {
+          idInmueble = null;
+        }
+
+        dataCita.id_inmueble = idInmueble;
+        dataCita.id_servicio = idServicio;
+
         // ✅ Usar directamente nombre_completo y apellido_completo como vienen del frontend
         const nombre_completo = dataCita.nombre_completo || '';
         const apellido_completo = dataCita.apellido_completo || '';
@@ -44,11 +88,11 @@ class CitaService {
           }, { transaction: t });
         }
 
-        // 3. Validación para evitar cita duplicada (misma persona, inmueble, fecha, hora inicio-fin que se solapen)
         const citaExistente = await Cita.findOne({
           where: {
             id_persona: persona.id_persona,
-            id_inmueble: dataCita.id_inmueble,
+            ...(dataCita.id_inmueble !== null ? { id_inmueble: dataCita.id_inmueble } : {}),
+            id_servicio: idServicio,
             fecha_cita: dataCita.fecha_cita,
             hora_inicio: dataCita.hora_inicio,
             hora_fin: dataCita.hora_fin
@@ -57,7 +101,7 @@ class CitaService {
         });
 
         if (citaExistente) {
-          throw new Error('Ya existe una cita con la misma información para este usuario');
+          throw asBadRequest('Ya existe una cita con la misma informacion para este usuario');
         }
 
         // 4. Crear la cita si no existe duplicado
@@ -65,7 +109,7 @@ class CitaService {
           id_persona: persona.id_persona,
           id_inmueble: dataCita.id_inmueble,
           id_servicio: dataCita.id_servicio,
-          fecha_cita: dataCita.fecha_cita,
+          fecha_cita: normalizarFechaCita(dataCita.fecha_cita),
           hora_inicio: dataCita.hora_inicio,
           hora_fin: dataCita.hora_fin,
           id_estado_cita: dataCita.id_estado_cita || 1, // 1 = Solicitada
@@ -91,7 +135,18 @@ class CitaService {
         { association: 'inmueble' },
         { association: 'servicio' },
         { association: 'estado' },
-        { association: 'agente', required: false },
+        {
+          association: 'agente',
+          required: false,
+          attributes: [
+            'id_persona',
+            'nombre_completo',
+            'apellido_completo',
+            'numero_documento',
+            'correo',
+            'telefono'
+          ]
+        },
         { association: 'creador', required: false, attributes: ['id_persona', 'nombre_completo', 'apellido_completo'] }
       ],
       transaction
@@ -182,6 +237,9 @@ class CitaService {
         id_estado_cita: cita.id_estado_cita,
         id_agente_asignado: cita.id_agente_asignado,
         observaciones: cita.observaciones,
+        motivo_reagendamiento: cita.motivo_reagendamiento,
+        motivo_cancelacion: cita.motivo_cancelacion,
+        fecha_cancelacion: cita.fecha_cancelacion,
         fecha_creacion: cita.fecha_creacion,
 
         cliente: cita.cliente ? {
@@ -237,21 +295,13 @@ class CitaService {
 
     } catch (error) {
       logger.error(`❌ Error en obtenerTodasLasCitas: ${error.message}`);
-
-      const msg = error.original?.message || error.message || '';
-      if (msg.includes('association') || msg.includes('Invalid object name') || msg.includes('does not exist')) {
-        logger.warn('Citas: devolviendo lista vac?a por esquema incompleto.');
-      } else {
-        logger.warn('Citas: devolviendo lista vac?a por error no controlado.');
-      }
-      return { citas: [], total: 0, page: filtros.page || 1, limit: filtros.limit || 0, pages: 0 };
+      throw error;
     }
   }
 
   async eliminarCita(id) {
     try {
-      const cita = await this.obtenerCitaPorId(id);
-
+      const cita = await Cita.findByPk(id);
       if (!cita) {
         throw new Error('Cita no encontrada');
       }
@@ -271,8 +321,8 @@ class CitaService {
 
   async confirmarCita(id, idAgenteAsignado) {
     try {
-      const cita = await this.obtenerCitaPorId(id);
-
+      // Tomar instancia directa para poder usar update
+      const cita = await Cita.findByPk(id);
       if (!cita) {
         throw new Error('Cita no encontrada');
       }
@@ -283,7 +333,8 @@ class CitaService {
         fecha_confirmacion: new Date()
       });
 
-      return cita;
+      // Retornar la cita con includes completos
+      return await this.obtenerCitaPorId(id);
     } catch (error) {
       throw error;
     }
@@ -291,8 +342,8 @@ class CitaService {
 
   async cancelarCita(id, motivoCancelacion) {
     try {
-      const cita = await this.obtenerCitaPorId(id);
-
+      // Necesitamos la instancia de Sequelize para poder llamar a update
+      const cita = await Cita.findByPk(id);
       if (!cita) {
         throw new Error('Cita no encontrada');
       }
@@ -314,18 +365,18 @@ class CitaService {
       try {
         logger.info(`🔄 Reagendando cita ${id} con datos: ${JSON.stringify(nuevosDatos)}`);
 
-        const cita = await this.obtenerCitaPorId(id, t);
-
-        if (!cita) {
+        // Tomar instancia de Sequelize (no JSON) para poder usar update
+        const citaModel = await Cita.findByPk(id, { transaction: t });
+        if (!citaModel) {
           throw new Error('Cita no encontrada');
         }
 
         // Guardar ID del agente anterior para historial
-        const idAgenteAnterior = cita.id_agente_asignado;
+        const idAgenteAnterior = citaModel.id_agente_asignado;
 
         // Actualizar la cita con los nuevos datos
         const datosActualizados = {
-          fecha_cita: nuevosDatos.fecha_cita,
+          fecha_cita: normalizarFechaCita(nuevosDatos.fecha_cita),
           hora_inicio: nuevosDatos.hora_inicio,
           hora_fin: nuevosDatos.hora_fin,
           motivo_reagendamiento: nuevosDatos.motivo_reagendamiento,
@@ -334,7 +385,7 @@ class CitaService {
           fecha_actualizacion: new Date()
         };
 
-        await cita.update(datosActualizados, { transaction: t });
+        await citaModel.update(datosActualizados, { transaction: t });
 
         // Si se cambió el agente, registrar en historial de asignaciones
         if (idAgenteAnterior !== nuevosDatos.id_agente_asignado) {
@@ -364,18 +415,18 @@ class CitaService {
 
   async completarCita(id) {
     try {
-      const cita = await this.obtenerCitaPorId(id);
-
-      if (!cita) {
+      // Necesitamos la instancia de Sequelize para poder actualizar
+      const citaModel = await Cita.findByPk(id);
+      if (!citaModel) {
         throw new Error('Cita no encontrada');
       }
 
-      await cita.update({
+      await citaModel.update({
         id_estado_cita: 5, // Completada
         fecha_completada: new Date()
       });
 
-      return cita;
+      return await this.obtenerCitaPorId(id);
     } catch (error) {
       throw error;
     }
@@ -389,10 +440,16 @@ class CitaService {
         throw new Error('Cita no encontrada');
       }
 
-      await cita.update({
+      const datosActualizados = {
         ...nuevosDatos,
         fecha_actualizacion: new Date()
-      });
+      };
+
+      if (typeof nuevosDatos.fecha_cita !== 'undefined') {
+        datosActualizados.fecha_cita = normalizarFechaCita(nuevosDatos.fecha_cita);
+      }
+
+      await cita.update(datosActualizados);
 
       return await this.obtenerCitaPorId(id);
     } catch (error) {
@@ -404,35 +461,34 @@ class CitaService {
    * Asignar un agente a una cita y registrar en historial
    * @param {number} idCita - ID de la cita
    * @param {number} idAgenteNuevo - ID del agente a asignar
-   * @param {number} idUsuarioRealizo - ID del usuario que realiza la asignación
-   * @param {string} comentario - Comentario opcional (requerido si es reasignación)
+   * @param {number} idUsuarioRealizo - ID del usuario que realiza la asignaci?n
+   * @param {string} comentario - Comentario opcional (requerido si es reasignaci?n)
+   * @param {string|null} motivo_reagendamiento - Motivo de la reasignaci?n/reagendamiento
    * @returns {Promise<Object>} Cita actualizada con historial
    */
-  async asignarAgente(idCita, idAgenteNuevo, idUsuarioRealizo, comentario = null) {
+  async asignarAgente(idCita, idAgenteNuevo, idUsuarioRealizo, comentario = null, motivo_reagendamiento = null) {
     const result = await sequelize.transaction(async (t) => {
       try {
-        logger.info(`🔄 Asignando agente ${idAgenteNuevo} a cita ${idCita}`);
+        logger.info(`Asignando agente ${idAgenteNuevo} a cita ${idCita}`);
 
-        // Verificar cita existe
-        const cita = await this.obtenerCitaPorId(idCita, t);
+        const cita = await Cita.findByPk(idCita, { transaction: t });
         if (!cita) {
           throw new Error('Cita no encontrada');
         }
 
         const idAgenteAnterior = cita.id_agente_asignado;
+        const motivoFinal = motivo_reagendamiento || comentario || null;
 
-        // Si es reasignación, validar comentario
-        if (idAgenteAnterior && !comentario) {
-          throw new Error('Se requiere un comentario cuando se reasigna un agente');
+        if (idAgenteAnterior && !motivoFinal) {
+          throw new Error('Se requiere un motivo cuando se reasigna un agente');
         }
 
-        // Actualizar cita con nuevo agente
         await cita.update({
           id_agente_asignado: idAgenteNuevo,
+          motivo_reagendamiento: motivoFinal || cita.motivo_reagendamiento,
           fecha_actualizacion: new Date()
         }, { transaction: t });
 
-        // Si cambió el estado a confirmada al asignar agente, actualizar fecha_confirmacion
         if (cita.id_estado_cita === 1) { // Solicitada
           await cita.update({
             id_estado_cita: 2, // Confirmada
@@ -440,25 +496,23 @@ class CitaService {
           }, { transaction: t });
         }
 
-        // Registrar en historial
         const { HistorialAsignacionAgente } = require('../models');
         await HistorialAsignacionAgente.create({
           id_cita: idCita,
           id_agente_anterior: idAgenteAnterior,
           id_agente_nuevo: idAgenteNuevo,
-          comentario: comentario,
+          comentario: motivoFinal,
           estado_asignacion: idAgenteAnterior ? 'Reasignada' : 'Activa',
           id_usuario_realizo: idUsuarioRealizo,
           fecha_asignacion: new Date()
         }, { transaction: t });
 
-        logger.info(`✅ Agente asignado exitosamente a cita ${idCita}`);
-
-        // Retornar cita con historial actualizado
-        return await this.obtenerCitaConHistorial(idCita, t);
+        logger.info(`Agente asignado exitosamente a cita ${idCita}`);
+        // Retornar la cita sin historial completo para evitar timeouts
+        return await this.obtenerCitaPorId(idCita, t);
 
       } catch (error) {
-        logger.error(`❌ Error asignando agente: ${error.message}`);
+        logger.error(`Error asignando agente: ${error.message}`);
         throw error;
       }
     });
@@ -467,14 +521,18 @@ class CitaService {
   }
 
   /**
-   * Obtener agentes disponibles para asignación (empleados activos)
+   * Obtener agentes disponibles para asignaci?n (empleados activos)
+   * @returns {Promise<Array>} Lista de agentes disponibles
+   *
+  /**
+   * Obtener agentes disponibles para asignaci?n (empleados activos)
    * @returns {Promise<Array>} Lista de agentes disponibles
    */
   async obtenerAgentesDisponibles() {
     try {
-      logger.info(`🔍 Obteniendo agentes disponibles`);
+      logger.info(`Obteniendo agentes disponibles`);
 
-      const { Persona, Administrativo, Rol } = require('../models');
+      const { Persona, Administrativo, Rol, Permiso } = require('../models');
 
       const agentes = await Persona.findAll({
         include: [
@@ -487,11 +545,28 @@ class CitaService {
           {
             model: Rol,
             as: 'roles',
-            where: { nombre_rol: 'Empleado' }, // Solo empleados con rol de agente
+            where: { estado: true },
             through: { attributes: [] },
             required: true,
-            attributes: []
+            attributes: ['id_rol', 'nombre_rol'],
+            include: [
+              {
+                model: Permiso,
+                as: 'permisos',
+                required: true,
+                attributes: ['modulo', 'permiso'],
+                where: {
+                  estado: true,
+                  modulo: { [Op.in]: ['citas', 'Citas', 'CITAS'] }
+                }
+              }
+            ]
           }
+        ],
+        distinct: true,
+        order: [
+          ['nombre_completo', 'ASC'],
+          ['apellido_completo', 'ASC']
         ],
         attributes: [
           'id_persona',
@@ -505,20 +580,21 @@ class CitaService {
 
       const agentesFormateados = agentes.map(agente => ({
         id_persona: agente.id_persona,
-        nombre_completo: `${agente.nombre_completo} ${agente.apellido_completo}`,
-        email: agente.correo
+        nombre_completo: `${(agente.nombre_completo || '').trim()} ${(agente.apellido_completo || '').trim()}`.trim(),
+        email: agente.correo,
+        roles: agente.roles?.map(r => r.nombre_rol) || []
       }));
 
-      logger.info(`✅ ${agentesFormateados.length} agentes disponibles encontrados`);
+      logger.info(`${agentesFormateados.length} agentes disponibles encontrados`);
       return agentesFormateados;
 
     } catch (error) {
-      logger.error(`❌ Error obteniendo agentes: ${error.message}`);
+      logger.error(`Error obteniendo agentes: ${error.message}`);
       throw error;
     }
   }
 
-  /**
+/**
    * Obtener historial de asignaciones de una cita
    * @param {number} idCita - ID de la cita
    * @returns {Promise<Array>} Historial de asignaciones
@@ -546,7 +622,8 @@ class CitaService {
             required: true
           }
         ],
-        order: [['fecha_asignacion', 'DESC']]
+        order: [['fecha_asignacion', 'DESC']],
+        limit: 50 // evitar timeouts en historiales muy largos
       });
 
       const historialFormateado = historial.map(entry => ({
@@ -861,6 +938,8 @@ class CitaService {
         id_estado_cita: cita.id_estado_cita,
         id_agente_asignado: cita.id_agente_asignado,
         observaciones: cita.observaciones,
+        motivo_reagendamiento: cita.motivo_reagendamiento,
+        motivo_cancelacion: cita.motivo_cancelacion,
         fecha_creacion: cita.fecha_creacion,
         fecha_actualizacion: cita.fecha_actualizacion,
         ediciones_realizadas: cita.ediciones_realizadas || 0,
@@ -998,7 +1077,7 @@ class CitaService {
 
         // ACTUALIZACIÓN SIMULTÁNEA: Fecha/hora Y contador en una sola operación
         const datosCompletos = {
-          fecha_cita: nuevosDatos.fecha_cita,
+          fecha_cita: normalizarFechaCita(nuevosDatos.fecha_cita),
           hora_inicio: nuevosDatos.hora_inicio,
           hora_fin: nuevosDatos.hora_fin,
           motivo_reagendamiento: nuevosDatos.motivo_reagendamiento,
@@ -1043,3 +1122,5 @@ class CitaService {
 }
 
 module.exports = new CitaService();
+
+

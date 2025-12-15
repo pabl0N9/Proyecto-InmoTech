@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useContext } from 'react';
+=======
+import React, { useState, useEffect, useContext, useMemo } from 'react';
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -269,6 +273,11 @@ const UserRescheduleModal = ({ isOpen, onClose, appointment, newDate, onConfirm 
     return date.toISOString().split("T")[0];
   };
 
+<<<<<<< HEAD
+=======
+  const fechaNuevaLegible = formatearFecha(newDate);
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   const handleDateSelect = (day) => {
     if (day.isDisabled) return;
 
@@ -396,19 +405,38 @@ const UserRescheduleModal = ({ isOpen, onClose, appointment, newDate, onConfirm 
     return true;
   };
 
+<<<<<<< HEAD
+=======
+  const horasOptions = useMemo(() => {
+    const base = [...availableTimes];
+    if (formData.hora_inicio && !base.includes(formData.hora_inicio)) {
+      base.unshift(formData.hora_inicio);
+    }
+    return base;
+  }, [availableTimes, formData.hora_inicio]);
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   const days = getDaysInMonth(currentMonth);
 
   if (!isOpen || !appointment || !newDate) return null;
 
   return (
     <AnimatePresence>
+<<<<<<< HEAD
       <div className="fixed inset-0 z-50 flex items-center justify-center">
+=======
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+<<<<<<< HEAD
           className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+=======
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           onClick={onClose}
         />
 
@@ -418,7 +446,11 @@ const UserRescheduleModal = ({ isOpen, onClose, appointment, newDate, onConfirm 
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.3 }}
+<<<<<<< HEAD
           className="relative bg-white rounded-2xl shadow-2xl w-full max-w-6xl mx-4 max-h-[95vh] overflow-hidden flex flex-col"
+=======
+          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-6xl mx-4 my-4 max-h-[95vh] overflow-hidden flex flex-col z-[10001]"
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-orange-50 to-amber-50 flex-shrink-0 relative">
@@ -536,12 +568,21 @@ const UserRescheduleModal = ({ isOpen, onClose, appointment, newDate, onConfirm 
                   </h3>
 
                   {/* Mini calendar */}
+<<<<<<< HEAD
                   <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
                     {/* Calendar Header */}
                     <div className="flex items-center justify-between mb-4">
                       <motion.button
                         type="button"
                         whileHover={{ scale: 1.1 }}
+=======
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                  {/* Calendar Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <motion.button
+                      type="button"
+                      whileHover={{ scale: 1.1 }}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                         whileTap={{ scale: 0.9 }}
                         onClick={() => navigateMonth(-1)}
                         className="p-2 hover:bg-white rounded-lg transition-colors"
@@ -633,7 +674,11 @@ const UserRescheduleModal = ({ isOpen, onClose, appointment, newDate, onConfirm 
                   ) : availableTimes.length > 0 ? (
                     <div className="space-y-3">
                       <div className="grid grid-cols-4 gap-3">
+<<<<<<< HEAD
                         {availableTimes.map(hour => {
+=======
+                        {horasOptions.map(hour => {
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           const isSelected = formData.hora_inicio === hour;
 
                           return (

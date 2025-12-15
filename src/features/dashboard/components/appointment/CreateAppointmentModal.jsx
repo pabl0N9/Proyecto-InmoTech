@@ -1,13 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Calendar, FileText, CheckCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import ReactDOM from 'react-dom';
+
+import ReactDOM from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, User, Calendar, FileText, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+
 import StepIndicator from '../StepIndicator';
 import CustomerStep from './steps/CustomerStep';
 import DateTimeStep from './steps/DateTimeStep';
 import DetailsStepStep from './steps/DetailsStep';
 import SummaryStepStep from './steps/SummaryStep';
+
 import ConfirmationModal from './ConfirmationModal';
+
 import { useToast } from '../../../../shared/hooks/use-toast';
 import { formatPhoneNumber } from '../../../../shared/utils/phoneFormatter';
 import { useAppointments } from '../../../../shared/contexts/AppointmentContext';
@@ -41,7 +49,9 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     fecha: '',
     hora: '',
     servicio: '',
+
     propiedad: '',
+
     notas: '',
     estado: 'solicitada'
   });
@@ -68,6 +78,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     }
   }, [isOpen, preselectedDate]);
 
+
   // Fetch properties when modal opens
   useEffect(() => {
     const fetchProperties = async () => {
@@ -85,6 +96,7 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     };
     fetchProperties();
   }, [isOpen]);
+
 
   const steps = [
     { number: 1, title: 'Cliente', icon: User },
@@ -289,9 +301,24 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
         telefonoFormateado = formatPhoneNumber(telefonoFormateado, '', false);
       }
 
+
       console.log('📝 Datos encontrados:', {
         nombre: persona.nombre_completo,
         apellido: persona.apellido_completo,
+
+      // Reconstruir nombres y apellidos desde los campos separados si vienen
+      const primerNombre = persona.primer_nombre || '';
+      const segundoNombre = persona.segundo_nombre || '';
+      const primerApellido = persona.primer_apellido || '';
+      const segundoApellido = persona.segundo_apellido || '';
+
+      const nombreCompletoReconstruido = [primerNombre, segundoNombre].filter(Boolean).join(' ').trim();
+      const apellidoCompletoReconstruido = [primerApellido, segundoApellido].filter(Boolean).join(' ').trim();
+
+      console.log('📝 Datos encontrados:', {
+        nombre: nombreCompletoReconstruido || persona.nombre_completo,
+        apellido: apellidoCompletoReconstruido || persona.apellido_completo,
+
         telefono: telefonoFormateado,
         email: persona.correo
       });
@@ -299,8 +326,13 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
       // Actualizar formulario automáticamente
       setFormData(prev => ({
         ...prev,
+
         nombre: persona.nombre_completo || prev.nombre,
         apellido: persona.apellido_completo || prev.apellido,
+
+        nombre: nombreCompletoReconstruido || persona.nombre_completo || prev.nombre,
+        apellido: apellidoCompletoReconstruido || persona.apellido_completo || prev.apellido,
+
         telefono: telefonoFormateado,
         email: persona.correo || prev.email
       }));
@@ -592,7 +624,9 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
       fecha: '',
       hora: '',
       servicio: '',
+
       propiedad: '',
+
       notas: '',
       estado: 'solicitada'
     });
@@ -721,8 +755,10 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
             formData={formData}
             errors={errors}
             updateFormData={updateFormData}
+
             properties={properties}
             propertiesLoading={propertiesLoading}
+
           />
         );
       case 4:
@@ -844,6 +880,8 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
             </div>
           </div>
         </motion.div>
+
+
 
       </div>
     </AnimatePresence>,

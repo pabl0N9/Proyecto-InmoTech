@@ -192,6 +192,7 @@ class ReportesController {
   }
 
   /**
+<<<<<<< HEAD
    * Obtener estadísticas para el dashboard
    */
   async obtenerEstadisticasDashboard(req, res, next) {
@@ -207,6 +208,21 @@ class ReportesController {
 
       const estadisticas = await reportesService.obtenerEstadisticasDashboard(userContext, range);
 
+=======
+   * Obtener estadísticas del dashboard
+   */
+  async obtenerEstadisticasDashboard(req, res, next) {
+    try {
+      // Implementar lógica para obtener estadísticas del dashboard
+      // Por ahora devolver datos de ejemplo
+      const estadisticas = {
+        total_reportes: 0,
+        reportes_mes_actual: 0,
+        reportes_por_tipo: {},
+        reportes_por_estado: {}
+      };
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return res.status(200).json({
         success: true,
         message: 'Estadísticas del dashboard obtenidas exitosamente',

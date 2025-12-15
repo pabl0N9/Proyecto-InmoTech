@@ -1,9 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Home, FileText, Building } from 'lucide-react';
+import { Home, FileText } from 'lucide-react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../../shared/components/ui/select';
 
-const DetailsStep = ({ formData, errors, updateFormData, onFieldComplete, properties, propertiesLoading }) => {
+const DetailsStep = ({ formData, errors, updateFormData, onFieldComplete }) => {
   const servicios = [
     'Avalúos',
     'Gestión de Alquileres',

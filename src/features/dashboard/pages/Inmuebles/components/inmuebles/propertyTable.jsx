@@ -33,9 +33,15 @@ export const PropertyTable = ({ properties, onView, onEdit, onDocument, onStatus
               <tr>
                 <td colSpan="8" className="px-6 py-10 text-center">
                   <div className="flex flex-col items-center gap-3">
+<<<<<<< HEAD
                     <Building2 className="w-10 h-10 text-slate-300" />
                     <p className="text-slate-600 font-medium">No se encontraron inmuebles</p>
                     <p className="text-xs text-slate-400">Intenta ajustar los filtros de búsqueda</p>
+=======
+                    <Building2 className="w-10 h-10 text-gray-300" />
+                    <p className="text-gray-500 font-medium">No se encontraron inmuebles</p>
+                    <p className="text-xs text-gray-400">Intenta ajustar los filtros de búsqueda</p>
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   </div>
                 </td>
               </tr>
@@ -45,13 +51,22 @@ export const PropertyTable = ({ properties, onView, onEdit, onDocument, onStatus
                 const fallback = property.titulo?.[0]?.toUpperCase() || property.tipo?.[0] || 'I';
 
                 return (
+<<<<<<< HEAD
                   <tr key={property.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
+=======
+                  <tr key={property.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                       {coverImage ? (
                         <img
                           src={coverImage}
                           alt={`Imagen de ${property.titulo || property.registro}`}
+<<<<<<< HEAD
                           className="h-12 w-16 rounded-lg object-cover border border-slate-100"
+=======
+                          className="h-12 w-16 rounded-lg object-cover border border-gray-100"
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                         />
                       ) : (
                         <div className="h-12 w-16 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center font-semibold">
@@ -59,6 +74,7 @@ export const PropertyTable = ({ properties, onView, onEdit, onDocument, onStatus
                         </div>
                       )}
                     </td>
+<<<<<<< HEAD
                     <td className="px-6 py-4 text-sm font-semibold text-slate-900">#{property.id}</td>
                     <td className="px-6 py-4 text-sm text-slate-900 font-mono">{property.registro}</td>
                     <td className="px-6 py-4 text-sm text-slate-700 truncate max-w-[220px]">{property.direccion}</td>
@@ -90,6 +106,25 @@ export const PropertyTable = ({ properties, onView, onEdit, onDocument, onStatus
                       )}
                     </td>
                     <td className="px-6 py-4">
+=======
+                    <td className="px-4 py-3 text-[13px] font-semibold text-gray-900">#{property.id}</td>
+                    <td className="px-4 py-3 text-[13px] text-gray-900 font-mono">{property.registro}</td>
+                    <td className="px-4 py-3 text-[13px] text-gray-700 truncate max-w-[220px]">{property.direccion}</td>
+                    <td className="px-4 py-3 text-[13px] text-gray-700">
+                      <span className="inline-flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                        {property.tipo}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[13px] text-gray-600">{property.operacion}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium ${getEstadoColor(property.estado)}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${getEstadoDotColor(property.estado)}`}></span>
+                        {property.estado}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                       <ActionButtons
                         onView={() => onView(property)}
                         onEdit={() => onEdit(property)}
@@ -106,7 +141,10 @@ export const PropertyTable = ({ properties, onView, onEdit, onDocument, onStatus
     </div>
   );
 };
+<<<<<<< HEAD
 
 
 
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

@@ -3,18 +3,35 @@ const Joi = require('joi');
 const crearReporteSchema = Joi.object({
   id_inmueble: Joi.number().integer().required(),
   tipo_reporte: Joi.string().required(),
+<<<<<<< HEAD
   estado: Joi.string().valid('Pendiente', 'En Proceso', 'Completado').optional(),
   descripcion: Joi.string().allow('', null).optional(),
   id_responsable: Joi.number().integer().optional(),
   id_persona_reporta: Joi.number().integer().required(),
   seguimiento_general: Joi.string().allow('', null).optional()
+=======
+  titulo: Joi.string().max(200).allow('', null).optional(),
+  descripcion: Joi.string().allow('', null).optional(),
+  seguimiento_general: Joi.string().allow('', null).optional(),
+  prioridad: Joi.string().max(20).allow('', null).optional(),
+  estado: Joi.string().valid('Pendiente', 'En Proceso', 'Completado', 'Cancelado').optional(),
+  id_persona_reporta: Joi.number().integer().optional() // se setea desde el token si no viene
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 });
 
 const actualizarReporteSchema = Joi.object({
   estado: Joi.string().valid('Pendiente', 'En Proceso', 'Completado', 'Cancelado').optional(),
+<<<<<<< HEAD
   descripcion: Joi.string().allow('', null).optional(),
   id_responsable: Joi.number().integer().positive().optional(),
   seguimiento_general: Joi.string().allow('', null).optional()
+=======
+  titulo: Joi.string().max(200).allow('', null).optional(),
+  descripcion: Joi.string().allow('', null).optional(),
+  prioridad: Joi.string().max(20).allow('', null).optional(),
+  fecha_resolucion: Joi.date().optional(),
+  observaciones_resolucion: Joi.string().allow('', null).optional()
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 }).min(1).unknown(true);
 
 const listarReportesSchema = Joi.object({
@@ -29,6 +46,7 @@ const listarReportesSchema = Joi.object({
 
 const crearSeguimientoSchema = Joi.object({
   descripcion: Joi.string().required(),
+<<<<<<< HEAD
   estado: Joi.string().valid('Pendiente', 'En Proceso', 'Completado').default('Pendiente')
 });
 
@@ -44,25 +62,61 @@ const crearImagenSchema = Joi.object({
 const crearArchivoSchema = Joi.object({
   url_archivo: Joi.string().uri().required(),
   descripcion: Joi.string().allow('', null).optional()
+=======
+  estado: Joi.string().valid('Pendiente', 'En Proceso', 'Completado', 'Cancelado').default('Pendiente')
+});
+
+const actualizarSeguimientoSchema = Joi.object({
+  estado: Joi.string().valid('Pendiente', 'En Proceso', 'Completado', 'Cancelado').required()
+});
+
+const crearImagenSchema = Joi.object({
+  url: Joi.string().uri().required()
+});
+
+const crearArchivoSchema = Joi.object({
+  nombre: Joi.string().max(200).required(),
+  url: Joi.string().uri().required()
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 });
 
 const crearRubroSchema = Joi.object({
   nombre: Joi.string().max(100).required(),
+<<<<<<< HEAD
   descripcion: Joi.string().allow('', null).optional()
+=======
+  descripcion: Joi.string().allow('', null).optional(),
+  estado: Joi.string().valid('Pendiente', 'En Proceso', 'Completado', 'Cancelado').default('Pendiente'),
+  progreso: Joi.number().integer().min(0).max(100).allow(null).optional()
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 });
 
 const actualizarRubroSchema = Joi.object({
   nombre: Joi.string().max(100).optional(),
+<<<<<<< HEAD
   descripcion: Joi.string().allow('', null).optional()
+=======
+  descripcion: Joi.string().allow('', null).optional(),
+  estado: Joi.string().valid('Pendiente', 'En Proceso', 'Completado', 'Cancelado').optional(),
+  progreso: Joi.number().integer().min(0).max(100).allow(null).optional()
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 }).min(1);
 
 const crearSeguimientoRubroSchema = Joi.object({
   descripcion: Joi.string().required(),
+<<<<<<< HEAD
   estado: Joi.string().valid('Pendiente', 'En Proceso', 'Completado').required()
 });
 
 const actualizarSeguimientoRubroSchema = Joi.object({
   estado: Joi.string().valid('Pendiente', 'En Proceso', 'Completado').required(),
+=======
+  estado: Joi.string().valid('Pendiente', 'En Proceso', 'Completado', 'Cancelado').required()
+});
+
+const actualizarSeguimientoRubroSchema = Joi.object({
+  estado: Joi.string().valid('Pendiente', 'En Proceso', 'Completado', 'Cancelado').required(),
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   descripcion: Joi.string().optional()
 });
 
@@ -103,4 +157,8 @@ module.exports = {
   actualizarSeguimientoRubroSchema,
   autocompleteInmuebleSchema,
   crearInmuebleSchema
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

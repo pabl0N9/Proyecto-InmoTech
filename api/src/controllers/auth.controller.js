@@ -1,5 +1,8 @@
 const authService = require('../services/auth.service');
+<<<<<<< HEAD
 const personaService = require('../services/persona.service');
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 const logger = require('../utils/logger');
 
 const buildCookieOptions = () => {
@@ -18,10 +21,25 @@ class AuthController {
       return res.status(201).json({
         success: true,
         message: 'Registro recibido. Revisa tu correo y confirma tu cuenta en las proximas 24 horas.',
+<<<<<<< HEAD
         data: { user: result.user, verification: result.verification }
       });
     } catch (error) {
       logger.error('Error en registro de usuario:', error);
+=======
+        data: { user: result.user, verification: result.verification, meta: result.meta }
+      });
+    } catch (error) {
+      logger.error('Error en registro de usuario:', error);
+      if (error.status) {
+        return res.status(error.status).json({
+          success: false,
+          message: error.message,
+          reason: error.code || null,
+          data: error.meta || null
+        });
+      }
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       next(error);
     }
   }
@@ -62,6 +80,24 @@ class AuthController {
           data: error.meta || null
         });
       }
+<<<<<<< HEAD
+=======
+      if (error.code === 'INVALID_CREDENTIALS') {
+        return res.status(error.status || 401).json({
+          success: false,
+          message: error.message,
+          reason: error.code || 'INVALID_CREDENTIALS'
+        });
+      }
+      if (error.status) {
+        return res.status(error.status).json({
+          success: false,
+          message: error.message,
+          reason: error.code || null,
+          data: error.meta || null
+        });
+      }
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       next(error);
     }
   }
@@ -118,7 +154,14 @@ class AuthController {
   async reenviarCodigo(req, res, next) {
     try {
       const { email } = req.validatedData;
+<<<<<<< HEAD
       const data = await authService.reenviarCodigoVerificacion(email);
+=======
+      const roles = req.user?.roles || [];
+      const isAdmin = roles.includes('Super Administrador') || roles.includes('Administrador');
+
+      const data = await authService.reenviarCodigoVerificacion(email, { ignoreLimits: isAdmin });
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return res.status(200).json({
         success: true,
         message: 'Hemos enviado un nuevo codigo a tu correo',
@@ -265,6 +308,7 @@ class AuthController {
       next(error);
     }
   }
+<<<<<<< HEAD
   /**
    * Solicita envío de enlace de recuperación
    */
@@ -319,6 +363,8 @@ class AuthController {
   }
 
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 }
 
 module.exports = new AuthController();

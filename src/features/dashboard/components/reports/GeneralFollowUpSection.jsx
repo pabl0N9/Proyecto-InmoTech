@@ -19,6 +19,7 @@ import {
   Save
 } from 'lucide-react';
 
+<<<<<<< HEAD
 function GeneralFollowUpSection({ 
   reportId, 
   followUps = [], 
@@ -29,24 +30,63 @@ function GeneralFollowUpSection({
   newFollowUpNote = '',
   onNewFollowUpChange,
   isSubmitting = false
+=======
+// Segunda definición duplicada: RENOMBRADA para evitar la colisión
+function GeneralFollowUpSection({
+  reportId,
+  followUps,
+  onAddFollowUp,
+  onUpdateFollowUpStatus,
+  currentUser,
+  isEditing,
+  newFollowUpNote,
+  onNewFollowUpChange,
+  isSubmitting
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 }) {
   const [showHistory, setShowHistory] = useState(true);
   const [filterBy, setFilterBy] = useState('all'); // all, date, responsible
   const [filteredFollowUps, setFilteredFollowUps] = useState(followUps);
+<<<<<<< HEAD
   // Eliminado: expandedFollowUp y su uso para la flecha por tarjeta
   const [expandedFollowUp, setExpandedFollowUp] = useState(null);
 
   // Filtrar seguimientos según el filtro seleccionado
   useEffect(() => {
     let filtered = [...followUps];
+=======
+  const [newFollowUpStatus, setNewFollowUpStatus] = useState('Pendiente'); // New state for new follow-up status
+
+  // Formateador robusto de responsable a string (nombres + apellidos)
+  const formatResponsableName = (r) => {
+    if (!r) return '';
+    if (typeof r === 'string') return r.trim();
+    if (r?.nombre_completo) return String(r.nombre_completo).replace(/\s+/g, ' ').trim();
+    const nombres = [r?.primer_nombre, r?.segundo_nombre, r?.nombres, r?.nombre].filter(Boolean).join(' ');
+    const apellidos = [r?.primer_apellido, r?.segundo_apellido, r?.apellidos, r?.apellido, r?.apellido_completo].filter(Boolean).join(' ');
+    return [nombres, apellidos].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  };
+
+  // Filtrar seguimientos según el filtro seleccionado
+  useEffect(() => {
+    // Filter out any undefined or null followUps before processing
+    let validFollowUps = followUps.filter(f => f && typeof f === 'object');
+    let filtered = [...validFollowUps];
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     
     switch (filterBy) {
       case 'date':
         filtered = filtered.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
         break;
       case 'responsible':
+<<<<<<< HEAD
         filtered = filtered.sort((a, b) => 
           a.responsable?.primer_nombre?.localeCompare(b.responsable?.primer_nombre || '') || 0
+=======
+        // Ordenar por nombre ya formateado (evita objetos)
+        filtered = filtered.sort((a, b) => 
+          (formatResponsableName(a.responsable) || '').localeCompare(formatResponsableName(b.responsable) || '')
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         );
         break;
       case 'pending':
@@ -90,14 +130,23 @@ function GeneralFollowUpSection({
     }
   };
 
+<<<<<<< HEAD
   // Formatear fecha
   const formatDate = (dateString) => {
     const date = new Date(dateString);
+=======
+  // Formatear fecha eliminando texto fallback
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date)) return '';
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     return date.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
+<<<<<<< HEAD
       minute: '2-digit'
     });
   };
@@ -106,6 +155,17 @@ function GeneralFollowUpSection({
   const handleSaveNote = () => {
     if (newFollowUpNote.trim() && onAddFollowUp) {
       onAddFollowUp(newFollowUpNote.trim());
+=======
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  // Manejar guardado de nueva nota con estado
+  const handleSaveNote = () => {
+    if (newFollowUpNote.trim() && onAddFollowUp) {
+      onAddFollowUp(newFollowUpNote.trim(), newFollowUpStatus);
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     }
   };
 
@@ -127,6 +187,19 @@ function GeneralFollowUpSection({
     }
   };
 
+<<<<<<< HEAD
+=======
+  // Normalize estado string to match Select values
+  const normalizeEstado = (estado) => {
+    const s = String(estado || '').toLowerCase().replace(/[\s_-]/g, '');
+    if (s === 'pendiente') return 'Pendiente';
+    if (s === 'enproceso') return 'En Proceso';
+    if (s === 'completado') return 'Completado';
+    if (s === 'cancelado') return 'Cancelado';
+    return 'Pendiente'; // default fallback
+  };
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
       {/* Header */}
@@ -172,10 +245,17 @@ function GeneralFollowUpSection({
           <div className="flex items-center text-xs text-gray-500">
             <User className="w-3 h-3 mr-1" />
             <span>
+<<<<<<< HEAD
               {currentUser ? `${currentUser.primer_nombre} ${currentUser.primer_apellido}` : 'Usuario actual'}
             </span>
             <Calendar className="w-3 h-3 ml-3 mr-1" />
             <span>{new Date().toLocaleDateString('es-ES')}</span>
+=======
+              {currentUser ? formatResponsableName(currentUser) : 'Usuario actual'}
+            </span>
+            <Calendar className="w-3 h-3 ml-3 mr-1" />
+            <span>{new Date().toLocaleDateString('es-ES', {hour: '2-digit', minute:'2-digit', hour12:false})}</span>
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           </div>
           
           {isEditing && (
@@ -251,6 +331,7 @@ function GeneralFollowUpSection({
               >
                 {filteredFollowUps.length > 0 ? (
                   filteredFollowUps.map((followUp, index) => (
+<<<<<<< HEAD
                     <motion.div
                       key={followUp.id_seguimiento}
                       initial={{ opacity: 0, y: 10 }}
@@ -325,6 +406,85 @@ function GeneralFollowUpSection({
                       )}
                     </motion.div>
                   ))
+=======
+                    followUp ? (
+                      <motion.div
+                        key={followUp.id_seguimiento}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
+                      >
+                        {/* Header del seguimiento */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0">
+                              {getStatusIcon(followUp.estado || '')}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2 mb-1">
+                              <span className="text-sm font-medium text-gray-900">
+                                {formatResponsableName(followUp.responsable) || 'Usuario desconocido'}
+                              </span>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs px-2 py-0.5 ${getStatusBadgeColor(followUp.estado || '')}`}
+                                >
+                                  {followUp.estado || 'Desconocido'}
+                                </Badge>
+                              </div>
+                              <div className="flex flex-col text-xs text-gray-500 space-y-1">
+                                <div className="flex items-center">
+                                  <span>{formatDate(followUp.fecha)}</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <Calendar className="w-3 h-3 mr-1" />
+                                  <span>Creado: {formatDate(followUp.fecha_creacion)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Flecha por tarjeta removida */}
+                          {/* Antes: botón con ChevronUp/ChevronDown para expandir/contraer */}
+                        </div>
+
+                      {/* Descripción - mostrar siempre completa */}
+                      <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        {followUp.descripcion || ''}
+                      </div>
+
+                      {/* Acciones (solo para seguimientos pendientes y si es el responsable) */}
+                              {isEditing &&
+                               currentUser &&
+                               followUp.id_persona === currentUser.id_persona && (
+                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-xs text-gray-500">Cambiar estado:</span>
+                                    <Select
+                                      value={normalizeEstado(followUp.estado)}
+                                      onValueChange={(newStatus) =>
+                                        onUpdateFollowUpStatus && onUpdateFollowUpStatus(followUp.id_seguimiento, newStatus)
+                                      }
+                                    >
+                                      {/* Ancho aumentado para evitar recortes */}
+                                      <SelectTrigger className="w-44 h-7 text-xs">
+                                        <span>{normalizeEstado(followUp.estado)}</span>
+                                      </SelectTrigger>
+                                      <SelectContent className="min-w-[180px]">
+                                        <SelectItem value="Pendiente">Pendiente</SelectItem>
+                                        <SelectItem value="En Proceso">En Proceso</SelectItem>
+                                        <SelectItem value="Completado">Completado</SelectItem>
+                                        <SelectItem value="Cancelado">Cancelado</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                              )}
+                    </motion.div>
+                  ) : null
+                ))
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                 ) : (
                   <div className="text-center py-6 text-gray-400">
                     <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />

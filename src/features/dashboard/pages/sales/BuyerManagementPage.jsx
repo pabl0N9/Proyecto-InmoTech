@@ -349,6 +349,7 @@ export function BuyersManagementPage() {
                     </motion.button>
                 </motion.div>
 
+<<<<<<< HEAD
                 {/* STATS CARDS */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -393,6 +394,8 @@ export function BuyersManagementPage() {
                     </div>
                 </motion.div>
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                 {/* SEARCH AND FILTERS */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -431,6 +434,7 @@ export function BuyersManagementPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
                 >
+<<<<<<< HEAD
                     {/* TABLA CON NUEVO ESTILO */}
                     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                         {/* CABECERA DE TABLA */}
@@ -456,11 +460,35 @@ export function BuyersManagementPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
+=======
+                {/* TABLA CON ESTILO UNIFICADO */}
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Tipo doc</th>
+                                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">#Documento</th>
+                                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Primer nombre</th>
+                                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Segundo nombre</th>
+                                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Primer apellido</th>
+                                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Segundo apellido</th>
+                                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Correo</th>
+                                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Teléfono</th>
+                                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                     {isLoading ? (
                                         <tr>
                                             <td
                                                 colSpan="9"
+<<<<<<< HEAD
                                                 className="px-4 py-8 text-center text-slate-500 border-b"
+=======
+                                            className="px-6 py-8 text-center text-slate-500"
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                             >
                                                 <div className="flex items-center justify-center gap-2">
                                                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -472,6 +500,7 @@ export function BuyersManagementPage() {
                                         filteredBuyers.map((c) => (
                                             <tr
                                                 key={c.id}
+<<<<<<< HEAD
                                                 className="hover:bg-slate-50 border-b border-slate-100 transition-colors"
                                             >
                                                 <td className="px-4 py-3 text-center text-slate-700">{c.tipoDocumento}</td>
@@ -485,6 +514,21 @@ export function BuyersManagementPage() {
                                                     {c.segundoApellido || "-"}
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
+=======
+                                                className="hover:bg-slate-50 transition-colors"
+                                            >
+                                                <td className="px-6 py-4 text-center text-sm text-slate-700">{c.tipoDocumento}</td>
+                                                <td className="px-6 py-4 text-center text-sm text-slate-700 font-medium">{c.documento}</td>
+                                                <td className="px-6 py-4 text-center text-sm text-slate-700">{c.primerNombre}</td>
+                                                <td className="px-6 py-4 text-center text-sm text-slate-500">
+                                                    {c.segundoNombre || "-"}
+                                                </td>
+                                                <td className="px-6 py-4 text-center text-sm text-slate-700">{c.primerApellido}</td>
+                                                <td className="px-6 py-4 text-center text-sm text-slate-500">
+                                                    {c.segundoApellido || "-"}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                                     <a
                                                         href={`mailto:${c.correo}`}
                                                         className="text-blue-600 hover:text-blue-800 transition-colors font-medium"
@@ -492,8 +536,13 @@ export function BuyersManagementPage() {
                                                         {c.correo}
                                                     </a>
                                                 </td>
+<<<<<<< HEAD
                                                 <td className="px-4 py-3 text-center text-slate-700">{c.telefono}</td>
                                                 <td className="px-4 py-3 text-center">
+=======
+                                                <td className="px-6 py-4 text-center text-sm text-slate-700">{c.telefono}</td>
+                                                <td className="px-6 py-4 text-center">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                                     <div className="flex gap-2 justify-center">
                                                         <motion.button
                                                             whileHover={{ scale: 1.1 }}
@@ -530,7 +579,11 @@ export function BuyersManagementPage() {
                                         <tr>
                                             <td
                                                 colSpan="9"
+<<<<<<< HEAD
                                                 className="px-4 py-8 text-center text-slate-500 border-b"
+=======
+                                                className="px-6 py-8 text-center text-slate-500"
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                             >
                                                 <div className="flex flex-col items-center gap-2">
                                                     <AlertCircle className="w-8 h-8 text-slate-400" />

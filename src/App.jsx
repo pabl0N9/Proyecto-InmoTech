@@ -19,7 +19,6 @@ import RegisterPage from './features/auth/pages/RegisterPage'
 import UserAppointmentsPage from './features/appointments/pages/UserAppointmentsPage'
 import ActivateAccountPage from './features/auth/pages/ActivateAccountPage'
 import VerifyEmailPage from './features/auth/pages/VerifyEmailPage'
-import ResetPasswordPage from './features/auth/pages/ResetPasswordPage'
 
 // Dashboard pages
 import DashboardPage from './features/dashboard/DashboardPage'
@@ -27,8 +26,6 @@ import { SalesManagementPage } from './features/dashboard/pages/sales/SalesManag
 import { BuyersManagementPage } from './features/dashboard/pages/sales/BuyerManagementPage'
 import { LeasesManagementPage } from './features/dashboard/pages/leases/LeasesManagementPage'
 import { RenantManagementPage } from './features/dashboard/pages/leases/RenantManagementPage'
-import InmueblesDashboardPage from './features/dashboard/pages/Inmuebles/InmueblesDashboardPage'
-import PropertyOwnersManagement from './features/dashboard/pages/propertyOwner/OwnerDashboardPage'
 import AppointmentPage from './features/dashboard/pages/appointment/AppointmentPage'
 import Reports from './features/dashboard/pages/reports/Reports'
 import Roles from './features/dashboard/pages/roles/Roles'
@@ -133,10 +130,6 @@ function App() {
           path="/verificar-correo"
           element={<VerifyEmailPage />}
         />
-        <Route
-          path="/restablecer-contrasena"
-          element={<ResetPasswordPage />}
-        />
 
         {/* Authenticated user routes with navbar/footer */}
         <Route
@@ -197,26 +190,6 @@ function App() {
             <DashboardRoute>
               <DashboardLayout>
                 <RenantManagementPage />
-              </DashboardLayout>
-            </DashboardRoute>
-          }
-        />
-        <Route
-          path={dashboardRoutes.properties}
-          element={
-            <DashboardRoute>
-              <DashboardLayout>
-                <InmueblesDashboardPage />
-              </DashboardLayout>
-            </DashboardRoute>
-          }
-        />
-        <Route
-          path={dashboardRoutes.owners}
-          element={
-            <DashboardRoute>
-              <DashboardLayout>
-                <PropertyOwnersManagement />
               </DashboardLayout>
             </DashboardRoute>
           }

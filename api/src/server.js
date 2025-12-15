@@ -3,6 +3,7 @@ const { testConnection } = require('./config/database');
 
 const PORT = process.env.PORT || 5000;
 
+<<<<<<< HEAD
 const MAX_DB_RETRIES = parseInt(process.env.DB_MAX_RETRIES || '2', 10);
 const DB_RETRY_DELAY_MS = parseInt(process.env.DB_RETRY_DELAY_MS || '5000', 10);
 
@@ -20,10 +21,13 @@ const connectWithRetries = async () => {
   return false;
 };
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 const startServer = async () => {
   try {
     console.log('Iniciando servidor...');
 
+<<<<<<< HEAD
     const dbConnected = await connectWithRetries();
     if (!dbConnected) {
       const failHard = process.env.FAIL_ON_DB_ERROR === 'true';
@@ -35,6 +39,14 @@ const startServer = async () => {
         console.warn('Arrancando sin conexion a BD (modo degradado). Configura FAIL_ON_DB_ERROR=true para forzar salida.');
       }
     }
+=======
+    const dbConnected = await testConnection();
+
+    if (!dbConnected) {
+      console.error('No se pudo conectar a la base de datos. Abortando inicio del servidor.');
+      process.exit(1);
+    } // <-- AGREGADA ESTA LLAVE QUE FALTABA
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
     const server = app.listen(PORT, () => {
       console.log(`=================================================`);

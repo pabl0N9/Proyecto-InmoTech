@@ -379,18 +379,27 @@ if (rolInactivo) {
         }
 
         // Actualizar el rol (sin permisos)
+<<<<<<< HEAD
         const { permisos, ...updateFields } = updateData;
+=======
+        const { permisos, ...updateFields } = updateData; // Separar permisos
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         await rol.update(updateFields, { transaction: t });
 
         // Si se enviaron permisos, actualizarlos
         if (permisos) {
           const normalizedPermissions = normalizePermissionsStructure(permisos);
+<<<<<<< HEAD
 
+=======
+          // Desactivar permisos existentes
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           await Permiso.update(
             { estado: false },
             { where: { id_rol: rolId }, transaction: t }
           );
 
+<<<<<<< HEAD
           for (const [modulo, permisosModulo] of Object.entries(normalizedPermissions)) {
             for (const [permiso, valor] of Object.entries(permisosModulo)) {
               if (!valor) continue;
@@ -401,12 +410,42 @@ if (rolInactivo) {
                 transaction: t
               });
 
+=======
+          // Reactivar o crear permisos según se necesite
+          for (const [modulo, permisosModulo] of Object.entries(normalizedPermissions)) {
+            for (const [permiso, valor] of Object.entries(permisosModulo)) {
+              if (!valor) {
+                continue;
+              }
+
+              // Buscar si ya existe el permiso (desactivado o activo)
+              const [permisoExistente, created] = await Permiso.findOrCreate({
+                where: {
+                  id_rol: rolId,
+                  modulo,
+                  permiso
+                },
+                defaults: {
+                  id_rol: rolId,
+                  modulo,
+                  permiso,
+                  estado: true
+                },
+                transaction: t
+              });
+
+              // Si no se creó (ya existía), reactivarlo
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
               if (!created) {
                 await permisoExistente.update({ estado: true }, { transaction: t });
               }
             }
           }
         }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         logger.info(`Rol actualizado: ${rolId} por usuario ${userId}`);
         return rol;
 

@@ -1,43 +1,54 @@
 const express = require('express');
 const router = express.Router();
 
-const salesRoutes = require('./sales.route');
-const buyersRoutes = require('./buyers.routes');
+// Rutas importadas
+const authRoutes = require('./auth.routes');
+const administrativosRoutes = require('./administrativos.routes');
+const citaRoutes = require('./cita.routes');
+const notificacionRoutes = require('./notificacion.routes');
+const personasRoutes = require('./personas.routes');
+const rolesRoutes = require('./roles.routes');
+const inmueblesRoutes = require('./inmuebles.routes');
+const reportesRoutes = require('./reportes.routes');
+const reportesInmobiliariosRoutes = require('./reportesInmobiliarios.routes');
 const leasesRoutes = require('./leases.routes');
 const renantsRoutes = require('./renants.route');
-const inmueblesRoutes = require('./inmuebles.routes');
+const buyersRoutes = require('./buyers.routes');
+const salesRoutes = require('./sales.route');
 const setupRoutes = require('./setup.routes');
-const authRoutes = require('./auth.routes');
 const sseRoutes = require('./sse.routes');
-const arriendoRoutes = require('./arriendo.routes');
+const invitacionesRoutes = require('./invitaciones.routes');
 const uploadRoutes = require('./upload.routes');
-const personasRoutes = require('./personas.routes');
-const citaRoutes = require('./cita.routes');
-const reportesRoutes = require('./reportes.routes');
+const arriendoRoutes = require('./arriendo.routes');
 
-router.use('/setup', setupRoutes);
+// Montaje de rutas
 router.use('/auth', authRoutes);
-router.use('/sse', sseRoutes);
-router.use('/sales/buyers', buyersRoutes);
-router.use('/sales', salesRoutes);
+router.use('/administrativos', administrativosRoutes);
+router.use('/citas', citaRoutes);
+router.use('/notificaciones', notificacionRoutes);
+router.use('/personas', personasRoutes);
+router.use('/roles', rolesRoutes);
+router.use('/inmuebles', inmueblesRoutes);
+router.use('/reportes', reportesRoutes);
+router.use('/reportes-inmobiliarios', reportesInmobiliariosRoutes);
+// Montar subruta específica antes de /leases para evitar colisiones con :id
 router.use('/leases/renants', renantsRoutes);
 router.use('/leases', leasesRoutes);
-router.use('/arriendos', arriendoRoutes);
-router.use('/inmuebles', inmueblesRoutes);
+router.use('/sales/buyers', buyersRoutes);
+router.use('/sales', salesRoutes);
+router.use('/setup', setupRoutes);
+router.use('/sse', sseRoutes);
+router.use('/invitaciones', invitacionesRoutes);
 router.use('/files', uploadRoutes);
-router.use('/personas', personasRoutes);
-router.use('/citas', citaRoutes);
-router.use('/reportes', reportesRoutes);
+router.use('/arriendos', arriendoRoutes);
 
-// Ruta de salud para verificar que el servidor funciona
+// Ruta de salud
 router.get('/health', async (req, res) => {
   try {
-    // Verificar conexión a la base de datos
     const dbStatus = await require('../config/database').testConnection();
-    
-    res.json({ 
+    res.json({
       success: true,
-      status: 'OK', 
+      status: 'OK',
       message: 'Servidor funcionando correctamente',
       timestamp: new Date().toISOString(),
       database: dbStatus ? 'Conectado' : 'Desconectado',

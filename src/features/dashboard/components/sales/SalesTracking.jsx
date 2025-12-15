@@ -4,6 +4,7 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
   if (!venta) return null;
 
   // Estado local editable
+<<<<<<< HEAD
   const [estado, setEstado] = useState(venta.estado || "Pendiente");
   const [estadoSeguimiento, setEstadoSeguimiento] = useState(
     venta.estadoSeguimiento || "Iniciado"
@@ -17,6 +18,66 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
     };
     onUpdate(updatedVenta);
     onClose();
+=======
+  const allowedEstadosPago = ["Pagado", "Debe", "En espera", "Cancelado"];
+  const allowedEstadosSeguimiento = ["Iniciada", "En negociación", "Completada", "Cancelado"];
+  const initialEstado = allowedEstadosPago.includes(venta.estado) ? venta.estado : "En espera";
+
+  const initialEstadoSeguimiento = allowedEstadosSeguimiento.includes(venta.estadoSeguimiento)
+    ? venta.estadoSeguimiento
+    : "Iniciada";
+
+  const [estado, setEstado] = useState(initialEstado);
+  const [tempEstado, setTempEstado] = useState(initialEstado);
+  const [estadoSeguimiento, setEstadoSeguimiento] = useState(initialEstadoSeguimiento);
+  const [tempEstadoSeguimiento, setTempEstadoSeguimiento] = useState(initialEstadoSeguimiento);
+  const [descripcion, setDescripcion] = useState(venta.descripcionSeguimiento || "");
+  const [saving, setSaving] = useState(false);
+  const [confirmData, setConfirmData] = useState(null);
+
+  const openConfirm = (field, value, label) => {
+    setConfirmData({ field, value, label });
+  };
+
+  const handleConfirm = () => {
+    if (!confirmData) return;
+    if (confirmData.field === "estado") {
+      setEstado(confirmData.value);
+      setTempEstado(confirmData.value);
+    } else if (confirmData.field === "estadoSeguimiento") {
+      setEstadoSeguimiento(confirmData.value);
+      setTempEstadoSeguimiento(confirmData.value);
+    }
+    setConfirmData(null);
+  };
+
+  const handleCancelConfirm = () => {
+    setTempEstado(estado);
+    setTempEstadoSeguimiento(estadoSeguimiento);
+    setConfirmData(null);
+  };
+
+  const handleSave = async () => {
+    // Evitar guardar si hay un cambio pendiente sin confirmar
+    if (confirmData) return;
+
+    setSaving(true);
+    const updatedVenta = {
+      ...venta,
+      id: venta.id || venta.id_venta,
+      id_venta: venta.id_venta || venta.id,
+      estado,
+      estadoSeguimiento,
+      descripcionSeguimiento: descripcion,
+    };
+
+    try {
+      await onUpdate(updatedVenta);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   };
 
   // 🔹 Estilos dinámicos para el estado
@@ -24,10 +85,24 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
     switch (estado) {
       case "Pagado":
         return "bg-green-100 text-green-700 border border-green-400";
+<<<<<<< HEAD
       case "Pendiente":
         return "bg-yellow-100 text-yellow-700 border border-yellow-400";
       case "Debe":
         return "bg-red-100 text-red-700 border border-red-400";
+=======
+      case "Debe":
+        return "bg-red-100 text-red-700 border border-red-400";
+      case "En espera":
+        return "bg-yellow-100 text-yellow-700 border border-yellow-400";
+      case "Completada":
+        return "bg-blue-100 text-blue-700 border border-blue-400";
+      case "Cancelado":
+        return "bg-red-100 text-red-700 border border-red-400";
+      case "Iniciada":
+      case "En negociación":
+        return "bg-green-100 text-green-700 border border-green-400";
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       default:
         return "bg-gray-100 text-gray-700 border";
     }
@@ -111,12 +186,22 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
             <div className="mb-4">
               <label className="block font-semibold text-gray-700 mb-2">Estado del Pago</label>
               <select
+<<<<<<< HEAD
                 value={estado}
                 onChange={(e) => setEstado(e.target.value)}
+=======
+                value={tempEstado}
+                onChange={(e) => {
+                  const newVal = e.target.value;
+                  setTempEstado(newVal);
+                  openConfirm("estado", newVal, "Estado del pago");
+                }}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                 className={`p-3 rounded-lg w-full font-semibold cursor-pointer transition duration-150 ${getEstadoStyle(
                   estado
                 )}`}
               >
+<<<<<<< HEAD
                 <option value="Pagado" className="bg-green-100 text-green-700">
                   Pagado
                 </option>
@@ -126,6 +211,13 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
                 <option value="Debe" className="bg-red-100 text-red-700">
                   Debe
                 </option>
+=======
+                {allowedEstadosPago.map((opt) => (
+                  <option key={opt} value={opt} className="bg-white text-gray-800">
+                    {opt}
+                  </option>
+                ))}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
               </select>
             </div>
           </div>
@@ -148,6 +240,7 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
                   Estado del Seguimiento
                 </label>
                 <select
+<<<<<<< HEAD
                   value={estadoSeguimiento}
                   onChange={(e) => setEstadoSeguimiento(e.target.value)}
                   className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
@@ -155,6 +248,21 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
                   <option value="Iniciado">Iniciado</option>
                   <option value="En proceso">En proceso</option>
                   <option value="Completado">Completado</option>
+=======
+                  value={tempEstadoSeguimiento}
+                  onChange={(e) => {
+                    const newVal = e.target.value;
+                    setTempEstadoSeguimiento(newVal);
+                    openConfirm("estadoSeguimiento", newVal, "Estado de seguimiento");
+                  }}
+                  className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                >
+                  {allowedEstadosSeguimiento.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                 </select>
               </div>
               
@@ -166,10 +274,22 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
               </div>
               
               <div>
+<<<<<<< HEAD
                 <p className="font-semibold text-gray-700">Descripción:</p>
                 <p className="text-gray-900 bg-white p-2 rounded border border-gray-200 min-h-[60px]">
                   {venta.descripcionSeguimiento || "Documentación en revisión"}
                 </p>
+=======
+                <label className="block font-semibold text-gray-700 mb-2">
+                  Descripción / Notas
+                </label>
+                <textarea
+                  className="text-gray-900 bg-white p-2 rounded border border-gray-200 min-h-[80px] w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Agrega comentarios o detalles del seguimiento"
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                />
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
               </div>
             </div>
           </div>
@@ -179,12 +299,18 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
         <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end gap-3">
           <button
             onClick={onClose}
+<<<<<<< HEAD
             className="px-6 py-2 bg-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-400 transition duration-150 transform hover:scale-[1.02]"
+=======
+            disabled={saving}
+            className="px-6 py-2 bg-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-400 transition duration-150 transform hover:scale-[1.02] disabled:opacity-60"
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
+<<<<<<< HEAD
             className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg shadow-blue-400/50 hover:bg-blue-700 transition duration-150 transform hover:scale-[1.02]"
           >
             Guardar Cambios
@@ -194,3 +320,45 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
     </div>
   );
 }
+=======
+            disabled={saving}
+            className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg shadow-blue-400/50 hover:bg-blue-700 transition duration-150 transform hover:scale-[1.02] disabled:opacity-60"
+          >
+            {saving ? "Guardando..." : "Guardar Cambios"}
+          </button>
+        </div>
+      </div>
+
+      {confirmData && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 space-y-4">
+            <h4 className="text-lg font-bold text-gray-800">Confirmar cambio</h4>
+            <p className="text-gray-700">
+              ¿Confirmas cambiar {confirmData.label} a <strong>{confirmData.value}</strong>?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={handleCancelConfirm}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
+              >
+                No, cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700"
+              >
+                Sí, confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

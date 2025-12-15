@@ -91,6 +91,61 @@ const buildBuyerFullName = (buyer = {}, fallback = "") => {
   return name || fallback || "";
 };
 
+<<<<<<< HEAD
+=======
+const mapSeguimientoEstadoToId = (estado = "") => {
+  const normalized = estado
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const map = {
+    pagado: 1,
+    debe: 2,
+    "en espera": 3,
+    cancelado: 4,
+    iniciada: 5,
+    "en negociacion": 6,
+    "en negociación": 6,
+    completada: 7,
+  };
+  return map[normalized] || null;
+};
+
+const mapEstadoUiToVentaEstado = (estado = "") => {
+  const normalized = estado
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  if (normalized === "pagado" || normalized === "completada") return "Finalizada";
+  if (normalized === "cancelado" || normalized === "cancelada") return "Cancelada";
+  // Debe / En espera / Iniciada / En negociación → Activa
+  return "Activa";
+};
+
+const buildTrackingPayload = (updatedSale = {}) => {
+  const estadoSeguimiento =
+    updatedSale.estadoSeguimiento || updatedSale.estado || "Iniciada";
+  const estadoId = mapSeguimientoEstadoToId(estadoSeguimiento);
+  const compradorId =
+    updatedSale.id_comprador ??
+    updatedSale?.raw?.id_comprador ??
+    updatedSale?.comprador?.id_comprador ??
+    updatedSale?.raw?.comprador?.id_comprador ??
+    updatedSale?.buyerId ??
+    updatedSale?.raw?.buyerId ??
+    null;
+
+  if (!estadoId || !compradorId) return null;
+
+  return {
+    id_estado_venta: estadoId,
+    id_comprador: compradorId,
+    fecha_estado_seguimiento: new Date().toISOString(),
+    descripcion: updatedSale.descripcionSeguimiento || "",
+  };
+};
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 const normalizeSaleRecord = (sale = {}, fallback = {}) => {
   const inmueble = sale.inmueble || sale.property || {};
   const comprador = sale.comprador || sale.buyer || {};
@@ -104,6 +159,14 @@ const normalizeSaleRecord = (sale = {}, fallback = {}) => {
 
   return {
     ...fallback,
+<<<<<<< HEAD
+=======
+    id_comprador:
+      sale.id_comprador ??
+      comprador.id_comprador ??
+      fallback.id_comprador ??
+      null,
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     id: sale.id ?? sale.id_venta ?? fallback.id ?? Date.now(),
     registro:
       fallback.inmuebleRegistro ??
@@ -124,6 +187,7 @@ const normalizeSaleRecord = (sale = {}, fallback = {}) => {
       comprador.tipo_documento ?? fallback.compradorTipoDocumento ?? "N/D",
     compradorDocumento:
       comprador.numero_documento ?? fallback.compradorDocumento ?? "N/D",
+<<<<<<< HEAD
     compradorNombreCompleto:
       (fallback.compradorNombreCompleto ?? compradorNombre) || "Sin comprador",
     compradorCorreo: comprador.correo ?? fallback.compradorCorreo ?? "Sin correo",
@@ -138,6 +202,44 @@ const normalizeSaleRecord = (sale = {}, fallback = {}) => {
     vendedorCorreo: vendedor.correo ?? fallback.vendedorCorreo ?? "Sin correo",
     vendedorTelefono:
       vendedor.telefono ?? fallback.vendedorTelefono ?? "Sin teléfono",
+=======
+        compradorNombreCompleto:
+      (fallback.compradorNombreCompleto ?? compradorNombre) || "Sin comprador",
+    compradorCorreo: comprador.correo ?? fallback.compradorCorreo ?? "Sin correo",
+    compradorTelefono:
+      comprador.telefono ?? fallback.compradorTelefono ?? "Sin tel�fono",
+    vendedorTipoDocumento:
+      sale.tipo_documento_vendedor ??
+      sale.vendedor_tipo_documento ??
+      sale.tipo_doc_vendedor ??
+      vendedor.tipo_documento ??
+      fallback.vendedorTipoDocumento ??
+      "N/D",
+    vendedorDocumento:
+      sale.numero_doc_vendedor ??
+      sale.vendedor_numero_documento ??
+      sale.documento_vendedor ??
+      vendedor.numero_documento ??
+      fallback.vendedorDocumento ??
+      "N/D",
+    vendedorNombreCompleto:
+      sale.vendedor_nombre_completo ??
+      sale.vendedor_nombre ??
+      sale.nombre_vendedor ??
+      fallback.vendedorNombreCompleto ?? vendedorNombre ?? "Sin vendedor",
+    vendedorCorreo:
+      sale.vendedor_correo ??
+      sale.correo_vendedor ??
+      vendedor.correo ??
+      fallback.vendedorCorreo ??
+      "Sin correo",
+    vendedorTelefono:
+      sale.vendedor_telefono ??
+      sale.telefono_vendedor ??
+      vendedor.telefono ??
+      fallback.vendedorTelefono ??
+      "Sin telefono",
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     inmuebleTipo:
       fallback.inmuebleTipo ?? inmueble.categoria ?? fallback.tipo ?? "Sin tipo",
     inmuebleRegistro:
@@ -451,7 +553,11 @@ export function SalesManagementPage() {
       compradorNombreCompleto: buyerFullName,
       compradorCorreo: saleData.compradorCorreo || buyerInfo.correo || "Sin correo",
       compradorTelefono:
+<<<<<<< HEAD
         saleData.compradorTelefono || buyerInfo.telefono || "Sin teléfono",
+=======
+        saleData.compradorTelefono || buyerInfo.telefono || "Sin tel�fono",
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       inmuebleTipo:
         matchedProperty.raw?.categoria || matchedProperty.raw?.tipo || saleData.inmuebleTipo,
       inmuebleRegistro: matchedProperty.registro || saleData.inmuebleRegistro,
@@ -507,6 +613,7 @@ export function SalesManagementPage() {
     }
   };
 
+<<<<<<< HEAD
   const handleUpdateTracking = (updatedSale) => {
     setVentas((prevVentas) =>
       prevVentas.map((v) =>
@@ -514,6 +621,86 @@ export function SalesManagementPage() {
       )
     );
     setTrackingSale(null);
+=======
+  const handleUpdateTracking = async (updatedSale) => {
+    const saleId = updatedSale?.id || updatedSale?.id_venta;
+    if (!saleId) {
+      setStatusMessage({
+        type: "error",
+        text: "No se pudo identificar la venta para actualizar.",
+      });
+      return;
+    }
+
+    const existingSale = ventas.find((v) => String(v.id) === String(saleId)) || {};
+    const mergedPayload = {
+      ...existingSale,
+      ...updatedSale,
+      raw: existingSale?.raw || updatedSale?.raw,
+    };
+    if (!mergedPayload.estado) mergedPayload.estado = existingSale?.estado || "En espera";
+    if (!mergedPayload.estadoSeguimiento)
+      mergedPayload.estadoSeguimiento = mergedPayload.estado || "Iniciada";
+
+    try {
+      setStatusMessage({ type: "info", text: "Guardando cambios..." });
+
+      // Optimista
+      setVentas((prevVentas) =>
+        prevVentas.map((v) =>
+          String(v.id) === String(saleId)
+            ? { ...v, estado: mergedPayload.estado, estadoSeguimiento: mergedPayload.estadoSeguimiento, descripcionSeguimiento: mergedPayload.descripcionSeguimiento }
+            : v
+        )
+      );
+
+      // Actualizar estado en Ventas respetando constraint
+      const estadoVentaDb = mapEstadoUiToVentaEstado(mergedPayload.estado);
+      await ventaApiService.actualizarVenta(saleId, { estado: estadoVentaDb });
+
+      // Registrar seguimiento con id_comprador
+      const trackingPayload = buildTrackingPayload(mergedPayload);
+      if (!trackingPayload) {
+        setStatusMessage({
+          type: "error",
+          text: "No se pudo registrar seguimiento: falta id_comprador o estado.",
+        });
+        return;
+      }
+      await ventaApiService.agregarTracking(saleId, trackingPayload);
+
+      // Refrescar desde API
+      const refreshed = await ventaApiService.obtenerVenta(saleId);
+      const apiSale = refreshed?.data?.data || refreshed?.data || refreshed;
+      const normalized = normalizeSaleRecord(apiSale, mergedPayload);
+      const merged = {
+        ...normalized,
+        estado: mergedPayload.estado || normalized.estado,
+        estadoSeguimiento: mergedPayload.estadoSeguimiento || normalized.estadoSeguimiento,
+        descripcionSeguimiento:
+          mergedPayload.descripcionSeguimiento ?? normalized.descripcionSeguimiento,
+      };
+
+      setVentas((prevVentas) =>
+        prevVentas.map((v) =>
+          String(v.id) === String(saleId) ? { ...v, ...merged, raw: apiSale } : v
+        )
+      );
+
+      setStatusMessage({
+        type: "success",
+        text: "Estados guardados correctamente.",
+      });
+    } catch (error) {
+      console.error("Error actualizando estados:", error);
+      setStatusMessage({
+        type: "error",
+        text: error?.message || "No se pudo actualizar el estado. Intenta nuevamente.",
+      });
+    } finally {
+      setTrackingSale(null);
+    }
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   };
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -633,6 +820,7 @@ export function SalesManagementPage() {
           </motion.button>
         </motion.div>
 
+<<<<<<< HEAD
         {/* STATS CARDS */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -689,6 +877,8 @@ export function SalesManagementPage() {
           </div>
         </motion.div>
 
+=======
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         {propertiesError && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -774,6 +964,7 @@ export function SalesManagementPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
+<<<<<<< HEAD
           {/* TABLA CON NUEVO ESTILO - SIN COLUMNA ID */}
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             {/* CABECERA DE TABLA */}
@@ -797,11 +988,33 @@ export function SalesManagementPage() {
                   </tr>
                 </thead>
                 <tbody>
+=======
+          {/* TABLA CON ESTILO UNIFICADO */}
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Registro</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Tipo</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Comprador</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Fecha</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Valor</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Estado</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   {loadingVentas ? (
                     <tr>
                       <td
                         colSpan="7"
+<<<<<<< HEAD
                         className="px-4 py-8 text-center text-slate-500 border-b"
+=======
+                        className="px-6 py-8 text-center text-slate-500"
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                       >
                         <div className="flex items-center justify-center gap-2">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -813,6 +1026,7 @@ export function SalesManagementPage() {
                     filteredVentas.map((v) => (
                       <tr
                         key={v.id}
+<<<<<<< HEAD
                         className="hover:bg-slate-50 border-b border-slate-100 transition-colors"
                       >
                         <td className="px-4 py-3 text-slate-700">{v.registro}</td>
@@ -826,6 +1040,21 @@ export function SalesManagementPage() {
                           <EstadoBadge estado={v.estado} />
                         </td>
                         <td className="px-4 py-3">
+=======
+                        className="hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 text-sm text-slate-700">{v.registro}</td>
+                        <td className="px-6 py-4 text-sm text-slate-700">{v.tipo}</td>
+                        <td className="px-6 py-4 text-sm text-slate-700 truncate max-w-[180px]">{v.comprador}</td>
+                        <td className="px-6 py-4 text-sm text-slate-700">{v.fecha}</td>
+                        <td className="px-6 py-4 text-sm font-semibold text-purple-700">
+                          {v.valor}
+                        </td>
+                        <td className="px-6 py-4">
+                          <EstadoBadge estado={v.estado} />
+                        </td>
+                        <td className="px-6 py-4">
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex gap-2">
                             <motion.button
                               whileHover={{ scale: 1.1 }}
@@ -853,7 +1082,11 @@ export function SalesManagementPage() {
                     <tr>
                       <td
                         colSpan="7"
+<<<<<<< HEAD
                         className="px-4 py-8 text-center text-slate-500 border-b"
+=======
+                        className="px-6 py-8 text-center text-slate-500"
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                       >
                         <div className="flex flex-col items-center gap-2">
                           <Home className="w-8 h-8 text-slate-400" />
@@ -876,4 +1109,27 @@ export function SalesManagementPage() {
       {renderTrackingModal()}
     </>
   );
+<<<<<<< HEAD
 }
+=======
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+>>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
