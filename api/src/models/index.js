@@ -19,6 +19,8 @@ const ReporteArchivo = require('./ReporteArchivo');
 const ReporteRubro = require('./ReporteRubro');
 const RubroSeguimiento = require('./RubroSeguimiento');
 const ReporteSeguimientoGeneral = require('./ReporteSeguimientoGeneral');
+const SeguimientoVenta = require('./SeguimientoVenta');
+const EstadosVenta = require('./EstadosVenta');
 const Invitacion = require('./Invitacion');
 const Buyer = require('./Buyer');
 const Sale = require('./Sale');
@@ -351,6 +353,12 @@ Sale.belongsTo(Buyer, {
   as: 'comprador'
 });
 
+// Vendedor (Persona asociada a la venta)
+Sale.belongsTo(Persona, {
+  foreignKey: 'id_vendedor',
+  as: 'vendedor'
+});
+
 Sale.belongsTo(Inmueble, {
   foreignKey: 'id_inmueble',
   as: 'inmueble'
@@ -359,6 +367,18 @@ Sale.belongsTo(Inmueble, {
 Buyer.hasMany(Sale, {
   foreignKey: 'id_comprador',
   as: 'ventas'
+});
+
+// Seguimiento de venta
+Sale.hasMany(SeguimientoVenta, { foreignKey: 'id_venta', as: 'seguimientos' });
+SeguimientoVenta.belongsTo(Sale, { foreignKey: 'id_venta', as: 'venta' });
+SeguimientoVenta.belongsTo(Persona, { foreignKey: 'id_persona', as: 'persona' });
+SeguimientoVenta.belongsTo(EstadosVenta, { foreignKey: 'id_estado_venta', as: 'estado' });
+
+// Persona como vendedor en ventas
+Persona.hasMany(Sale, {
+  foreignKey: 'id_vendedor',
+  as: 'ventasComoVendedor'
 });
 
 Inmueble.hasMany(Sale, {
@@ -430,6 +450,8 @@ module.exports = {
   ReporteRubro,
   RubroSeguimiento,
   ReporteSeguimientoGeneral,
+  SeguimientoVenta,
+  EstadosVenta,
   Buyer,
   Sale,
   Renant,
@@ -440,3 +462,4 @@ module.exports = {
   InmuebleComodidad,
   InmuebleImagen
 };
+

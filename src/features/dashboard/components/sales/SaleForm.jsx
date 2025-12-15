@@ -9,8 +9,8 @@ const requiredFields = [
     // Comprador
     "compradorTipoDocumento", "compradorDocumento", "compradorNombreCompleto", "compradorCorreo", "compradorTelefono",
     // Inmueble
-    "inmuebleTipo", "inmuebleRegistro", "inmuebleNombre", "inmuebleArea", "inmuebleHabitaciones", "inmuebleBanos",
-    "inmueblePais", "inmuebleDepartamento", "inmuebleCiudad", "inmuebleDireccion", "inmuebleEstado",
+    "inmuebleTipo", "inmuebleRegistro", "inmuebleNombre",
+    "inmueblePais", "inmuebleDepartamento", "inmuebleCiudad", "inmuebleDireccion",
     // Venta
     "fechaVenta", "medioPago", "inmueblePrecio",
 ];
@@ -56,14 +56,10 @@ const initial = {
     inmuebleTipo: "",
     inmuebleRegistro: "",
     inmuebleNombre: "",
-    inmuebleArea: "",
-    inmuebleHabitaciones: "",
-    inmuebleBanos: "",
     inmueblePais: "Colombia",
     inmuebleDepartamento: "",
     inmuebleCiudad: "",
     inmuebleBarrio: "",
-    inmuebleEstrato: "",
     inmuebleDireccion: "",
     inmueblePrecio: "",
     inmuebleGaraje: false,
@@ -102,11 +98,8 @@ export default function SalesForm({ onClose, onSubmit }) {
     });
 
     // Campos estrictamente numéricos (solo dígitos)
-    const strictNumericFields = [
-        "inmuebleArea", "inmuebleHabitaciones", "inmuebleBanos", "inmuebleEstrato"
-    ];
+    const strictNumericFields = [];
 
-    // Campos que requieren formato de miles (moneda)
     const currencyFields = ["inmueblePrecio"];
 
     // Campos para validaciones de formato
@@ -128,10 +121,9 @@ export default function SalesForm({ onClose, onSubmit }) {
             "compradorCorreo", "compradorTelefono",
         ],
         3: [
-            "inmuebleTipo", "inmuebleRegistro", "inmuebleNombre", "inmuebleArea", 
-            "inmuebleHabitaciones", "inmuebleBanos", "inmueblePais", 
-            "inmuebleDepartamento", "inmuebleCiudad", "inmuebleBarrio", 
-            "inmuebleEstrato", "inmuebleDireccion", "inmuebleGaraje", "inmuebleEstado"
+            "inmuebleTipo", "inmuebleRegistro", "inmuebleNombre",
+            "inmueblePais", "inmuebleDepartamento", "inmuebleCiudad",
+            "inmuebleBarrio", "inmuebleDireccion", "inmuebleGaraje"
         ],
         4: [
             "fechaVenta", "medioPago", "inmueblePrecio"
@@ -169,18 +161,13 @@ export default function SalesForm({ onClose, onSubmit }) {
             inmuebleTipo: "Tipo de Inmueble", 
             inmuebleRegistro: "No. Registro Catastral",
             inmuebleNombre: "Nombre/Título Comercial", 
-            inmuebleArea: "Área Total",
-            inmuebleHabitaciones: "No. Habitaciones", 
-            inmuebleBanos: "No. Baños",
             inmueblePais: "País", 
             inmuebleDepartamento: "Departamento/Estado",
             inmuebleCiudad: "Ciudad", 
             inmuebleBarrio: "Barrio/Zona",
-            inmuebleEstrato: "Estrato Socioeconómico", 
             inmuebleDireccion: "Dirección Completa",
             inmueblePrecio: "Precio de Venta (COP)", 
             inmuebleGaraje: "¿Tiene Garaje?",
-            inmuebleEstado: "Estado del Inmueble",
 
             // Venta
             fechaVenta: "Fecha de Venta",
@@ -346,7 +333,7 @@ export default function SalesForm({ onClose, onSubmit }) {
         }
     };
 
-    const autofillInmueble = (inmueble) => {
+    const autofillInmueble = (inmueble, { skipEstado = false } = {}) => {
         if (!inmueble) return;
 
         setFieldValue("inmuebleTipo", inmueble.categoria || inmueble.tipo || "");
@@ -358,11 +345,10 @@ export default function SalesForm({ onClose, onSubmit }) {
         setFieldValue("inmuebleDepartamento", inmueble.departamento || "");
         setFieldValue("inmueblePais", inmueble.pais || "Colombia");
 
-        const area = inmueble.area_construida || inmueble.area_terreno || "";
-        setFieldValue("inmuebleArea", area ? String(area) : "");
-
-        const estadoTexto = inmueble.estado_bool === false ? "No disponible" : "Disponible";
-        setFieldValue("inmuebleEstado", estadoTexto === "Disponible" ? "Disponible" : "En Negociacion");
+        if (!skipEstado) {
+            const estadoTexto = inmueble.estado_bool === false ? "No disponible" : "Disponible";
+            setFieldValue("inmuebleEstado", estadoTexto === "Disponible" ? "Disponible" : "En Negociacion");
+        }
 
         const precio =
             inmueble.precio_venta ??
@@ -378,6 +364,38 @@ export default function SalesForm({ onClose, onSubmit }) {
             if (priceEl) priceEl.value = formatted;
         }
     };
+
+    const handleInmuebleLookup = useCallback(async (registro = "") => {
+        const cleanRegistro = (registro || "").trim();
+        if (!cleanRegistro) return;
+
+        setInmuebleLookupState({ loading: true, message: "", error: null });
+
+        try {
+            const inmueble = await inmueblesAPI.getInmuebleByRegistro(cleanRegistro);
+
+            if (inmueble && inmueble.id) {
+                autofillInmueble(inmueble, { skipEstado: true });
+                setInmuebleLookupState({
+                    loading: false,
+                    message: "Datos del inmueble completados automáticamente.",
+                    error: null,
+                });
+            } else {
+                setInmuebleLookupState({
+                    loading: false,
+                    message: "",
+                    error: "No encontramos un inmueble con ese registro.",
+                });
+            }
+        } catch (error) {
+            setInmuebleLookupState({
+                loading: false,
+                message: "",
+                error: error?.message || "No fue posible buscar el inmueble.",
+            });
+        }
+    }, []);
 
     // Funciones de validación de formato
     const isValidName = (value) => /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]*$/.test(value);
@@ -433,35 +451,6 @@ export default function SalesForm({ onClose, onSubmit }) {
                 else if (emailFields.includes(name) && !isValidEmail(value)) {
                     errorMessage = `El correo electrónico debe ser válido.`;
                 } 
-                else if (strictNumericFields.includes(name)) {
-                    if (!isValidNumeric(value)) {
-                        errorMessage = `Solo se permiten números enteros.`;
-                    } else if (parseFloat(value) <= 0) {
-                        errorMessage = `Debe ser un número mayor a 0`;
-                    }
-                    
-                    // Validaciones específicas por campo numérico
-                    if (name === "inmuebleEstrato" && value) {
-                        const estrato = parseInt(value);
-                        if (estrato < 1 || estrato > 6) {
-                            errorMessage = `El estrato debe estar entre 1 y 6`;
-                        }
-                    }
-                    
-                    if (name === "inmuebleHabitaciones" && value) {
-                        const habitaciones = parseInt(value);
-                        if (habitaciones < 0 || habitaciones > 20) {
-                            errorMessage = `El número de habitaciones debe ser razonable (0-20)`;
-                        }
-                    }
-                    
-                    if (name === "inmuebleBanos" && value) {
-                        const banos = parseInt(value);
-                        if (banos < 0 || banos > 10) {
-                            errorMessage = `El número de baños debe ser razonable (0-10)`;
-                        }
-                    }
-                }
             }
 
             // Aplicar o limpiar error
@@ -757,23 +746,6 @@ export default function SalesForm({ onClose, onSubmit }) {
                 } 
                 else if (strictNumericFields.includes(fieldName) && !isValidNumeric(value)) { 
                     error = `Solo se permiten números enteros.`;
-                }
-                
-                // Validaciones específicas para campos numéricos
-                if (!error && strictNumericFields.includes(fieldName)) {
-                    const numericValue = parseInt(value);
-                    
-                    if (fieldName === "inmuebleEstrato" && (numericValue < 1 || numericValue > 6)) {
-                        error = `El estrato debe estar entre 1 y 6`;
-                    }
-                    
-                    if (fieldName === "inmuebleHabitaciones" && (numericValue < 0 || numericValue > 20)) {
-                        error = `El número de habitaciones debe ser razonable (0-20)`;
-                    }
-                    
-                    if (fieldName === "inmuebleBanos" && (numericValue < 0 || numericValue > 10)) {
-                        error = `El número de baños debe ser razonable (0-10)`;
-                    }
                 }
             }
             
@@ -1110,11 +1082,6 @@ export default function SalesForm({ onClose, onSubmit }) {
                                 <div className="md:col-span-2">
                                     <Field name="inmuebleNombre" placeholder="Ej: Apartamento 501, Edificio La Torre" />
                                 </div>
-                                <Field name="inmuebleArea" placeholder="Área en metros cuadrados. Solo números enteros mayores a 0." />
-                                <Field name="inmuebleHabitaciones" placeholder="Cantidad de habitaciones. Solo números enteros (0-20)." />
-                                <Field name="inmuebleBanos" placeholder="Cantidad de baños. Solo números enteros (0-10)." />
-                                <Field name="inmuebleEstrato" placeholder="Estrato (1-6). Solo números enteros." />
-
                                 <Field name="inmueblePais" placeholder="País" />
                                 <Field name="inmuebleDepartamento" placeholder="Departamento o Estado" />
                                 <Field name="inmuebleCiudad" placeholder="Ciudad" />
@@ -1124,15 +1091,6 @@ export default function SalesForm({ onClose, onSubmit }) {
                                 </div>
 
                                 <Field name="inmuebleGaraje" type="checkbox" />
-                                <Field
-                                    name="inmuebleEstado"
-                                    as="select"
-                                    options={[
-                                        { value: "Disponible", label: "Disponible para Venta" },
-                                        { value: "En Negociacion", label: "En Negociación" },
-                                        { value: "Vendido", label: "Vendido/Transferido" },
-                                    ]}
-                                />
                             </div>
                         </div>
                     )}
@@ -1211,3 +1169,4 @@ export default function SalesForm({ onClose, onSubmit }) {
         </div>
     );
 }
+

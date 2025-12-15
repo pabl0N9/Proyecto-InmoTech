@@ -15,6 +15,18 @@ export const ventaApiService = {
     return { data };
   },
 
+  async obtenerVenta(id) {
+    return apiClient.get(`/sales/${id}`);
+  },
+
+  async actualizarVenta(id, payload) {
+    return apiClient.patch(`/sales/${id}`, payload);
+  },
+
+  async agregarTracking(id, payload) {
+    return apiClient.post(`/sales/${id}/tracking`, payload);
+  },
+
   async crearVenta(payload) {
     return apiClient.post('/sales', payload);
   },

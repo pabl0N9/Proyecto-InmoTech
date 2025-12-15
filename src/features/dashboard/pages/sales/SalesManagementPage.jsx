@@ -91,6 +91,58 @@ const buildBuyerFullName = (buyer = {}, fallback = "") => {
   return name || fallback || "";
 };
 
+const mapSeguimientoEstadoToId = (estado = "") => {
+  const normalized = estado
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const map = {
+    pagado: 1,
+    debe: 2,
+    "en espera": 3,
+    cancelado: 4,
+    iniciada: 5,
+    "en negociacion": 6,
+    "en negociación": 6,
+    completada: 7,
+  };
+  return map[normalized] || null;
+};
+
+const mapEstadoUiToVentaEstado = (estado = "") => {
+  const normalized = estado
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  if (normalized === "pagado" || normalized === "completada") return "Finalizada";
+  if (normalized === "cancelado" || normalized === "cancelada") return "Cancelada";
+  // Debe / En espera / Iniciada / En negociación → Activa
+  return "Activa";
+};
+
+const buildTrackingPayload = (updatedSale = {}) => {
+  const estadoSeguimiento =
+    updatedSale.estadoSeguimiento || updatedSale.estado || "Iniciada";
+  const estadoId = mapSeguimientoEstadoToId(estadoSeguimiento);
+  const compradorId =
+    updatedSale.id_comprador ??
+    updatedSale?.raw?.id_comprador ??
+    updatedSale?.comprador?.id_comprador ??
+    updatedSale?.raw?.comprador?.id_comprador ??
+    updatedSale?.buyerId ??
+    updatedSale?.raw?.buyerId ??
+    null;
+
+  if (!estadoId || !compradorId) return null;
+
+  return {
+    id_estado_venta: estadoId,
+    id_comprador: compradorId,
+    fecha_estado_seguimiento: new Date().toISOString(),
+    descripcion: updatedSale.descripcionSeguimiento || "",
+  };
+};
+
 const normalizeSaleRecord = (sale = {}, fallback = {}) => {
   const inmueble = sale.inmueble || sale.property || {};
   const comprador = sale.comprador || sale.buyer || {};
@@ -104,6 +156,11 @@ const normalizeSaleRecord = (sale = {}, fallback = {}) => {
 
   return {
     ...fallback,
+    id_comprador:
+      sale.id_comprador ??
+      comprador.id_comprador ??
+      fallback.id_comprador ??
+      null,
     id: sale.id ?? sale.id_venta ?? fallback.id ?? Date.now(),
     registro:
       fallback.inmuebleRegistro ??
@@ -124,20 +181,42 @@ const normalizeSaleRecord = (sale = {}, fallback = {}) => {
       comprador.tipo_documento ?? fallback.compradorTipoDocumento ?? "N/D",
     compradorDocumento:
       comprador.numero_documento ?? fallback.compradorDocumento ?? "N/D",
-    compradorNombreCompleto:
+        compradorNombreCompleto:
       (fallback.compradorNombreCompleto ?? compradorNombre) || "Sin comprador",
     compradorCorreo: comprador.correo ?? fallback.compradorCorreo ?? "Sin correo",
     compradorTelefono:
-      comprador.telefono ?? fallback.compradorTelefono ?? "Sin teléfono",
+      comprador.telefono ?? fallback.compradorTelefono ?? "Sin tel�fono",
     vendedorTipoDocumento:
-      vendedor.tipo_documento ?? fallback.vendedorTipoDocumento ?? "N/D",
+      sale.tipo_documento_vendedor ??
+      sale.vendedor_tipo_documento ??
+      sale.tipo_doc_vendedor ??
+      vendedor.tipo_documento ??
+      fallback.vendedorTipoDocumento ??
+      "N/D",
     vendedorDocumento:
-      vendedor.numero_documento ?? fallback.vendedorDocumento ?? "N/D",
+      sale.numero_doc_vendedor ??
+      sale.vendedor_numero_documento ??
+      sale.documento_vendedor ??
+      vendedor.numero_documento ??
+      fallback.vendedorDocumento ??
+      "N/D",
     vendedorNombreCompleto:
-      (fallback.vendedorNombreCompleto ?? vendedorNombre) || "Sin vendedor",
-    vendedorCorreo: vendedor.correo ?? fallback.vendedorCorreo ?? "Sin correo",
+      sale.vendedor_nombre_completo ??
+      sale.vendedor_nombre ??
+      sale.nombre_vendedor ??
+      fallback.vendedorNombreCompleto ?? vendedorNombre ?? "Sin vendedor",
+    vendedorCorreo:
+      sale.vendedor_correo ??
+      sale.correo_vendedor ??
+      vendedor.correo ??
+      fallback.vendedorCorreo ??
+      "Sin correo",
     vendedorTelefono:
-      vendedor.telefono ?? fallback.vendedorTelefono ?? "Sin teléfono",
+      sale.vendedor_telefono ??
+      sale.telefono_vendedor ??
+      vendedor.telefono ??
+      fallback.vendedorTelefono ??
+      "Sin telefono",
     inmuebleTipo:
       fallback.inmuebleTipo ?? inmueble.categoria ?? fallback.tipo ?? "Sin tipo",
     inmuebleRegistro:
@@ -451,7 +530,7 @@ export function SalesManagementPage() {
       compradorNombreCompleto: buyerFullName,
       compradorCorreo: saleData.compradorCorreo || buyerInfo.correo || "Sin correo",
       compradorTelefono:
-        saleData.compradorTelefono || buyerInfo.telefono || "Sin teléfono",
+        saleData.compradorTelefono || buyerInfo.telefono || "Sin tel�fono",
       inmuebleTipo:
         matchedProperty.raw?.categoria || matchedProperty.raw?.tipo || saleData.inmuebleTipo,
       inmuebleRegistro: matchedProperty.registro || saleData.inmuebleRegistro,
@@ -507,13 +586,84 @@ export function SalesManagementPage() {
     }
   };
 
-  const handleUpdateTracking = (updatedSale) => {
-    setVentas((prevVentas) =>
-      prevVentas.map((v) =>
-        v.id === updatedSale.id ? { ...v, ...updatedSale } : v
-      )
-    );
-    setTrackingSale(null);
+  const handleUpdateTracking = async (updatedSale) => {
+    const saleId = updatedSale?.id || updatedSale?.id_venta;
+    if (!saleId) {
+      setStatusMessage({
+        type: "error",
+        text: "No se pudo identificar la venta para actualizar.",
+      });
+      return;
+    }
+
+    const existingSale = ventas.find((v) => String(v.id) === String(saleId)) || {};
+    const mergedPayload = {
+      ...existingSale,
+      ...updatedSale,
+      raw: existingSale?.raw || updatedSale?.raw,
+    };
+    if (!mergedPayload.estado) mergedPayload.estado = existingSale?.estado || "En espera";
+    if (!mergedPayload.estadoSeguimiento)
+      mergedPayload.estadoSeguimiento = mergedPayload.estado || "Iniciada";
+
+    try {
+      setStatusMessage({ type: "info", text: "Guardando cambios..." });
+
+      // Optimista
+      setVentas((prevVentas) =>
+        prevVentas.map((v) =>
+          String(v.id) === String(saleId)
+            ? { ...v, estado: mergedPayload.estado, estadoSeguimiento: mergedPayload.estadoSeguimiento, descripcionSeguimiento: mergedPayload.descripcionSeguimiento }
+            : v
+        )
+      );
+
+      // Actualizar estado en Ventas respetando constraint
+      const estadoVentaDb = mapEstadoUiToVentaEstado(mergedPayload.estado);
+      await ventaApiService.actualizarVenta(saleId, { estado: estadoVentaDb });
+
+      // Registrar seguimiento con id_comprador
+      const trackingPayload = buildTrackingPayload(mergedPayload);
+      if (!trackingPayload) {
+        setStatusMessage({
+          type: "error",
+          text: "No se pudo registrar seguimiento: falta id_comprador o estado.",
+        });
+        return;
+      }
+      await ventaApiService.agregarTracking(saleId, trackingPayload);
+
+      // Refrescar desde API
+      const refreshed = await ventaApiService.obtenerVenta(saleId);
+      const apiSale = refreshed?.data?.data || refreshed?.data || refreshed;
+      const normalized = normalizeSaleRecord(apiSale, mergedPayload);
+      const merged = {
+        ...normalized,
+        estado: mergedPayload.estado || normalized.estado,
+        estadoSeguimiento: mergedPayload.estadoSeguimiento || normalized.estadoSeguimiento,
+        descripcionSeguimiento:
+          mergedPayload.descripcionSeguimiento ?? normalized.descripcionSeguimiento,
+      };
+
+      setVentas((prevVentas) =>
+        prevVentas.map((v) =>
+          String(v.id) === String(saleId) ? { ...v, ...merged, raw: apiSale } : v
+        )
+      );
+
+      setStatusMessage({
+        type: "success",
+        text: "Estados guardados correctamente.",
+      });
+    } catch (error) {
+      console.error("Error actualizando estados:", error);
+      setStatusMessage({
+        type: "error",
+        text: error?.message || "No se pudo actualizar el estado. Intenta nuevamente.",
+      });
+    } finally {
+      setTrackingSale(null);
+    }
   };
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -814,3 +964,22 @@ export function SalesManagementPage() {
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
