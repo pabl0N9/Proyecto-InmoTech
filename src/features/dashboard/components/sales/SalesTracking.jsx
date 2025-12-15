@@ -4,13 +4,36 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
   if (!venta) return null;
 
   // Estado local editable
-  const allowedEstadosPago = ["Pagado", "Debe", "En espera", "Cancelado"];
-  const allowedEstadosSeguimiento = ["Iniciada", "En negociación", "Completada", "Cancelado"];
-  const initialEstado = allowedEstadosPago.includes(venta.estado) ? venta.estado : "En espera";
+  const allowedEstadosPago = ["Pagado", "Debe", "En espera", "Cancelado", "Cancelada"];
+  const allowedEstadosSeguimiento = ["Iniciada", "En negociación", "Completada", "Cancelado", "Cancelada"];
 
+  const normalizeEstadoPago = (estado) => {
+    const normalized = (estado || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    if (normalized.includes("pagad")) return "Pagado";
+    if (normalized.includes("cancelad")) return "Cancelado";
+    if (normalized.includes("debe")) return "Debe";
+    return "En espera";
+  };
+
+  const normalizeEstadoSeguimiento = (estado) => {
+    const normalized = (estado || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    if (normalized.includes("complet")) return "Completada";
+    if (normalized.includes("negoci")) return "En negociación";
+    if (normalized.includes("cancelad")) return "Cancelado";
+    if (normalized.includes("inici")) return "Iniciada";
+    return "Iniciada";
+  };
+
+  const initialEstado = normalizeEstadoPago(venta.estado);
   const initialEstadoSeguimiento = allowedEstadosSeguimiento.includes(venta.estadoSeguimiento)
     ? venta.estadoSeguimiento
-    : "Iniciada";
+    : normalizeEstadoSeguimiento(venta.estadoSeguimiento);
 
   const [estado, setEstado] = useState(initialEstado);
   const [tempEstado, setTempEstado] = useState(initialEstado);

@@ -24,6 +24,7 @@ export const ventaApiService = {
   },
 
   async agregarTracking(id, payload) {
+    console.log("se camibio estado");
     return apiClient.post(`/sales/${id}/tracking`, payload);
   },
 
