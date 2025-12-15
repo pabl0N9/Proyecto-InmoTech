@@ -89,8 +89,8 @@ const mapComodidadesFromInstance = (comodidades = []) =>
     id_comodidad: comodidad.id_comodidad,
     nombre: comodidad.nombre,
     descripcion: comodidad.descripcion,
-    cantidad: comodidad.Inmueble_Comodidades?.cantidad ?? 1,
-    seleccionada: comodidad.Inmueble_Comodidades?.seleccionada ?? true,
+    cantidad: (comodidad.InmuebleComodidad || comodidad.Inmueble_Comodidades)?.cantidad ?? 1,
+    seleccionada: (comodidad.InmuebleComodidad || comodidad.Inmueble_Comodidades)?.seleccionada ?? true,
     custom: comodidad.es_personalizada ?? false
   }));
 
@@ -103,16 +103,19 @@ const mapInmuebleResponse = (inmueble) => {
   }
 
   if (plain.propietarios) {
-    plain.propietarios = plain.propietarios.map((owner) => ({
-      id_persona: owner.id_persona,
-      nombre_completo: owner.nombre_completo,
-      apellido_completo: owner.apellido_completo,
-      correo: owner.correo,
-      telefono: owner.telefono,
-      documento: owner.tipo_documento
-        ? `${owner.tipo_documento} ${owner.numero_documento || ''}`.trim()
-        : owner.numero_documento
-    }));
+    plain.propietarios = plain.propietarios.map((owner) => {
+      const persona = owner.propietario || owner;
+      return {
+        id_persona: persona.id_persona,
+        nombre_completo: persona.nombre_completo,
+        apellido_completo: persona.apellido_completo,
+        correo: persona.correo,
+        telefono: persona.telefono,
+        documento: persona.tipo_documento
+          ? `${persona.tipo_documento} ${persona.numero_documento || ''}`.trim()
+          : persona.numero_documento
+      };
+    });
   }
 
   return plain;
@@ -308,17 +311,32 @@ class InmueblesService {
         order: [[orderColumn, orden]],
         include: [
           {
-            model: Persona,
+            model: PropiedadInmueble,
             as: 'propietarios',
-            through: { attributes: [] },
+            required: false,
+            where: { es_propietario_actual: true },
             attributes: [
-              'id_persona',
-              'nombre_completo',
-              'apellido_completo',
-              'correo',
-              'telefono',
-              'tipo_documento',
-              'numero_documento'
+              'id_propiedad_inmueble',
+              'fecha_inicio',
+              'fecha_final',
+              'estado',
+              'porcentaje_propiedad',
+              'es_propietario_actual'
+            ],
+            include: [
+              {
+                model: Persona,
+                as: 'propietario',
+                attributes: [
+                  'id_persona',
+                  'nombre_completo',
+                  'apellido_completo',
+                  'correo',
+                  'telefono',
+                  'tipo_documento',
+                  'numero_documento'
+                ]
+              }
             ]
           },
           {
@@ -360,17 +378,32 @@ class InmueblesService {
         transaction,
         include: [
           {
-            model: Persona,
+            model: PropiedadInmueble,
             as: 'propietarios',
-            through: { attributes: [] },
+            required: false,
+            where: { es_propietario_actual: true },
             attributes: [
-              'id_persona',
-              'nombre_completo',
-              'apellido_completo',
-              'correo',
-              'telefono',
-              'tipo_documento',
-              'numero_documento'
+              'id_propiedad_inmueble',
+              'fecha_inicio',
+              'fecha_final',
+              'estado',
+              'porcentaje_propiedad',
+              'es_propietario_actual'
+            ],
+            include: [
+              {
+                model: Persona,
+                as: 'propietario',
+                attributes: [
+                  'id_persona',
+                  'nombre_completo',
+                  'apellido_completo',
+                  'correo',
+                  'telefono',
+                  'tipo_documento',
+                  'numero_documento'
+                ]
+              }
             ]
           },
           {

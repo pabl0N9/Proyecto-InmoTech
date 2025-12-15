@@ -156,8 +156,7 @@ class InmueblesController {
         precio_min: precio_min ? parseFloat(precio_min) : undefined,
         precio_max: precio_max ? parseFloat(precio_max) : undefined,
         area_min: area_min ? parseFloat(area_min) : undefined,
-        categoria,
-        estado: true
+        categoria
       };
 
       const opciones = {

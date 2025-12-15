@@ -22,7 +22,8 @@ const Button = React.forwardRef(({
   className, 
   variant = "default", 
   size = "default", 
-  asChild = false, 
+  asChild = false,
+  children,
   ...props 
 }, ref) => {
   const baseClasses = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
@@ -30,8 +31,8 @@ const Button = React.forwardRef(({
   const variantClasses = buttonVariants.variant[variant] || buttonVariants.variant.default
   const sizeClasses = buttonVariants.size[size] || buttonVariants.size.default
   
-  if (asChild) {
-    return React.cloneElement(props.children, {
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children, {
       className: cn(baseClasses, variantClasses, sizeClasses, className),
       ref,
       ...props
@@ -43,7 +44,9 @@ const Button = React.forwardRef(({
       className={cn(baseClasses, variantClasses, sizeClasses, className)}
       ref={ref}
       {...props}
-    />
+    >
+      {children}
+    </button>
   )
 })
 

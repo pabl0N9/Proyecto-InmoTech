@@ -88,27 +88,38 @@ const OwnerView = ({ owner, inmuebles }) => (
     <SectionCard title="Información general" subtitle="Resumen">
       <OwnerSummary owner={owner} inmuebles={inmuebles} />
     </SectionCard>
-    <SectionCard title="Inmuebles asociados" subtitle="Detalle">
+        <SectionCard title="Inmuebles asociados" subtitle="Detalle">
       {inmuebles.length === 0 && (
         <p className="text-xs text-slate-500">No hay inmuebles asociados.</p>
       )}
-      <div className="divide-y divide-slate-100">
+      <div className="grid gap-3 md:grid-cols-2">
         {inmuebles.map((inmueble) => (
           <div
-            key={inmueble.id}
-            className="py-2 text-xs text-slate-700 flex flex-col gap-0.5"
+            key={inmueble.id_inmueble || inmueble.id}
+            className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-700 shadow-sm"
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-1">
               <Building2 className="w-3.5 h-3.5 text-blue-500" />
               <p className="font-semibold text-slate-900">
-                {inmueble.titulo || inmueble.direccion}
+                {inmueble.titulo || inmueble.registro_inmobiliario || inmueble.direccion || 'Sin t�tulo'}
               </p>
             </div>
-            <p>
-              {inmueble.ciudad} · {inmueble.tipo}
+            <p className="text-[11px] text-slate-600">
+              {inmueble.direccion || 'Sin direcci�n'}
             </p>
+            <p className="text-[11px] text-slate-600">
+              {[inmueble.ciudad, inmueble.departamento, inmueble.pais].filter(Boolean).join(' � ') || 'Ubicaci�n no especificada'}
+            </p>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Operaci�n: {inmueble.operacion || 'No definida'}
+            </p>
+            {(inmueble.precio_venta || inmueble.precio_arriendo) && (
+              <p className="text-[11px] text-slate-500">
+                Precio venta: {inmueble.precio_venta || '�'} � Canon: {inmueble.precio_arriendo || '�'}
+              </p>
+            )}
             {inmueble.estado && (
-              <p className="text-[10px] text-slate-400">Estado: {inmueble.estado}</p>
+              <p className="text-[10px] text-slate-400 mt-1">Estado: {inmueble.estado}</p>
             )}
           </div>
         ))}
@@ -175,8 +186,17 @@ const OwnerForm = ({
         telefono: selectedOwner.telefono || ''
       });
 
-      if (selectedOwner.inmuebles) {
+      if (selectedOwner.inmuebles && selectedOwner.inmuebles.length) {
         setSelectedInmuebles(selectedOwner.inmuebles);
+      } else {
+        const ownerId = String(
+          selectedOwner.id || selectedOwner.id_persona || selectedOwner.idPersona || ''
+        );
+        const derivados = availableInmuebles.filter((inmueble) => {
+          if (!Array.isArray(inmueble.ownerIds)) return false;
+          return inmueble.ownerIds.map((v) => String(v)).includes(ownerId);
+        });
+        setSelectedInmuebles(derivados);
       }
       setActiveStep(0);
     } else {
@@ -808,3 +828,8 @@ const OwnerForm = ({
 };
 
 export default OwnerForm;
+
+
+
+
+

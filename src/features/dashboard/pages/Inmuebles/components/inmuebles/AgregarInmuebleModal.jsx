@@ -51,6 +51,7 @@ const INITIAL_FORM = {
   operacion: 'Venta',
   precioVenta: '',
   precioArriendo: '',
+  areaConstruida: '',
   descripcion: '',
   estado: true
 };
@@ -58,7 +59,7 @@ const INITIAL_FORM = {
 const STEPS = [
   { label: 'Inmueble', description: 'Define la información general', icon: Building2 },
   { label: 'Ubicación', description: 'Dirección y zona', icon: MapPin },
-  { label: 'Comodidades', description: 'Amenidades y multimedia', icon: Layers },
+  { label: 'Características', description: 'Amenidades y multimedia', icon: Layers },
   { label: 'Propietario', description: 'Asignación y resumen', icon: UserCheck }
 ];
 
@@ -177,6 +178,7 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
         operacion: inferredOperation,
         precioVenta: inmuebleEditar.precio_venta || '',
         precioArriendo: inmuebleEditar.precio_arriendo || '',
+        areaConstruida: inmuebleEditar.area_construida || '',
         descripcion: inmuebleEditar.descripcion || '',
         estado: inmuebleEditar.estado_bool ?? true
       });
@@ -298,6 +300,9 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
         validationErrors.precioVenta = 'Ingresa ambos valores';
         validationErrors.precioArriendo = 'Ingresa ambos valores';
       }
+      if (!form.areaConstruida || Number(form.areaConstruida) <= 0) {
+        validationErrors.areaConstruida = 'Ingresa el área en m²';
+      }
     } else if (stepIndex === 1) {
       if (!form.direccion.trim()) validationErrors.direccion = 'La dirección es obligatoria';
       if (!form.ciudad.trim()) validationErrors.ciudad = 'La ciudad es obligatoria';
@@ -342,6 +347,7 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
         operacion: form.operacion,
         precio_venta: form.precioVenta ? Number(form.precioVenta) : null,
         precio_arriendo: form.precioArriendo ? Number(form.precioArriendo) : null,
+        area_construida: form.areaConstruida ? Number(form.areaConstruida) : null,
         descripcion: form.descripcion,
         estado: form.estado,
         comodidades: selectedAmenities,
@@ -476,6 +482,21 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
             />
           </div>
         )}
+        <div>
+          <label className="text-sm text-slate-600 flex justify-between">
+            Área construida (m²)
+            {errors.areaConstruida && <span className="text-xs text-red-500">{errors.areaConstruida}</span>}
+          </label>
+          <input
+            name="areaConstruida"
+            type="number"
+            min="0"
+            value={form.areaConstruida}
+            onChange={handleFieldChange}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            placeholder="Ej: 120"
+          />
+        </div>
           <div className="md:col-span-2">
             <label className="text-sm text-slate-600 flex justify-between">
               Descripción
@@ -559,7 +580,7 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
 
   const renderAmenitiesStep = () => (
     <div className="space-y-4">
-      <SectionCard title="Selecciona comodidades" subtitle="Paso 3">
+      <SectionCard title="Selecciona características" subtitle="Paso 3">
         <div className="grid gap-3 md:grid-cols-2">
           {amenities.map((amenity) => (
             <label
@@ -588,7 +609,7 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
         </div>
 
         <div className="rounded-2xl border border-dashed border-slate-300 p-4 bg-slate-50">
-          <p className="text-sm font-semibold text-slate-700 mb-3">Comodidad personalizada</p>
+          <p className="text-sm font-semibold text-slate-700 mb-3">Característica personalizada</p>
           <div className="flex flex-wrap gap-3">
             <input
               value={customAmenity.nombre}
@@ -721,7 +742,7 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
             <p>{selectedOwner?.telefono || 'Sin teléfono'}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400 mb-1">Comodidades seleccionadas</p>
+          <p className="text-xs text-slate-400 mb-1">Características seleccionadas</p>
             <p>{amenities.filter((item) => item.seleccionada).length}</p>
           </div>
         </div>

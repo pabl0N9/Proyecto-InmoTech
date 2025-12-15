@@ -120,7 +120,7 @@ export default function VerifyEmailPage() {
   };
 
   const handleResend = async () => {
-    if (!activeToken) {
+    if (!activeToken && !email) {
       setEstado('error');
       setMensaje('Link invalido. Abre el enlace de tu correo para verificar.');
       return;
@@ -129,7 +129,12 @@ export default function VerifyEmailPage() {
     setMensaje('');
     setInfo('');
     try {
-      const res = await invitacionApi.reenviar(activeToken);
+      let res = null;
+      if (activeToken) {
+        res = await invitacionApi.reenviar(activeToken);
+      } else if (email) {
+        res = await authService.resendVerificationCode(email.trim().toLowerCase());
+      }
       if (res?.success) {
         const total = res.data?.total_enviados || 0;
         const max = res.data?.max_codigos || 5;
@@ -298,7 +303,7 @@ export default function VerifyEmailPage() {
             <button
               type="button"
               onClick={handleResend}
-              disabled={isResending || limitReached || !activeToken}
+              disabled={isResending || limitReached || (!activeToken && !email)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-[#00457B] border border-[#00457B] hover:bg-blue-50 disabled:opacity-50"
             >
               {isResending ? (

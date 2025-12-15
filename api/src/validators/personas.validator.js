@@ -37,6 +37,10 @@ const crearPersonaSchema = Joi.object({
     .allow('', null)
     .optional(),
 
+  rol: Joi.string()
+    .valid('Usuario', 'Propietario')
+    .optional(),
+
   password: Joi.string()
     .min(8)
     .max(100)

@@ -134,6 +134,13 @@ class SaleService {
     } catch (error) {
       const dbMsg = error.original?.message || error.message || 'Error consultando ventas';
       logger.error(`❌ Error en getAllSales: ${dbMsg}`);
+
+      // Evitar romper el dashboard si la tabla no existe en la BD actual
+      if (dbMsg.includes('Invalid object name') || dbMsg.includes('does not exist')) {
+        logger.warn('Tabla de ventas/compradores no encontrada. Devolviendo lista vac?a.');
+        return [];
+      }
+
       const err = new Error(dbMsg);
       err.status = 500;
       throw err;

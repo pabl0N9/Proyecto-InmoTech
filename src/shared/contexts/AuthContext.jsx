@@ -1,6 +1,6 @@
-﻿/**
- * @fileoverview Context de React para gestiÃ³n global de autenticaciÃ³n JWT
- * @version 2.1.0 - Manejo de verificaciÃ³n de correo y registro sin login automÃ¡tico
+/**
+ * @fileoverview Context de React para gestión global de autenticación JWT
+ * @version 2.1.0 - Manejo de verificación de correo y registro sin login automático
  */
 
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
@@ -24,26 +24,39 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   /**
-   * Carga la informaciÃ³n de autenticaciÃ³n desde cookies
+   * Carga la información de autenticación desde cookies
    */
   const loadAuthFromStorage = useCallback(async () => {
     try {
+      // Intenta restaurar desde sessionStorage (guardado tras login)
+      const cachedUser = sessionStorage.getItem(USER_KEY);
+      if (cachedUser) {
+        const parsed = JSON.parse(cachedUser);
+        setUser(parsed);
+        setIsAuthenticated(true);
+        setLoading(false);
+        console.log('Sesión restaurada desde cache local');
+        return;
+      }
+
       const response = await authService.getProfile();
 
       if (response.success && response.data) {
         const userData = response.data;
         setUser(userData);
         setIsAuthenticated(true);
-        console.log('SesiÃ³n restaurada desde cookies:', userData.correo);
+        console.log('Sesión restaurada desde cookies:', userData.correo);
       } else {
         setUser(null);
         setIsAuthenticated(false);
-        console.log('No hay sesiÃ³n activa en cookies');
+        console.log('No hay sesión activa en cookies');
       }
     } catch (err) {
-      // Si no hay sesi�n/tokens, lo tratamos como usuario no autenticado sin romper la app
+      // Si no hay sesion/tokens, lo tratamos como usuario no autenticado sin romper la app
       const isAuthError = err?.status === 401 || /Token de acceso requerido/i.test(err?.message || '');
-      console.warn('No se pudo restaurar sesi�n:', err?.message);
+      if (!isAuthError) {
+        console.warn('No se pudo restaurar sesion:', err?.message);
+      }
       setUser(null);
       setIsAuthenticated(false);
       if (!isAuthError) {
@@ -57,7 +70,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Guarda la informaciÃ³n de autenticaciÃ³n
+   * Guarda la información de autenticación
    */
   const saveAuthToStorage = useCallback((userData, accessToken, refreshToken) => {
     try {
@@ -65,14 +78,14 @@ export const AuthProvider = ({ children }) => {
 
       const userDataString = JSON.stringify(userData);
       sessionStorage.setItem(USER_KEY, userDataString);
-      console.log('SesiÃ³n guardada');
+      console.log('Sesión guardada');
     } catch (err) {
-      console.error('Error guardando autenticaciÃ³n:', err);
+      console.error('Error guardando autenticación:', err);
     }
   }, []);
 
   /**
-   * Limpia toda la informaciÃ³n de autenticaciÃ³n
+   * Limpia toda la información de autenticación
    */
   const clearAuthData = useCallback(() => {
     localStorage.removeItem(USER_KEY);
@@ -80,29 +93,38 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setError(null);
-    console.log('Datos de autenticaciÃ³n limpiados');
+    console.log('Datos de autenticación limpiados');
   }, []);
 
   /**
-   * Inicia sesiÃ³n del usuario
+   * Inicia sesión del usuario
    */
     /**
-   * Inicia sesiÃ³n del usuario
+   * Inicia sesión del usuario
    */
   const login = async (email, password) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Intentando iniciar sesiÃ³n:', email);
+      console.log('Intentando iniciar sesión:', email);
 
       const response = await authService.login(email, password);
 
       if (!response.success || !response.data) {
-        throw new Error(response.message || 'Error en la autenticaciÃ³n');
+        throw new Error(response.message || 'Error en la autenticación');
       }
+
+      // Guardar usuario en estado (y opcionalmente en storage) tras login exitoso
+      const userData = response.data.user || response.data;
+      setUser(userData);
+      setIsAuthenticated(true);
+      // sessionStorage para disponer del perfil sin re-llamar al backend inmediatamente
+      sessionStorage.setItem(USER_KEY, JSON.stringify(userData));
+
+      return userData;
     } catch (err) {
       console.error('Error en login:', err);
-      setError(err.message || 'Error en la autenticaciÃ³n');
+      setError(err.message || 'Error en la autenticación');
       throw err;
     } finally {
       setLoading(false);
@@ -112,7 +134,7 @@ export const AuthProvider = ({ children }) => {
 
 
   /**
-   * Registra un nuevo usuario (no inicia sesiÃ³n; requiere verificaciÃ³n de correo)
+   * Registra un nuevo usuario (no inicia sesión; requiere verificación de correo)
    */
   const register = async (userData) => {
     try {
@@ -123,7 +145,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.register(userData);
 
       if (response.success && response.data) {
-        // No se establece sesiÃ³n hasta que verifique el correo
+        // No se establece sesión hasta que verifique el correo
         return response.data;
       } else {
         throw new Error(response.message || 'Error en el registro');
@@ -140,7 +162,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Cierra la sesiÃ³n del usuario
+   * Cierra la sesión del usuario
    */
   const logout = useCallback(async () => {
     try {
@@ -153,7 +175,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       clearAuthData();
-      console.log('SesiÃ³n cerrada exitosamente');
+      console.log('Sesión cerrada exitosamente');
     } catch (err) {
       console.error('Error en logout:', err);
       clearAuthData();
@@ -254,30 +276,58 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Cambia la contraseÃ±a del usuario
+   * Cambia la contraseña del usuario
    */
   const changePassword = async (currentPassword, newPassword) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Cambiando contraseÃ±a...');
+      console.log('Cambiando contraseña...');
 
       const response = await authService.changePassword(currentPassword, newPassword);
 
       if (response.success) {
-        console.log('ContraseÃ±a cambiada exitosamente');
+        console.log('Contraseña cambiada exitosamente');
         return true;
       } else {
-        throw new Error(response.message || 'Error al cambiar contraseÃ±a');
+        throw new Error(response.message || 'Error al cambiar contraseña');
       }
     } catch (err) {
-      console.error('Error cambiando contraseÃ±a:', err);
-      setError(err.message || 'Error al cambiar contraseÃ±a');
+      console.error('Error cambiando contraseña:', err);
+      setError(err.message || 'Error al cambiar contraseña');
       throw err;
     } finally {
       setLoading(false);
     }
   };
+
+  const forgotPassword = async (email) => {
+    try {
+      return await authService.forgotPassword(email);
+    } catch (err) {
+      console.error('Error solicitando recuperacion:', err);
+      throw err;
+    }
+  };
+
+  const resetPassword = async (token, newPassword) => {
+    try {
+      return await authService.resetPassword(token, newPassword);
+    } catch (err) {
+      console.error('Error reseteando contrase?a:', err);
+      throw err;
+    }
+  };
+
+  const validateResetToken = async (token) => {
+    try {
+      return await authService.validateResetToken(token);
+    } catch (err) {
+      console.error('Error validando token de recuperacion:', err);
+      throw err;
+    }
+  };
+
 
   const permissionsMap = useMemo(() => {
     if (!user) return {};
@@ -439,6 +489,9 @@ export const AuthProvider = ({ children }) => {
     refreshToken,
     updateProfile,
     changePassword,
+    forgotPassword,
+    resetPassword,
+    validateResetToken,
     hasRole,
     hasAccess,
     hasPermission,
@@ -462,5 +515,6 @@ export const useAuth = () => {
 };
 
 export default AuthContext;
+
 
 

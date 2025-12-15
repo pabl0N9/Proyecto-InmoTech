@@ -1,6 +1,7 @@
 import { apiClient } from './api.config';
 
 const DEFAULT_LIMIT = 100;
+const OWNER_ROLE = 'Propietario';
 
 const cleanText = (value, fallback = '') => {
   if (typeof value !== 'string') {
@@ -89,7 +90,8 @@ const mapCreatePayload = (owner = {}) => {
     correo: cleanText(owner.email || owner.correo, '') || null,
     telefono: cleanText(owner.telefono, '') || null,
     estado: owner.estado === 'Inactivo' ? false : true,
-    tiene_cuenta: owner.tieneCuenta ?? false
+    tiene_cuenta: owner.tieneCuenta ?? false,
+    rol: OWNER_ROLE
   };
 
   Object.keys(payload).forEach((key) => {
@@ -146,7 +148,8 @@ class OwnersApiService {
       const response = await apiClient.get('/personas', {
         pagina: page,
         limite: limit,
-        estado: true
+        estado: true,
+        rol: OWNER_ROLE
       });
 
       const payload = response?.data || {};

@@ -5,11 +5,15 @@ const salesRoutes = require('./sales.route');
 const buyersRoutes = require('./buyers.routes');
 const leasesRoutes = require('./leases.routes');
 const renantsRoutes = require('./renants.route');
+const inmueblesRoutes = require('./inmuebles.routes');
 const setupRoutes = require('./setup.routes');
 const authRoutes = require('./auth.routes');
 const sseRoutes = require('./sse.routes');
 const arriendoRoutes = require('./arriendo.routes');
 const uploadRoutes = require('./upload.routes');
+const personasRoutes = require('./personas.routes');
+const citaRoutes = require('./cita.routes');
+const reportesRoutes = require('./reportes.routes');
 
 router.use('/setup', setupRoutes);
 router.use('/auth', authRoutes);
@@ -19,146 +23,11 @@ router.use('/sales', salesRoutes);
 router.use('/leases/renants', renantsRoutes);
 router.use('/leases', leasesRoutes);
 router.use('/arriendos', arriendoRoutes);
+router.use('/inmuebles', inmueblesRoutes);
 router.use('/files', uploadRoutes);
-
-// ✅ CORRECTO: Importar desde models
-const { 
-  Inmueble, 
-  Persona, 
-  Cita, 
-  Sale, 
-  Lease 
-} = require('../models');
-
-// ❌ INCORRECTO (lo que tenías antes):
-// const Inmueble = require('./Inmueble');
-// const Persona = require('./Persona');
-// const Cita = require('./Cita');
-// const Venta = require('./Venta');
-// const Arriendo = require('./Arriendo');
-
-// Rutas para Inmuebles
-router.get('/inmuebles', async (req, res) => {
-  try {
-    const inmuebles = await Inmueble.findAll();
-    res.json({
-      success: true,
-      data: inmuebles,
-      count: inmuebles.length
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
-});
-
-router.get('/inmuebles/:id', async (req, res) => {
-  try {
-    const inmueble = await Inmueble.findByPk(req.params.id);
-    if (!inmueble) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'Inmueble no encontrado' 
-      });
-    }
-    res.json({
-      success: true,
-      data: inmueble
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
-});
-
-// Rutas para Personas
-router.get('/personas', async (req, res) => {
-  try {
-    const personas = await Persona.findAll();
-    res.json({
-      success: true,
-      data: personas,
-      count: personas.length
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
-});
-
-router.get('/personas/:id', async (req, res) => {
-  try {
-    const persona = await Persona.findByPk(req.params.id);
-    if (!persona) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'Persona no encontrada' 
-      });
-    }
-    res.json({
-      success: true,
-      data: persona
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
-});
-
-// Rutas para Citas
-router.get('/citas', async (req, res) => {
-  try {
-    const citas = await Cita.findAll({
-      include: [
-        { model: Persona, as: 'cliente' },
-        { model: Inmueble, as: 'inmueble' },
-        { model: Persona, as: 'agente' }
-      ]
-    });
-    res.json({
-      success: true,
-      data: citas,
-      count: citas.length
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
-});
-
-// Rutas para Ventas (Sales)
-router.get('/ventas', async (req, res) => {
-  try {
-    const ventas = await Sale.findAll({
-      include: [
-        { model: Inmueble, as: 'inmueble' },
-        { model: Persona, as: 'vendedor' },
-        { model: Persona, as: 'comprador' },
-        { model: Cita, as: 'cita' }
-      ]
-    });
-    res.json({
-      success: true,
-      data: ventas,
-      count: ventas.length
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
-});
+router.use('/personas', personasRoutes);
+router.use('/citas', citaRoutes);
+router.use('/reportes', reportesRoutes);
 
 // Ruta de salud para verificar que el servidor funciona
 router.get('/health', async (req, res) => {

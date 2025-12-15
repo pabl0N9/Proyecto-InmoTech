@@ -21,6 +21,8 @@ const Sale = require('./Sale');
 const Lease = require('./Lease');
 const Arriendo = require('./Arriendo');
 const Invitacion = require('./Invitacion');
+const Comodidad = require('./Comodidad');
+const InmuebleComodidad = require('./InmuebleComodidad');
 
 // =============================================================================
 // ASOCIACIONES PRINCIPALES - PERSONA
@@ -86,6 +88,17 @@ PersonasRol.belongsTo(Rol, {
   as: 'rol'
 });
 
+// Persona - Invitaciones (One-to-Many)
+Invitacion.belongsTo(Persona, {
+  foreignKey: 'id_persona',
+  as: 'persona'
+});
+
+Persona.hasMany(Invitacion, {
+  foreignKey: 'id_persona',
+  as: 'invitaciones'
+});
+
 // =============================================================================
 // ASOCIACIONES DE INMUEBLES
 // =============================================================================
@@ -112,6 +125,23 @@ Persona.hasMany(PropiedadInmueble, {
 });
 
 // =============================================================================
+// ASOCIACIONES INMUEBLE - COMODIDADES (Many-to-Many)
+// =============================================================================
+Inmueble.belongsToMany(Comodidad, {
+  through: InmuebleComodidad,
+  foreignKey: 'id_inmueble',
+  otherKey: 'id_comodidad',
+  as: 'comodidades'
+});
+
+Comodidad.belongsToMany(Inmueble, {
+  through: InmuebleComodidad,
+  foreignKey: 'id_comodidad',
+  otherKey: 'id_inmueble',
+  as: 'inmuebles'
+});
+
+// =============================================================================
 // ASOCIACIONES DE CITAS
 // =============================================================================
 
@@ -135,6 +165,17 @@ Cita.belongsTo(Persona, {
 Persona.hasMany(Cita, {
   foreignKey: 'id_agente_asignado',
   as: 'citasComoAgente'
+});
+
+// Cita - Persona (Creador)
+Cita.belongsTo(Persona, {
+  foreignKey: 'id_usuario_creador',
+  as: 'creador'
+});
+
+Persona.hasMany(Cita, {
+  foreignKey: 'id_usuario_creador',
+  as: 'citasCreadas'
 });
 
 // Cita - Inmueble
@@ -373,5 +414,7 @@ module.exports = {
   Sale,
   Lease,
   Arriendo,
-  Invitacion
+  Invitacion,
+  Comodidad,
+  InmuebleComodidad
 };

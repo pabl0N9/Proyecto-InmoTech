@@ -30,6 +30,25 @@ const cleanText = (value, fallback = '') => {
   return trimmed.length > 0 ? trimmed : fallback;
 };
 
+const normalizeEstadoValue = (value) => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  const truthyValues = ['1', 'true', 'disponible', 'activo'];
+  const falsyValues = ['0', 'false', 'no disponible', 'inactivo'];
+
+  if (truthyValues.includes(normalized)) return true;
+  if (falsyValues.includes(normalized)) return false;
+
+  return undefined;
+};
+
 const normalizeAmenity = (amenity, index = 0) => {
   if (!amenity) return null;
 
@@ -136,7 +155,15 @@ export const mapInmuebleFromApi = (inmueble = {}) => {
 
   const precioVenta = toNumber(inmueble.precio_venta ?? inmueble.precioVenta);
   const precioArriendo = toNumber(inmueble.precio_arriendo ?? inmueble.precioArriendo);
-  const estadoTexto = inmueble.estado === false ? 'No disponible' : 'Disponible';
+  const estadoFrontendRaw =
+    inmueble.estado_frontend ?? inmueble.estadoFrontEnd ?? inmueble.estado ?? inmueble.estado_bool;
+  const estadoBool = normalizeEstadoValue(estadoFrontendRaw);
+  const estadoTexto =
+    typeof estadoFrontendRaw === 'boolean'
+      ? estadoFrontendRaw
+        ? 'Disponible'
+        : 'No disponible'
+      : cleanText(estadoFrontendRaw, 'Disponible');
   const rawAmenities = inmueble.comodidades || inmueble.caracteristicas || [];
   const comodidades = normalizeAmenities(rawAmenities);
   const imagenes = sanitizeImages(inmueble.imagenes || inmueble.metadata?.raw?.imagenes || []);
@@ -165,7 +192,7 @@ export const mapInmuebleFromApi = (inmueble = {}) => {
     categoria: inmueble.categoria || inmueble.tipo || 'Sin categoría',
     operacion,
     estado: estadoTexto,
-    estado_bool: inmueble.estado ?? true,
+    estado_bool: estadoBool ?? true,
     descripcion: inmueble.descripcion,
     precio: precioVenta ?? precioArriendo ?? 0,
     precio_venta: precioVenta,
@@ -176,6 +203,10 @@ export const mapInmuebleFromApi = (inmueble = {}) => {
     comodidades,
     fichasTecnicas: inmueble.fichas_tecnicas || inmueble.fichasTecnicas || [],
     imagenes,
+    area_construida:
+      toNumber(inmueble.area_construida ?? inmueble.areaConstruida ?? inmueble.area) ?? null,
+    area_privada: toNumber(inmueble.area_privada ?? inmueble.areaPrivada) ?? null,
+    estado_frontend: estadoTexto,
     metadata: {
       raw: inmueble
     }
@@ -192,6 +223,15 @@ const normalizePagination = (pagination = {}, fallbackPage = 1, fallbackLimit = 
 const mapInmuebleToApi = (payload = {}) => {
   const isVenta = payload.operacion === 'Venta' || payload.operacion === 'Venta y Arriendo';
   const isArriendo = payload.operacion === 'Arriendo' || payload.operacion === 'Venta y Arriendo';
+  const normalizedEstadoBool = normalizeEstadoValue(
+    payload.estado ?? payload.estado_bool ?? payload.estadoBool ?? payload.estado_frontend
+  );
+  const estadoFrontendTexto =
+    typeof payload.estado === 'string'
+      ? payload.estado
+      : payload.estado_frontend ?? payload.estado_texto ?? payload.estadoTexto;
+  const sanitizedImages =
+    payload.imagenes === undefined ? undefined : sanitizeImages(payload.imagenes || []);
 
   const body = {
     registro_inmobiliario: payload.registro_inmobiliario || payload.registro,
@@ -203,14 +243,15 @@ const mapInmuebleToApi = (payload = {}) => {
     pais: payload.pais || DEFAULT_COUNTRY,
     categoria: payload.categoria || payload.tipo || 'Otro',
     operacion: payload.operacion,
-    estado: typeof payload.estado === 'boolean' ? payload.estado : payload.estado === 'Disponible',
+    estado: normalizedEstadoBool,
+    estado_frontend: estadoFrontendTexto,
     precio_venta: isVenta ? toNumber(payload.precio_venta ?? payload.precioVenta ?? payload.precio) : null,
     precio_arriendo: isArriendo ? toNumber(payload.precio_arriendo ?? payload.precioArriendo ?? payload.precio) : null,
     area_construida: toNumber(payload.area_construida ?? payload.areaConstruida),
     area_privada: toNumber(payload.area_privada ?? payload.areaPrivada),
     descripcion: payload.descripcion ?? payload.descripcion_detallada ?? '',
     comodidades: payload.comodidades || [],
-    imagenes: sanitizeImages(payload.imagenes || [])
+    imagenes: sanitizedImages
   };
 
   if (payload.propietarioId) {
@@ -252,6 +293,31 @@ export const inmueblesAPI = {
       };
     } catch (error) {
       console.error('Error en getInmuebles:', error);
+      throw error;
+    }
+  },
+
+  // Versión pública (landing) - usa /inmuebles/buscar sin auth
+  async getPublicInmuebles(page = 1, limit = DEFAULT_LIMIT, filters = {}) {
+    try {
+      const response = await apiClient.get('/inmuebles/buscar', {
+        pagina: page,
+        limite: limit,
+        ...filters,
+        _t: Date.now()
+      });
+
+      const payload = response?.data || response || {};
+      const items = Array.isArray(payload.inmuebles)
+        ? payload.inmuebles.map(mapInmuebleFromApi)
+        : [];
+
+      return {
+        items,
+        pagination: normalizePagination(payload.paginacion, page, limit)
+      };
+    } catch (error) {
+      console.error('Error en getPublicInmuebles:', error);
       throw error;
     }
   },

@@ -3,11 +3,13 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Users, Building2, AlertCir
 import { useAuth } from "../../../shared/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import authService from "../../../shared/services/authService";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -18,6 +20,23 @@ export default function LoginPage() {
   const location = useLocation();
 
   const from = location.state?.from?.pathname || "/";
+
+  const requestPasswordReset = async (recoveryEmail) => {
+    const normalizedEmail = recoveryEmail.trim().toLowerCase();
+
+    try {
+      const response = await authService.forgotPassword(normalizedEmail);
+
+      if (!response?.success) {
+        throw new Error(response?.message || "No pudimos procesar la solicitud.");
+      }
+
+      return response;
+    } catch (err) {
+      const message = err?.data?.message || err?.message || "No pudimos procesar la solicitud.";
+      throw new Error(message);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -192,7 +211,7 @@ export default function LoginPage() {
                     className="text-sm text-[#00457B] hover:text-[#003b69] font-medium transition-colors"
                   >
                     Olvidaste tu contrasena?
-                  </a>
+                  </button>
                 </div>
                 <div className="relative">
                   <input

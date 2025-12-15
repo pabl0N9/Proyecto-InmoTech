@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import PropertyVisitModal from "../components/PropertyVisitModal"
 import { useToast } from "@/shared/hooks/use-toast"
@@ -37,21 +37,137 @@ import {
   Wifi,
   Eye,
 } from "lucide-react"
+import { inmueblesAPI } from "@/shared/services/propertyApidervice"
 
 export default function PropertyDetailPage() {
   const { id } = useParams()
   const [isFavorite, setIsFavorite] = useState(false)
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [property, setProperty] = useState(null)
   const { toast } = useToast()
   const { addExistingAppointment } = useAppointments()
 
-  // Simulamos obtener los datos de la propiedad basados en el ID
-  const propertyId = parseInt(id)
-  const property = properties.find((p) => p.id === propertyId) || properties[0]
+  const propertyId = useMemo(() => {
+    const parsed = Number(id)
+    return Number.isFinite(parsed) ? parsed : id
+  }, [id])
+
+  useEffect(() => {
+    let mounted = true
+
+    const formatPrice = (value) => {
+      const n = Number(value)
+      if (!Number.isFinite(n)) return "Consultar"
+      return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 })
+    }
+
+    const fetchProperty = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const { items } = await inmueblesAPI.getPublicInmuebles(1, 100, { _t: Date.now() })
+        const match = items.find((p) => String(p.id) === String(propertyId))
+
+        if (match) {
+          if (mounted) setProperty(match)
+          return
+        }
+
+        try {
+          const byId = await inmueblesAPI.getInmuebleById(propertyId)
+          if (mounted) setProperty(byId)
+        } catch (_err) {
+          if (mounted) setError("No encontramos la información de este inmueble")
+        }
+      } catch (err) {
+        console.error("Error cargando inmueble:", err)
+        if (mounted) setError("No se pudo cargar la información del inmueble")
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    fetchProperty()
+    return () => {
+      mounted = false
+    }
+  }, [propertyId])
+
+  const viewModel = useMemo(() => {
+    if (!property) return null
+
+    const comodidades = Array.isArray(property.comodidades) ? property.comodidades : []
+    const findAmenity = (name) => {
+      const item = comodidades.find((c) => (c.nombre || "").toLowerCase() === name.toLowerCase())
+      return item?.cantidad ?? "N/D"
+    }
+
+    const images =
+      Array.isArray(property.imagenes) && property.imagenes.length
+        ? property.imagenes
+        : ["/images/hero-inmuebles.jpg"]
+
+    const mainImage = images[0]
+    const locationParts = [property.barrio, property.ciudad, property.departamento, property.pais].filter(Boolean)
+
+    const formatPrice = (value) => {
+      const n = Number(value)
+      if (!Number.isFinite(n)) return "Consultar"
+      return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 })
+    }
+
+    return {
+      id: property.id,
+      title: property.titulo,
+      location: locationParts.join(", "),
+      price: property.precio_venta || property.precio_arriendo ? formatPrice(property.precio) : "Consultar",
+      pricePerM2: property.area_construida
+        ? `${formatPrice((property.precio || 0) / property.area_construida)} / m2`
+        : null,
+      area: property.area_construida ? `${property.area_construida} m2` : "N/D",
+      bedrooms: findAmenity("habitaciones"),
+      bathrooms: findAmenity("baños") === "N/D" ? findAmenity("banos") : findAmenity("baños"),
+      parking: findAmenity("parqueaderos"),
+      code: property.registro || property.registro_inmobiliario || property.id,
+      type: property.categoria || property.tipo || "Inmueble",
+      operation: property.operacion || "Sin definir",
+      status: property.estado_bool === false ? "No disponible" : "Disponible",
+      description: property.descripcion || "Sin descripción",
+      amenities: comodidades,
+      images,
+      mainImage,
+      owner: property.propietario
+    }
+  }, [property])
 
   const handleScheduleVisit = (nuevaCita) => {
     addExistingAppointment(nuevaCita);
     setIsVisitModalOpen(false);
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Cargando información del inmueble...</p>
+      </main>
+    )
+  }
+
+  if (error || !viewModel) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <p className="text-red-600 font-semibold">No se pudo cargar el inmueble</p>
+          {error && <p className="text-sm text-gray-600">{error}</p>}
+          <Button asChild className="mt-2">
+            <Link to="/inmuebles">Volver al listado</Link>
+          </Button>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -68,7 +184,7 @@ export default function PropertyDetailPage() {
               Inmuebles
             </Link>
             <ChevronRight className="h-4 w-4 mx-1" />
-            <span className="text-gray-900 font-medium">{property.title}</span>
+            <span className="text-gray-900 font-medium">{viewModel.title}</span>
           </div>
         </div>
       </div>
@@ -81,8 +197,8 @@ export default function PropertyDetailPage() {
             <div className="space-y-4">
               <div className="relative h-[400px] rounded-xl overflow-hidden">
                 <img
-                  src={property.mainImage || "/placeholder.svg"}
-                  alt={property.title}
+                  src={viewModel.mainImage || "/placeholder.svg"}
+                  alt={viewModel.title}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute top-4 right-4 flex space-x-2">
@@ -98,17 +214,17 @@ export default function PropertyDetailPage() {
                     <Share2 className="h-5 w-5 text-gray-700" />
                   </Button>
                 </div>
-                <Badge className="absolute top-4 left-4 bg-[#00457B]">{property.status}</Badge>
+                <Badge className="absolute top-4 left-4 bg-[#00457B]">{viewModel.operation}</Badge>
               </div>
 
               <Carousel className="w-full">
                 <CarouselContent>
-                  {property.images.map((image, index) => (
+                  {viewModel.images.map((image, index) => (
                     <CarouselItem key={index} className="basis-1/4 md:basis-1/5">
                       <div className="relative h-24 rounded-lg overflow-hidden cursor-pointer">
                         <img
                           src={image || "/placeholder.svg"}
-                          alt={`${property.title} - Imagen ${index + 1}`}
+                          alt={`${viewModel.title} - Imagen ${index + 1}`}
                           className="w-full h-full object-cover hover:opacity-80 transition-opacity"
                         />
                       </div>
@@ -125,15 +241,15 @@ export default function PropertyDetailPage() {
               <div>
                 <div className="flex justify-between items-start">
                   <div>
-                    <h1 className="text-3xl font-bold text-gray-900">{property.title}</h1>
+                    <h1 className="text-3xl font-bold text-gray-900">{viewModel.title}</h1>
                     <div className="flex items-center mt-2 text-gray-500">
                       <MapPin className="h-5 w-5 mr-1 text-[#00457B]" />
-                      <span>{property.location}</span>
+                      <span>{viewModel.location}</span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-3xl font-bold text-[#00457B]">{property.price}</div>
-                    {property.pricePerM2 && <div className="text-sm text-gray-500">{property.pricePerM2} / m²</div>}
+                    <div className="text-3xl font-bold text-[#00457B]">{viewModel.price}</div>
+                    {viewModel.pricePerM2 && <div className="text-sm text-gray-500">{viewModel.pricePerM2}</div>}
                   </div>
                 </div>
               </div>
@@ -142,22 +258,22 @@ export default function PropertyDetailPage() {
                 <div className="flex flex-col items-center text-center p-3">
                   <Home className="h-6 w-6 text-[#00457B] mb-2" />
                   <span className="text-sm text-gray-500">Área</span>
-                  <span className="font-bold">{property.area}</span>
+                  <span className="font-bold">{viewModel.area}</span>
                 </div>
                 <div className="flex flex-col items-center text-center p-3">
                   <Building2 className="h-6 w-6 text-[#00457B] mb-2" />
                   <span className="text-sm text-gray-500">Habitaciones</span>
-                  <span className="font-bold">{property.bedrooms}</span>
+                  <span className="font-bold">{viewModel.bedrooms}</span>
                 </div>
                 <div className="flex flex-col items-center text-center p-3">
                   <ShowerHead className="h-6 w-6 text-[#00457B] mb-2" />
                   <span className="text-sm text-gray-500">Baños</span>
-                  <span className="font-bold">{property.bathrooms}</span>
+                  <span className="font-bold">{viewModel.bathrooms}</span>
                 </div>
                 <div className="flex flex-col items-center text-center p-3">
                   <Car className="h-6 w-6 text-[#00457B] mb-2" />
                   <span className="text-sm text-gray-500">Estacionamientos</span>
-                  <span className="font-bold">{property.parking}</span>
+                  <span className="font-bold">{viewModel.parking}</span>
                 </div>
               </div>
 
@@ -168,7 +284,7 @@ export default function PropertyDetailPage() {
                   </div>
                   <div>
                     <h3 className="font-medium">Código de la propiedad</h3>
-                    <p className="text-gray-500">{property.code}</p>
+                    <p className="text-gray-500">{viewModel.code}</p>
                   </div>
                 </div>
                 <div className="flex items-center">
@@ -177,7 +293,7 @@ export default function PropertyDetailPage() {
                   </div>
                   <div>
                     <h3 className="font-medium">Tipo de propiedad</h3>
-                    <p className="text-gray-500">{property.type}</p>
+                    <p className="text-gray-500">{viewModel.type}</p>
                   </div>
                 </div>
                 <div className="flex items-center">
@@ -185,8 +301,17 @@ export default function PropertyDetailPage() {
                     <Clock className="h-5 w-5 text-[#00457B]" />
                   </div>
                   <div>
-                    <h3 className="font-medium">Antigüedad</h3>
-                    <p className="text-gray-500">{property.age}</p>
+                    <h3 className="font-medium">Operación</h3>
+                    <p className="text-gray-500">{viewModel.operation}</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-full bg-[#00457B]/10 flex items-center justify-center mr-3">
+                    <CheckCircle className="h-5 w-5 text-[#00457B]" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Estado</h3>
+                    <p className="text-gray-500">{viewModel.status}</p>
                   </div>
                 </div>
               </div>
@@ -210,211 +335,66 @@ export default function PropertyDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Columna principal */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Tabs de información */}
+            {/* Tabs de informaci?n */}
             <Tabs defaultValue="descripcion" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 h-12 rounded-xl bg-white">
+              <TabsList className="grid w-full grid-cols-3 h-12 rounded-xl bg-white">
                 <TabsTrigger value="descripcion" className="rounded-lg">
-                  Descripción
+                  Descripci?n
                 </TabsTrigger>
                 <TabsTrigger value="caracteristicas" className="rounded-lg">
-                  Características
+                  Caracter?sticas
                 </TabsTrigger>
                 <TabsTrigger value="ubicacion" className="rounded-lg">
-                  Ubicación
-                </TabsTrigger>
-                <TabsTrigger value="video" className="rounded-lg">
-                  Video
+                  Ubicaci?n
                 </TabsTrigger>
               </TabsList>
 
-              {/* Descripción */}
               <TabsContent value="descripcion" className="mt-6">
                 <Card>
-                  <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4">Descripción de la propiedad</h2>
-                    <div className="space-y-4 text-gray-700">
-                      <p>{property.description}</p>
-                      <p>
-                        Esta espectacular propiedad se encuentra en una de las zonas más exclusivas y seguras de la
-                        ciudad, con fácil acceso a centros comerciales, colegios, restaurantes y parques.
-                      </p>
-                      <p>
-                        La casa cuenta con acabados de lujo, amplios espacios y excelente iluminación natural. La cocina
-                        está completamente equipada con electrodomésticos de alta gama y la sala principal tiene vista
-                        panorámica a la ciudad.
-                      </p>
-                    </div>
-
-                    <div className="mt-8">
-                      <h3 className="font-bold mb-3">Destacados de la propiedad</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {property.highlights.map((highlight, index) => (
-                          <div key={index} className="flex items-center">
-                            <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
-                            <span>{highlight}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  <CardContent className="p-6 space-y-4 text-gray-700">
+                    <h2 className="text-xl font-bold">Descripci?n de la propiedad</h2>
+                    <p>{viewModel.description}</p>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              {/* Características */}
               <TabsContent value="caracteristicas" className="mt-6">
                 <Card>
                   <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4">Características y amenidades</h2>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div>
-                        <h3 className="font-bold text-[#00457B] mb-3">Interiores</h3>
-                        <div className="space-y-3">
-                          {property.features.interior.map((feature, index) => (
-                            <div key={index} className="flex items-center">
-                              <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
-                              <span>{feature}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="font-bold text-[#00457B] mb-3">Exteriores</h3>
-                        <div className="space-y-3">
-                          {property.features.exterior.map((feature, index) => (
-                            <div key={index} className="flex items-center">
-                              <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
-                              <span>{feature}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-8">
-                      <h3 className="font-bold text-[#00457B] mb-3">Amenidades del edificio/conjunto</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {property.amenities.map((amenity, index) => (
-                          <div key={index} className="flex flex-col items-center bg-gray-50 p-4 rounded-lg text-center">
-                            {getAmenityIcon(amenity.icon)}
-                            <span className="mt-2 text-sm">{amenity.name}</span>
+                    <h2 className="text-xl font-bold mb-4">Comodidades</h2>
+                    {viewModel.amenities?.length ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {viewModel.amenities.map((amenity, index) => (
+                          <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <span className="text-gray-700">
+                              {amenity.nombre} {amenity.cantidad ? `(${amenity.cantidad})` : ""}
+                            </span>
                           </div>
                         ))}
                       </div>
-                    </div>
+                    ) : (
+                      <p className="text-gray-600">Sin comodidades registradas.</p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              {/* Ubicación */}
               <TabsContent value="ubicacion" className="mt-6">
                 <Card>
-                  <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4">Ubicación</h2>
-
-                    <div className="relative h-[400px] rounded-xl overflow-hidden mb-6">
-                      <img src="/property-map.png" alt="Mapa de ubicación" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Button className="bg-[#00457B] hover:bg-[#003b69]">
-                          <ExternalLink className="h-5 w-5 mr-2" /> Ver en Google Maps
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <h3 className="font-bold">Puntos de interés cercanos</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {property.pointsOfInterest.map((poi, index) => (
-                          <div key={index} className="flex items-center">
-                            <div className="h-8 w-8 rounded-full bg-[#00457B]/10 flex items-center justify-center mr-3 flex-shrink-0">
-                              {getPoiIcon(poi.type)}
-                            </div>
-                            <div>
-                              <p className="font-medium">{poi.name}</p>
-                              <p className="text-sm text-gray-500">{poi.distance}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Video */}
-              <TabsContent value="video" className="mt-6">
-                <Card>
-                  <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4">Video y tour virtual</h2>
-
-                    <div className="relative aspect-video rounded-xl overflow-hidden mb-6">
-                      <img
-                        src="/property-video-thumbnail.png"
-                        alt="Video de la propiedad"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="h-16 w-16 rounded-full bg-[#00457B] flex items-center justify-center cursor-pointer hover:bg-[#003b69] transition-colors">
-                          <div className="h-0 w-0 border-t-[10px] border-t-transparent border-l-[18px] border-l-white border-b-[10px] border-b-transparent ml-1"></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-center">
-                      <Button className="bg-[#00457B] hover:bg-[#003b69]">
-                        <Maximize2 className="h-5 w-5 mr-2" /> Ver tour virtual 360°
-                      </Button>
-                    </div>
+                  <CardContent className="p-6 space-y-2 text-gray-700">
+                    <h2 className="text-xl font-bold mb-2">Ubicaci?n</h2>
+                    <p><span className="font-medium">Direcci?n:</span> {property.direccion || "N/D"}</p>
+                    <p><span className="font-medium">Barrio:</span> {property.barrio || "N/D"}</p>
+                    <p><span className="font-medium">Ciudad:</span> {property.ciudad || "N/D"}</p>
+                    <p><span className="font-medium">Departamento:</span> {property.departamento || "N/D"}</p>
+                    <p><span className="font-medium">Pa?s:</span> {property.pais || "N/D"}</p>
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
 
-            {/* Propiedades similares */}
-            <div>
-              <h2 className="text-xl font-bold mb-4">Propiedades similares</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {similarProperties.map((property, index) => (
-                  <Card
-                    key={index}
-                    className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all duration-300"
-                  >
-                    <div className="relative h-48">
-                      <img
-                        src={property.image || "/placeholder.svg"}
-                        alt={property.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <Badge className="absolute top-2 right-2 bg-[#00457B]">{property.status}</Badge>
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-bold text-lg mb-1">{property.title}</h3>
-                      <div className="flex items-center text-gray-500 text-sm mb-2">
-                        <MapPin className="h-4 w-4 mr-1" /> {property.location}
-                      </div>
-                      <div className="flex justify-between text-sm mb-4">
-                        <div className="flex items-center">
-                          <Home className="h-4 w-4 mr-1 text-[#00457B]" /> {property.area}
-                        </div>
-                        <div className="flex items-center">
-                          <Building2 className="h-4 w-4 mr-1 text-[#00457B]" /> {property.bedrooms} Hab.
-                        </div>
-                        <div className="flex items-center">
-                          <ShowerHead className="h-4 w-4 mr-1 text-[#00457B]" /> {property.bathrooms} Baños
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <p className="font-bold text-lg text-[#00457B]">{property.price}</p>
-                        <Button variant="outline" size="sm" className="text-xs">
-                          Ver detalles
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
+            {/* Propiedades similares - pendiente de implementar con datos reales */}
           </div>
 
           {/* Columna lateral */}
@@ -462,7 +442,7 @@ export default function PropertyDetailPage() {
             </Card>
 
             {/* Estadísticas */}
-            
+            {/* Contenido lateral adicional pendiente */}
           </div>
         </div>
       </section>
@@ -513,102 +493,3 @@ function getPoiIcon(poiType) {
       return <MapPin className="h-4 w-4 text-[#00457B]" />
   }
 }
-
-// Datos de ejemplo
-const properties = [
-  {
-    id: 1,
-    title: "Casa Moderna en El Poblado",
-    price: "$850,000",
-    pricePerM2: "$3,035",
-    location: "El Poblado, Medellín",
-    area: "280 m²",
-    bedrooms: 4,
-    bathrooms: 3,
-    parking: 2,
-    status: "Venta",
-    type: "Casa",
-    code: "PROP-1234",
-    age: "5 años",
-    mainImage: "/property-1.jpg",
-    images: [
-      "/property-1.jpg",
-      "/property-2.jpg",
-      "/property-3.jpg",
-      "/property-4.jpg",
-      "/property-5.jpg",
-      "/property-6.jpg",
-    ],
-    description:
-      "Espectacular casa moderna ubicada en el exclusivo sector de El Poblado, con acabados de lujo y amplios espacios. Perfecta para familias que buscan comodidad y elegancia en una de las mejores zonas de la ciudad.",
-    highlights: [
-      "Diseño arquitectónico moderno",
-      "Amplios espacios con excelente iluminación natural",
-      "Zona social integrada con vista panorámica",
-      "Cocina tipo isla completamente equipada",
-      "Habitación principal con vestier y baño privado",
-      "Terraza con jacuzzi y zona BBQ",
-    ],
-    features: {
-      interior: [
-        "Cocina integral con electrodomésticos de alta gama",
-        "Pisos en porcelanato importado",
-        "Ventanales de piso a techo",
-        "Sistema de domótica",
-        "Calentador de agua a gas",
-        "Vestier en habitación principal",
-        "Estudio/biblioteca",
-        "Sala de entretenimiento",
-      ],
-      exterior: [
-        "Terraza con vista panorámica",
-        "Jardín privado",
-        "Zona BBQ",
-        "Jacuzzi exterior",
-        "Parqueadero para 2 vehículos",
-        "Depósito",
-      ],
-    },
-    amenities: [
-      { name: "Piscina", icon: "pool" },
-      { name: "Gimnasio", icon: "gym" },
-      { name: "Jardines", icon: "garden" },
-      { name: "Wi-Fi", icon: "wifi" },
-      { name: "Seguridad 24/7", icon: "security" },
-      { name: "Salón social", icon: "social" },
-      { name: "Parque infantil", icon: "playground" },
-      { name: "Zona de mascotas", icon: "pets" },
-    ],
-    pointsOfInterest: [
-      { name: "Colegio Internacional", type: "school", distance: "0.5 km" },
-      { name: "Centro Comercial El Tesoro", type: "mall", distance: "1.2 km" },
-      { name: "Parque Lleras", type: "park", distance: "1.5 km" },
-      { name: "Clínica Las Américas", type: "hospital", distance: "2.3 km" },
-      { name: "Restaurante La Provincia", type: "restaurant", distance: "0.8 km" },
-      { name: "Estación Metro Poblado", type: "transport", distance: "1.7 km" },
-    ],
-  },
-]
-
-const similarProperties = [
-  {
-    title: "Apartamento de Lujo",
-    price: "$450,000",
-    location: "Laureles, Medellín",
-    area: "150 m²",
-    bedrooms: 3,
-    bathrooms: 2,
-    image: "/property-2.jpg",
-    status: "Venta",
-  },
-  {
-    title: "Penthouse con Vista Panorámica",
-    price: "$1,200,000",
-    location: "Envigado, Antioquia",
-    area: "320 m²",
-    bedrooms: 4,
-    bathrooms: 4,
-    image: "/property-3.jpg",
-    status: "Venta",
-  },
-]

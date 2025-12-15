@@ -39,10 +39,30 @@ const FIELD_LABELS = {
   pais: 'País',
   tipo: 'Tipo',
   operacion: 'Operación',
+  estado: 'Estado',
   precio_venta: 'Precio de venta',
   precio_arriendo: 'Canon de arriendo',
   descripcion: 'Descripción'
 };
+
+const captureSnapshot = (data = {}) => ({
+  titulo: data.titulo,
+  direccion: data.direccion,
+  ciudad: data.ciudad,
+  departamento: data.departamento,
+  pais: data.pais,
+  tipo: data.tipo || data.categoria,
+  operacion: data.operacion,
+  estado: data.estado,
+  precio_venta: data.precio_venta,
+  precio_arriendo: data.precio_arriendo,
+  descripcion: data.descripcion,
+  comodidades: Array.isArray(data.comodidades) ? JSON.parse(JSON.stringify(data.comodidades)) : [],
+  imagenes: Array.isArray(data.imagenes) ? [...data.imagenes] : [],
+  propietario: data.propietario ? JSON.parse(JSON.stringify(data.propietario)) : null,
+  registro: data.registro,
+  area_construida: data.area_construida
+});
 
 const mergeInmuebleData = (apiData = {}, clientData = {}, previous = {}) => ({
   ...previous,
@@ -51,6 +71,7 @@ const mergeInmuebleData = (apiData = {}, clientData = {}, previous = {}) => ({
   tipo: clientData.tipo ?? apiData.tipo ?? previous.tipo,
   categoria: clientData.categoria ?? apiData.categoria ?? previous.categoria,
   operacion: clientData.operacion ?? apiData.operacion ?? previous.operacion,
+  estado: clientData.estado ?? apiData.estado ?? previous.estado,
   descripcion: clientData.descripcion ?? apiData.descripcion ?? previous.descripcion,
   barrio: clientData.barrio ?? apiData.barrio ?? previous.barrio,
   pais: clientData.pais ?? apiData.pais ?? previous.pais,
@@ -98,7 +119,8 @@ const buildFichaTecnica = (previous = {}, next = {}, motivo = 'Actualización ge
     id: `ficha-${Date.now()}`,
     version,
     fecha: new Date().toLocaleDateString('es-CO'),
-    cambios: cambios.length ? cambios.join(' | ') : motivo
+    cambios: cambios.length ? cambios.join(' | ') : motivo,
+    snapshot: captureSnapshot(next)
   };
 };
 
@@ -123,7 +145,7 @@ export const useProperty = () => {
         if (Array.isArray(localHistory) && localHistory.length) {
           return {
             ...item,
-            fichasTecnicas: [...localHistory, ...(item.fichasTecnicas || [])]
+            fichasTecnicas: [...localHistory.map((f) => ({ ...f })), ...(item.fichasTecnicas || [])]
           };
         }
         return item;
@@ -172,10 +194,15 @@ export const useProperty = () => {
   const actualizarInmueble = async (id, inmuebleData) => {
     try {
       const previo = inmuebles.find((item) => item.id === id) || {};
+      const prevFichasClon = (previo.fichasTecnicas || []).map((ficha) => ({
+        ...ficha,
+        snapshot: ficha.snapshot ? JSON.parse(JSON.stringify(ficha.snapshot)) : undefined
+      }));
+
       const inmuebleActualizado = await inmueblesAPI.updateInmueble(id, inmuebleData);
-      const enriched = mergeInmuebleData(inmuebleActualizado, inmuebleData, previo);
+      const enriched = mergeInmuebleData(inmuebleActualizado, inmuebleData, { ...previo, fichasTecnicas: prevFichasClon });
       const nuevaFicha = buildFichaTecnica(previo, enriched);
-      enriched.fichasTecnicas = [nuevaFicha, ...(previo.fichasTecnicas || [])];
+      enriched.fichasTecnicas = [nuevaFicha, ...prevFichasClon];
 
       setInmuebles((prev) =>
         prev.map((inmueble) => (inmueble.id === id ? enriched : inmueble))

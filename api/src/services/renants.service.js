@@ -220,17 +220,27 @@ class RenantService {
   }
 
   async getAllRenants(filters = {}) {
-    const renantWhere = {};
-    if (filters.status) renantWhere.estado = filters.status;
-    if (filters.tipo_arrendatario) renantWhere.tipo_arrendatario = filters.tipo_arrendatario;
+    try {
+      const renantWhere = {};
+      if (filters.status) renantWhere.estado = filters.status;
+      if (filters.tipo_arrendatario) renantWhere.tipo_arrendatario = filters.tipo_arrendatario;
 
-    const renants = await Renant.findAll({
-      where: Object.keys(renantWhere).length ? renantWhere : undefined,
-      attributes: RENANT_ATTRS,
-      include: [{ association: 'persona', attributes: PERSONA_ATTRS }]
-    });
+      const renants = await Renant.findAll({
+        where: Object.keys(renantWhere).length ? renantWhere : undefined,
+        attributes: RENANT_ATTRS,
+        include: [{ association: 'persona', attributes: PERSONA_ATTRS }]
+      });
 
-    return renants.map((r) => this.normalizeRenant(r));
+      return renants.map((r) => this.normalizeRenant(r));
+    } catch (error) {
+      const msg = error.original?.message || error.message || 'Error obteniendo arrendatarios';
+      logger.error(`? Error en getAllRenants: ${msg}`);
+      if (msg.includes('Invalid object name') || msg.includes('does not exist')) {
+        logger.warn('Tabla de Arrendatarios no encontrada. Devolviendo lista vac?a.');
+        return [];
+      }
+      throw error;
+    }
   }
 
   async updateRenant(id, updateData) {

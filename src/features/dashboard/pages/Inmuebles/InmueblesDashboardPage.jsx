@@ -82,6 +82,14 @@ const InmuebleDashboardPage = () => {
     setInmuebleEditar(null);
   };
 
+  const handleEstadoChange = async (inmueble, nuevoEstado) => {
+    try {
+      await actualizarInmueble(inmueble.id, { ...inmueble, estado: nuevoEstado });
+    } catch (err) {
+      console.error('Error actualizando estado del inmueble:', err);
+    }
+  };
+
   // Filtrado y paginación
   const filteredProperties = inmuebles.filter(property => {
     const matchesSearch = 
@@ -115,15 +123,15 @@ const InmuebleDashboardPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+    <div className="max-w-7xl mx-auto px-2 space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-100 rounded-xl">
+          <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 shadow-sm">
             <Building2 className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Gestión de Inmuebles</h1>
-            <p className="text-sm text-gray-600">Administra los inmuebles registrados para venta o alquiler</p>
+            <h1 className="text-2xl font-bold text-slate-800">Gestión de Inmuebles</h1>
+            <p className="text-sm text-slate-600">Administra los inmuebles registrados para venta o alquiler</p>
           </div>
         </div>
         <button
@@ -131,7 +139,7 @@ const InmuebleDashboardPage = () => {
             setInmuebleEditar(null);
             setIsModalOpen(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-5 py-3 rounded-xl font-medium text-white shadow-lg shadow-blue-600/25 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all"
         >
           <Plus className="w-4 h-4" />
           Agregar inmueble
@@ -146,10 +154,10 @@ const InmuebleDashboardPage = () => {
       />
 
       <div className="flex items-center justify-between mb-3 text-sm">
-        <p className="text-gray-600">
+        <p className="text-slate-600">
           <span className="font-semibold text-blue-600">{filteredProperties.length}</span> resultados
           {filteredProperties.length > 0 && (
-            <span className="ml-1 text-gray-400">
+            <span className="ml-1 text-slate-400">
               (Mostrando {startIndex + 1}-{Math.min(endIndex, filteredProperties.length)})
             </span>
           )}
@@ -161,6 +169,7 @@ const InmuebleDashboardPage = () => {
         onView={handleVerDetalle}
         onEdit={handleEditar}
         onDocument={handleVerFichas}
+        onStatusChange={handleEstadoChange}
       />
 
       {totalPages > 1 && (
@@ -206,3 +215,5 @@ const InmuebleDashboardPage = () => {
 };
 
 export default InmuebleDashboardPage;
+
+

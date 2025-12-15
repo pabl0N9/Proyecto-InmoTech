@@ -44,8 +44,7 @@ class UsersApiService {
    */
   async getUsers(params = {}) {
     try {
-      const responseParams = { ...params };
-      delete responseParams.estado;
+      const responseParams = { ...params, rol: 'Usuario' };
 
       const response = await apiClient.get('/personas', { params: responseParams });
 

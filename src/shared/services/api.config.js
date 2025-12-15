@@ -40,10 +40,10 @@ class ApiClient {
     const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
 
     const config = {
-      ...restOptions,
+      ...options,
       headers: {
         ...API_CONFIG.HEADERS,
-        ...restOptions.headers,
+        ...(options.headers || {}),
       },
       credentials: 'include',
       signal: controller.signal,

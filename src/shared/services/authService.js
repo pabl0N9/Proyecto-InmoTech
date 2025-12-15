@@ -103,6 +103,10 @@ class AuthService {
       const response = await apiClient.get('/auth/me');
       return response;
     } catch (error) {
+      // Si no hay token/sesión, devolvemos un resultado neutro sin ruido en consola
+      if (error.status === 401 || error.status === 403) {
+        return { success: false, data: null, message: 'No authenticated' };
+      }
       console.error('Error obteniendo perfil:', error.message);
       throw error;
     }
@@ -200,6 +204,15 @@ class AuthService {
       return response;
     } catch (error) {
       console.error('Error reseteando contraseña:', error.message);
+      throw error;
+    }
+  }
+
+  async validateResetToken(token) {
+    try {
+      return await apiClient.get('/auth/reset-password', { token });
+    } catch (error) {
+      console.error('Error validando token de recuperacion:', error.message);
       throw error;
     }
   }

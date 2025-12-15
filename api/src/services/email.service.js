@@ -77,6 +77,24 @@ class EmailService {
     }
   }
 
+  async enviarEmailResetPassword(data) {
+    try {
+      const { email, nombre_completo, resetLink, expira_en } = data;
+      const mailOptions = {
+        from: `"Matriz Inmobiliaria" <${process.env.EMAIL_FROM}>`,
+        to: email,
+        subject: 'Restablece tu contraseña en Matriz Inmobiliaria',
+        html: this.generarTemplateResetPassword(nombre_completo, resetLink, expira_en)
+      };
+      const info = await this.transporter.sendMail(mailOptions);
+      logger.info(`Email de reset password enviado a: ${email}`, { messageId: info.messageId });
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      logger.error('Error enviando email de reset password:', error);
+      throw error;
+    }
+  }
+
   generarTemplateBienvenida(nombreCompleto = "") {
     const primerNombre = nombreCompleto.trim().split(" ")[0] || "Hola";
     const logoUrl = process.env.EMAIL_LOGO_URL || "https://matrizinmobiliaria.com/images/logo-matriz-sin-fondo.png";
@@ -291,6 +309,58 @@ class EmailService {
               <p style="margin-top:18px;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
               <p style="word-break:break-all; color:#0f2b46;">${activationLink}</p>
               <p style="font-size:13px; color:#6b7280;">Si no solicitaste esta invitación, puedes ignorar este correo.</p>
+            </div>
+            <div class="footer">
+              <div>¿Necesitas ayuda? Escríbenos a <a href="mailto:hola@matrizinmobiliaria.com">hola@matrizinmobiliaria.com</a></div>
+              <div style="margin-top:8px;">&copy; 2025 Matriz Inmobiliaria. Todos los derechos reservados.</div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  generarTemplateResetPassword(nombreCompleto = "", resetLink, expiraEn) {
+    const primerNombre = nombreCompleto.trim().split(" ")[0] || "Hola";
+    const logoUrl = process.env.EMAIL_LOGO_URL || "https://matrizinmobiliaria.com/images/logo-matriz-sin-fondo.png";
+    const expiraTexto = expiraEn ? new Date(expiraEn).toLocaleString() : '';
+
+    return `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Restablecer contraseña</title>
+        <style>
+          body { margin:0; padding:0; background:#f5f7fb; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; color:#1f2d3d; }
+          .wrapper { width:100%; padding:24px 0; }
+          .container { max-width:640px; margin:0 auto; background:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 18px 46px rgba(15,43,70,0.12); }
+          .header { padding:28px; background:linear-gradient(135deg,#0f2b46,#1b5f8c); color:#fff; }
+          .logo { width:180px; max-width:70%; }
+          .content { padding:32px 28px 36px; }
+          h1 { margin:0 0 14px; font-size:24px; color:#0f2b46; }
+          p { margin:0 0 14px; line-height:1.6; color:#4a5566; }
+          .cta { display:inline-block; padding:14px 28px; background:linear-gradient(135deg,#f4b223,#f7c85c); color:#0f2b46; font-weight:800; text-decoration:none; border-radius:12px; box-shadow:0 12px 28px rgba(244,178,35,0.35); margin:18px 0; }
+          .footer { background:#0f2034; color:#c9d5e5; text-align:center; padding:18px; font-size:13px; }
+          .footer a { color:#c9d5e5; text-decoration:none; }
+        </style>
+      </head>
+      <body>
+        <div class="wrapper">
+          <div class="container">
+            <div class="header">
+              <img class="logo" src="${logoUrl}" alt="Matriz Inmobiliaria" />
+              <p style="margin:12px 0 0; opacity:0.9;">Restablece tu contraseña de forma segura</p>
+            </div>
+            <div class="content">
+              <h1>Hola ${primerNombre},</h1>
+              <p>Recibimos una solicitud para restablecer tu contraseña. Pulsa el botón para definir una nueva.</p>
+              <p>El enlace vence el <strong>${expiraTexto}</strong>. Si tú no solicitaste esto, puedes ignorar este mensaje.</p>
+              <a class="cta" href="${resetLink}">Restablecer contraseña</a>
+              <p style="margin-top:18px;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+              <p style="word-break:break-all; color:#0f2b46;">${resetLink}</p>
             </div>
             <div class="footer">
               <div>¿Necesitas ayuda? Escríbenos a <a href="mailto:hola@matrizinmobiliaria.com">hola@matrizinmobiliaria.com</a></div>

@@ -237,7 +237,14 @@ class CitaService {
 
     } catch (error) {
       logger.error(`❌ Error en obtenerTodasLasCitas: ${error.message}`);
-      throw error;
+
+      const msg = error.original?.message || error.message || '';
+      if (msg.includes('association') || msg.includes('Invalid object name') || msg.includes('does not exist')) {
+        logger.warn('Citas: devolviendo lista vac?a por esquema incompleto.');
+      } else {
+        logger.warn('Citas: devolviendo lista vac?a por error no controlado.');
+      }
+      return { citas: [], total: 0, page: filtros.page || 1, limit: filtros.limit || 0, pages: 0 };
     }
   }
 

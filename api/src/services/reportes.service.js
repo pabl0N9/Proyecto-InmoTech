@@ -38,13 +38,20 @@ class ReportesService {
       return {};
     }
 
-    const [rows] = await sequelize.query(`
-      SELECT DISTINCT pe.modulo, pe.permiso
-      FROM Personas_rol pr
-      INNER JOIN Roles r ON r.id_rol = pr.id_rol AND r.estado = 1
-      INNER JOIN Permisos pe ON pe.id_rol = r.id_rol AND pe.estado = 1
-      WHERE pr.id_persona = :userId AND pr.estado = 1
-    `, { replacements: { userId } });
+    let rows = [];
+    try {
+      [rows] = await sequelize.query(`
+        SELECT DISTINCT pe.modulo, pe.permiso
+        FROM Personas_rol pr
+        INNER JOIN Roles r ON r.id_rol = pr.id_rol AND r.estado = 1
+        INNER JOIN Permisos pe ON pe.id_rol = r.id_rol AND pe.estado = 1
+        WHERE pr.id_persona = :userId AND pr.estado = 1
+      `, { replacements: { userId } });
+    } catch (err) {
+      // Si la tabla Permisos no existe en esta base, continuamos sin permisos
+      logger.warn('fetchUserPermissions: tabla Permisos no disponible, se continua sin permisos');
+      rows = [];
+    }
 
     const permissionsMap = rows.reduce((acc, row) => {
       if (!row || !row.modulo || !row.permiso) {

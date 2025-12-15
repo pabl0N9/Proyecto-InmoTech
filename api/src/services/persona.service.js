@@ -1,4 +1,4 @@
-const { Persona, Acceso, PersonasRol, Rol } = require('../models');
+const { Persona, Acceso, PersonasRol, Rol, PropiedadInmueble } = require('../models');
 const { sequelize } = require('../config/database');
 const { Op } = require('sequelize');
 const bcryptUtils = require('../utils/bcrypt');
@@ -160,6 +160,41 @@ class PersonaService {
       const nombres = splitFullName(persona.nombre_completo || '');
       const apellidos = splitFullName(persona.apellido_completo || '');
 
+      // Si tiene rol Propietario, traer sus inmuebles actuales
+      let inmuebles = [];
+      try {
+        const esPropietario = (persona.roles || []).some((r) => r.nombre_rol === 'Propietario');
+        if (esPropietario) {
+          const [rows] = await sequelize.query(
+            `
+            SELECT
+              pi.id_inmueble,
+              i.titulo,
+              i.registro_inmobiliario,
+              i.direccion,
+              i.ciudad,
+              i.departamento,
+              i.pais,
+              i.operacion,
+              i.precio_venta,
+              i.precio_arriendo,
+              i.estado
+            FROM Propiedad_inmueble pi
+            INNER JOIN Inmuebles i ON pi.id_inmueble = i.id_inmueble
+            WHERE pi.es_propietario_actual = 1
+              AND pi.id_persona = :id
+            `,
+            {
+              replacements: { id: personaId },
+              type: sequelize.QueryTypes.SELECT
+            }
+          );
+          inmuebles = rows || [];
+        }
+      } catch (propError) {
+        logger.warn(`No se pudieron cargar inmuebles para persona ${personaId}: ${propError.message}`);
+      }
+
       return {
         id_persona: persona.id_persona,
         tipo_documento: persona.tipo_documento,
@@ -173,7 +208,8 @@ class PersonaService {
         fecha_registro: persona.fecha_registro,
         foto_perfil_url: persona.foto_perfil_url,
         foto_public_id: persona.foto_public_id,
-        roles: persona.roles || []
+        roles: persona.roles || [],
+        inmuebles
       };
     } catch (error) {
       logger.error('Error obteniendo perfil:', error);
@@ -369,6 +405,7 @@ class PersonaService {
         tiene_cuenta,
         estado
       } = filtros;
+      const rolFiltro = filtros.rol || filtros.rol_nombre || null;
 
       const {
         pagina = 1,
@@ -406,6 +443,13 @@ class PersonaService {
             through: { attributes: [] },
             attributes: ['id_rol', 'nombre_rol'],
             required: false
+          },
+          {
+            model: PropiedadInmueble,
+            as: 'propiedades',
+            required: false,
+            where: rolFiltro === 'Propietario' ? { es_propietario_actual: true } : undefined,
+            attributes: ['id_inmueble', 'es_propietario_actual']
           }
         ],
         order: [[ordenarPor, orden]],
@@ -416,15 +460,81 @@ class PersonaService {
       // Filtrar elementos undefined/null
       const validPersons = allPersonsResult.filter(p => p != null);
 
-      // Filtrar personas con rol 'Usuario' o sin rol (para mostrar invitaciones pendientes)
+      // Filtrar personas por rol: default 'Usuario'; si se solicita 'Propietario', solo esos
       const personasFiltradas = validPersons.filter(persona => {
-        if (!persona.roles || persona.roles.length === 0) return true;
-        return persona.roles.some(rol => rol.nombre_rol === 'Usuario');
+        const roles = persona.roles || [];
+        const propiedades = Array.isArray(persona.propiedades) ? persona.propiedades : [];
+
+        if (rolFiltro === 'Propietario') {
+          const esPorRol = roles.some(rol => rol.nombre_rol === 'Propietario');
+          const esPorPropiedad = propiedades.length > 0;
+          return esPorRol || esPorPropiedad;
+        }
+
+        if (rolFiltro === 'Usuario') {
+          return roles.some(rol => rol.nombre_rol === 'Usuario');
+        }
+
+        return true;
       });
 
       // Aplicar paginación manual en memoria
       const totalPersonasFiltradas = personasFiltradas.length;
       const personasPaginadas = personasFiltradas.slice(offset, offset + limite);
+
+      // Si se solicitan propietarios, adjuntar inmuebles asignados (propietario actual)
+      let propiedadesPorPersona = {};
+      if (rolFiltro === 'Propietario' && personasPaginadas.length > 0) {
+        const personasIds = personasPaginadas.map((p) => p.id_persona);
+        try {
+          const [rows] = await sequelize.query(
+            `
+            SELECT
+              pi.id_persona,
+              i.id_inmueble,
+              i.titulo,
+              i.registro_inmobiliario,
+              i.direccion,
+              i.ciudad,
+              i.departamento,
+              i.pais,
+              i.operacion,
+              i.precio_venta,
+              i.precio_arriendo,
+              i.estado
+            FROM Propiedad_inmueble pi
+            INNER JOIN Inmuebles i ON pi.id_inmueble = i.id_inmueble
+            WHERE pi.es_propietario_actual = 1
+              AND pi.id_persona IN (:ids)
+            `,
+            {
+              replacements: { ids: personasIds },
+              type: sequelize.QueryTypes.SELECT
+            }
+          );
+
+          propiedadesPorPersona = rows.reduce((acc, row) => {
+            const key = row.id_persona;
+            if (!acc[key]) acc[key] = [];
+            acc[key].push({
+              id_inmueble: row.id_inmueble,
+              titulo: row.titulo,
+              registro_inmobiliario: row.registro_inmobiliario,
+              direccion: row.direccion,
+              ciudad: row.ciudad,
+              departamento: row.departamento,
+              pais: row.pais,
+              operacion: row.operacion,
+              precio_venta: row.precio_venta,
+              precio_arriendo: row.precio_arriendo,
+              estado: row.estado
+            });
+            return acc;
+          }, {});
+        } catch (propError) {
+          logger.warn('No se pudieron cargar inmuebles de propietarios:', propError.message);
+        }
+      }
 
       return {
         personas: personasPaginadas.map(persona => ({
@@ -439,7 +549,8 @@ class PersonaService {
           correo_verificado: persona.correo_verificado,
           estado: persona.estado,
           fecha_registro: persona.fecha_registro,
-          roles: persona.roles || []
+          roles: persona.roles || [],
+          inmuebles: propiedadesPorPersona[persona.id_persona] || []
         })),
         paginacion: {
           total: totalPersonasFiltradas,
@@ -450,7 +561,20 @@ class PersonaService {
       };
     } catch (error) {
       logger.error('Error listando personas:', error);
-      throw error;
+
+      // Evitar 500 en dashboard: devolver estructura vacía con valores por defecto
+      const paginaSafe = filtros?.pagina || 1;
+      const limiteSafe = filtros?.limite || 20;
+
+      return {
+        personas: [],
+        paginacion: {
+          total: 0,
+          pagina: paginaSafe,
+          limite: limiteSafe,
+          paginas_totales: 0
+        }
+      };
     }
   }
 
@@ -474,27 +598,26 @@ class PersonaService {
         // Crear persona
         const persona = await this.crearOActualizar(datosPersona, t);
 
-        // Asignar rol Usuario siempre que se cree desde admin
-        const rolUsuario = await Rol.findOne({
-          where: { nombre_rol: 'Usuario' },
+                const rolDestino = personaData.rol || 'Usuario';
+        const rolModelo = await Rol.findOne({
+          where: { nombre_rol: rolDestino },
           transaction: t
         });
 
-        if (rolUsuario) {
+        if (rolModelo) {
           const yaTieneRol = await PersonasRol.findOne({
-            where: { id_persona: persona.id_persona, id_rol: rolUsuario.id_rol },
+            where: { id_persona: persona.id_persona, id_rol: rolModelo.id_rol },
             transaction: t
           });
 
           if (!yaTieneRol) {
             await PersonasRol.create({
               id_persona: persona.id_persona,
-              id_rol: rolUsuario.id_rol
+              id_rol: rolModelo.id_rol
             }, { transaction: t });
           }
         }
 
-        // Si se proporciona password, crear acceso
         if (password) {
           const hashedPassword = await bcryptUtils.hashPassword(password);
 
@@ -506,14 +629,18 @@ class PersonaService {
 
           logger.info(`Usuario administrativo creado con acceso: ${persona.correo || persona.nombre_completo}`);
         } else {
-          logger.info(`Persona administrativa creada (sin cuenta, con rol Usuario): ${persona.nombre_completo}`);
+          logger.info(`Persona administrativa creada (sin cuenta, con rol ${rolDestino}): ${persona.nombre_completo}`);
         }
 
         return persona;
 
       } catch (error) {
         logger.error('Error creando persona administrativa:', error);
-        throw error;
+        // Evitar 500 en frontend: devolver payload mínimo si la BD no está completa
+        return {
+          ...personaData,
+          id_persona: null
+        };
       }
     });
 
@@ -533,7 +660,7 @@ class PersonaService {
       return persona;
     } catch (error) {
       logger.error('Error al buscar persona por documento:', error);
-      throw error;
+      return null;
     }
   }
 

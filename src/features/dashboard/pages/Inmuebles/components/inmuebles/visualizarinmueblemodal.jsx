@@ -3,6 +3,22 @@ import { Eye } from 'lucide-react';
 import { ModalContainer } from '../common/modalContainer';
 import { getEstadoColor, getEstadoDotColor } from '../../utils/helpers';
 
+const getOwnerField = (owner = {}, type) => {
+  const name =
+    owner.nombreCompleto ||
+    [owner.nombres, owner.apellidos].filter(Boolean).join(' ').trim() ||
+    owner.nombre ||
+    owner.nombre_completo;
+
+  const email = owner.email || owner.correo;
+  const phone = owner.telefono || owner.celular;
+
+  if (type === 'name') return name || 'Sin asignar';
+  if (type === 'email') return email || 'Sin correo';
+  if (type === 'phone') return phone || 'Sin teléfono';
+  return '';
+};
+
 export const VisualizarInmuebleModal = ({ isOpen, onClose, inmueble }) => {
   const footer = (
     <button
@@ -92,15 +108,21 @@ export const VisualizarInmuebleModal = ({ isOpen, onClose, inmueble }) => {
             <div className="bg-slate-50 rounded-lg p-4 space-y-3 border border-slate-200">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Nombre</label>
-                <p className="text-base text-gray-900 font-medium">{inmueble.propietario?.nombre}</p>
+                <p className="text-base text-gray-900 font-medium">
+                  {getOwnerField(inmueble.propietario, 'name')}
+                </p>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Email</label>
-                <p className="text-base text-gray-900 font-medium">{inmueble.propietario?.email}</p>
+                <p className="text-base text-gray-900 font-medium">
+                  {getOwnerField(inmueble.propietario, 'email')}
+                </p>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Teléfono</label>
-                <p className="text-base text-gray-900 font-medium">{inmueble.propietario?.telefono}</p>
+                <p className="text-base text-gray-900 font-medium">
+                  {getOwnerField(inmueble.propietario, 'phone')}
+                </p>
               </div>
             </div>
           </div>
