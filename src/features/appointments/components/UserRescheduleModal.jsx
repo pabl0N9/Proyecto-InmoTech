@@ -81,7 +81,9 @@ const UserRescheduleModal = ({ isOpen, onClose, appointment, newDate, onConfirm 
       // Cambiar a usar el endpoint específico para usuarios
       const response = await citaApiService.obtenerHorariosDisponiblesUsuario({
         fecha_cita: fecha,
-        id_servicio: servicioId
+        id_servicio: servicioId,
+        id_inmueble: appointment?.id_inmueble || null,
+        excluir_id_cita: appointment?.id_cita || appointment?.id || null
       });
 
       setAvailableTimes(response);

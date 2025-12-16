@@ -266,7 +266,7 @@ class AuthService {
           throw limitError;
         }
 
-        const verifyError = new Error('Debes verificar tu correo electrÃ³nico para iniciar sesiÃ³n');
+        const verifyError = new Error('Debes verificar tu correo electrónico para iniciar sesión');
         verifyError.code = 'EMAIL_NOT_VERIFIED';
         verifyError.status = 403;
         verifyError.meta = {

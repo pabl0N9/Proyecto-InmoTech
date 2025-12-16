@@ -1,9 +1,10 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { User, Phone, Mail, Calendar, Clock, Home, FileText, CheckCircle, Hash } from 'lucide-react';
+import { User, Phone, Mail, Calendar, Clock, Home, FileText, CheckCircle, Hash, Building2 } from 'lucide-react';
 import { formatTimeTo12Hour } from '../../../../../shared/utils/time';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../../shared/components/ui/select';
 
-const SummaryStep = ({ formData }) => {
+const SummaryStep = ({ formData, errors, updateFormData }) => {
   const formatDate = (dateString) => {
     if (!dateString) return '';
 
@@ -125,7 +126,7 @@ const SummaryStep = ({ formData }) => {
     {
       icon: Clock,
       label: 'Hora',
-      value: formatTimeTo12Hour(formData.hora),
+      value: formatTimeTo12Hour(formData.hora) || formData.hora,
       color: 'text-red-600'
     },
     {
@@ -133,7 +134,13 @@ const SummaryStep = ({ formData }) => {
       label: 'Servicio',
       value: formData.servicio,
       color: 'text-indigo-600'
-    }
+    },
+    ...(formData.id_inmueble ? [{
+      icon: Building2,
+      label: 'Inmueble',
+      value: formData.inmueble_label || `#${formData.id_inmueble}`,
+      color: 'text-slate-700'
+    }] : [])
   ];
 
   return (
@@ -179,15 +186,32 @@ const SummaryStep = ({ formData }) => {
         </div>
       </div>
 
-      {/* Estado */}
+      {/* Estado (selección final) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.4 }}
-        className="flex items-center justify-between bg-white border border-slate-200 rounded-lg p-4"
+        className="bg-white border border-slate-200 rounded-lg p-4"
       >
-        <div className="flex items-center gap-2">
-          <span className="text-slate-600 font-medium">Estado:</span>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          Estado de la Cita
+        </label>
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <Select
+              value={formData.estado}
+              onValueChange={(value) => updateFormData('estado', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="solicitada">Solicitada</SelectItem>
+                <SelectItem value="programada">Programada</SelectItem>
+                <SelectItem value="confirmada">Confirmada</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           {getStatusBadge(formData.estado)}
         </div>
       </motion.div>

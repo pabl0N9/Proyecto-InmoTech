@@ -23,8 +23,25 @@ const SERVICIO_MAP = {
 
 const ESTADO_MAP = {
   "solicitada": 1,
-  "programada": 2,
-  "confirmada": 3,
+  "confirmada": 2,
+  "programada": 3,
+};
+
+const getServicioIdFromNombre = (nombreServicio) => {
+  if (!nombreServicio) return null;
+
+  const normalized = String(nombreServicio)
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (normalized.includes('visita')) return 1;
+  if (normalized.includes('avalu')) return 2;
+  if (normalized.includes('alquiler')) return 3;
+  if (normalized.includes('legal')) return 4;
+
+  return SERVICIO_MAP[nombreServicio] || null;
 };
 
 
@@ -40,6 +57,8 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     fecha: '',
     hora: '',
     servicio: '',
+    id_inmueble: null,
+    inmueble_label: '',
     notas: '',
     estado: 'solicitada'
   });
@@ -68,9 +87,9 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
 
   const steps = [
     { number: 1, title: 'Cliente', icon: User },
-    { number: 2, title: 'Fecha y Hora', icon: Calendar },
-    { number: 3, title: 'Detalles', icon: FileText },
-    { number: 4, title: 'Resumen', icon: CheckCircle }
+    { number: 2, title: 'Servicio', icon: FileText },
+    { number: 3, title: 'Fecha y Hora', icon: Calendar },
+    { number: 4, title: 'Estado', icon: CheckCircle }
   ];
 
   // Función para validar nombre completo
@@ -226,6 +245,14 @@ const CreateAppointmentModal = ({ isOpen, onClose, onSubmit, preselectedDate }) 
     return '';
   };
 
+  const validateInmueble = (idInmueble, servicioNombre) => {
+    const idServicio = getServicioIdFromNombre(servicioNombre);
+    if (idServicio === 1 && !idInmueble) {
+      return 'Selecciona un inmueble para este servicio';
+    }
+    return '';
+  };
+
 // ⭐ Función para buscar persona automáticamente basada en documento
 const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
   // Validaciones previas
@@ -329,11 +356,12 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
         newErrors.numeroDocumento = validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento);
         break;
       case 2:
-        newErrors.fecha = validateFecha(formData.fecha);
-        newErrors.hora = validateHora(formData.hora);
+        newErrors.servicio = validateServicio(formData.servicio);
+        newErrors.id_inmueble = validateInmueble(formData.id_inmueble, formData.servicio);
         break;
       case 3:
-        newErrors.servicio = validateServicio(formData.servicio);
+        newErrors.fecha = validateFecha(formData.fecha);
+        newErrors.hora = validateHora(formData.hora);
         break;
     }
 
@@ -361,19 +389,21 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
                formData.numeroDocumento.trim() &&
                Object.keys(step1Errors).every(key => !step1Errors[key]);
       case 2:
-        // Para el paso 2, verificar fecha y hora
+        // Para el paso 2, verificar servicio e inmueble (si aplica)
         const step2Errors = {
+          servicio: validateServicio(formData.servicio),
+          id_inmueble: validateInmueble(formData.id_inmueble, formData.servicio)
+        };
+        return formData.servicio &&
+               Object.keys(step2Errors).every(key => !step2Errors[key]);
+      case 3:
+        // Para el paso 3, verificar fecha y hora
+        const step3Errors = {
           fecha: validateFecha(formData.fecha),
           hora: validateHora(formData.hora)
         };
         return formData.fecha &&
                formData.hora &&
-               Object.keys(step2Errors).every(key => !step2Errors[key]);
-      case 3:
-        const step3Errors = {
-          servicio: validateServicio(formData.servicio)
-        };
-        return formData.servicio &&
                Object.keys(step3Errors).every(key => !step3Errors[key]);
       default:
         return false;
@@ -403,9 +433,9 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
     // Validate step 1
     allErrors = { ...allErrors, ...{ nombre: validateNombre(formData.nombre), apellido: validateNombre(formData.apellido), telefono: validateTelefono(formData.telefono), email: validateEmail(formData.email), tipoDocumento: validateTipoDocumento(formData.tipoDocumento), numeroDocumento: validateNumeroDocumento(formData.numeroDocumento, formData.tipoDocumento) } };
     // Validate step 2
-    allErrors = { ...allErrors, ...{ fecha: validateFecha(formData.fecha), hora: validateHora(formData.hora) } };
+    allErrors = { ...allErrors, ...{ servicio: validateServicio(formData.servicio), id_inmueble: validateInmueble(formData.id_inmueble, formData.servicio) } };
     // Validate step 3
-    allErrors = { ...allErrors, ...{ servicio: validateServicio(formData.servicio) } };
+    allErrors = { ...allErrors, ...{ fecha: validateFecha(formData.fecha), hora: validateHora(formData.hora) } };
     setErrors(allErrors);
     return Object.values(allErrors).every(error => !error);
   };
@@ -463,45 +493,31 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
 
     try {
       // 🛡️ VALIDACIÓN FINAL: Verificar que el horario sigua disponible justo antes de crear
-      const idServicio = SERVICIO_MAP[formData.servicio] || 1;
+      const idServicio = getServicioIdFromNombre(formData.servicio) || 1;
+      const horaInicio24h = formatHoraParaAPI(formData.hora);
 
-      if (idServicio === 1) { // Solo para "Visita a Propiedad"
-        console.log("🔍 Validando disponibilidad final para Visita a Propiedad:", {
-          fecha: formData.fecha,
-          hora_inicio: formData.hora,
-          servicio: formData.servicio
+      const disponibilidadData = {
+        fecha_cita: formData.fecha,
+        id_servicio: idServicio,
+        id_inmueble: formData.id_inmueble || null,
+      };
+
+      const horariosDisponibles = await citaApiService.obtenerHorariosDisponibles(disponibilidadData);
+
+      if (!horariosDisponibles.includes(horaInicio24h)) {
+        console.error("❌ Horario ya no disponible:", horaInicio24h);
+        toast({
+          title: "Horario no disponible",
+          description: `El horario ${formData.hora} para el día ${formData.fecha} ya fue ocupado. Por favor selecciona otro horario.`,
+          variant: "destructive"
         });
 
-        // Convertir hora al formato esperado por la API
-        const horaInicio24h = formatHoraParaAPI(formData.hora);
-
-        // Consultar horarios disponibles
-        const disponibilidadData = {
-          fecha_cita: formData.fecha,
-          id_servicio: idServicio
-        };
-
-        const horariosDisponibles = await citaApiService.obtenerHorariosDisponibles(disponibilidadData);
-
-        // Verificar si nuestra hora aún está disponible
-        if (!horariosDisponibles.includes(horaInicio24h)) {
-          console.error("❌ Horario ya no disponible:", horaInicio24h);
-          toast({
-            title: "Horario no disponible",
-            description: `El horario ${formData.hora} para el día ${formData.fecha} ya fue ocupado. Por favor selecciona otro horario.`,
-            variant: "destructive"
-          });
-
-          // Regresar al paso de fecha/hora
-          setCurrentStep(2);
-          return;
-        }
-
-        console.log("✅ Horario confirmado disponible:", horaInicio24h);
+        // Regresar al paso de fecha/hora
+        setCurrentStep(3);
+        return;
       }
 
       // Si la validación pasa, continuar con la creación normal
-      const horaInicio24h = formatHoraParaAPI(formData.hora);
       const horaFin24h = calcularHoraFin(horaInicio24h);
 
       // Convertir estado string a ID numérico
@@ -509,8 +525,9 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
 
       // Determinar si asignar agente automáticamente
       let idAgenteAsignado = null;
-      if ((formData.estado === 'programada' || formData.estado === 'confirmada') && user?.id) {
-        idAgenteAsignado = user.id;
+      const userId = user?.id_persona || user?.id;
+      if ((formData.estado === 'programada' || formData.estado === 'confirmada') && userId) {
+        idAgenteAsignado = userId;
       }
 
       // Preparar los datos para el backend según la estructura esperada por citaApiService
@@ -524,10 +541,11 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
         fecha_cita: formData.fecha,
         hora_inicio: horaInicio24h,
         hora_fin: horaFin24h,
+        id_inmueble: formData.id_inmueble || null,
         id_servicio: idServicio,
         id_estado_cita: idEstadoCita,
         id_agente_asignado: idAgenteAsignado,
-        id_usuario_creador: user?.id || null,
+        id_usuario_creador: userId || null,
         observaciones: formData.notas || null
       };
 
@@ -581,6 +599,8 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
       fecha: '',
       hora: '',
       servicio: '',
+      id_inmueble: null,
+      inmueble_label: '',
       notas: '',
       estado: 'solicitada'
     });
@@ -621,7 +641,29 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
       // El formateo ya se aplica directamente en CustomerStep con Smart
       // Aquí dejamos el valor tal cual
     }
-    setFormData(prev => ({ ...prev, [field]: cleanedValue }));
+    setFormData(prev => {
+      const next = { ...prev, [field]: cleanedValue };
+
+      if (field === 'servicio') {
+        const nextServicioId = getServicioIdFromNombre(cleanedValue);
+        const prevServicioId = getServicioIdFromNombre(prev.servicio);
+
+        if (nextServicioId !== prevServicioId) {
+          next.hora = '';
+        }
+
+        if (nextServicioId !== 1) {
+          next.id_inmueble = null;
+          next.inmueble_label = '';
+        }
+      }
+
+      if (field === 'id_inmueble') {
+        next.hora = '';
+      }
+
+      return next;
+    });
 
     // Validación en tiempo real
     const newErrors = { ...errors };
@@ -678,6 +720,13 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
         break;
       case 'servicio':
         newErrors.servicio = validateServicio(cleanedValue);
+        newErrors.id_inmueble = validateInmueble(formData.id_inmueble, cleanedValue);
+        break;
+      case 'id_inmueble':
+        newErrors.id_inmueble = validateInmueble(cleanedValue, formData.servicio);
+        break;
+      case 'estado':
+        // Estado siempre tiene un valor válido (select controlado), no requiere validación extra
         break;
     }
 
@@ -697,7 +746,7 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
         );
       case 2:
         return (
-          <DateTimeStep
+          <DetailsStepStep
             formData={formData}
             errors={errors}
             updateFormData={updateFormData}
@@ -705,7 +754,7 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
         );
       case 3:
         return (
-          <DetailsStepStep
+          <DateTimeStep
             formData={formData}
             errors={errors}
             updateFormData={updateFormData}
@@ -713,7 +762,11 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
         );
       case 4:
         return (
-          <SummaryStepStep formData={formData} />
+          <SummaryStepStep
+            formData={formData}
+            errors={errors}
+            updateFormData={updateFormData}
+          />
         );
       default:
         return null;

@@ -114,7 +114,24 @@ const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => 
   };
 
   // Función para cargar horarios disponibles
-  const loadAvailableHours = async (fecha, servicio = null) => {
+  const getServicioIdFromNombre = (nombreServicio) => {
+    if (!nombreServicio) return null;
+
+    const normalized = String(nombreServicio)
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    if (normalized.includes('visita')) return 1;
+    if (normalized.includes('avalu')) return 2;
+    if (normalized.includes('alquiler')) return 3;
+    if (normalized.includes('legal')) return 4;
+
+    return null;
+  };
+
+  const loadAvailableHours = async (fecha, servicio = null, idInmueble = null) => {
     if (!fecha) return;
 
     setLoadingHours(true);
@@ -124,19 +141,12 @@ const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => 
       if (servicio) {
         console.log('Loading restricted hours for service:', servicio);
 
-        // Mapear el nombre del servicio al ID
-        const SERVICIO_MAP = {
-          "Visita a Propiedad": 1,
-          "Avalúos": 2,
-          "Gestión de Alquileres": 3,
-          "Asesoría Legal": 4,
-        };
-
-        const idServicio = SERVICIO_MAP[servicio] || 1;
+        const idServicio = getServicioIdFromNombre(servicio) || 1;
 
         const data = {
           fecha_cita: fecha,
-          id_servicio: idServicio
+          id_servicio: idServicio,
+          id_inmueble: idInmueble || null
         };
 
         const response = await citaApiService.obtenerHorariosDisponibles(data);
@@ -177,7 +187,7 @@ const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => 
     updateFormData('fecha', dateString);
 
     // Cargar horarios para esta fecha
-    loadAvailableHours(dateString, formData.servicio);
+    loadAvailableHours(dateString, formData.servicio, formData.id_inmueble);
   };
 
   const handleHourSelect = (hour) => {
@@ -207,9 +217,9 @@ const DateTimeStep = ({ formData, errors, updateFormData, onFieldComplete }) => 
   // Recargar horarios cuando cambia el servicio (si ya hay fecha seleccionada)
   useEffect(() => {
     if (selectedDate && formData.servicio) {
-      loadAvailableHours(selectedDate, formData.servicio);
+      loadAvailableHours(selectedDate, formData.servicio, formData.id_inmueble);
     }
-  }, [formData.servicio]);
+  }, [formData.servicio, formData.id_inmueble]);
 
   return (
     <motion.div

@@ -250,11 +250,51 @@ const buscarPersonaSchema = Joi.object({
     .required()
 });
 
+const horariosDisponiblesSchema = Joi.object({
+  fecha_cita: Joi.string()
+    .pattern(/^\d{4}-\d{2}-\d{2}$/)
+    .custom(isTodayOrFuture)
+    .required()
+    .messages({
+      'string.pattern.base': 'El formato de fecha debe ser YYYY-MM-DD',
+      'date.min': 'La fecha de la cita no puede ser anterior a hoy',
+      'any.required': 'La fecha de la cita es obligatoria'
+    }),
+
+  id_servicio: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'any.required': 'El servicio es obligatorio',
+      'number.base': 'El servicio debe ser numérico'
+    }),
+
+  id_inmueble: Joi.number()
+    .integer()
+    .positive()
+    .optional()
+    .allow(null)
+    .messages({
+      'number.base': 'El inmueble debe ser numérico'
+    }),
+
+  excluir_id_cita: Joi.number()
+    .integer()
+    .positive()
+    .optional()
+    .allow(null)
+    .messages({
+      'number.base': 'El id de cita a excluir debe ser numérico'
+    })
+});
+
 module.exports = {
   crearCitaSchema,
   actualizarCitaSchema,
   confirmarCitaSchema,
   cancelarCitaSchema,
   reagendarCitaSchema,
-  buscarPersonaSchema
+  buscarPersonaSchema,
+  horariosDisponiblesSchema
 };

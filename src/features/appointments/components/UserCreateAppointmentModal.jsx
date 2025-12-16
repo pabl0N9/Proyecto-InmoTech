@@ -18,6 +18,7 @@ import {
 import { useToast } from '../../../shared/hooks/use-toast';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import citaApiService from '../../../shared/services/citaApiService';
+import { formatTimeTo12Hour } from '../../../shared/utils/time';
 
 const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppointmentCreate }) => {
   const { user } = useAuth();
@@ -35,6 +36,8 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableHours, setAvailableHours] = useState([]);
+  const [loadingHours, setLoadingHours] = useState(false);
   const { toast } = useToast();
 
   // Pre-seleccionar fecha si viene del calendario
@@ -55,6 +58,8 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
       });
       setErrors({});
       setIsSubmitting(false);
+      setAvailableHours([]);
+      setLoadingHours(false);
     }
   }, [isOpen]);
 
@@ -65,18 +70,51 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
 
   const daysOfWeek = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
-  const availableHours = [
-    "08:00 am", "08:30 am", "09:00 am", "09:30 am", "10:00 am", "10:30 am",
-    "11:00 am", "11:30 am", "02:00 pm", "02:30 pm", "03:00 pm", "03:30 pm",
-    "04:00 pm", "04:30 pm", "05:00 pm", "05:30 pm",
+  const defaultHours = [
+    "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
+    "11:00", "11:30", "14:00", "14:30", "15:00", "15:30",
+    "16:00", "16:30", "17:00", "17:30",
   ];
 
   const servicios = [
-    { name: "Visita a Propiedad", icon: "🏠", description: "Recorridos guiados por propiedades", id: 1 },
+    { name: "Visita a Propiedad", icon: "🏠", description: "Recorridos guiados por propiedades (se agenda desde el inmueble)", id: 1, disabled: true },
     { name: "Avalúos", icon: "💰", description: "Tasación y valoración de inmuebles", id: 2 },
     { name: "Gestión de Alquileres", icon: "🏢", description: "Administración completa de arrendamientos", id: 3 },
     { name: "Asesoría Legal", icon: "⚖️", description: "Apoyo legal en temas inmobiliarios", id: 4 },
   ];
+
+  useEffect(() => {
+    const loadHours = async () => {
+      const servicioSeleccionado = servicios.find((s) => s.name === formData.servicio);
+
+      if (!isOpen || !formData.fecha || !servicioSeleccionado) {
+        setAvailableHours([]);
+        setLoadingHours(false);
+        return;
+      }
+
+      setLoadingHours(true);
+      try {
+        const horarios = await citaApiService.obtenerHorariosDisponiblesUsuario({
+          fecha_cita: formData.fecha,
+          id_servicio: servicioSeleccionado.id,
+        });
+
+        setAvailableHours(horarios);
+
+        if (formData.hora && !horarios.includes(formData.hora)) {
+          setFormData((prev) => ({ ...prev, hora: "" }));
+        }
+      } catch (error) {
+        console.error("❌ Error cargando horarios disponibles:", error);
+        setAvailableHours(defaultHours);
+      } finally {
+        setLoadingHours(false);
+      }
+    };
+
+    loadHours();
+  }, [isOpen, formData.fecha, formData.servicio]);
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -162,8 +200,12 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
   const validateHora = (hora) => {
     if (!hora) return "La hora es requerida";
 
-    if (!availableHours.includes(hora)) {
+    if (!defaultHours.includes(hora)) {
       return "Las citas solo se pueden agendar entre las 8:00 am y las 6:00 pm";
+    }
+
+    if (formData.fecha && formData.servicio && availableHours.length && !availableHours.includes(hora)) {
+      return "Este horario ya no está disponible. Selecciona otro.";
     }
 
     return "";
@@ -234,34 +276,25 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
     setIsSubmitting(true);
 
     try {
-      // Validar disponibilidad del horario
-      const servicioSeleccionado = servicios.find(s => s.name === formData.servicio);
-      const convocatoriaData = {
-        fecha_cita: formData.fecha,
-        id_servicio: servicioSeleccionado.id
-      };
-
-      if (servicioSeleccionado.id === 1) { // Solo validar "Visita a Propiedad"
-        const horaParseada = parseTime(formData.hora);
-        const horaInicio24h = horaParseada ? formatHHmm(horaParseada) : null;
-        const horariosDisponibles = await citaApiService.obtenerHorariosDisponiblesUsuario(convocatoriaData);
-
-        if (!horaInicio24h || !horariosDisponibles.includes(horaInicio24h)) {
-          toast({
-            title: "Horario no disponible",
-            description: `El horario ${formData.hora} ya fue ocupado. Por favor selecciona otro horario.`,
-            variant: "destructive"
-          });
-          setIsSubmitting(false);
-          return;
-        }
+      const servicioSeleccionado = servicios.find((s) => s.name === formData.servicio);
+      if (!servicioSeleccionado) {
+        throw new Error("Servicio seleccionado inválido");
       }
 
-      // Preparar datos para la cita
-      const horaParseada = parseTime(formData.hora);
-      const horaInicio24h = horaParseada ? formatHHmm(horaParseada) : null;
-      if (!horaInicio24h) {
-        throw new Error("Hora seleccionada inválida");
+      // Validación final: verificar que el horario siga disponible justo antes de crear
+      const horariosDisponibles = await citaApiService.obtenerHorariosDisponiblesUsuario({
+        fecha_cita: formData.fecha,
+        id_servicio: servicioSeleccionado.id
+      });
+
+      if (!horariosDisponibles.includes(formData.hora)) {
+        toast({
+          title: "Horario no disponible",
+          description: `El horario ${formatTimeTo12Hour(formData.hora) || formData.hora} ya fue ocupado. Por favor selecciona otro horario.`,
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
       }
 
       const citaData = {
@@ -272,8 +305,8 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
         email: user?.correo,
         telefono: user?.telefono,
         fecha_cita: formData.fecha,
-        hora_inicio: horaInicio24h,
-        hora_fin: calcularHoraFin(horaInicio24h),
+        hora_inicio: formData.hora,
+        hora_fin: calcularHoraFin(formData.hora),
         id_servicio: servicioSeleccionado.id,
         id_estado_cita: 1,
         observaciones: formData.mensaje || null
@@ -312,6 +345,8 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
       mensaje: "",
     });
     setErrors({});
+    setAvailableHours([]);
+    setLoadingHours(false);
     onClose();
   };
 
@@ -457,13 +492,16 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
                   {servicios.map((servicio) => (
                     <motion.button
                       key={servicio.name}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => updateFormData("servicio", servicio.name)}
+                      whileHover={servicio.disabled ? undefined : { scale: 1.02 }}
+                      whileTap={servicio.disabled ? undefined : { scale: 0.98 }}
+                      disabled={servicio.disabled}
+                      onClick={() => !servicio.disabled && updateFormData("servicio", servicio.name)}
                       className={`w-full p-4 rounded-xl border transition-all duration-200 ${
                         formData.servicio === servicio.name
                           ? "bg-blue-600 text-white border-blue-600 shadow-lg"
-                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                          : servicio.disabled
+                            ? "bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                       }`}
                     >
                       <div className="text-left">
@@ -639,7 +677,7 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
                   </div>
 
                   {/* Time Selection */}
-                  {formData.fecha && (
+                  {formData.fecha && formData.servicio && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -651,24 +689,41 @@ const UserCreateAppointmentModal = ({ isOpen, onClose, preselectedDate, onAppoin
                         <h4 className="font-medium">Horarios disponibles</h4>
                       </div>
 
-                      <div className="grid grid-cols-4 gap-3">
-                        {availableHours.map((hour) => (
-                          <motion.button
-                            key={hour}
-                            type="button"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => updateFormData("hora", hour)}
-                            className={`py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                              formData.hora === hour
-                                ? "bg-blue-600 text-white"
-                                : "bg-white text-slate-700 hover:bg-blue-50 border border-slate-200"
-                            }`}
-                          >
-                            {hour}
-                          </motion.button>
-                        ))}
-                      </div>
+                      {loadingHours ? (
+                        <div className="flex items-center justify-center py-8 bg-slate-50 rounded-lg">
+                          <div className="flex items-center gap-3 text-slate-600">
+                            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                            <span>Cargando horarios disponibles...</span>
+                          </div>
+                        </div>
+                      ) : availableHours.length > 0 ? (
+                        <div className="grid grid-cols-4 gap-3">
+                          {availableHours.map((hour) => (
+                            <motion.button
+                              key={hour}
+                              type="button"
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => updateFormData("hora", hour)}
+                              className={`py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                formData.hora === hour
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-white text-slate-700 hover:bg-blue-50 border border-slate-200"
+                              }`}
+                            >
+                              {formatTimeTo12Hour(hour) || hour}
+                            </motion.button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center py-8 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <div className="text-center text-yellow-700">
+                            <Clock className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+                            <p className="text-sm font-medium">No hay horarios disponibles</p>
+                            <p className="text-xs">Selecciona otra fecha o servicio</p>
+                          </div>
+                        </div>
+                      )}
 
                       {errors.hora && (
                         <p className="text-red-500 text-sm">{errors.hora}</p>

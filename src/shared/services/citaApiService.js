@@ -661,76 +661,104 @@ class CitaApiService {
   }
 
   /**
+   * Obtener el nÃºmero de administrativos con acceso al mÃ³dulo de citas
+   * @returns {Promise<number>} NÃºmero de administrativos con permisos
+   */
+  async obtenerNumeroAdministrativosConAccesoCitas() {
+    try {
+      // Obtener todos los usuarios con permisos administrativos
+      const response = await apiClient.get('/personas', {
+        params: { es_administrativo: true }
+      });
+
+      const administrativos = response.data?.data?.personas || response.data?.personas || [];
+
+      if (!Array.isArray(administrativos)) {
+        console.warn('Formato de respuesta invÃ¡lido para administrativos');
+        return 3; // Valor por defecto
+      }
+
+      // Filtrar solo los que tienen permisos para citas
+      let count = 0;
+      for (const admin of administrativos) {
+        try {
+          // Verificar si tiene permisos para citas
+          const permisos = admin.permisos || {};
+          const modulosAcceso = Object.keys(permisos);
+
+          // Buscar mÃ³dulos relacionados con citas
+          const tieneAccesoCitas = modulosAcceso.some(modulo =>
+            modulo.toLowerCase().includes('cita') ||
+            modulo.toLowerCase().includes('appointment')
+          );
+
+          if (tieneAccesoCitas) {
+            count++;
+          }
+        } catch (error) {
+          console.warn('Error verificando permisos de administrativo:', admin.id_persona, error);
+        }
+      }
+
+      // MÃ­nimo 1 administrativo, mÃ¡ximo razonable
+      const numAdministrativos = Math.max(1, Math.min(count, 10));
+
+      console.log(`ð ${numAdministrativos} administrativos tienen acceso al mÃ³dulo de citas`);
+      return numAdministrativos;
+
+    } catch (error) {
+      console.error('â Error obteniendo nÃºmero de administrativos:', error);
+      return 3; // Valor por defecto si falla
+    }
+  }
+
+  /**
    * Obtener horarios disponibles para una fecha, agente y servicio especÃ­ficos
    * CON LÃGICA ESPECIAL PARA VISITAS A INMUEBLES (servicio ID 1)
    * @param {Object} data - Objeto con fecha_cita, id_agente, id_servicio, id_inmueble (opcional)
    * @returns {Promise<Array>} Array de horarios disponibles en formato HH:mm
    */
+  async obtenerHorariosDisponiblesV2(data) {
+    const params = new URLSearchParams();
+    params.append("fecha_cita", data.fecha_cita);
+
+    const idServicio = data.id_servicio ?? data.servicio;
+    if (!idServicio) {
+      throw new Error("id_servicio es requerido");
+    }
+
+    params.append("id_servicio", String(idServicio));
+
+    if (data.id_inmueble) {
+      params.append("id_inmueble", String(data.id_inmueble));
+    }
+
+    if (data.excluir_id_cita) {
+      params.append("excluir_id_cita", String(data.excluir_id_cita));
+    }
+
+    const response = await apiClient.get(`/citas/horarios-disponibles?${params.toString()}`);
+    const result = response.data?.data ?? response.data;
+
+    if (!Array.isArray(result)) {
+      throw new Error("Formato de respuesta invÃ¡lido del servidor");
+    }
+
+    return result;
+  }
+
   async obtenerHorariosDisponibles(data) {
     try {
-      console.log(`ð Obteniendo horarios disponibles (admin):`, data);
+      console.log(`ð Obteniendo horarios disponibles:`, data);
 
-      // ð¨ LÃGICA ESPECIAL: Si es servicio "Visita a Propiedad" (ID 1)
-      if (data.id_servicio === 1 || data.servicio === 1) {
-        console.log("ð  Servicio 'Visita a Propiedad': Aplicando restricciones de bloqueo");
-
-        // Obtener citas existentes para esa fecha y servicio de visitas a inmuebles
-        const citasExistentes = await this.obtenerCitas({
-          fecha: data.fecha_cita,
-          servicio: 1 // Solo visitas a inmuebles
-        });
-
-        console.log(`ð Citas existentes para ${data.fecha_cita}:`, citasExistentes.length);
-
-        // Generar todos los horarios disponibles inicialmente
-        const todosHorarios = [];
-        for (let hora = 8; hora <= 17; hora++) {
-          todosHorarios.push(`${hora.toString().padStart(2, '0')}:00`);
-          if (hora < 17) {
-            todosHorarios.push(`${hora.toString().padStart(2, '0')}:30`);
-          }
-        }
-
-        // Filtrar horarios que NO estÃ¡n ocupados por citas confirmadas/programadas
-        const citasActivas = citasExistentes.filter(cita =>
-          ['confirmada', 'programada'].includes(cita.estado) &&
-          cita.fecha_cita === data.fecha_cita
-        );
-
-        console.log(`ð« Citas activas bloqueando horarios:`, citasActivas.length);
-
-        // Extraer horarios ocupados
-        const horariosOcupados = new Set(
-          citasActivas.map(cita => cita.hora_inicio)
-        );
-
-        // Filtrar horarios disponibles (no ocupados)
-        const horariosDisponibles = todosHorarios.filter(hora =>
-          !horariosOcupados.has(hora)
-        );
-
-        console.log(`â Horarios disponibles para visitas:`, horariosDisponibles.length, 'de', todosHorarios.length);
-
-        return horariosDisponibles;
-
-      } else {
-        // ð PARA OTROS SERVICIOS: Sin restricciones, todos los horarios disponibles
-        console.log("ð Otro servicio: Sin restricciones de bloqueo");
-
-        const defaultHorarios = [];
-        for (let hora = 8; hora <= 17; hora++) {
-          defaultHorarios.push(`${hora.toString().padStart(2, '0')}:00`);
-          if (hora < 17) {
-            defaultHorarios.push(`${hora.toString().padStart(2, '0')}:30`);
-          }
-        }
-        return defaultHorarios;
-      }
+      // ð© USAR LA RUTA PÃBLICA /horarios-disponibles QUE NO REQUIERE AUTENTICACIÃN
+      // Esta ruta ya implementa toda la lÃ³gica de bloqueo de horarios
+      return await this.obtenerHorariosDisponiblesV2(data);
 
     } catch (error) {
       console.error("â Error en obtenerHorariosDisponibles:", error);
 
-      // Fallback: retornar horarios predeterminados pero con bloqueo bÃ¡sico si no podemos consultar
+      // Fallback: retornar horarios predeterminados
       const defaultHorarios = [];
       for (let hora = 8; hora <= 17; hora++) {
         defaultHorarios.push(`${hora.toString().padStart(2, '0')}:00`);
@@ -744,28 +772,113 @@ class CitaApiService {
 
   /**
    * Obtener horarios disponibles para reagendamiento (para usuarios normales)
-   * Con lÃ³gica especial para visitas a inmuebles, sin necesidad de permisos de admin
+   * Aplica la misma lógica de bloqueo que el método principal
    * @param {Object} data - Objeto con fecha_cita, id_servicio
    * @returns {Promise<Array>} Array de horarios disponibles en formato HH:mm
    */
   async obtenerHorariosDisponiblesUsuario(data) {
     try {
-      console.log(`ð Usuario obteniendo horarios disponibles para reagendamiento:`, data);
+      console.log(`ð Usuario obteniendo horarios disponibles:`, data);
 
-      const params = new URLSearchParams();
-      params.append("fecha_cita", data.fecha_cita);
-      params.append("id_servicio", data.id_servicio);
-
-      const response = await apiClient.get(`/citas/mis-citas/horarios-disponibles?${params.toString()}`);
-      const result = response.data.data || response.data;
-
-      if (!Array.isArray(result)) {
-        console.error("â Formato de respuesta invÃ¡lido para horarios disponibles de usuario:", response.data);
-        throw new Error("Formato de respuesta invÃ¡lido del servidor");
+      const idServicio = data.id_servicio;
+      if (!idServicio) {
+        throw new Error("id_servicio es requerido");
       }
 
-      console.log(`â Horarios disponibles para reagendamiento obtenidos: ${result.length}`);
-      return result;
+      // ð¨ LÃGICA ESPECIAL: Si es servicio "Visita a Propiedad" (ID 1)
+      if (idServicio === 1 || idServicio === 'Visita a Propiedad') {
+        console.log("ð  Servicio 'Visita a Propiedad': Aplicando bloqueo completo del slot (usuario)");
+
+        // Obtener citas existentes para esa fecha y servicio de visitas a inmuebles
+        const citasExistentes = await this.obtenerCitas({
+          fecha: data.fecha_cita
+        });
+
+        console.log(`ð Citas existentes para ${data.fecha_cita}:`, citasExistentes.length);
+
+        // Generar todos los horarios disponibles inicialmente
+        const todosHorarios = [];
+        for (let hora = 8; hora <= 17; hora++) {
+          todosHorarios.push(`${hora.toString().padStart(2, '0')}:00`);
+          if (hora < 17) {
+            todosHorarios.push(`${hora.toString().padStart(2, '0')}:30`);
+          }
+        }
+
+        // Para visitas a inmuebles: bloqueo completo del slot especÃ­fico
+        // Solo se libera cuando la cita se reagenda, cancela o completa
+        const citasVisitasActivas = citasExistentes.filter(cita =>
+          cita.id_servicio === 1 && // Solo visitas a inmuebles
+          ['solicitada', 'confirmada', 'programada', 're agendada'].includes(cita.estado) &&
+          cita.fecha_cita === data.fecha_cita
+        );
+
+        console.log(`ð« Citas de visita activas bloqueando horarios:`, citasVisitasActivas.length);
+
+        // Extraer horarios ocupados por visitas activas
+        const horariosOcupadosVisitas = new Set(
+          citasVisitasActivas.map(cita => cita.hora_inicio)
+        );
+
+        // Filtrar horarios disponibles (no ocupados por visitas)
+        const horariosDisponibles = todosHorarios.filter(hora =>
+          !horariosOcupadosVisitas.has(hora)
+        );
+
+        console.log(`â Horarios disponibles para visitas (usuario):`, horariosDisponibles.length, 'de', todosHorarios.length);
+        return horariosDisponibles;
+
+      } else {
+        // ð PARA OTROS SERVICIOS: LÃ­mite de 3 citas por hora basado en administrativos
+        console.log("ð Otro servicio: Aplicando lÃ­mite por hora basado en administrativos (usuario)");
+
+        // Obtener nÃºmero de administrativos con acceso a citas
+        const numAdministrativos = await this.obtenerNumeroAdministrativosConAccesoCitas();
+        const limitePorHora = Math.min(3, numAdministrativos); // MÃ¡ximo 3, mÃ­nimo limitado por admins
+
+        console.log(`ð LÃ­mite por hora: ${limitePorHora} (administrativos: ${numAdministrativos})`);
+
+        // Obtener citas existentes para esa fecha y servicio
+        const citasExistentes = await this.obtenerCitas({
+          fecha: data.fecha_cita
+        });
+
+        const citasServicioActivas = citasExistentes.filter(cita =>
+          cita.id_servicio === idServicio &&
+          ['solicitada', 'confirmada', 'programada', 're agendada'].includes(cita.estado) &&
+          cita.fecha_cita === data.fecha_cita
+        );
+
+        console.log(`ð Citas activas del servicio ${idServicio}:`, citasServicioActivas.length);
+
+        // Contar citas por hora
+        const conteoPorHora = {};
+        citasServicioActivas.forEach(cita => {
+          const hora = cita.hora_inicio;
+          conteoPorHora[hora] = (conteoPorHora[hora] || 0) + 1;
+        });
+
+        console.log('ð Conteo por hora:', conteoPorHora);
+
+        // Generar horarios disponibles: solo horas que no excedan el lÃ­mite
+        const horariosDisponibles = [];
+        for (let hora = 8; hora <= 17; hora++) {
+          const horaStr = `${hora.toString().padStart(2, '0')}:00`;
+          const hora30Str = `${hora.toString().padStart(2, '0')}:30`;
+
+          // Verificar si podemos agregar citas a esta hora
+          if ((conteoPorHora[horaStr] || 0) < limitePorHora) {
+            horariosDisponibles.push(horaStr);
+          }
+
+          if (hora < 17 && (conteoPorHora[hora30Str] || 0) < limitePorHora) {
+            horariosDisponibles.push(hora30Str);
+          }
+        }
+
+        console.log(`â Horarios disponibles para servicio ${idServicio} (usuario):`, horariosDisponibles.length);
+        return horariosDisponibles;
+      }
 
     } catch (error) {
       console.error("â Error en obtenerHorariosDisponiblesUsuario:", error);

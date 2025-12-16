@@ -46,7 +46,9 @@ const RescheduleAppointmentModal = ({ isOpen, onClose, cita, onRescheduled }) =>
       const disponibilidadData = {
         fecha_cita: fecha,
         id_agente: cita?.id_agente_asignado || null,
-        id_servicio: id_servicio
+        id_servicio: id_servicio,
+        id_inmueble: cita?.id_inmueble || null,
+        excluir_id_cita: cita?.id_cita || cita?.id || null
       };
 
       console.log('🔍 Solicitando horarios disponibles:', disponibilidadData);
@@ -232,7 +234,9 @@ const RescheduleAppointmentModal = ({ isOpen, onClose, cita, onRescheduled }) =>
         // Consultar horarios disponibles
         const disponibilidadData = {
           fecha_cita: formData.fecha_cita,
-          id_servicio: idServicio
+          id_servicio: idServicio,
+          id_inmueble: cita?.id_inmueble || null,
+          excluir_id_cita: cita?.id_cita || cita?.id || null
         };
 
         const horariosDisponibles = await citaApiService.obtenerHorariosDisponibles(disponibilidadData);

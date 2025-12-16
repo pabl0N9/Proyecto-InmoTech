@@ -58,7 +58,9 @@ const RescheduleConfirmModal = ({ isOpen, onCancel, onConfirm, appointment, newD
 
       const response = await citaApiService.obtenerHorariosDisponibles({
         fecha_cita: fecha,
-        id_servicio: servicioId
+        id_servicio: servicioId,
+        id_inmueble: appointment?.id_inmueble || null,
+        excluir_id_cita: appointment?.id_cita || appointment?.id || null
       });
 
       setAvailableTimes(response);

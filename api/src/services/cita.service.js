@@ -8,6 +8,8 @@ const { Op } = require('sequelize');
 const { isSuperAdministrator } = require('../middlewares/auth.middleware');
 const logger = require('../utils/logger');
 
+const ESTADOS_BLOQUEAN_HORARIO = [1, 2, 3]; // Solicitada, Confirmada, Programada
+
 const normalizarFechaCita = (fecha) => {
   if (!fecha) return fecha;
   if (typeof fecha === 'string') return fecha;
@@ -19,6 +21,189 @@ const normalizarFechaCita = (fecha) => {
 };
 
 class CitaService {
+
+  generarHorariosBase() {
+    const horarios = [];
+    for (let hora = 8; hora <= 17; hora++) {
+      horarios.push(`${hora.toString().padStart(2, '0')}:00`);
+      if (hora < 17) {
+        horarios.push(`${hora.toString().padStart(2, '0')}:30`);
+      }
+    }
+    return horarios;
+  }
+
+  async contarAdministrativosConAccesoCitas(transaction = null) {
+    const { Persona, Administrativo, Rol, Permiso } = require('../models');
+
+    const count = await Persona.count({
+      distinct: true,
+      col: 'id_persona',
+      include: [
+        {
+          model: Administrativo,
+          as: 'administrativo',
+          where: { estado_laboral: 'Activo' },
+          required: true
+        },
+        {
+          model: Rol,
+          as: 'roles',
+          where: { estado: true },
+          through: { attributes: [] },
+          required: true,
+          attributes: [],
+          include: [
+            {
+              model: Permiso,
+              as: 'permisos',
+              required: true,
+              attributes: [],
+              where: {
+                estado: true,
+                modulo: { [Op.in]: ['citas', 'Citas', 'CITAS'] }
+              }
+            }
+          ]
+        }
+      ],
+      transaction,
+      logging: false
+    });
+
+    return Number(count) || 0;
+  }
+
+  async obtenerHorariosDisponiblesParaFecha(
+    { fecha_cita, id_servicio, id_inmueble = null, excluir_id_cita = null },
+    transaction = null
+  ) {
+    const fechaNormalizada = normalizarFechaCita(fecha_cita);
+    const horariosBase = this.generarHorariosBase();
+
+    const whereBase = {
+      fecha_cita: fechaNormalizada,
+      id_estado_cita: { [Op.in]: ESTADOS_BLOQUEAN_HORARIO }
+    };
+
+    if (excluir_id_cita) {
+      whereBase.id_cita = { [Op.ne]: Number(excluir_id_cita) };
+    }
+
+    // ð¨ LÓGICA PARA SERVICIOS CON INMUEBLE: Bloqueo por inmueble (1 cita por inmueble + fecha + hora)
+    if (id_inmueble) {
+      console.log(`ð  Servicio con inmueble: Aplicando bloqueo por inmueble ${id_inmueble} para fecha ${fechaNormalizada}`);
+
+      const citasInmueble = await Cita.findAll({
+        attributes: ['hora_inicio'],
+        where: {
+          ...whereBase,
+          id_inmueble: Number(id_inmueble) // Solo para este inmueble específico
+        },
+        transaction,
+        logging: false
+      });
+
+      // ✅ NORMALIZAR HORAS: convertir cualquier formato a HH:mm Colombia
+      const horariosOcupados = new Set(
+        citasInmueble.map((cita) => {
+          let horaFormateada = '';
+
+          if (cita.hora_inicio instanceof Date) {
+            // Si es un objeto Date (viene de SQL Server como TIME)
+            const horasUTC = cita.hora_inicio.getUTCHours();
+            const minutosUTC = cita.hora_inicio.getUTCMinutes();
+
+            // Convertir UTC a Colombia (UTC-5)
+            let horasColombia = horasUTC - 5;
+            if (horasColombia < 0) horasColombia += 24; // Si pasa a día anterior
+
+            horaFormateada = `${String(horasColombia).padStart(2, '0')}:${String(minutosUTC).padStart(2, '0')}`;
+          } else if (typeof cita.hora_inicio === 'string') {
+            if (cita.hora_inicio.includes('T')) {
+              // Formato ISO string
+              const date = new Date(cita.hora_inicio);
+              const horasUTC = date.getUTCHours();
+              const minutosUTC = date.getUTCMinutes();
+
+              // Convertir UTC a Colombia (UTC-5)
+              let horasColombia = horasUTC - 5;
+              if (horasColombia < 0) horasColombia += 24;
+
+              horaFormateada = `${String(horasColombia).padStart(2, '0')}:${String(minutosUTC).padStart(2, '0')}`;
+            } else {
+              // Ya está en formato HH:mm (asumir Colombia)
+              horaFormateada = cita.hora_inicio;
+            }
+          } else {
+            // Otro formato, intentar convertir
+            horaFormateada = String(cita.hora_inicio);
+          }
+
+          console.log(`🔄 Convirtiendo ${cita.hora_inicio} → ${horaFormateada} (Colombia)`);
+          return horaFormateada;
+        })
+      );
+      console.log(`ð« Horarios bloqueados para inmueble ${id_inmueble}:`, Array.from(horariosOcupados));
+
+      const horariosDisponibles = horariosBase.filter((hora) => {
+        const estaBloqueado = horariosOcupados.has(hora);
+        if (estaBloqueado) {
+          console.log(`🚫 Hora ${hora} bloqueada para inmueble ${id_inmueble}`);
+        }
+        return !estaBloqueado;
+      });
+      console.log(`â Horarios disponibles para inmueble ${id_inmueble}:`, horariosDisponibles.length, 'de', horariosBase.length);
+
+      return horariosDisponibles;
+    }
+
+    // ð PARA OTROS SERVICIOS: LÃ­mite por capacidad de administrativos
+    const administrativos = await this.contarAdministrativosConAccesoCitas(transaction);
+    const capacidad = Math.min(3, administrativos);
+
+    if (capacidad <= 0) {
+      return [];
+    }
+
+    const counts = await Cita.findAll({
+      attributes: [
+        'hora_inicio',
+        [sequelize.fn('COUNT', sequelize.col('id_cita')), 'cantidad']
+      ],
+      where: {
+        ...whereBase,
+        id_servicio: Number(id_servicio)
+      },
+      group: ['hora_inicio'],
+      raw: true,
+      transaction,
+      logging: false
+    });
+
+    const porHora = new Map();
+    for (const row of counts) {
+      porHora.set(row.hora_inicio, Number(row.cantidad) || 0);
+    }
+
+    return horariosBase.filter((hora) => (porHora.get(hora) || 0) < capacidad);
+  }
+
+  async validarDisponibilidadHorario(
+    { fecha_cita, hora_inicio, id_servicio, id_inmueble = null, excluir_id_cita = null },
+    transaction = null
+  ) {
+    const horariosDisponibles = await this.obtenerHorariosDisponiblesParaFecha(
+      { fecha_cita, id_servicio, id_inmueble, excluir_id_cita },
+      transaction
+    );
+
+    if (!horariosDisponibles.includes(hora_inicio)) {
+      const err = new Error('Horario no disponible para la fecha seleccionada');
+      err.status = 409;
+      throw err;
+    }
+  }
 
   async crearCita(dataCita) {
     const result = await sequelize.transaction(async (t) => {
@@ -103,6 +288,13 @@ class CitaService {
         if (citaExistente) {
           throw asBadRequest('Ya existe una cita con la misma informacion para este usuario');
         }
+
+        await this.validarDisponibilidadHorario({
+          fecha_cita: dataCita.fecha_cita,
+          hora_inicio: dataCita.hora_inicio,
+          id_servicio: idServicio,
+          id_inmueble: idInmueble
+        }, t);
 
         // 4. Crear la cita si no existe duplicado
         const nuevaCita = await Cita.create({
@@ -373,6 +565,14 @@ class CitaService {
 
         // Guardar ID del agente anterior para historial
         const idAgenteAnterior = citaModel.id_agente_asignado;
+
+        await this.validarDisponibilidadHorario({
+          fecha_cita: nuevosDatos.fecha_cita,
+          hora_inicio: nuevosDatos.hora_inicio,
+          id_servicio: citaModel.id_servicio,
+          id_inmueble: citaModel.id_inmueble,
+          excluir_id_cita: id
+        }, t);
 
         // Actualizar la cita con los nuevos datos
         const datosActualizados = {
@@ -1075,6 +1275,14 @@ class CitaService {
           ? nuevosDatos.id_estado_cita
           : citaOriginal.id_estado_cita;
 
+        await this.validarDisponibilidadHorario({
+          fecha_cita: nuevosDatos.fecha_cita,
+          hora_inicio: nuevosDatos.hora_inicio,
+          id_servicio: servicioFinal,
+          id_inmueble: citaOriginal.id_inmueble,
+          excluir_id_cita: idCita
+        }, t);
+
         // ACTUALIZACIÓN SIMULTÁNEA: Fecha/hora Y contador en una sola operación
         const datosCompletos = {
           fecha_cita: normalizarFechaCita(nuevosDatos.fecha_cita),
@@ -1122,5 +1330,3 @@ class CitaService {
 }
 
 module.exports = new CitaService();
-
-

@@ -12,7 +12,8 @@ const {
   confirmarCitaSchema,
   cancelarCitaSchema,
   reagendarCitaSchema,
-  buscarPersonaSchema
+  buscarPersonaSchema,
+  horariosDisponiblesSchema
 } = require('../validators/cita.validator');
 
 // POST /api/v1/citas - Crear cita
@@ -44,6 +45,18 @@ router.get(
   '/buscar-persona',
   validateQuery(buscarPersonaSchema),
   citaController.buscarPersonaPorDocumento
+);
+
+// GET /api/v1/citas/horarios-disponibles - Horarios disponibles (público)
+router.get(
+  '/horarios-disponibles',
+  optionalAuth,
+  function(req, res, next) {
+    req.skipPermissions = true;
+    next();
+  },
+  validateQuery(horariosDisponiblesSchema),
+  citaController.obtenerHorariosDisponibles
 );
 
 // GET /api/v1/citas/mis-citas - Obtener citas del usuario autenticado como cliente

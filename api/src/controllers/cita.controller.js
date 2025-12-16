@@ -640,12 +640,44 @@ class CitaController {
   }
 
   /**
+   * Obtener horarios disponibles para agendar (público / admin / usuario)
+   * Endpoint: GET /api/v1/citas/horarios-disponibles?fecha_cita=YYYY-MM-DD&id_servicio=1&id_inmueble=123
+   */
+  async obtenerHorariosDisponibles(req, res, next) {
+    try {
+      const { fecha_cita, id_servicio, id_inmueble, excluir_id_cita } = req.query;
+
+      const idServicioParsed = parseInt(id_servicio, 10);
+      const idInmuebleParsed = id_inmueble ? parseInt(id_inmueble, 10) : null;
+      const excluirIdParsed = excluir_id_cita ? parseInt(excluir_id_cita, 10) : null;
+
+      logger.info(`📅 Horarios disponibles: fecha=${fecha_cita}, servicio=${idServicioParsed}, inmueble=${idInmuebleParsed || 'N/A'}`);
+
+      const horarios = await citaService.obtenerHorariosDisponiblesParaFecha({
+        fecha_cita,
+        id_servicio: idServicioParsed,
+        id_inmueble: idInmuebleParsed || null,
+        excluir_id_cita: excluirIdParsed || null
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Horarios disponibles obtenidos exitosamente',
+        data: horarios
+      });
+    } catch (error) {
+      logger.error(`❌ Error obteniendo horarios disponibles: ${error.message}`);
+      next(error);
+    }
+  }
+
+  /**
    * Obtener horarios disponibles para reagendamiento (usuario normal)
    * Endpoint: GET /api/v1/citas/mis-citas/horarios-disponibles
    */
   async obtenerHorariosDisponiblesReagendar(req, res, next) {
     try {
-      const { fecha_cita, id_servicio } = req.query;
+      const { fecha_cita, id_servicio, id_inmueble, excluir_id_cita } = req.query;
 
       if (!fecha_cita || !id_servicio) {
         return res.status(400).json({
@@ -654,7 +686,7 @@ class CitaController {
         });
       }
 
-      const idServicioParsed = parseInt(id_servicio);
+      const idServicioParsed = parseInt(id_servicio, 10);
       if (isNaN(idServicioParsed) || idServicioParsed <= 0) {
         return res.status(400).json({
           success: false,
@@ -662,69 +694,23 @@ class CitaController {
         });
       }
 
-      logger.info(`🔍 Usuario obteniendo horarios disponibles para reagendamiento: fecha=${fecha_cita}, servicio=${idServicioParsed}`);
+      const idInmuebleParsed = id_inmueble ? parseInt(id_inmueble, 10) : null;
+      const excluirIdParsed = excluir_id_cita ? parseInt(excluir_id_cita, 10) : null;
 
-      // 🚨 LÓGICA ESPECIAL: Si es servicio "Visita a Propiedad" (ID 1)
-      if (idServicioParsed === 1) {
-        logger.info("🏠 Servicio 'Visita a Propiedad': Aplicando restricciones de bloqueo para reagendamiento");
+      logger.info(`🔍 Usuario horarios disponibles (reagendar): fecha=${fecha_cita}, servicio=${idServicioParsed}, inmueble=${idInmuebleParsed || 'N/A'}`);
 
-        // Obtener citas existentes para esa fecha y servicio de visitas a inmuebles
-        // Solo citas confirmadas, programadas o reagendada (no canceladas ni completadas)
-        const filtros = {
-          fecha: fecha_cita,
-          estado_in: "2,3,4" // confirmada, programada, re agendada
-        };
+      const horarios = await citaService.obtenerHorariosDisponiblesParaFecha({
+        fecha_cita,
+        id_servicio: idServicioParsed,
+        id_inmueble: idInmuebleParsed || null,
+        excluir_id_cita: excluirIdParsed || null
+      });
 
-        const result = await citaService.obtenerTodasLasCitas(filtros);
-        const citasExistentes = Array.isArray(result) ? result : (result.citas || []);
-
-        logger.info(`📅 Citas existentes activas para ${fecha_cita}:`, citasExistentes.length);
-
-        // Generar todos los horarios disponibles inicialmente
-        const todosHorarios = [];
-        for (let hora = 8; hora <= 17; hora++) {
-          todosHorarios.push(`${hora.toString().padStart(2, '0')}:00`);
-          if (hora < 17) {
-            todosHorarios.push(`${hora.toString().padStart(2, '0')}:30`);
-          }
-        }
-
-        // Extraer horarios ocupados
-        const horariosOcupados = new Set(
-          citasExistentes.map(cita => cita.hora_inicio)
-        );
-
-        // Filtrar horarios disponibles (no ocupados)
-        const horariosDisponibles = todosHorarios.filter(hora =>
-          !horariosOcupados.has(hora)
-        );
-
-        logger.info(`✅ Horarios disponibles para reagendamiento: ${horariosDisponibles.length} de ${todosHorarios.length}`);
-
-        return res.status(200).json({
-          success: true,
-          message: 'Horarios disponibles obtenidos exitosamente',
-          data: horariosDisponibles
-        });
-
-      } else {
-        // 🆓 PARA OTROS SERVICIOS: Sin restricciones, todos los horarios disponibles
-        logger.info("🆓 Otro servicio: Sin restricciones de bloqueo para reagendamiento");
-
-        const defaultHorarios = [];
-        for (let hora = 8; hora <= 17; hora++) {
-          defaultHorarios.push(`${hora.toString().padStart(2, '0')}:00`);
-          if (hora < 17) {
-            defaultHorarios.push(`${hora.toString().padStart(2, '0')}:30`);
-          }
-        }
-
-        return res.status(200).json({
-          success: true,
-          message: 'Horarios disponibles obtenidos exitosamente',
-          data: defaultHorarios
-        });
-      }
+      return res.status(200).json({
+        success: true,
+        message: 'Horarios disponibles obtenidos exitosamente',
+        data: horarios
+      });
 
     } catch (error) {
       logger.error(`❌ Error obteniendo horarios disponibles para reagendamiento: ${error.message}`);

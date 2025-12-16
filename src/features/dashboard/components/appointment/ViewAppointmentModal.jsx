@@ -182,13 +182,14 @@ const infoItems = [
     color: 'text-indigo-600',
     bgColor: 'bg-indigo-50'
   },
-  {
+  // Conditionally render property card or address
+  ...(servicio.nombre_servicio === 'Servicio Visita a Propiedad' ? [] : [{
     icon: MapPin, // ✅ AGREGADO: Info del inmueble
     label: 'Dirección',
     value: inmueble.direccion ? `${inmueble.direccion}, ${inmueble.ciudad || ''}` : 'No especificado',
     color: 'text-teal-600',
     bgColor: 'bg-teal-50'
-  }
+  }])
 ];
 
   if (!isOpen) return null;
@@ -257,6 +258,155 @@ const infoItems = [
                   </motion.div>
                 ))}
               </div>
+
+              {/* Tarjeta del Inmueble para Visita a Propiedad */}
+              {servicio.nombre_servicio === 'Servicio Visita a Propiedad' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.5 }}
+                  className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-200 rounded-2xl p-8 shadow-lg relative overflow-hidden"
+                >
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-200/30 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-cyan-200/30 to-transparent rounded-full translate-y-12 -translate-x-12"></div>
+
+                  <div className="relative z-10">
+                    {/* Header with icon */}
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 shadow-lg">
+                        <Home className="w-8 h-8 text-emerald-600" />
+                      </div>
+                      <div>
+                        <h4 className="text-2xl font-bold text-emerald-800 mb-1">🏠 Información del Inmueble</h4>
+                        <p className="text-emerald-600 text-sm">Detalles completos de la propiedad a visitar</p>
+                      </div>
+                    </div>
+
+                    {/* Property details in a beautiful grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Left column - Basic info */}
+                      <div className="space-y-5">
+                        {inmueble.titulo && (
+                          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/50">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 bg-emerald-100 rounded-lg">
+                                <FileText className="w-4 h-4 text-emerald-600" />
+                              </div>
+                              <span className="text-sm font-semibold text-emerald-700 uppercase tracking-wide">Título</span>
+                            </div>
+                            <p className="text-emerald-900 font-bold text-lg leading-tight">{inmueble.titulo}</p>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3">
+                          {inmueble.categoria && (
+                            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/50">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="p-1.5 bg-blue-100 rounded-lg">
+                                  <Hash className="w-3 h-3 text-blue-600" />
+                                </div>
+                                <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Tipo</span>
+                              </div>
+                              <p className="text-blue-900 font-semibold text-sm">{inmueble.categoria}</p>
+                            </div>
+                          )}
+
+                          {(inmueble.precio_venta || inmueble.precio_arriendo) && (
+                            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/50">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="p-1.5 bg-green-100 rounded-lg">
+                                  <DollarSign className="w-3 h-3 text-green-600" />
+                                </div>
+                                <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">Precio</span>
+                              </div>
+                              <p className="text-green-900 font-bold text-sm">
+                                {inmueble.operacion === 'Venta' && inmueble.precio_venta
+                                  ? `$${Number(inmueble.precio_venta).toLocaleString('es-CO')}`
+                                  : inmueble.operacion === 'Arriendo' && inmueble.precio_arriendo
+                                  ? `$${Number(inmueble.precio_arriendo).toLocaleString('es-CO')}/mes`
+                                  : 'No especificado'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {(inmueble.area_construida || inmueble.area_terreno) && (
+                          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/50">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 bg-purple-100 rounded-lg">
+                                <div className="w-4 h-4 bg-purple-600 rounded-sm flex items-center justify-center">
+                                  <span className="text-white text-xs font-bold">m²</span>
+                                </div>
+                              </div>
+                              <span className="text-sm font-semibold text-purple-700 uppercase tracking-wide">Área</span>
+                            </div>
+                            <div className="space-y-1">
+                              {inmueble.area_construida && (
+                                <p className="text-purple-900 font-medium">
+                                  🏗️ Construida: <span className="font-bold">{inmueble.area_construida} m²</span>
+                                </p>
+                              )}
+                              {inmueble.area_terreno && (
+                                <p className="text-purple-900 font-medium">
+                                  🌱 Terreno: <span className="font-bold">{inmueble.area_terreno} m²</span>
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right column - Location and description */}
+                      <div className="space-y-5">
+                        {/* Address section */}
+                        <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/50">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-red-100 rounded-lg">
+                              <MapPin className="w-4 h-4 text-red-600" />
+                            </div>
+                            <span className="text-sm font-semibold text-red-700 uppercase tracking-wide">Ubicación</span>
+                          </div>
+                          <div className="space-y-2">
+                            <p className="text-red-900 font-bold text-base leading-tight">
+                              📍 {inmueble.direccion || 'Dirección no especificada'}
+                            </p>
+                            {(inmueble.barrio || inmueble.ciudad || inmueble.departamento) && (
+                              <p className="text-red-800 text-sm">
+                                {inmueble.barrio && `🏘️ ${inmueble.barrio}`}
+                                {inmueble.barrio && (inmueble.ciudad || inmueble.departamento) && ' • '}
+                                {inmueble.ciudad && `🏙️ ${inmueble.ciudad}`}
+                                {(inmueble.ciudad || inmueble.barrio) && inmueble.departamento && ' • '}
+                                {inmueble.departamento && `🇨🇴 ${inmueble.departamento}`}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Description section */}
+                        {inmueble.descripcion && (
+                          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/50">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="p-2 bg-indigo-100 rounded-lg">
+                                <FileText className="w-4 h-4 text-indigo-600" />
+                              </div>
+                              <span className="text-sm font-semibold text-indigo-700 uppercase tracking-wide">Descripción</span>
+                            </div>
+                            <p className="text-indigo-900 leading-relaxed text-sm">{inmueble.descripcion}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Footer note */}
+                    <div className="mt-6 pt-4 border-t border-emerald-200/50">
+                      <p className="text-center text-emerald-700 text-sm font-medium">
+                        🎯 Esta es la propiedad programada para la visita
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
                 {/* Observaciones */}
                 {cita.observaciones && (
