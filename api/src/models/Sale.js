@@ -33,23 +33,18 @@ const Sale = sequelize.define('Sale', {
     allowNull: false,
     field: 'medio_pago'
   },
-<<<<<<< HEAD
-=======
   // Referencia al vendedor (persona)
   id_vendedor: {
     type: DataTypes.INTEGER,
     allowNull: true,
     field: 'id_vendedor'
   },
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   estado: {
     type: DataTypes.STRING(50),
     allowNull: false,
     defaultValue: 'Activa',
     field: 'estado'
   },
-<<<<<<< HEAD
-=======
   // Campos congelados del vendedor al momento de la venta
   tipo_doc_vendedor: {
     type: DataTypes.STRING(20),
@@ -76,7 +71,6 @@ const Sale = sequelize.define('Sale', {
     allowNull: true,
     field: 'telefono_vendedor'
   },
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   fecha_creacion: {
     type: DataTypes.DATE,
     allowNull: false,

@@ -15,11 +15,6 @@ const splitNames = (fullName = '') => {
   return { first, rest: parts.slice(1).join(' ') || second || '' };
 };
 
-<<<<<<< HEAD
-const mapBuyerFromApi = (buyer = {}, formData = {}) => {
-  const persona = buyer.persona || buyer.Persona || buyer;
-  const compra = buyer.compra || buyer.purchase || null;
-=======
 const normalizeDoc = (value = '') =>
   value
     .toString()
@@ -42,7 +37,6 @@ const mapBuyerFromApi = (buyer = {}, formData = {}) => {
     rawBuyerId && rawBuyerId !== buyer?.persona?.id_persona
       ? rawBuyerId
       : buyer?.raw?.id_comprador || null;
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   const { first: primerNombre, rest: segundoNombre } = splitNames(
     persona.nombre_completo || buyer.primerNombre || ''
@@ -52,12 +46,8 @@ const mapBuyerFromApi = (buyer = {}, formData = {}) => {
   );
 
   return {
-<<<<<<< HEAD
-    id: buyer.buyerId || buyer.id_buyer || buyer.id_comprador || buyer.id || persona.id_persona,
-=======
     id: compradorId || null, // ID de comprador (no persona)
     compradorId: compradorId || null,
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     personaId: persona.id_persona,
     tipoDocumento: persona.tipo_documento || buyer.tipoDocumento || 'CC',
     documento: persona.numero_documento || buyer.documento || '',
@@ -110,8 +100,6 @@ export const buyersApiService = {
     return extractList(response).map((item) => mapBuyerFromApi(item));
   },
 
-<<<<<<< HEAD
-=======
   async findByDocument(tipoDocumento, numeroDocumento) {
     const params = {
       tipo_documento: (tipoDocumento || '').trim(),
@@ -146,7 +134,6 @@ export const buyersApiService = {
     return mapBuyerFromApi(exactMatch);
   },
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   async getById(id) {
     const response = await apiClient.get(`/sales/buyers/${id}`);
     const data = response?.data?.data ?? response?.data ?? response;

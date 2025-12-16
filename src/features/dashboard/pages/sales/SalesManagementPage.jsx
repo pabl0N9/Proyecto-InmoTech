@@ -91,8 +91,6 @@ const buildBuyerFullName = (buyer = {}, fallback = "") => {
   return name || fallback || "";
 };
 
-<<<<<<< HEAD
-=======
 const mapSeguimientoEstadoToId = (estado = "") => {
   const normalized = estado
     .normalize("NFD")
@@ -145,7 +143,6 @@ const buildTrackingPayload = (updatedSale = {}) => {
   };
 };
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 const normalizeSaleRecord = (sale = {}, fallback = {}) => {
   const inmueble = sale.inmueble || sale.property || {};
   const comprador = sale.comprador || sale.buyer || {};
@@ -159,14 +156,11 @@ const normalizeSaleRecord = (sale = {}, fallback = {}) => {
 
   return {
     ...fallback,
-<<<<<<< HEAD
-=======
     id_comprador:
       sale.id_comprador ??
       comprador.id_comprador ??
       fallback.id_comprador ??
       null,
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     id: sale.id ?? sale.id_venta ?? fallback.id ?? Date.now(),
     registro:
       fallback.inmuebleRegistro ??
@@ -187,27 +181,11 @@ const normalizeSaleRecord = (sale = {}, fallback = {}) => {
       comprador.tipo_documento ?? fallback.compradorTipoDocumento ?? "N/D",
     compradorDocumento:
       comprador.numero_documento ?? fallback.compradorDocumento ?? "N/D",
-<<<<<<< HEAD
-    compradorNombreCompleto:
-      (fallback.compradorNombreCompleto ?? compradorNombre) || "Sin comprador",
-    compradorCorreo: comprador.correo ?? fallback.compradorCorreo ?? "Sin correo",
-    compradorTelefono:
-      comprador.telefono ?? fallback.compradorTelefono ?? "Sin teléfono",
-    vendedorTipoDocumento:
-      vendedor.tipo_documento ?? fallback.vendedorTipoDocumento ?? "N/D",
-    vendedorDocumento:
-      vendedor.numero_documento ?? fallback.vendedorDocumento ?? "N/D",
-    vendedorNombreCompleto:
-      (fallback.vendedorNombreCompleto ?? vendedorNombre) || "Sin vendedor",
-    vendedorCorreo: vendedor.correo ?? fallback.vendedorCorreo ?? "Sin correo",
-    vendedorTelefono:
-      vendedor.telefono ?? fallback.vendedorTelefono ?? "Sin teléfono",
-=======
         compradorNombreCompleto:
       (fallback.compradorNombreCompleto ?? compradorNombre) || "Sin comprador",
     compradorCorreo: comprador.correo ?? fallback.compradorCorreo ?? "Sin correo",
     compradorTelefono:
-      comprador.telefono ?? fallback.compradorTelefono ?? "Sin tel�fono",
+      comprador.telefono ?? fallback.compradorTelefono ?? "Sin tel�fono",
     vendedorTipoDocumento:
       sale.tipo_documento_vendedor ??
       sale.vendedor_tipo_documento ??
@@ -239,7 +217,6 @@ const normalizeSaleRecord = (sale = {}, fallback = {}) => {
       vendedor.telefono ??
       fallback.vendedorTelefono ??
       "Sin telefono",
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     inmuebleTipo:
       fallback.inmuebleTipo ?? inmueble.categoria ?? fallback.tipo ?? "Sin tipo",
     inmuebleRegistro:
@@ -553,11 +530,7 @@ export function SalesManagementPage() {
       compradorNombreCompleto: buyerFullName,
       compradorCorreo: saleData.compradorCorreo || buyerInfo.correo || "Sin correo",
       compradorTelefono:
-<<<<<<< HEAD
-        saleData.compradorTelefono || buyerInfo.telefono || "Sin teléfono",
-=======
-        saleData.compradorTelefono || buyerInfo.telefono || "Sin tel�fono",
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
+        saleData.compradorTelefono || buyerInfo.telefono || "Sin tel�fono",
       inmuebleTipo:
         matchedProperty.raw?.categoria || matchedProperty.raw?.tipo || saleData.inmuebleTipo,
       inmuebleRegistro: matchedProperty.registro || saleData.inmuebleRegistro,
@@ -613,15 +586,6 @@ export function SalesManagementPage() {
     }
   };
 
-<<<<<<< HEAD
-  const handleUpdateTracking = (updatedSale) => {
-    setVentas((prevVentas) =>
-      prevVentas.map((v) =>
-        v.id === updatedSale.id ? { ...v, ...updatedSale } : v
-      )
-    );
-    setTrackingSale(null);
-=======
   const handleUpdateTracking = async (updatedSale) => {
     const saleId = updatedSale?.id || updatedSale?.id_venta;
     if (!saleId) {
@@ -700,7 +664,6 @@ export function SalesManagementPage() {
     } finally {
       setTrackingSale(null);
     }
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   };
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -820,65 +783,6 @@ export function SalesManagementPage() {
           </motion.button>
         </motion.div>
 
-<<<<<<< HEAD
-        {/* STATS CARDS */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-        >
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm font-medium">Total Ventas</p>
-                <p className="text-2xl font-bold mt-1">{stats.total}</p>
-              </div>
-              <div className="bg-blue-400 rounded-lg p-3">
-                <Home className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm font-medium">Ventas Pagadas</p>
-                <p className="text-2xl font-bold mt-1">{stats.pagadas}</p>
-              </div>
-              <div className="bg-green-400 rounded-lg p-3">
-                <DollarSign className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-yellow-100 text-sm font-medium">Pendientes</p>
-                <p className="text-2xl font-bold mt-1">{stats.pendientes}</p>
-              </div>
-              <div className="bg-yellow-400 rounded-lg p-3">
-                <Calendar className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm font-medium">Valor Total</p>
-                <p className="text-lg font-bold mt-1">{formatCurrencyValue(stats.totalValor)}</p>
-              </div>
-              <div className="bg-purple-400 rounded-lg p-3">
-                <FaDollarSign className="text-lg" />
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-=======
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         {propertiesError && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -964,31 +868,6 @@ export function SalesManagementPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-<<<<<<< HEAD
-          {/* TABLA CON NUEVO ESTILO - SIN COLUMNA ID */}
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            {/* CABECERA DE TABLA */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-              <h3 className="text-white font-semibold flex items-center gap-2">
-                🏠 Lista de Ventas ({filteredVentas.length} {filteredVentas.length === 1 ? "resultado" : "resultados"})
-              </h3>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Registro</th>
-                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Tipo</th>
-                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Comprador</th>
-                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Fecha</th>
-                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Valor</th>
-                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Estado</th>
-                    <th className="px-4 py-3 text-left text-slate-700 font-semibold text-sm border-b">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-=======
           {/* TABLA CON ESTILO UNIFICADO */}
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
             <div className="overflow-x-auto">
@@ -1005,16 +884,11 @@ export function SalesManagementPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   {loadingVentas ? (
                     <tr>
                       <td
                         colSpan="7"
-<<<<<<< HEAD
-                        className="px-4 py-8 text-center text-slate-500 border-b"
-=======
                         className="px-6 py-8 text-center text-slate-500"
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                       >
                         <div className="flex items-center justify-center gap-2">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -1026,21 +900,6 @@ export function SalesManagementPage() {
                     filteredVentas.map((v) => (
                       <tr
                         key={v.id}
-<<<<<<< HEAD
-                        className="hover:bg-slate-50 border-b border-slate-100 transition-colors"
-                      >
-                        <td className="px-4 py-3 text-slate-700">{v.registro}</td>
-                        <td className="px-4 py-3 text-slate-700">{v.tipo}</td>
-                        <td className="px-4 py-3 text-slate-700 truncate max-w-[150px]">{v.comprador}</td>
-                        <td className="px-4 py-3 text-slate-700">{v.fecha}</td>
-                        <td className="px-4 py-3 font-semibold text-purple-700">
-                          {v.valor}
-                        </td>
-                        <td className="px-4 py-3">
-                          <EstadoBadge estado={v.estado} />
-                        </td>
-                        <td className="px-4 py-3">
-=======
                         className="hover:bg-slate-50 transition-colors"
                       >
                         <td className="px-6 py-4 text-sm text-slate-700">{v.registro}</td>
@@ -1054,7 +913,6 @@ export function SalesManagementPage() {
                           <EstadoBadge estado={v.estado} />
                         </td>
                         <td className="px-6 py-4">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex gap-2">
                             <motion.button
                               whileHover={{ scale: 1.1 }}
@@ -1082,11 +940,7 @@ export function SalesManagementPage() {
                     <tr>
                       <td
                         colSpan="7"
-<<<<<<< HEAD
-                        className="px-4 py-8 text-center text-slate-500 border-b"
-=======
                         className="px-6 py-8 text-center text-slate-500"
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                       >
                         <div className="flex flex-col items-center gap-2">
                           <Home className="w-8 h-8 text-slate-400" />
@@ -1109,9 +963,6 @@ export function SalesManagementPage() {
       {renderTrackingModal()}
     </>
   );
-<<<<<<< HEAD
-}
-=======
 }
 
 
@@ -1132,4 +983,3 @@ export function SalesManagementPage() {
 
 
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

@@ -3,18 +3,11 @@ const personaService = require('../services/persona.service');
 const { isSuperAdministrator } = require('../middlewares/auth.middleware');
 const logger = require('../utils/logger');
 const { Persona } = require('../models');
-<<<<<<< HEAD
-=======
 const emailService = require('../services/email.service');
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
 class CitaController {
   async crearCita(req, res, next) {
     try {
-<<<<<<< HEAD
-      const data = req.body;
-      const nuevaCita = await citaService.crearCita(data);
-=======
       const data = req.validatedData ? { ...req.validatedData } : { ...req.body };
 
       if (!data.id_usuario_creador && req.user) {
@@ -34,7 +27,6 @@ class CitaController {
         }
       }
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return res.status(201).json({ success: true, data: nuevaCita });
     } catch (error) {
       if (error.message.includes('Ya existe una cita')) {
@@ -135,8 +127,6 @@ class CitaController {
 
       const cita = await citaService.confirmarCita(parsedId, id_agente_asignado);
 
-<<<<<<< HEAD
-=======
       try {
         const citaDetallada = await citaService.obtenerCitaPorId(parsedId);
         await emailService.enviarEmailCitaConfirmada({ cita: citaDetallada });
@@ -145,7 +135,6 @@ class CitaController {
         logger.error(`[EMAIL][CITA] No se pudo enviar confirmacion de cita ${parsedId}: ${emailError.message}`);
       }
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return res.status(200).json({
         success: true,
         message: 'Cita confirmada exitosamente',
@@ -172,15 +161,12 @@ class CitaController {
 
       const cita = await citaService.cancelarCita(parsedId, motivo_cancelacion);
 
-<<<<<<< HEAD
-=======
       try {
         await emailService.enviarEmailCitaCancelada({ cita, motivo: motivo_cancelacion });
       } catch (emailError) {
         logger.error(`[EMAIL][CITA] No se pudo enviar cancelacion de cita ${parsedId}: ${emailError.message}`);
       }
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return res.status(200).json({
         success: true,
         message: 'Cita cancelada exitosamente',
@@ -217,8 +203,6 @@ class CitaController {
         id_usuario_realizo: req.user.id_persona
       });
 
-<<<<<<< HEAD
-=======
       try {
         const citaDetallada = await citaService.obtenerCitaPorId(parsedId);
         await emailService.enviarEmailCitaReagendada({ cita: citaDetallada, motivo: motivo_reagendamiento });
@@ -226,7 +210,6 @@ class CitaController {
         logger.error(`[EMAIL][CITA] No se pudo enviar reagendamiento de cita ${parsedId}: ${emailError.message}`);
       }
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return res.status(200).json({
         success: true,
         message: 'Cita reagendada exitosamente',
@@ -434,11 +417,6 @@ class CitaController {
         });
       }
 
-<<<<<<< HEAD
-      const { id_agente_nuevo, comentario } = req.validatedData;
-      const idUsuarioRealizo = req.user.id; // ✅ Corregido: usar req.user.id en lugar de req.user.id_persona
-
-=======
       const { id_agente_nuevo, comentario, motivo_reagendamiento } = req.validatedData;
       const idUsuarioRealizo = req.user.id; // ✅ Corregido: usar req.user.id en lugar de req.user.id_persona
 
@@ -456,18 +434,12 @@ class CitaController {
         !citaAntes.id_agente_asignado
       );
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       logger.info(`🔄 Asignando agente ${id_agente_nuevo} a cita ${parsedId} por usuario ${idUsuarioRealizo}`);
 
       const citaActualizada = await citaService.asignarAgente(
         parsedId,
         id_agente_nuevo,
         idUsuarioRealizo,
-<<<<<<< HEAD
-        comentario
-      );
-
-=======
         comentario,
         motivo_reagendamiento
       );
@@ -485,7 +457,6 @@ class CitaController {
         logger.error(`[EMAIL][CITA] No se pudo notificar asignacion de agente en cita ${parsedId}: ${emailError.message}`);
       }
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return res.status(200).json({
         success: true,
         message: 'Agente asignado exitosamente',
@@ -637,17 +608,12 @@ class CitaController {
       }
 
       // Verificar que el estado permita cancelación
-<<<<<<< HEAD
-      const estadosPermitidos = ['solicitada', 'confirmada', 'programada', 're agendada'];
-      if (!estadosPermitidos.includes(cita.estado?.toLowerCase())) {
-=======
       const estadoRaw = typeof cita.estado === 'string'
         ? cita.estado
         : (cita.estado?.nombre_estado || cita.estado?.nombre || '');
       const estadoNormalizado = (estadoRaw || '').toLowerCase();
       const estadosPermitidos = ['solicitada', 'confirmada', 'programada', 're agendada'];
       if (!estadosPermitidos.includes(estadoNormalizado)) {
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         return res.status(400).json({
           success: false,
           message: 'Esta cita no puede ser cancelada en su estado actual'
@@ -656,15 +622,12 @@ class CitaController {
 
       const citaCancelada = await citaService.cancelarCita(parsedId, motivo_cancelacion);
 
-<<<<<<< HEAD
-=======
       try {
         await emailService.enviarEmailCitaCancelada({ cita: citaCancelada, motivo: motivo_cancelacion });
       } catch (emailError) {
         logger.error(`[EMAIL][CITA] No se pudo notificar cancelacion de cita ${parsedId} al cliente: ${emailError.message}`);
       }
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return res.status(200).json({
         success: true,
         message: 'Cita cancelada exitosamente',
@@ -843,15 +806,12 @@ class CitaController {
         ediciones_maximas: citaReagendada.ediciones_maximas
       });
 
-<<<<<<< HEAD
-=======
       try {
         await emailService.enviarEmailCitaReagendada({ cita: citaReagendada, motivo: motivo_reagendamiento });
       } catch (emailError) {
         logger.error(`[EMAIL][CITA] No se pudo notificar reagendamiento de cita ${parsedId}: ${emailError.message}`);
       }
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return res.status(200).json({
         success: true,
         message: 'Cita reagendada exitosamente',

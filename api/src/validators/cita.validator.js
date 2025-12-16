@@ -89,37 +89,24 @@ const crearCitaSchema = Joi.object({
   id_inmueble: Joi.number()
     .integer()
     .positive()
-<<<<<<< HEAD
-    .required(),
-=======
     .allow(null)
     .optional()
     .messages({
       'number.base': 'El inmueble debe ser un número o null',
       'number.positive': 'El inmueble debe ser un número positivo'
     }),
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   id_servicio: Joi.number()
     .integer()
     .positive()
     .required(),
 
-<<<<<<< HEAD
-  fecha_cita: Joi.date()
-    .iso()
-    .custom(isTodayOrFuture)
-    .required()
-    .messages({
-      'date.base': 'La fecha de la cita no es válida',
-=======
   fecha_cita: Joi.string()
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .custom(isTodayOrFuture)
     .required()
     .messages({
       'string.pattern.base': 'El formato de fecha debe ser YYYY-MM-DD',
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       'date.min': 'La fecha de la cita no puede ser anterior a hoy',
       'any.required': 'La fecha de la cita es obligatoria'
     }),
@@ -150,13 +137,8 @@ const actualizarCitaSchema = Joi.object({
     .valid(1, 2, 3, 4, 5, 6)
     .optional(),
 
-<<<<<<< HEAD
-  fecha_cita: Joi.date()
-    .iso()
-=======
   fecha_cita: Joi.string()
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     .custom(isTodayOrFuture)
     .optional(),
 

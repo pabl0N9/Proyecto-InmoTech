@@ -1,50 +1,9 @@
 // Top-level module scope
-<<<<<<< HEAD
-import axios from 'axios'
-
-// Read API URL for both Vite and CRA, with safe fallbacks
-const API_BASE_URL =
-  (typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_URL : undefined) ||
-  (typeof process !== 'undefined' ? process.env?.REACT_APP_API_URL : undefined) ||
-  (typeof window !== 'undefined' && window.__ENV__?.API_URL) ||
-  'http://localhost:5000/api/v1' // <-- corregido: coincide con tu backend
-
-class ReportesInmobiliariosService {
-  constructor() {
-    this.api = axios.create({
-      baseURL: `${API_BASE_URL}/reportes-inmobiliarios`,
-      headers: { 'Content-Type': 'application/json' },
-    })
-
-    this.api.interceptors.request.use(
-      (config) => {
-        const token =
-          localStorage.getItem('inmotech_access_token') ||
-          localStorage.getItem('authToken')
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-      },
-      (error) => Promise.reject(error)
-    )
-
-    // Interceptor para manejar respuestas
-    this.api.interceptors.response.use(
-      // Return the full response so methods that use response.data continue to work
-      (response) => response,
-      (error) => {
-        console.error('API Error:', error.response?.data || error.message);
-        throw error.response?.data || error;
-      }
-    );
-=======
 import { apiClient } from '../../../shared/services/api.config'
 
 class ReportesInmobiliariosService {
   constructor() {
     this.api = apiClient
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   }
 
   // Helper para desempaquetar { success, data }
@@ -60,11 +19,7 @@ class ReportesInmobiliariosService {
       const { seguimientosTemporales, ...datosReporte } = reporteData;
       const payload = { ...datosReporte, seguimiento_general: seguimientoGeneral };
 
-<<<<<<< HEAD
-      const response = await this.api.post('/', payload);
-=======
       const response = await this.api.post('/reportes-inmobiliarios', payload);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       const body = this.unwrapResponseBody(response.data);
       const creado = Array.isArray(body?.reporte) || typeof body?.reporte === 'object' ? body.reporte : body;
 
@@ -94,11 +49,7 @@ class ReportesInmobiliariosService {
       const { seguimientosTemporales, ...datosReporte } = reporteData;
       const payload = { ...datosReporte, seguimiento_general: seguimientoGeneral };
 
-<<<<<<< HEAD
-      const response = await this.api.patch(`/${reporteId}`, payload);
-=======
       const response = await this.api.patch(`/reportes-inmobiliarios/${reporteId}`, payload);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       const body = this.unwrapResponseBody(response.data);
       const actualizado = Array.isArray(body?.reporte) || typeof body?.reporte === 'object' ? body.reporte : body;
 
@@ -124,11 +75,7 @@ class ReportesInmobiliariosService {
 
   async obtenerReporte(reporteId) {
     try {
-<<<<<<< HEAD
-      const response = await this.api.get(`/${reporteId}`);
-=======
       const response = await this.api.get(`/reportes-inmobiliarios/${reporteId}`);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       const body = this.unwrapResponseBody(response.data);
       return body?.reporte || body;
     } catch (error) {
@@ -139,11 +86,7 @@ class ReportesInmobiliariosService {
   async listarReportes(filtros = {}, opciones = {}) {
     try {
       const params = { ...filtros, ...opciones };
-<<<<<<< HEAD
-      const response = await this.api.get('/', { params });
-=======
       const response = await this.api.get('/reportes-inmobiliarios', { params });
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       const body = this.unwrapResponseBody(response.data);
       return Array.isArray(body) ? body : body?.data || []; // soporta ambos esquemas
     } catch (error) {
@@ -154,11 +97,7 @@ class ReportesInmobiliariosService {
   async crearSeguimiento(reporteId, descripcion, estado = 'Pendiente') {
     try {
       const payload = { descripcion, estado };
-<<<<<<< HEAD
-      const response = await this.api.post(`/${reporteId}/seguimientos`, payload);
-=======
       const response = await this.api.post(`/reportes-inmobiliarios/${reporteId}/seguimientos`, payload);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       const body = this.unwrapResponseBody(response.data);
       return body;
     } catch (error) {
@@ -168,11 +107,7 @@ class ReportesInmobiliariosService {
 
   async obtenerHistorialSeguimientos(reporteId, filtros = {}) {
     try {
-<<<<<<< HEAD
-      const response = await this.api.get(`/${reporteId}/seguimientos`, { params: filtros });
-=======
       const response = await this.api.get(`/reportes-inmobiliarios/${reporteId}/seguimientos`, { params: filtros });
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       const body = this.unwrapResponseBody(response.data);
       return Array.isArray(body) ? body : body?.data || [];
     } catch (error) {
@@ -183,11 +118,7 @@ class ReportesInmobiliariosService {
   async actualizarEstadoSeguimiento(reporteId, seguimientoId, estado) {
     try {
       const payload = { estado };
-<<<<<<< HEAD
-      const response = await this.api.patch(`/${reporteId}/seguimientos/${seguimientoId}`, payload);
-=======
       const response = await this.api.patch(`/reportes-inmobiliarios/${reporteId}/seguimientos/${seguimientoId}`, payload);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       const body = this.unwrapResponseBody(response.data);
       return body;
     } catch (error) {
@@ -202,22 +133,13 @@ class ReportesInmobiliariosService {
    */
   async eliminarReporte(reporteId) {
     try {
-<<<<<<< HEAD
-      const response = await this.api.delete(`/${reporteId}`);
-=======
       const response = await this.api.delete(`/reportes-inmobiliarios/${reporteId}`);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return response.data;
     } catch (error) {
       throw this.handleError(error, 'Error al eliminar el reporte');
     }
   }
 
-<<<<<<< HEAD
-  /**
-   * Manejar errores de la API
-   * @param {Object} error - Error de la API
-=======
   // CRUD Rubros API methods
 
   async listarRubros(reporteId) {
@@ -300,20 +222,10 @@ class ReportesInmobiliariosService {
   /**
    * Manejar errores de la API
    * @param {Object} error - Error de la API (Axios u otro)
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
    * @param {string} defaultMessage - Mensaje por defecto
    * @returns {Error} Error procesado
    */
   handleError(error, defaultMessage) {
-<<<<<<< HEAD
-    const message = error.data?.message || error.message || defaultMessage;
-    const statusCode = error.status || error.response?.status || 500;
-    
-    const processedError = new Error(message);
-    processedError.statusCode = statusCode;
-    processedError.originalError = error;
-    
-=======
     const message = error?.response?.data?.message || error?.message || defaultMessage;
     const statusCode = error?.response?.status || error?.status || 500;
 
@@ -321,7 +233,6 @@ class ReportesInmobiliariosService {
     processedError.statusCode = statusCode;
     processedError.originalError = error;
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     return processedError;
   }
 
@@ -332,11 +243,7 @@ class ReportesInmobiliariosService {
    */
   async obtenerEstadisticas(filtros = {}) {
     try {
-<<<<<<< HEAD
-      const response = await this.api.get('/estadisticas', { params: filtros });
-=======
       const response = await this.api.get('/reportes-inmobiliarios/estadisticas', { params: filtros });
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return response.data;
     } catch (error) {
       throw this.handleError(error, 'Error al obtener las estadísticas');
@@ -350,11 +257,7 @@ class ReportesInmobiliariosService {
    */
   async exportarReportes(filtros = {}) {
     try {
-<<<<<<< HEAD
-      const response = await this.api.get('/exportar', {
-=======
       const response = await this.api.get('/reportes-inmobiliarios/exportar', {
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         params: filtros,
         responseType: 'blob'
       });
@@ -363,8 +266,6 @@ class ReportesInmobiliariosService {
       throw this.handleError(error, 'Error al exportar los reportes');
     }
   }
-<<<<<<< HEAD
-=======
   // Adjuntos: Imágenes
   async agregarImagen(reporteId, imagenData) {
     try {
@@ -384,18 +285,12 @@ class ReportesInmobiliariosService {
       throw this.handleError(error, 'Error al agregar el archivo');
     }
   }
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 }
 
 // Instancia singleton del servicio
 const reportesInmobiliariosService = new ReportesInmobiliariosService();
 
 export default reportesInmobiliariosService;
-<<<<<<< HEAD
-
-// Exportar también la clase para testing
-export { ReportesInmobiliariosService };
-=======
 export { ReportesInmobiliariosService };
 
 // Top-level module scope
@@ -467,4 +362,3 @@ export async function actualizarSeguimientoRubro(reporteId, rubroId, seguimiento
     if (!reporteId || !rubroId || !seguimientoId) throw new Error('IDs requeridos para actualizar seguimiento');
     return http(`/reportes-inmobiliarios/${reporteId}/rubros/${rubroId}/seguimientos/${seguimientoId}`, { method: 'PATCH', body: clean(seguimiento) });
 }
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

@@ -1,10 +1,7 @@
 import { apiClient } from './api.config';
 
 const DEFAULT_LIMIT = 100;
-<<<<<<< HEAD
 const OWNER_ROLE = 'Propietario';
-=======
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
 const cleanText = (value, fallback = '') => {
   if (typeof value !== 'string') {
@@ -93,12 +90,8 @@ const mapCreatePayload = (owner = {}) => {
     correo: cleanText(owner.email || owner.correo, '') || null,
     telefono: cleanText(owner.telefono, '') || null,
     estado: owner.estado === 'Inactivo' ? false : true,
-<<<<<<< HEAD
     tiene_cuenta: owner.tieneCuenta ?? false,
     rol: OWNER_ROLE
-=======
-    tiene_cuenta: owner.tieneCuenta ?? false
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   };
 
   Object.keys(payload).forEach((key) => {
@@ -155,12 +148,8 @@ class OwnersApiService {
       const response = await apiClient.get('/personas', {
         pagina: page,
         limite: limit,
-<<<<<<< HEAD
         estado: true,
         rol: OWNER_ROLE
-=======
-        estado: true
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       });
 
       const payload = response?.data || {};

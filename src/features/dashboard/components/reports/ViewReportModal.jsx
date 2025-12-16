@@ -21,16 +21,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-<<<<<<< HEAD
-const ViewReportModal = ({ 
-  isOpen, 
-  onClose, 
-  report,
-  onEdit
-}) => {
-=======
 function ViewReportModal({ isOpen, onClose, report, onEdit }) {
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   if (!isOpen || !report) return null;
 
   // Función para formatear la fecha
@@ -116,8 +107,6 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
 
   const resumen = calcularResumen();
 
-<<<<<<< HEAD
-=======
   // NUEVO: items de información visual estilo Citas
   const infoItems = [
     {
@@ -185,7 +174,6 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
       bgColor: 'bg-red-50'
     }
   ];
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   const modalContent = (
     <AnimatePresence>
       {isOpen && (
@@ -205,11 +193,7 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-<<<<<<< HEAD
-            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50 flex-shrink-0">
-=======
             <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
               <div className="flex items-center gap-4">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <EyeIcon className="w-6 h-6 text-blue-600" />
@@ -253,11 +237,7 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
             {/* Content */}
             <div className="p-6 max-h-[calc(90vh-200px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
               <div className="space-y-6">
-<<<<<<< HEAD
-                {/* Información básica del reporte */}
-=======
                 {/* Información Principal - estilo Citas */}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -266,77 +246,6 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
                 >
                   <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                     <HomeIcon className="w-5 h-5 text-slate-600" />
-<<<<<<< HEAD
-                    Información Básica del Reporte
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          <MapPinIcon className="w-4 h-4 inline mr-1" />
-                          Ubicación
-                        </label>
-                        <div className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm">
-                          {report.ubicacion || 'No definido'}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          <HomeIcon className="w-4 h-4 inline mr-1" />
-                          Tipo de Inmueble
-                        </label>
-                        <div className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm">
-                          {report.tipoInmueble || 'No definido'}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          <FileTextIcon className="w-4 h-4 inline mr-1" />
-                          Referencia
-                        </label>
-                        <div className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm">
-                          {report.referencia || 'No definido'}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          <UserIcon className="w-4 h-4 inline mr-1" />
-                          Propietario
-                        </label>
-                        <div className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm">
-                          {report.propietario || 'No definido'}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          <FileTextIcon className="w-4 h-4 inline mr-1" />
-                          Título del Reporte
-                        </label>
-                        <div className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm">
-                          {report.tipoReporte || 'No definido'}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          <UserIcon className="w-4 h-4 inline mr-1" />
-                          Responsable del Reporte
-                        </label>
-                        <div className="p-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm">
-                          {report.responsable || 'No asignado'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-=======
                     Información Principal
                   </h3>
 
@@ -368,7 +277,6 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
                     ))}
                   </div>
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   <div className="mt-4">
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       <FileTextIcon className="w-4 h-4 inline mr-1" />
@@ -426,11 +334,7 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                           {report.imagenes.map((imagen, index) => (
-<<<<<<< HEAD
-                            <div key={index} className="relative group bg-white border border-slate-200 rounded-lg overflow-hidden">
-=======
                             <div key={imagen.id_imagen || imagen.id || `img-${index}`} className="relative group bg-white border border-slate-200 rounded-lg overflow-hidden">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                               <div className="aspect-video bg-slate-100">
                                 <img
                                   src={imagen.url || imagen.preview}
@@ -472,11 +376,7 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
                         </h4>
                         <div className="space-y-2">
                           {report.archivos.map((archivo, index) => (
-<<<<<<< HEAD
-                            <div key={index} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-=======
                             <div key={archivo.id_archivo || archivo.id || `file-${index}`} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                               <div className="flex items-center space-x-2">
 
                                 <FileIcon className="w-6 h-6 text-slate-400" />
@@ -547,17 +447,11 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
                     </div>
 
                     <div className="space-y-3">
-<<<<<<< HEAD
-                      {rubrosActivos.map((rubro, index) => (
-                        <motion.div
-                          key={rubro.id}
-=======
                       {rubrosActivos.map((rubro, index) => {
                         const rubroKey = rubro.id_rubro || rubro.id || `rubro-${index}`;
                         return (
                         <motion.div
                           key={rubroKey}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.1 }}
@@ -586,12 +480,6 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
                           {/* Seguimientos del Rubro */}
                           {rubro.seguimientos && rubro.seguimientos.length > 0 && (
                             <div className="p-3">
-<<<<<<< HEAD
-                              <h5 className="font-medium text-slate-800 mb-2 text-sm">Seguimientos:</h5>
-                              <div className="space-y-2">
-                                {rubro.seguimientos.map((seguimiento, segIndex) => (
-                                  <div key={seguimiento.id} className="bg-slate-50 rounded-lg p-2 border border-slate-200">
-=======
                               <div className="flex items-center justify-between mb-2">
                                 <h5 className="font-medium text-slate-800 text-sm flex items-center">
                                   <ClipboardListIcon className="w-4 h-4 mr-2 text-blue-600" />
@@ -618,34 +506,11 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
                                       </Badge>
                                     </div>
                                 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                                       <div>
                                         <span className="font-medium text-slate-700">Descripción:</span>
                                         <p className="text-slate-900">{seguimiento.descripcion || 'Sin descripción'}</p>
                                       </div>
-<<<<<<< HEAD
-                                      <div>
-                                        <span className="font-medium text-slate-700">Estado:</span>
-                                        <div className="mt-1">
-                                          <Badge className={`${getFollowUpStatusColor(seguimiento.estado)} text-xs`}>
-                                            {seguimiento.estado || 'Sin estado'}
-                                          </Badge>
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <span className="font-medium text-slate-700">Responsable:</span>
-                                        <p className="text-slate-900">{seguimiento.responsable || 'No asignado'}</p>
-                                      </div>
-                                      <div>
-                                        <span className="font-medium text-slate-700">Fecha:</span>
-                                        <p className="text-slate-900">{seguimiento.fecha || 'Sin fecha'}</p>
-                                      </div>
-                                    </div>
-                                    {seguimiento.subSeguimientos > 0 && (
-                                      <div className="mt-1 pt-1 border-t border-slate-200">
-                                        <span className="text-xs text-slate-600">
-=======
                                       <div className="flex items-center gap-2">
                                         <CalendarIcon className="w-3 h-3 text-slate-500" />
                                         <div>
@@ -665,26 +530,17 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
                                     {seguimiento.subSeguimientos > 0 && (
                                       <div className="mt-2 pt-2 border-t border-slate-200">
                                         <span className="text-[11px] text-slate-600">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                           Sub-seguimientos: {seguimiento.subSeguimientos}
                                         </span>
                                       </div>
                                     )}
                                   </div>
-<<<<<<< HEAD
-                                ))}
-=======
                                 )})}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                               </div>
                             </div>
                           )}
                         </motion.div>
-<<<<<<< HEAD
-                      ))}
-=======
                       )})}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                     </div>
                   </motion.div>
                 )}
@@ -756,8 +612,4 @@ function ViewReportModal({ isOpen, onClose, report, onEdit }) {
   return ReactDOM.createPortal(modalContent, document.body);
 };
 
-<<<<<<< HEAD
 export default ViewReportModal;
-=======
-export default ViewReportModal;
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

@@ -31,10 +31,7 @@ import {
   Building,
   AlertCircle
 } from 'lucide-react';
-<<<<<<< HEAD
-=======
 import { useAuth } from '../../../../shared/contexts/AuthContext.jsx';
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
 const CreateReportModal = ({ 
   isOpen, 
@@ -54,16 +51,6 @@ const CreateReportModal = ({
     isSearching,
   } = usePropertyAutocomplete();
 
-<<<<<<< HEAD
-  // Usuario actual simulado (en producción vendría del contexto de autenticación)
-  const currentUser = {
-    id_persona: 1,
-    primer_nombre: 'Juan',
-    primer_apellido: 'Pérez'
-  };
-
-  // Hook de seguimiento general
-=======
   // Usuario actual desde contexto de autenticación
   const { user } = useAuth();
 
@@ -129,7 +116,6 @@ const CreateReportModal = ({
     .replace(/\D/g, '');
   const numericReportId = reportIdForFollowUps ? parseInt(reportIdForFollowUps, 10) : null;
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   const {
     followUps,
     loading: followUpsLoading,
@@ -141,11 +127,7 @@ const CreateReportModal = ({
     refreshFollowUps,
     getTemporaryFollowUps,
     clearTemporaryFollowUps
-<<<<<<< HEAD
-  } = useGeneralFollowUp(initialData?.id, currentUser);
-=======
   } = useGeneralFollowUp(numericReportId, currentUser);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   // Función para obtener la fecha actual en formato ISO
   const getCurrentDate = () => {
@@ -165,8 +147,6 @@ const CreateReportModal = ({
     }) + ' pm';
   };
 
-<<<<<<< HEAD
-=======
   // Función para obtener fecha y hora actual en formato compatible con input datetime-local
   const getCurrentDateTimeLocal = () => {
     const now = new Date();
@@ -179,7 +159,6 @@ const CreateReportModal = ({
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   // Valores por defecto para el formulario
   const defaultFormData = {
     ubicacion: '',
@@ -215,11 +194,6 @@ const CreateReportModal = ({
   // Resetear formulario cuando se abre/cierra el modal
   useEffect(() => {
     if (isOpen) {
-<<<<<<< HEAD
-      if (initialData) {
-        setFormData({...defaultFormData, ...initialData});
-        setRubros(initialData.rubros || []);
-=======
       const base = initialData ? { ...defaultFormData, ...initialData } : { ...defaultFormData };
       const fullName = getUserFullName();
 
@@ -242,7 +216,6 @@ const CreateReportModal = ({
           })),
         }));
         setRubros(normalizedRubros);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         setImagenes(initialData.imagenes || []);
         setArchivos(initialData.archivos || []);
         // Si hay una referencia inicial, buscar la propiedad
@@ -250,11 +223,7 @@ const CreateReportModal = ({
           setSearchTerm(initialData.referencia);
         }
       } else {
-<<<<<<< HEAD
-        setFormData(defaultFormData);
-=======
         setFormData({ ...defaultFormData, responsable: fullName });
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         setRubros([]);
         setImagenes([]);
         setArchivos([]);
@@ -263,11 +232,7 @@ const CreateReportModal = ({
       setErrors({});
       setShowPropertyInfo(false);
     }
-<<<<<<< HEAD
-  }, [isOpen, initialData]);
-=======
   }, [isOpen, initialData, user]);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   // Validar el formulario
   const validateForm = () => {
@@ -412,28 +377,16 @@ const CreateReportModal = ({
   const agregarRubro = () => {
     const nuevoRubro = {
       id: Date.now(),
-<<<<<<< HEAD
-=======
       backendId: 0,
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       nombre: '',
       descripcion: '',
       seguimientos: [],
       expandido: true,
-<<<<<<< HEAD
-      activo: true, // Nuevo campo para soft delete
-      fechaAnulacion: null // Fecha cuando se anuló
-    };
-    setRubros(prev => [...prev, nuevoRubro]);
-
-    // Toast estilo Citas
-=======
       activo: true,
       fechaAnulacion: null
     };
     setRubros(prev => [...prev, nuevoRubro]);
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     toast({
       title: 'Rubro agregado',
       description: 'Se creó un nuevo rubro correctamente.',
@@ -481,26 +434,6 @@ const CreateReportModal = ({
     ));
   };
 
-<<<<<<< HEAD
-  // Agregar seguimiento a rubro
-  const agregarSeguimientoRubro = (rubroId) => {
-    const nuevoSeguimiento = {
-      id: Date.now(),
-      descripcion: '',
-      fecha: getCurrentDate(),
-      estado: 'pendiente',
-      activo: true,
-      fechaAnulacion: null
-    };
-    
-    setRubros(prev => prev.map(rubro => 
-      rubro.id === rubroId 
-        ? { ...rubro, seguimientos: [...rubro.seguimientos, nuevoSeguimiento] }
-        : rubro
-    ));
-
-    // Toast estilo Citas
-=======
   // Agregar seguimiento a rubro con debounce para evitar múltiples solicitudes
   let agregacionTimeout = null;
   const agregarSeguimientoRubro = (rubroId) => {
@@ -526,7 +459,6 @@ const CreateReportModal = ({
       ));
     }, 300); // debounce delay 300ms
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     toast({
       title: 'Seguimiento agregado',
       description: 'Se añadió un seguimiento al rubro correctamente.',
@@ -886,17 +818,10 @@ const CreateReportModal = ({
                       </h4>
                     </div>
                     <Input
-<<<<<<< HEAD
-                      value={formData.responsable}
-                      onChange={(e) => handleChange('responsable', e.target.value)}
-                      placeholder="Nombre del responsable"
-                      className="text-sm"
-=======
                       value={formData.responsable || getUserFullName()}
                       readOnly
                       disabled
                       className="text-sm bg-gray-50 cursor-not-allowed"
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                     />
                   </div>
                 </div>
@@ -1058,24 +983,6 @@ const CreateReportModal = ({
                   
                   {imagenes.length > 0 ? (
                     <div className="grid grid-cols-2 gap-3">
-<<<<<<< HEAD
-                      {imagenes.map((imagen, index) => (
-                        <div key={imagen.id} className="relative group">
-                          <img
-                            src={imagen.url}
-                            alt={`Imagen ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => eliminarImagen(imagen.id)}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-=======
                     {imagenes.map((imagen, index) => (
                       <div key={imagen.id ?? index} className="relative group">
                         <img
@@ -1092,7 +999,6 @@ const CreateReportModal = ({
                         </button>
                       </div>
                     ))}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
@@ -1167,19 +1073,6 @@ const CreateReportModal = ({
 
               {/* Bloque de Seguimiento General con separación */}
               <div className="mt-6">
-<<<<<<< HEAD
-                <GeneralFollowUpSection
-                  reportId={initialData?.id}
-                  followUps={followUps}
-                  onAddFollowUp={addFollowUp}
-                  onUpdateFollowUpStatus={updateFollowUpStatus}
-                  currentUser={currentUser}
-                  isEditing={true}
-                  newFollowUpNote={newFollowUpNote}
-                  onNewFollowUpChange={handleNewFollowUpChange}
-                  isSubmitting={followUpsSubmitting}
-                />
-=======
               <GeneralFollowUpSection
                 reportId={numericReportId}
                 followUps={followUps}
@@ -1191,7 +1084,6 @@ const CreateReportModal = ({
                 onNewFollowUpChange={handleNewFollowUpChange}
                 isSubmitting={followUpsSubmitting}
               />
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
               </div>
 
               {/* Rubros del Proyecto */}
@@ -1277,12 +1169,6 @@ const CreateReportModal = ({
                           {/* Seguimientos del rubro */}
                           <div className="border-t pt-3">
                             <div className="flex items-center justify-between mb-4">
-<<<<<<< HEAD
-                              <h4 className="text-sm font-medium text-gray-700 flex items-center">
-                                <ClipboardListIcon className="w-4 h-4 mr-2 text-blue-600" />
-                                Seguimientos del Rubro
-                                <Badge variant="secondary" className="ml-2 text-xs">
-=======
                               <h4 className="text-sm font-medium text-gray-800 flex items-center">
                                 <ClipboardListIcon className="w-4 h-4 mr-2 text-blue-600" />
                                 Seguimientos del Rubro
@@ -1290,7 +1176,6 @@ const CreateReportModal = ({
                                   variant="secondary"
                                   className="ml-2 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2"
                                 >
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                   {rubro.seguimientos.filter(seg => seg.activo !== false).length}
                                 </Badge>
                               </h4>
@@ -1299,31 +1184,12 @@ const CreateReportModal = ({
                                 onClick={() => agregarSeguimientoRubro(rubro.id)}
                                 size="sm"
                                 variant="outline"
-<<<<<<< HEAD
-                                className="text-blue-600 border-blue-600 hover:bg-blue-50 text-xs px-3 py-1"
-=======
                                 className="text-white bg-blue-600 hover:bg-blue-700 border-blue-600 text-xs px-3 py-1 rounded-md shadow-sm"
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                               >
                                 <PlusIcon className="w-3 h-3 mr-1" />
                                 Nuevo Seguimiento
                               </Button>
                             </div>
-<<<<<<< HEAD
-                            
-                            <div className="space-y-2">
-                              {rubro.seguimientos.filter(seg => seg.activo !== false).map((seguimiento, index) => (
-                                <div key={seguimiento.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                                  {/* Header del seguimiento */}
-                                  <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center space-x-2">
-                                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <span className="text-xs font-medium text-blue-600">#{index + 1}</span>
-                                      </div>
-                                      <span className="text-sm font-medium text-gray-700">Seguimiento {index + 1}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-=======
 
                             <div className="space-y-2">
                               {rubro.seguimientos.filter(seg => seg.activo !== false).map((seguimiento, index) => (
@@ -1352,17 +1218,12 @@ const CreateReportModal = ({
                                       >
                                         {seguimiento.estado ? seguimiento.estado[0].toUpperCase() + seguimiento.estado.slice(1) : 'Pendiente'}
                                       </span>
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                       <Button
                                         type="button"
                                         onClick={() => toggleSeguimientoActivo(rubro.id, seguimiento.id)}
                                         size="sm"
                                         variant="outline"
-<<<<<<< HEAD
-                                        className="text-orange-600 border-orange-600 hover:bg-orange-50 text-xs px-2 py-1"
-=======
                                         className="text-red-600 border-red-200 hover:bg-red-50 text-xs px-2 py-1 rounded-md"
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                       >
                                         <XCircleIcon className="w-3 h-3 mr-1" />
                                         Anular
@@ -1373,32 +1234,19 @@ const CreateReportModal = ({
                                   {/* Campos organizados en grid */}
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                                     <div>
-<<<<<<< HEAD
-                                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                                        <CalendarIcon className="w-3 h-3 inline mr-1" />
-                                        Fecha
-                                      </label>
-                                      <Input
-                                        type="date"
-=======
                                       <label className="block text-xs font-medium text-slate-700 mb-1">
                                         <CalendarIcon className="w-3 h-3 inline mr-1 text-slate-500" />
                                         Fecha
                                       </label>
                                       <Input
                                         type="datetime-local"
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                         value={seguimiento.fecha}
                                         onChange={(e) => editarSeguimientoRubro(rubro.id, seguimiento.id, 'fecha', e.target.value)}
                                         className="text-xs h-8"
                                       />
                                     </div>
                                     <div>
-<<<<<<< HEAD
-                                      <label className="block text-xs font-medium text-gray-700 mb-1">
-=======
                                       <label className="block text-xs font-medium text-slate-700 mb-1">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                         Estado
                                       </label>
                                       <Select
@@ -1408,11 +1256,7 @@ const CreateReportModal = ({
                                         <SelectTrigger className="text-xs h-8">
                                           <SelectValue />
                                         </SelectTrigger>
-<<<<<<< HEAD
-                                        <SelectContent>
-=======
                                         <SelectContent className="text-xs">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                           <SelectItem value="pendiente">
                                             <div className="flex items-center">
                                               <div className="w-2 h-2 bg-yellow-400 rounded-full mr-2"></div>
@@ -1436,17 +1280,10 @@ const CreateReportModal = ({
                                     </div>
                                   </div>
 
-<<<<<<< HEAD
-                                  {/* Campo de responsable */}
-                                  <div className="mb-3">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                      <UserIcon className="w-3 h-3 inline mr-1" />
-=======
                                   {/* Responsable */}
                                   <div className="mb-3">
                                     <label className="block text-xs font-medium text-slate-700 mb-1">
                                       <UserIcon className="w-3 h-3 inline mr-1 text-slate-500" />
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                       Responsable
                                     </label>
                                     <Input
@@ -1459,13 +1296,8 @@ const CreateReportModal = ({
 
                                   {/* Descripción */}
                                   <div>
-<<<<<<< HEAD
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                      <FileText className="w-3 h-3 inline mr-1" />
-=======
                                     <label className="block text-xs font-medium text-slate-700 mb-1">
                                       <FileText className="w-3 h-3 inline mr-1 text-slate-500" />
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                       Descripción
                                     </label>
                                     <Textarea
@@ -1478,16 +1310,6 @@ const CreateReportModal = ({
                                   </div>
 
                                   {/* Indicador de estado visual */}
-<<<<<<< HEAD
-                                  <div className="mt-3 pt-2 border-t border-gray-100">
-                                    <div className="flex items-center justify-between text-xs text-gray-500">
-                                      <span>Estado actual:</span>
-                                      <div className="flex items-center">
-                                        <div className={`w-2 h-2 rounded-full mr-2 ${
-                                          seguimiento.estado === 'completado' ? 'bg-green-400' :
-                                          seguimiento.estado === 'en-proceso' ? 'bg-blue-400' : 'bg-yellow-400'
-                                        }`}></div>
-=======
                                   <div className="mt-3 pt-2 border-t border-slate-100">
                                     <div className="flex items-center justify-between text-xs text-slate-600">
                                       <span>Estado actual:</span>
@@ -1501,7 +1323,6 @@ const CreateReportModal = ({
                                               : 'bg-yellow-400'
                                           }`}
                                         ></div>
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                         <span className="capitalize">{seguimiento.estado || 'pendiente'}</span>
                                       </div>
                                     </div>
@@ -1510,21 +1331,6 @@ const CreateReportModal = ({
                               ))}
 
                               {/* Indicador de progreso del rubro */}
-<<<<<<< HEAD
-                              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="font-medium text-gray-700">Progreso del rubro:</span>
-                                  <span className="text-gray-600">
-                                    {rubro.seguimientos.filter(seg => seg.activo !== false && seg.estado === 'completado').length} de {rubro.seguimientos.filter(seg => seg.activo !== false).length} completados
-                                  </span>
-                                </div>
-                                <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                                  <div 
-                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                    style={{
-                                      width: `${rubro.seguimientos.filter(seg => seg.activo !== false).length > 0 
-                                        ? (rubro.seguimientos.filter(seg => seg.activo !== false && seg.estado === 'completado').length / rubro.seguimientos.filter(seg => seg.activo !== false).length) * 100 
-=======
                               <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
                                 <div className="flex items-center justify-between text-xs">
                                   <span className="font-medium text-slate-800">Progreso del rubro:</span>
@@ -1538,7 +1344,6 @@ const CreateReportModal = ({
                                     style={{
                                       width: `${rubro.seguimientos.filter(seg => seg.activo !== false).length > 0
                                         ? (rubro.seguimientos.filter(seg => seg.activo !== false && seg.estado === 'completado').length / rubro.seguimientos.filter(seg => seg.activo !== false).length) * 100
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                         : 0}%`
                                     }}
                                   ></div>
@@ -1548,28 +1353,12 @@ const CreateReportModal = ({
                               {/* Seguimientos Anulados */}
                               {rubro.seguimientos.filter(seg => seg.activo === false).length > 0 && (
                                 <div className="mt-3">
-<<<<<<< HEAD
-                                  <h5 className="text-xs font-medium text-gray-500 mb-2 flex items-center">
-                                    <XCircleIcon className="w-3 h-3 mr-1" />
-=======
                                   <h5 className="text-xs font-medium text-slate-600 mb-2 flex items-center">
                                     <XCircleIcon className="w-3 h-3 mr-1 text-red-500" />
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                     Seguimientos Anulados ({rubro.seguimientos.filter(seg => seg.activo === false).length})
                                   </h5>
                                   <div className="space-y-2">
                                     {rubro.seguimientos.filter(seg => seg.activo === false).map((seguimiento) => (
-<<<<<<< HEAD
-                                      <div key={seguimiento.id} className="bg-red-50 rounded p-3 opacity-60">
-                                        <div className="flex items-center justify-between mb-2">
-                                          <div className="flex items-center space-x-2">
-                                            <CalendarIcon className="w-3 h-3 text-gray-400" />
-                                            <span className="text-xs text-gray-600">{seguimiento.fecha}</span>
-                                            <Badge variant="secondary" className="text-xs">
-                                              {seguimiento.estado}
-                                            </Badge>
-                                            <span className="text-xs text-red-600">
-=======
                                       <div key={seguimiento.id} className="bg-red-50 border border-red-200 rounded p-3">
                                         <div className="flex items-center justify-between mb-2">
                                           <div className="flex items-center space-x-2">
@@ -1579,7 +1368,6 @@ const CreateReportModal = ({
                                               {seguimiento.estado}
                                             </Badge>
                                             <span className="text-[11px] text-red-700">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                               (Anulado: {new Date(seguimiento.fechaAnulacion).toLocaleDateString()})
                                             </span>
                                           </div>
@@ -1588,20 +1376,12 @@ const CreateReportModal = ({
                                             onClick={() => toggleSeguimientoActivo(rubro.id, seguimiento.id)}
                                             size="sm"
                                             variant="outline"
-<<<<<<< HEAD
-                                            className="text-green-600 border-green-600 hover:bg-green-50 text-xs px-2 py-1"
-=======
                                             className="text-green-700 border-green-200 hover:bg-green-50 text-xs px-2 py-1 rounded-md"
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                           >
                                             Reactivar
                                           </Button>
                                         </div>
-<<<<<<< HEAD
-                                        <p className="text-xs text-gray-600 line-through">
-=======
                                         <p className="text-xs text-slate-700 line-through">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                           {seguimiento.descripcion || 'Sin descripción'}
                                         </p>
                                       </div>

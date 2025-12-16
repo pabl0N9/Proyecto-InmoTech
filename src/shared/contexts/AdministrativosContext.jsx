@@ -3,7 +3,7 @@ import administrativosApiService from '../services/administrativosApiService';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from './AuthContext';
 
-const AdministrativosContext = createContext();
+const AdministrativosContext = createContext(null);
 
 export const useAdministrativos = () => {
   const context = useContext(AdministrativosContext);
@@ -20,7 +20,6 @@ export const AdministrativosProvider = ({ children }) => {
   const { toast } = useToast();
   const { isAuthenticated, user } = useAuth();
 
-  // Cargar administrativos
   const loadAdministrativos = useCallback(async (params = {}) => {
     try {
       setLoading(true);
@@ -30,24 +29,22 @@ export const AdministrativosProvider = ({ children }) => {
     } catch (err) {
       setError(err.message || 'Error al cargar administrativos');
       toast({
-        title: "Error",
-        description: "No se pudieron cargar los administrativos",
-        variant: "destructive"
+        title: 'Error',
+        description: 'No se pudieron cargar los administrativos',
+        variant: 'destructive'
       });
     } finally {
       setLoading(false);
     }
   }, [toast]);
 
-  // Agregar administrativo
   const addAdministrativo = useCallback((nuevoAdministrativo) => {
-    setAdministrativos(prev => [...prev, nuevoAdministrativo]);
+    setAdministrativos((prev) => [...prev, nuevoAdministrativo]);
   }, []);
 
-  // Actualizar administrativo
   const updateAdministrativo = useCallback((administrativoActualizado) => {
-    setAdministrativos(prev =>
-      prev.map(admin =>
+    setAdministrativos((prev) =>
+      prev.map((admin) =>
         admin.id_administrativo === administrativoActualizado.id_administrativo
           ? administrativoActualizado
           : admin
@@ -55,135 +52,109 @@ export const AdministrativosProvider = ({ children }) => {
     );
   }, []);
 
-  // Eliminar administrativo
   const deleteAdministrativo = useCallback((id) => {
-    setAdministrativos(prev =>
-      prev.filter(admin => admin.id_administrativo !== id)
-    );
+    setAdministrativos((prev) => prev.filter((admin) => admin.id_administrativo !== id));
   }, []);
 
-  // Cambiar estado de administrativo
   const changeEstadoAdministrativo = useCallback(async (id, nuevoEstado, fechaRetiro = null) => {
     try {
       const estadoData = { estado_laboral: nuevoEstado };
-      if (fechaRetiro) {
-        estadoData.fecha_retiro = fechaRetiro;
-      }
+      if (fechaRetiro) estadoData.fecha_retiro = fechaRetiro;
 
       await administrativosApiService.cambiarEstadoAdministrativo(id, estadoData);
-
-      // Actualizar el estado local
-      setAdministrativos(prev =>
-        prev.map(admin =>
+      setAdministrativos((prev) =>
+        prev.map((admin) =>
           admin.id_administrativo === id
             ? { ...admin, estado_laboral: nuevoEstado, fecha_retiro: fechaRetiro }
             : admin
         )
       );
-
       return true;
-    } catch (error) {
-      console.error('Error cambiando estado:', error);
-      throw error;
+    } catch (err) {
+      console.error('Error cambiando estado:', err);
+      throw err;
     }
   }, []);
 
-  // Crear administrativo
   const createAdministrativo = useCallback(async (adminData) => {
     try {
       const response = await administrativosApiService.createAdministrativo(adminData);
       const nuevoAdmin = response.data;
-
-      // Agregar a la lista local
       addAdministrativo(nuevoAdmin);
-
       toast({
-        title: "¡Éxito!",
-        description: "Administrativo creado correctamente",
-        variant: "default"
+        title: 'Éxito',
+        description: 'Administrativo creado correctamente',
+        variant: 'default'
       });
-
       return nuevoAdmin;
-    } catch (error) {
-      console.error('Error creando administrativo:', error);
+    } catch (err) {
+      console.error('Error creando administrativo:', err);
       toast({
-        title: "Error",
-        description: error.response?.data?.message || "Error al crear administrativo",
-        variant: "destructive"
+        title: 'Error',
+        description: err.response?.data?.message || 'Error al crear administrativo',
+        variant: 'destructive'
       });
-      throw error;
+      throw err;
     }
   }, [addAdministrativo, toast]);
 
-  // Actualizar administrativo completo
   const updateAdministrativoComplete = useCallback(async (id, adminData) => {
     try {
       const response = await administrativosApiService.updateAdministrativo(id, adminData);
       const adminActualizado = response.data.data;
-
-      // Actualizar en la lista local
       updateAdministrativo(adminActualizado);
-
       toast({
-        title: "¡Éxito!",
-        description: "Administrativo actualizado correctamente",
-        variant: "default"
+        title: 'Éxito',
+        description: 'Administrativo actualizado correctamente',
+        variant: 'default'
       });
-
       return adminActualizado;
-    } catch (error) {
-      console.error('Error actualizando administrativo:', error);
+    } catch (err) {
+      console.error('Error actualizando administrativo:', err);
       toast({
-        title: "Error",
-        description: error.response?.data?.message || "Error al actualizar administrativo",
-        variant: "destructive"
+        title: 'Error',
+        description: err.response?.data?.message || 'Error al actualizar administrativo',
+        variant: 'destructive'
       });
-      throw error;
+      throw err;
     }
   }, [updateAdministrativo, toast]);
 
-  // Eliminar administrativo
   const removeAdministrativo = useCallback(async (id) => {
     try {
       await administrativosApiService.deleteAdministrativo(id);
-
-      // Remover de la lista local
       deleteAdministrativo(id);
-
       toast({
-        title: "¡Éxito!",
-        description: "Administrativo eliminado correctamente",
-        variant: "default"
+        title: 'Éxito',
+        description: 'Administrativo eliminado correctamente',
+        variant: 'default'
       });
-
       return true;
-    } catch (error) {
-      console.error('Error eliminando administrativo:', error);
+    } catch (err) {
+      console.error('Error eliminando administrativo:', err);
       toast({
-        title: "Error",
-        description: error.response?.data?.message || "Error al eliminar administrativo",
-        variant: "destructive"
+        title: 'Error',
+        description: err.response?.data?.message || 'Error al eliminar administrativo',
+        variant: 'destructive'
       });
-      throw error;
+      throw err;
     }
   }, [deleteAdministrativo, toast]);
 
-  // Obtener administrativo por ID
   const getAdministrativoById = useCallback(async (id) => {
     try {
       const response = await administrativosApiService.getAdministrativoById(id);
       return response.data.data;
-    } catch (error) {
-      console.error('Error obteniendo administrativo:', error);
-      throw error;
+    } catch (err) {
+      console.error('Error obteniendo administrativo:', err);
+      throw err;
     }
   }, []);
 
-<<<<<<< HEAD
   // Cargar datos iniciales solo si hay autenticación, feature habilitada y roles adecuados
   useEffect(() => {
     const flagEnabled = import.meta?.env?.VITE_ENABLE_ADMINISTRATIVOS === 'true';
-    const hasRequiredRole = user?.roles?.some(role => {
+    const hasRequiredRole = user?.roles?.some((role) => {
       if (typeof role === 'object') {
         return ['Super Administrador', 'Administrador'].includes(role.nombre_rol || role.rol || role.name);
       }
@@ -191,13 +162,6 @@ export const AdministrativosProvider = ({ children }) => {
     });
 
     if (isAuthenticated && flagEnabled && hasRequiredRole) {
-=======
-  // Cargar datos iniciales solo si hay autenticación y roles adecuados
-  useEffect(() => {
-    // Solo cargar si está autenticado y tiene rol Super Administrador o Administrador
-    const hasRequiredRole = user?.roles?.some(role => ['Super Administrador', 'Administrador'].includes(role));
-    if (isAuthenticated && hasRequiredRole) {
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       loadAdministrativos();
     } else {
       setLoading(false);
@@ -219,9 +183,5 @@ export const AdministrativosProvider = ({ children }) => {
     getAdministrativoById
   };
 
-  return (
-    <AdministrativosContext.Provider value={value}>
-      {children}
-    </AdministrativosContext.Provider>
-  );
+  return <AdministrativosContext.Provider value={value}>{children}</AdministrativosContext.Provider>;
 };

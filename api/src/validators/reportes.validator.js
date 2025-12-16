@@ -131,7 +131,7 @@ const listarReportesSchema = Joi.object({
       'date.greater': 'La fecha hasta debe ser posterior a la fecha desde'
     }),
 
-  id_generado_por: Joi.number()
+  id_persona_reporta: Joi.number()
     .integer()
     .positive()
     .optional(),

@@ -251,9 +251,6 @@ const CitasPage = () => {
 
         // Actualizar en el contexto local con la respuesta del backend
         // La cita ya está confirmada en el backend
-<<<<<<< HEAD
-        updateAppointment(respuesta);
-=======
         updateAppointment({
           ...respuesta,
           estado: respuesta.estado || 'confirmada',
@@ -267,7 +264,6 @@ const CitasPage = () => {
           },
           _skipApi: true
         });
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
         setIsAcceptDialogOpen(false);
         setSelectedCita(null);

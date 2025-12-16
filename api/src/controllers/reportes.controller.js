@@ -192,23 +192,6 @@ class ReportesController {
   }
 
   /**
-<<<<<<< HEAD
-   * Obtener estadísticas para el dashboard
-   */
-  async obtenerEstadisticasDashboard(req, res, next) {
-    try {
-      const { range = '30d' } = req.query;
-      const requester = req.user || {};
-
-      const userContext = {
-        id: requester.id,
-        roles: requester.roles || [],
-        permisos: requester.permisos || null
-      };
-
-      const estadisticas = await reportesService.obtenerEstadisticasDashboard(userContext, range);
-
-=======
    * Obtener estadísticas del dashboard
    */
   async obtenerEstadisticasDashboard(req, res, next) {
@@ -222,7 +205,6 @@ class ReportesController {
         reportes_por_estado: {}
       };
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return res.status(200).json({
         success: true,
         message: 'Estadísticas del dashboard obtenidas exitosamente',

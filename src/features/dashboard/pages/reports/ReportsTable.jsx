@@ -1,11 +1,7 @@
 import React, { useState } from 'react'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
-<<<<<<< HEAD
-import { EyeIcon, EditIcon, DownloadIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
-=======
 import { EyeIcon, EditIcon, DownloadIcon, ChevronLeftIcon, ChevronRightIcon, FileText, MapPin, Building, User, Calendar, BarChart3, CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react'
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
 export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
   const [sortField, setSortField] = useState(null)
@@ -27,20 +23,15 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
         return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'Sin novedades':
         return 'bg-gray-100 text-gray-800 border-gray-200'
-<<<<<<< HEAD
-=======
       case 'Pendiente':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'Cancelado':
         return 'bg-red-100 text-red-800 border-red-200'
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
 
-<<<<<<< HEAD
-=======
   // Función para obtener información del estado con icono
   const getStatusInfo = (estado) => {
     const statusConfig = {
@@ -78,7 +69,6 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
     return statusConfig[estado] || statusConfig['Pendiente'];
   }
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   // Función para manejar el ordenamiento
   const handleSort = (field) => {
     if (sortField === field) {
@@ -127,8 +117,6 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
     setCurrentPage(1)
   }, [sortedReports.length])
 
-<<<<<<< HEAD
-=======
   // Calcular estadísticas
   const stats = {
     total: reportsData.length,
@@ -230,7 +218,6 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
     )
   }
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   // Componente para vista móvil (tarjetas)
   const MobileCard = ({ report }) => (
     <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
@@ -314,168 +301,6 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
   )
 
   return (
-<<<<<<< HEAD
-    <div className="bg-white shadow-sm rounded-lg">
-      {/* Vista Desktop - Tabla optimizada */}
-      <div className="hidden lg:block">
-        <table className="w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <SortableHeader field="id" className="w-16">ID</SortableHeader>
-              <SortableHeader field="ubicacion" className="w-24">Ubicación</SortableHeader>
-              <SortableHeader field="tipoInmueble" className="w-20">Tipo</SortableHeader>
-              <SortableHeader field="propietario" className="w-32">Propietario</SortableHeader>
-              <SortableHeader field="tipoReporte" className="w-28">Reporte</SortableHeader>
-              <SortableHeader field="fecha" className="w-24">Fecha</SortableHeader>
-              <SortableHeader field="estado" className="w-24">Estado</SortableHeader>
-              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {currentReports.map((report) => (
-              <tr key={report.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-3 py-4 text-sm font-medium text-gray-900">
-                  {report.id}
-                </td>
-                <td className="px-3 py-4 text-sm text-gray-900">
-                  <div className="capitalize">{report.ubicacion}</div>
-                </td>
-                <td className="px-3 py-4 text-sm text-gray-900 capitalize">
-                  {report.tipoInmueble}
-                </td>
-                <td className="px-3 py-4 text-sm text-gray-900">
-                  {report.propietario}
-                </td>
-                <td className="px-3 py-4 text-sm text-gray-900">
-                  <div className="max-w-xs">
-                    {report.tipoReporte}
-                  </div>
-                </td>
-                <td className="px-3 py-4 text-sm text-gray-900">
-                  {report.fecha}
-                </td>
-                <td className="px-3 py-4">
-                  <Badge className={`${getStatusColor(report.estado)} border text-xs`}>
-                    {report.estado}
-                  </Badge>
-                </td>
-                <td className="px-3 py-4 text-right text-sm font-medium">
-                  <div className="flex items-center justify-end space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onView?.(report)}
-                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1"
-                      title="Ver reporte"
-                    >
-                      <EyeIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEdit?.(report)}
-                      className="text-green-600 hover:text-green-800 hover:bg-green-50 p-1"
-                      title="Editar reporte"
-                    >
-                      <EditIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDownloadPDF?.(report)}
-                      className="text-purple-600 hover:text-purple-800 hover:bg-purple-50 p-1"
-                      title="Descargar PDF"
-                    >
-                      <DownloadIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Vista Tablet - Tabla simplificada */}
-      <div className="hidden md:block lg:hidden">
-        <table className="w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <SortableHeader field="id">ID</SortableHeader>
-              <SortableHeader field="ubicacion">Ubicación</SortableHeader>
-              <SortableHeader field="propietario">Propietario</SortableHeader>
-              <SortableHeader field="estado">Estado</SortableHeader>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {currentReports.map((report) => (
-              <tr key={report.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-4 text-sm font-medium text-gray-900">
-                  {report.id}
-                </td>
-                <td className="px-4 py-4 text-sm text-gray-900">
-                  <div className="capitalize">{report.ubicacion}</div>
-                  <div className="text-xs text-gray-500 capitalize">{report.tipoReporte}</div>
-                </td>
-                <td className="px-4 py-4 text-sm text-gray-900">
-                  <div>{report.propietario}</div>
-                  <div className="text-xs text-gray-500">{report.fecha}</div>
-                </td>
-                <td className="px-4 py-4">
-                  <Badge className={`${getStatusColor(report.estado)} border text-xs`}>
-                    {report.estado}
-                  </Badge>
-                </td>
-                <td className="px-4 py-4 text-right text-sm font-medium">
-                  <div className="flex items-center justify-end space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onView?.(report)}
-                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1"
-                    >
-                      <EyeIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEdit?.(report)}
-                      className="text-green-600 hover:text-green-800 hover:bg-green-50 p-1"
-                    >
-                      <EditIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDownloadPDF?.(report)}
-                      className="text-purple-600 hover:text-purple-800 hover:bg-purple-50 p-1"
-                    >
-                      <DownloadIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Vista Móvil - Tarjetas */}
-      <div className="md:hidden space-y-4 p-4">
-        {currentReports.map((report) => (
-          <MobileCard key={report.id} report={report} />
-        ))}
-      </div>
-      
-      {/* Paginador - Responsive */}
-      {sortedReports.length > 0 && (
-        <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-=======
     <div className="space-y-6">
       {/* Estadísticas */}
       {reportsData.length > 0 && (
@@ -542,7 +367,6 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
       {/* Paginador - Responsive */}
       {sortedReports.length > 0 && (
         <div className="bg-white px-4 py-3 border-t border-slate-100 sm:px-6 rounded-3xl shadow-sm">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           <div className="flex items-center justify-between">
             <div className="flex-1 flex justify-between sm:hidden">
               <Button
@@ -564,11 +388,7 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
-<<<<<<< HEAD
-                <p className="text-sm text-gray-700">
-=======
                 <p className="text-sm text-slate-700">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   Mostrando{' '}
                   <span className="font-medium">{startIndex + 1}</span>
                   {' '}a{' '}
@@ -587,19 +407,11 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
                     disabled={currentPage === 1}
                     variant="outline"
                     size="sm"
-<<<<<<< HEAD
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                  >
-                    <ChevronLeftIcon className="h-5 w-5" />
-                  </Button>
-                  
-=======
                     className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50"
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </Button>
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <Button
                       key={page}
@@ -609,31 +421,18 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
                       className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                         currentPage === page
                           ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-<<<<<<< HEAD
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-=======
                           : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                       }`}
                     >
                       {page}
                     </Button>
                   ))}
-<<<<<<< HEAD
-                  
-=======
-
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   <Button
                     onClick={goToNextPage}
                     disabled={currentPage === totalPages}
                     variant="outline"
                     size="sm"
-<<<<<<< HEAD
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-=======
                     className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50"
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   >
                     <ChevronRightIcon className="h-5 w-5" />
                   </Button>
@@ -643,15 +442,6 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
           </div>
         </div>
       )}
-<<<<<<< HEAD
-      
-      {/* Estado vacío */}
-      {sortedReports.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-500">
-            No se encontraron reportes
-          </div>
-=======
 
       {/* Estado vacío */}
       {sortedReports.length === 0 && (
@@ -665,7 +455,6 @@ export function ReportsTable({ reports = [], onView, onEdit, onDownloadPDF }) {
           <p className="text-slate-600 mb-6 max-w-md mx-auto">
             Los reportes aparecerán aquí una vez que se registren en el sistema.
           </p>
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         </div>
       )}
     </div>

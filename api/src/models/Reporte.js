@@ -8,18 +8,6 @@ const Reporte = sequelize.define('Reportes', {
     autoIncrement: true,
     field: 'id_reporte'
   },
-<<<<<<< HEAD
-  tipo_reporte: {
-    type: DataTypes.STRING(50),
-    allowNull: false,
-    validate: {
-      isIn: [['CITAS_POR_FECHA', 'CITAS_POR_AGENTE', 'CITAS_POR_ESTADO', 'CITAS_POR_INMUEBLE', 'RENDIMIENTO_AGENTE']]
-    }
-  },
-  titulo: {
-    type: DataTypes.STRING(200),
-    allowNull: false
-=======
   id_inmueble: {
     type: DataTypes.INTEGER,
     allowNull: false
@@ -31,34 +19,11 @@ const Reporte = sequelize.define('Reportes', {
   titulo: {
     type: DataTypes.STRING(200),
     allowNull: true
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   },
   descripcion: {
     type: DataTypes.TEXT,
     allowNull: true
   },
-<<<<<<< HEAD
-  parametros: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  datos: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  id_generado_por: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'Personas',
-      key: 'id_persona'
-    }
-  },
-  fecha_generacion: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: sequelize.literal('GETDATE()')
-=======
   prioridad: {
     type: DataTypes.STRING(20),
     allowNull: true
@@ -87,7 +52,6 @@ const Reporte = sequelize.define('Reportes', {
   observaciones_resolucion: {
     type: DataTypes.TEXT,
     allowNull: true
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   }
 }, {
   tableName: 'Reportes',

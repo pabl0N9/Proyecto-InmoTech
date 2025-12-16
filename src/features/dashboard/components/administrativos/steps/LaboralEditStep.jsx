@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Label } from '../../../../../shared/components/ui/label';
 import { Input } from '../../../../../shared/components/ui/input';
-<<<<<<< HEAD
-import { Briefcase, Building, DollarSign, Shield } from 'lucide-react';
-=======
 import { Briefcase } from 'lucide-react';
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 import rolesApiService from '../../../../../shared/services/rolesApiService';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../../shared/components/ui/select';
 
@@ -46,51 +42,6 @@ const LaboralEditStep = ({ formData, errors, updateFormData, administrativo }) =
         </div>
       </div>
 
-<<<<<<< HEAD
-      {/* Cargo */}
-      <div className="space-y-2">
-        <Label htmlFor="cargo" className="text-sm font-medium text-slate-700">
-          Cargo
-        </Label>
-        <div className="relative">
-          <Input
-            id="cargo"
-            type="text"
-            value={formData.cargo}
-            onChange={(e) => updateFormData('cargo', e.target.value)}
-            className={`h-10 pl-10 ${errors.cargo ? 'border-red-500' : ''}`}
-            placeholder="Agente Inmobiliario"
-          />
-          <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-        </div>
-        {errors.cargo && (
-          <p className="text-sm text-red-600">{errors.cargo}</p>
-        )}
-      </div>
-
-      {/* Departamento */}
-      <div className="space-y-2">
-        <Label htmlFor="departamento" className="text-sm font-medium text-slate-700">
-          Departamento
-        </Label>
-        <div className="relative">
-          <Input
-            id="departamento"
-            type="text"
-            value={formData.departamento}
-            onChange={(e) => updateFormData('departamento', e.target.value)}
-            className={`h-10 pl-10 ${errors.departamento ? 'border-red-500' : ''}`}
-            placeholder="Ventas"
-          />
-          <Building className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-        </div>
-        {errors.departamento && (
-          <p className="text-sm text-red-600">{errors.departamento}</p>
-        )}
-      </div>
-
-=======
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       {/* Selector de Rol */}
       <div className="space-y-2">
         <Label htmlFor="rol" className="text-sm font-medium text-slate-700">
@@ -125,11 +76,7 @@ const LaboralEditStep = ({ formData, errors, updateFormData, administrativo }) =
         </div>
         <ul className="text-sm text-amber-700 space-y-1">
           <li>• El código de empleado y fecha de ingreso no se pueden modificar</li>
-<<<<<<< HEAD
-          <li>• Los cambios en cargo y departamento afectan los permisos del usuario</li>
-=======
           <li>• Si cambias el rol, revisa los permisos asignados.</li>
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         </ul>
       </div>
     </div>

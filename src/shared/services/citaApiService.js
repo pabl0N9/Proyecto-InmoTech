@@ -1,9 +1,4 @@
 /**
-<<<<<<< HEAD
- * Servicio frontend para interactuar con el endpoint de Citas.
- */
-import { apiClient } from "./api.config";
-=======
  * @fileoverview Servicio frontend para interactuar con el endpoint de Citas
  * @module shared/services/citaApiService
  * @description Cliente HTTP que consume la API REST de citas del backend
@@ -13,26 +8,10 @@ import { apiClient } from "./api.config";
 
 import { apiClient } from "./api.config";
 import axios from 'axios';
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 import { formatTimeTo12Hour, formatTimeTo24Hour } from "../utils/time";
 
 const SERVICIO_MAP = {
   "Visita a Propiedad": 1,
-<<<<<<< HEAD
-  "Avaluos": 2,
-  "Gestion de Alquileres": 3,
-  "Asesoria Legal": 4,
-};
-
-const ESTADO_TO_ID_MAP = {
-  solicitada: 1,
-  confirmada: 2,
-  programada: 3,
-  "re agendada": 4,
-  reagendada: 4,
-  completada: 5,
-  cancelada: 6,
-=======
   "AvalÃºos": 2,
   "GestiÃ³n de Alquileres": 3,
   "AsesorÃ­a Legal": 4,
@@ -46,7 +25,6 @@ const ESTADO_TO_ID_MAP = {
   "reagendada": 4,
   "completada": 5,
   "cancelada": 6,
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 };
 
 const ID_TO_ESTADO_MAP = {
@@ -58,20 +36,6 @@ const ID_TO_ESTADO_MAP = {
   6: "cancelada",
 };
 
-<<<<<<< HEAD
-const generarHorariosBase = () => {
-  const horarios = [];
-  for (let hora = 8; hora <= 17; hora++) {
-    horarios.push(`${hora.toString().padStart(2, "0")}:00`);
-    if (hora < 17) {
-      horarios.push(`${hora.toString().padStart(2, "0")}:30`);
-    }
-  }
-  return horarios;
-};
-
-=======
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 class CitaApiService {
   async obtenerCitas(filtros = {}) {
     try {
@@ -79,15 +43,6 @@ class CitaApiService {
       if (filtros.estado) params.append("estado", filtros.estado);
       if (filtros.fecha) params.append("fecha", filtros.fecha);
       if (filtros.agente) params.append("agente", filtros.agente);
-<<<<<<< HEAD
-
-      const endpoint = `/citas${params.toString() ? `?${params.toString()}` : ""}`;
-      const response = await apiClient.get(endpoint);
-
-      const citas = Array.isArray(response.data) ? response.data : response.data?.data;
-      if (!Array.isArray(citas)) {
-        throw new Error("Formato de respuesta invalido del servidor");
-=======
       // Cache-bust para evitar datos obsoletos (como motivos de cancelación)
       params.append("_ts", Date.now());
 
@@ -104,16 +59,11 @@ class CitaApiService {
 
       if (!citas || !Array.isArray(citas)) {
         throw new Error("Formato de respuesta invÃ¡lido del servidor");
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       }
 
       return citas.map(cita => this.transformarCitaDesdeAPI(cita));
     } catch (error) {
-<<<<<<< HEAD
-      console.error("Error al obtener citas:", error);
-=======
       console.error("â Error al obtener citas:", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       throw new Error(error.message || "Error al cargar las citas desde el servidor");
     }
   }
@@ -129,27 +79,6 @@ class CitaApiService {
         apellido_completo: citaData.cliente?.apellido_completo || citaData.apellido_completo,
         email: citaData.cliente?.correo || citaData.email || null,
         telefono: citaData.cliente?.telefono || citaData.telefono,
-<<<<<<< HEAD
-        id_inmueble: citaData.inmueble?.id_inmueble || citaData.id_inmueble || 1,
-        id_servicio: citaData.servicio?.id_servicio || citaData.id_servicio || 1,
-        fecha_cita: citaData.fecha_cita,
-        hora_inicio: this.formatHoraParaAPI(citaData.hora_inicio || "09:00"),
-        hora_fin: this.formatHoraParaAPI(citaData.hora_fin || "10:00"),
-        id_estado_cita: citaData.id_estado_cita || 1,
-        id_agente_asignado: citaData.id_agente_asignado || null,
-        observaciones: citaData.observaciones || null,
-        id_usuario_creador: userId || citaData.id_usuario_creador || null,
-      };
-
-      console.log("Enviando nueva cita al backend:", payload);
-
-      const response = await apiClient.post("/citas", payload);
-      const citaCreada = response.data?.data || response.data;
-
-      return this.transformarCitaDesdeAPI(citaCreada);
-    } catch (error) {
-      console.error("Error al crear cita:", error);
-=======
         id_inmueble: citaData.inmueble?.id_inmueble ?? citaData.id_inmueble ?? null,
         id_servicio:
           citaData.servicio?.id_servicio ??
@@ -175,7 +104,6 @@ class CitaApiService {
       return this.transformarCitaDesdeAPI(citaCreada);
     } catch (error) {
       console.error("â Error al crear cita:", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       throw new Error(error.message || "Error al crear la cita");
     }
   }
@@ -191,30 +119,6 @@ class CitaApiService {
         apellido_completo: citaData.cliente?.apellido_completo || citaData.apellido_completo,
         email: citaData.cliente?.correo || citaData.email || null,
         telefono: citaData.cliente?.telefono || citaData.telefono,
-<<<<<<< HEAD
-        id_inmueble: citaData.inmueble?.id_inmueble || citaData.id_inmueble || 1,
-        id_servicio: citaData.servicio?.id_servicio || citaData.id_servicio || 1,
-        fecha_cita: citaData.fecha_cita,
-        hora_inicio: this.formatHoraParaAPI(citaData.hora_inicio || "09:00"),
-        hora_fin: this.formatHoraParaAPI(citaData.hora_fin || "10:00"),
-        observaciones: citaData.observaciones || null,
-        id_estado_cita: this.mapEstadoToId(citaData.estado) || citaData.id_estado_cita || 1,
-      };
-
-      console.log("Enviando actualizacion al backend:", { id, payload });
-
-      const response = await apiClient.put(`/citas/${id}`, payload);
-      const citaActualizada = response.data?.data || response.data;
-
-      if (!citaActualizada || (!citaActualizada.id_cita && !citaActualizada.id)) {
-        throw new Error("El servidor no retorno datos validos de la cita actualizada");
-      }
-
-      console.log("Cita actualizada correctamente:", citaActualizada);
-      return this.transformarCitaDesdeAPI(citaActualizada);
-    } catch (error) {
-      console.error("Error en actualizarCita:", error);
-=======
         id_inmueble: citaData.inmueble?.id_inmueble ?? citaData.id_inmueble ?? null,
         id_servicio: citaData.servicio?.id_servicio ?? citaData.id_servicio,
         fecha_cita: citaData.fecha_cita,
@@ -243,20 +147,12 @@ class CitaApiService {
       return this.transformarCitaDesdeAPI(citaActualizada);
     } catch (error) {
       console.error("â Error en actualizarCita:", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       throw new Error(error.message || "Error al actualizar la cita");
     }
   }
 
   async eliminarCita(id) {
     try {
-<<<<<<< HEAD
-      if (!id) throw new Error("ID de cita es requerido");
-      await apiClient.delete(`/citas/${id}`);
-      return true;
-    } catch (error) {
-      console.error("Error al eliminar cita:", error);
-=======
       if (!id) {
         throw new Error("ID de cita es requerido");
       }
@@ -265,7 +161,6 @@ class CitaApiService {
       return true;
     } catch (error) {
       console.error("â Error al eliminar cita:", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       throw new Error(error.message || "Error al eliminar la cita");
     }
   }
@@ -275,18 +170,6 @@ class CitaApiService {
       if (!id) throw new Error("ID de cita es requerido");
       if (!id_agente_asignado) throw new Error("ID de agente es requerido");
 
-<<<<<<< HEAD
-      console.log("Confirmando cita:", { id, id_agente_asignado });
-
-      const response = await apiClient.post(`/citas/${id}/confirmar`, {
-        id_agente_asignado,
-      });
-
-      const citaConfirmada = response.data?.data || response.data;
-      return this.transformarCitaDesdeAPI(citaConfirmada);
-    } catch (error) {
-      console.error("Error al confirmar cita:", error);
-=======
       console.log("ð¤ Confirmando cita:", { id, id_agente_asignado });
 
       const response = await apiClient.post(`/citas/${id}/confirmar`, {
@@ -299,7 +182,6 @@ class CitaApiService {
       return this.transformarCitaDesdeAPI(citaConfirmada);
     } catch (error) {
       console.error("â Error al confirmar cita:", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       throw new Error(error.message || "Error al confirmar la cita");
     }
   }
@@ -308,21 +190,6 @@ class CitaApiService {
     try {
       if (!id) throw new Error("ID de cita es requerido");
       if (!motivo_cancelacion || motivo_cancelacion.trim().length < 10) {
-<<<<<<< HEAD
-        throw new Error("El motivo de cancelacion es requerido y debe tener al menos 10 caracteres");
-      }
-
-      console.log("Cancelando cita:", { id, motivo_cancelacion });
-
-      const response = await apiClient.post(`/citas/${id}/cancelar`, {
-        motivo_cancelacion: motivo_cancelacion.trim(),
-      });
-
-      const citaCancelada = response.data?.data || response.data;
-      return this.transformarCitaDesdeAPI(citaCancelada);
-    } catch (error) {
-      console.error("Error al cancelar cita:", error);
-=======
         throw new Error("El motivo de cancelaciÃ³n es requerido y debe tener al menos 10 caracteres");
       }
 
@@ -412,7 +279,6 @@ class CitaApiService {
       throw lastError || new Error("No se pudo cancelar la cita");
     } catch (error) {
       console.error("Error al cancelar mi cita (usuario):", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       throw new Error(error.message || "Error al cancelar la cita");
     }
   }
@@ -420,30 +286,10 @@ class CitaApiService {
   async reagendarCita(id, datosReagendamiento) {
     try {
       if (!id) throw new Error("ID de cita es requerido");
-<<<<<<< HEAD
-=======
-
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       this.validarDatosReagendamiento(datosReagendamiento);
 
       const payload = {
         fecha_cita: datosReagendamiento.fecha_cita,
-<<<<<<< HEAD
-        hora_inicio: this.formatHoraParaAPI(datosReagendamiento.hora_inicio || "09:00"),
-        hora_fin: this.formatHoraParaAPI(datosReagendamiento.hora_fin || "10:00"),
-        motivo_reagendamiento: datosReagendamiento.motivo_reagendamiento,
-        id_agente_asignado: datosReagendamiento.id_agente_asignado,
-      };
-
-      console.log("Reagendando cita:", { id, payload });
-
-      const response = await apiClient.put(`/citas/${id}/reagendar`, payload);
-      const citaReagendada = response.data?.data || response.data;
-
-      return this.transformarCitaDesdeAPI(citaReagendada);
-    } catch (error) {
-      console.error("Error al reagendar cita:", error);
-=======
         hora_inicio: this.formatHoraParaAPI(datosReagendamiento.hora_inicio || '09:00'),
         hora_fin: this.formatHoraParaAPI(datosReagendamiento.hora_fin || '10:00'),
         motivo_reagendamiento: datosReagendamiento.motivo_reagendamiento,
@@ -460,36 +306,22 @@ class CitaApiService {
       return this.transformarCitaDesdeAPI(citaReagendada);
     } catch (error) {
       console.error("â Error al reagendar cita:", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       throw new Error(error.message || "Error al reagendar la cita");
     }
   }
 
-<<<<<<< HEAD
-  // ===========================
-  // Validaciones
-  // ===========================
-=======
   // ==========================================
   // VALIDACIONES
   // ==========================================
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   validarDatosCita(citaData) {
     const camposRequeridos = {
       nombre_completo: "Nombre completo",
       apellido_completo: "Apellido completo",
-<<<<<<< HEAD
-      numero_documento: "Numero de documento",
-      telefono: "Telefono",
-      fecha_cita: "Fecha de la cita",
-      hora_inicio: "Hora de inicio",
-=======
       numero_documento: "NÃºmero de documento",
       telefono: "TelÃ©fono",
       fecha_cita: "Fecha de la cita",
       hora_inicio: "Hora de inicio"
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     };
 
     for (const [campo, etiqueta] of Object.entries(camposRequeridos)) {
@@ -499,19 +331,6 @@ class CitaApiService {
     }
 
     if (citaData.numero_documento && !/^[0-9]+$/.test(citaData.numero_documento)) {
-<<<<<<< HEAD
-      throw new Error("El numero de documento debe contener solo numeros");
-    }
-
-    if (citaData.email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(citaData.email)) {
-      throw new Error("El formato del correo electronico es invalido");
-    }
-
-    if (citaData.telefono) {
-      const telefonoLimpio = citaData.telefono.replace(/\\D/g, "");
-      if (telefonoLimpio.length < 10) {
-        throw new Error("El telefono debe tener al menos 10 digitos");
-=======
       throw new Error("El nÃºmero de documento debe contener solo nÃºmeros");
     }
 
@@ -523,7 +342,6 @@ class CitaApiService {
       const telefonoLimpio = citaData.telefono.replace(/\D/g, "");
       if (telefonoLimpio.length < 10) {
         throw new Error("El telÃ©fono debe tener al menos 10 dÃ­gitos");
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       }
     }
   }
@@ -537,14 +355,7 @@ class CitaApiService {
       throw new Error("La hora de inicio es obligatoria");
     }
 
-<<<<<<< HEAD
-    if (
-      !datosReagendamiento.motivo_reagendamiento ||
-      datosReagendamiento.motivo_reagendamiento.trim().length < 10
-    ) {
-=======
     if (!datosReagendamiento.motivo_reagendamiento || datosReagendamiento.motivo_reagendamiento.trim().length < 10) {
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       throw new Error("El motivo de reagendamiento es obligatorio y debe tener al menos 10 caracteres");
     }
 
@@ -553,15 +364,9 @@ class CitaApiService {
     }
   }
 
-<<<<<<< HEAD
-  // ===========================
-  // Mapeos
-  // ===========================
-=======
   // ==========================================
   // HELPERS - MAPEOS
   // ==========================================
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   mapServicioToId(servicio) {
     return SERVICIO_MAP[servicio] || 1;
@@ -572,40 +377,20 @@ class CitaApiService {
   }
 
   mapIdToEstado(id) {
-<<<<<<< HEAD
-    return ID_TO_ESTADO_MAP[id] || "solicitada";
-=======
     return ID_TO_ESTADO_MAP[id] || 'solicitada';
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   }
 
   mapTipoDocumentoToShort(tipo) {
     const map = {
-<<<<<<< HEAD
-      "Cedula de Ciudadania": "CC",
-      "Cedula de Extranjeria": "CE",
-      NIT: "NIT",
-      Pasaporte: "Pasaporte",
-=======
       "CÃ©dula de CiudadanÃ­a": "CC",
       "CÃ©dula de ExtranjerÃ­a": "CE",
       "NIT": "NIT",
       "Pasaporte": "Pasaporte",
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       "Tarjeta de Identidad": "TI",
     };
     return map[tipo] || tipo;
   }
 
-<<<<<<< HEAD
-  // ===========================
-  // Helpers de telefono
-  // ===========================
-
-  limpiarTelefono(telefono) {
-    if (!telefono) return "";
-    const limpio = telefono.replace(/\\D/g, "");
-=======
   // ==========================================
   // HELPERS - TELÃFONO
   // ==========================================
@@ -613,7 +398,6 @@ class CitaApiService {
   limpiarTelefono(telefono) {
     if (!telefono) return "";
     const limpio = telefono.replace(/\D/g, "");
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     if (limpio.startsWith("57") && limpio.length === 12) {
       return limpio.slice(2);
     }
@@ -621,31 +405,13 @@ class CitaApiService {
   }
 
   formatearTelefono(telefono) {
-<<<<<<< HEAD
-    const limpio = telefono.replace(/\\D/g, "");
-=======
     const limpio = telefono.replace(/\D/g, "");
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     if (limpio.length === 10) {
       return `(${limpio.slice(0, 3)}) ${limpio.slice(3, 6)}-${limpio.slice(6)}`;
     }
     return telefono;
   }
 
-<<<<<<< HEAD
-  // ===========================
-  // Helpers de horas
-  // ===========================
-
-  formatHoraParaAPI(hora) {
-    if (!hora) return "09:00";
-
-    const horaLimpia = hora.toLowerCase().replace(/\\s+/g, "");
-    const isPM = horaLimpia.includes("pm");
-    const isAM = horaLimpia.includes("am");
-
-    let [horas, minutos] = horaLimpia.replace(/am|pm/g, "").split(":").map(Number);
-=======
   // ==========================================
   // HELPERS - HORAS
   // ==========================================
@@ -667,30 +433,22 @@ class CitaApiService {
       .replace(/am|pm/g, "")
       .split(":")
       .map(Number);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
     if (isPM && horas !== 12) horas += 12;
     if (isAM && horas === 12) horas = 0;
 
-<<<<<<< HEAD
-=======
     if (Number.isNaN(horas) || Number.isNaN(minutos)) {
       console.warn("formatHoraParaAPI: hora no parseable, usando fallback 09:00", hora);
       return "09:00";
     }
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     return `${String(horas).padStart(2, "0")}:${String(minutos || 0).padStart(2, "0")}`;
   }
 
   calcularHoraFin(horaInicio) {
     const [horas, minutos] = horaInicio.split(":").map(Number);
     let horaFin = horas;
-<<<<<<< HEAD
-    let minutosFin = minutos + 30; // Citas de 30 minutos
-=======
     let minutosFin = minutos + 30; // â Citas de 30 minutos
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
     if (minutosFin >= 60) {
       horaFin += 1;
@@ -700,11 +458,6 @@ class CitaApiService {
     return `${String(horaFin).padStart(2, "0")}:${String(minutosFin).padStart(2, "0")}`;
   }
 
-<<<<<<< HEAD
-  formatHoraDesdeAPI(hora) {
-    if (!hora || typeof hora !== "string") {
-      return "9:00 am";
-=======
   /**
    * ✅ CORREGIDO: Función para zona horaria Colombia (UTC-5)
    * Los TIME fields de SQL Server son interpretados por Sequelize como UTC
@@ -712,21 +465,10 @@ class CitaApiService {
   formatHoraDesdeAPI(hora) {
     if (!hora || typeof hora !== 'string') {
       return '9:00 am';
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     }
 
     try {
       const horaLimpia = hora.trim();
-<<<<<<< HEAD
-      console.log("Formateando hora:", horaLimpia);
-
-      if (horaLimpia.includes("T")) {
-        const fecha = new Date(horaLimpia);
-
-        if (Number.isNaN(fecha.getTime())) {
-          console.warn("Hora ISO invalida:", horaLimpia);
-          return "9:00 am";
-=======
       console.log("🔍 Formateando hora:", horaLimpia);
 
       if (horaLimpia.includes('T')) {
@@ -735,20 +477,14 @@ class CitaApiService {
         if (isNaN(fecha.getTime())) {
           console.warn("⚠️ Hora ISO inválida:", horaLimpia);
           return '9:00 am';
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         }
 
         const colombia24 = formatTimeTo24Hour(horaLimpia);
         if (colombia24) {
-<<<<<<< HEAD
-          const [horasColombia, minutosColombia] = colombia24.split(":").map(value => parseInt(value, 10));
-          console.log(`Hora UTC: ${fecha.getUTCHours()}:${fecha.getUTCMinutes()} -> Hora Colombia: ${horasColombia}:${minutosColombia}`);
-=======
           const [horasColombia, minutosColombia] = colombia24
             .split(':')
             .map((value) => parseInt(value, 10));
           console.log(`🔄 Hora UTC: ${fecha.getUTCHours()}:${fecha.getUTCMinutes()} → Hora Colombia: ${horasColombia}:${minutosColombia}`);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         }
       }
 
@@ -757,35 +493,15 @@ class CitaApiService {
         return horaFormateada;
       }
 
-<<<<<<< HEAD
-      console.warn("Formato de hora no reconocido:", horaLimpia);
-      return "9:00 am";
-    } catch (error) {
-      console.error("Error critico al formatear hora:", error, "Hora original:", hora);
-      return "9:00 am";
-=======
       console.warn("⚠️ Formato de hora no reconocido:", horaLimpia);
       return '9:00 am';
     } catch (error) {
       console.error("❌ Error crítico al formatear hora:", error, "Hora original:", hora);
       return '9:00 am';
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     }
   }
 
   /**
-<<<<<<< HEAD
-   * Ajusta la estructura de la cita que retorna el backend a lo que consume el frontend.
-   */
-  transformarCitaDesdeAPI(citaAPI) {
-    return {
-      id: citaAPI.id_cita || citaAPI.id,
-      id_cita: citaAPI.id_cita || citaAPI.id,
-
-      estado: citaAPI.estado?.nombre_estado?.toLowerCase() || this.mapIdToEstado(citaAPI.id_estado_cita),
-      id_estado_cita: citaAPI.id_estado_cita,
-
-=======
    * â CORRECCIÃN CRÃTICA: Transformar correctamente la estructura del backend
    * Backend usa: id_cita, id_persona, id_inmueble, etc.
    * Frontend necesita: id como alias de id_cita
@@ -802,32 +518,17 @@ class CitaApiService {
       id_estado_cita: citaAPI.id_estado_cita,
       
       // IDs de relaciones
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       id_persona: citaAPI.id_persona,
       id_inmueble: citaAPI.id_inmueble,
       id_servicio: citaAPI.id_servicio,
       id_agente_asignado: citaAPI.id_agente_asignado,
       id_cita_original: citaAPI.id_cita_original,
-<<<<<<< HEAD
-
-=======
       
       // Datos de la cita
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       fecha_cita: citaAPI.fecha_cita,
       hora_inicio: citaAPI.hora_inicio,
       hora_fin: citaAPI.hora_fin,
       observaciones: citaAPI.observaciones,
-<<<<<<< HEAD
-      motivo_cancelacion: citaAPI.motivo_cancelacion,
-
-      fecha_creacion: citaAPI.fecha_creacion,
-      fecha_actualizacion: citaAPI.fecha_actualizacion,
-
-      ediciones_realizadas: citaAPI.ediciones_realizadas || 0,
-      ediciones_maximas: citaAPI.ediciones_maximas || 2,
-
-=======
       motivo_cancelacion: citaAPI.motivo_cancelacion || citaAPI.motivoCancelacion || null,
       motivo_reagendamiento: citaAPI.motivo_reagendamiento || citaAPI.motivoReagendamiento || null,
       comentario_edicion: citaAPI.comentario_edicion || citaAPI.comentario,
@@ -842,32 +543,11 @@ class CitaApiService {
       ediciones_maximas: citaAPI.ediciones_maximas || 2,
 
       // Objetos relacionados
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       cliente: citaAPI.cliente,
       inmueble: citaAPI.inmueble,
       servicio: citaAPI.servicio,
       agente: citaAPI.agente,
       creador: citaAPI.creador,
-<<<<<<< HEAD
-      estado_detalle: citaAPI.estado,
-    };
-  }
-
-  async obtenerAgentesDisponibles() {
-    try {
-      console.log("Obteniendo agentes disponibles para asignacion");
-
-      const response = await apiClient.get("/citas/agentes-disponibles");
-      const agentes = response.data?.data || response.data;
-
-      if (!Array.isArray(agentes)) {
-        throw new Error("Formato de respuesta invalido para agentes disponibles");
-      }
-
-      return agentes;
-    } catch (error) {
-      console.error("Error al obtener agentes disponibles:", error);
-=======
       estado_detalle: citaAPI.estado
     };
   }
@@ -891,14 +571,10 @@ class CitaApiService {
       return agentes;
     } catch (error) {
       console.error("â Error al obtener agentes disponibles:", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       throw new Error(error.message || "Error al cargar los agentes disponibles");
     }
   }
 
-<<<<<<< HEAD
-  async asignarAgente(idCita, idAgenteNuevo, comentario = null) {
-=======
   /**
    * Asignar un agente a una cita
    * @param {number} idCita - ID de la cita
@@ -908,23 +584,10 @@ class CitaApiService {
    * @returns {Promise<Object>} Cita actualizada con historial
    */
   async asignarAgente(idCita, idAgenteNuevo, comentario = null, motivoReagendamiento = null) {
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     try {
       if (!idCita) throw new Error("ID de cita es requerido");
       if (!idAgenteNuevo) throw new Error("ID de agente es requerido");
 
-<<<<<<< HEAD
-      console.log("Asignando agente a cita:", { idCita, idAgenteNuevo });
-
-      const payload = {
-        id_agente_nuevo: idAgenteNuevo,
-        comentario,
-      };
-
-      const response = await apiClient.post(`/citas/${idCita}/asignar-agente`, payload);
-      const citaActualizada = response.data?.data || response.data;
-
-=======
       console.log(`Asignando agente ${idAgenteNuevo} a cita ${idCita}`);
 
       const payload = {
@@ -938,7 +601,6 @@ class CitaApiService {
       console.log("Respuesta del backend al asignar agente:", response.data);
 
       const citaActualizada = response.data.data || response.data;
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return this.transformarCitaDesdeAPI(citaActualizada);
     } catch (error) {
       console.error("Error al asignar agente:", error);
@@ -946,32 +608,15 @@ class CitaApiService {
     }
   }
 
-<<<<<<< HEAD
-=======
   /**
    * Obtener historial de asignaciones de una cita
    * @param {number} idCita - ID de la cita
    * @returns {Promise<Array>} Historial de asignaciones
    */
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   async obtenerHistorialAsignaciones(idCita) {
     try {
       if (!idCita) throw new Error("ID de cita es requerido");
 
-<<<<<<< HEAD
-      console.log("Obteniendo historial de asignaciones para cita:", idCita);
-
-      const response = await apiClient.get(`/citas/${idCita}/historial-asignaciones`);
-      const historial = response.data?.data || response.data;
-
-      if (!Array.isArray(historial)) {
-        throw new Error("Formato de respuesta invalido para historial de asignaciones");
-      }
-
-      return historial;
-    } catch (error) {
-      console.error("Error al obtener historial de asignaciones:", error);
-=======
       console.log(`ð Obteniendo historial de asignaciones para cita ${idCita}`);
 
       const response = await apiClient.get(`/citas/${idCita}/historial-asignaciones`);
@@ -985,86 +630,35 @@ class CitaApiService {
       return historial;
     } catch (error) {
       console.error("â Error al obtener historial de asignaciones:", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       throw new Error(error.message || "Error al cargar el historial de asignaciones");
     }
   }
 
-<<<<<<< HEAD
-=======
   /**
    * Obtener cita con historial completo de asignaciones
    * @param {number} idCita - ID de la cita
    * @returns {Promise<Object>} Cita con historial incluido
    */
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   async obtenerCitaConHistorial(idCita) {
     try {
       if (!idCita) throw new Error("ID de cita es requerido");
 
-<<<<<<< HEAD
-      console.log("Obteniendo cita con historial completo:", idCita);
-
-      const response = await apiClient.get(`/citas/${idCita}/con-historial`);
-      const citaCompleta = response.data?.data || response.data;
-=======
       console.log(`ð Obteniendo cita ${idCita} con historial completo`);
 
       const response = await apiClient.get(`/citas/${idCita}/con-historial`);
       const citaCompleta = response.data.data || response.data;
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
       const citaTransformada = this.transformarCitaDesdeAPI(citaCompleta);
       citaTransformada.historial_asignaciones = citaCompleta.historial_asignaciones || [];
 
-<<<<<<< HEAD
+      console.log(` Cita con historial obtenida`);
       return citaTransformada;
     } catch (error) {
       console.error("Error al obtener cita con historial:", error);
-=======
-      console.log(`â Cita con historial obtenida`);
-      return citaTransformada;
-    } catch (error) {
-      console.error("â Error al obtener cita con historial:", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       throw new Error(error.message || "Error al cargar la cita con historial");
     }
   }
 
-<<<<<<< HEAD
-  async obtenerHorariosDisponibles(data) {
-    try {
-      console.log("Obteniendo horarios disponibles (admin):", data);
-
-      if (data.id_servicio === 1 || data.servicio === 1) {
-        const citasExistentes = await this.obtenerCitas({
-          fecha: data.fecha_cita,
-          servicio: 1,
-        });
-
-        const todosHorarios = generarHorariosBase();
-
-        const citasActivas = (citasExistentes || []).filter(
-          cita =>
-            ["confirmada", "programada"].includes(cita.estado) &&
-            cita.fecha_cita === data.fecha_cita
-        );
-
-        const horariosOcupados = new Set(citasActivas.map(cita => cita.hora_inicio));
-        return todosHorarios.filter(hora => !horariosOcupados.has(hora));
-      }
-
-      return generarHorariosBase();
-    } catch (error) {
-      console.error("Error en obtenerHorariosDisponibles:", error);
-      return generarHorariosBase();
-    }
-  }
-
-  async obtenerHorariosDisponiblesUsuario(data) {
-    try {
-      console.log("Usuario obteniendo horarios disponibles:", data);
-=======
   /**
    * Obtener horarios disponibles para una fecha, agente y servicio especÃ­ficos
    * CON LÃGICA ESPECIAL PARA VISITAS A INMUEBLES (servicio ID 1)
@@ -1073,11 +667,11 @@ class CitaApiService {
    */
   async obtenerHorariosDisponibles(data) {
     try {
-      console.log(`ð Obteniendo horarios disponibles (admin):`, data);
+      console.log(` Obteniendo horarios disponibles (admin):`, data);
 
       // ð¨ LÃGICA ESPECIAL: Si es servicio "Visita a Propiedad" (ID 1)
       if (data.id_servicio === 1 || data.servicio === 1) {
-        console.log("ð  Servicio 'Visita a Propiedad': Aplicando restricciones de bloqueo");
+        console.log("Servicio 'Visita a Propiedad': Aplicando restricciones de bloqueo");
 
         // Obtener citas existentes para esa fecha y servicio de visitas a inmuebles
         const citasExistentes = await this.obtenerCitas({
@@ -1085,7 +679,7 @@ class CitaApiService {
           servicio: 1 // Solo visitas a inmuebles
         });
 
-        console.log(`ð Citas existentes para ${data.fecha_cita}:`, citasExistentes.length);
+        console.log(`Citas existentes para ${data.fecha_cita}:`, citasExistentes.length);
 
         // Generar todos los horarios disponibles inicialmente
         const todosHorarios = [];
@@ -1102,7 +696,7 @@ class CitaApiService {
           cita.fecha_cita === data.fecha_cita
         );
 
-        console.log(`ð« Citas activas bloqueando horarios:`, citasActivas.length);
+        console.log(`Citas activas bloqueando horarios:`, citasActivas.length);
 
         // Extraer horarios ocupados
         const horariosOcupados = new Set(
@@ -1114,13 +708,13 @@ class CitaApiService {
           !horariosOcupados.has(hora)
         );
 
-        console.log(`â Horarios disponibles para visitas:`, horariosDisponibles.length, 'de', todosHorarios.length);
+        console.log(`Horarios disponibles para visitas:`, horariosDisponibles.length, 'de', todosHorarios.length);
 
         return horariosDisponibles;
 
       } else {
         // ð PARA OTROS SERVICIOS: Sin restricciones, todos los horarios disponibles
-        console.log("ð Otro servicio: Sin restricciones de bloqueo");
+        console.log("Otro servicio: Sin restricciones de bloqueo");
 
         const defaultHorarios = [];
         for (let hora = 8; hora <= 17; hora++) {
@@ -1133,7 +727,7 @@ class CitaApiService {
       }
 
     } catch (error) {
-      console.error("â Error en obtenerHorariosDisponibles:", error);
+      console.error("Error en obtenerHorariosDisponibles:", error);
 
       // Fallback: retornar horarios predeterminados pero con bloqueo bÃ¡sico si no podemos consultar
       const defaultHorarios = [];
@@ -1155,41 +749,25 @@ class CitaApiService {
    */
   async obtenerHorariosDisponiblesUsuario(data) {
     try {
-      console.log(`ð Usuario obteniendo horarios disponibles para reagendamiento:`, data);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
+      console.log(`Usuario obteniendo horarios disponibles para reagendamiento:`, data);
 
       const params = new URLSearchParams();
       params.append("fecha_cita", data.fecha_cita);
       params.append("id_servicio", data.id_servicio);
 
       const response = await apiClient.get(`/citas/mis-citas/horarios-disponibles?${params.toString()}`);
-<<<<<<< HEAD
-      const result = response.data?.data || response.data;
-
-      if (!Array.isArray(result)) {
-        throw new Error("Formato de respuesta invalido del servidor");
-      }
-
-      return result;
-    } catch (error) {
-      console.error("Error en obtenerHorariosDisponiblesUsuario:", error);
-      return generarHorariosBase();
-    }
-  }
-
-=======
       const result = response.data.data || response.data;
 
       if (!Array.isArray(result)) {
-        console.error("â Formato de respuesta invÃ¡lido para horarios disponibles de usuario:", response.data);
+        console.error("Formato de respuesta invÃ¡lido para horarios disponibles de usuario:", response.data);
         throw new Error("Formato de respuesta invÃ¡lido del servidor");
       }
 
-      console.log(`â Horarios disponibles para reagendamiento obtenidos: ${result.length}`);
+      console.log(`Horarios disponibles para reagendamiento obtenidos: ${result.length}`);
       return result;
 
     } catch (error) {
-      console.error("â Error en obtenerHorariosDisponiblesUsuario:", error);
+      console.error("Error en obtenerHorariosDisponiblesUsuario:", error);
 
       // Fallback: retornar horarios predeterminados
       const defaultHorarios = [];
@@ -1209,23 +787,10 @@ class CitaApiService {
    * @param {Object} datosReagendamiento - Datos del reagendamiento
    * @returns {Promise<Object>} Cita reagendada
    */
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   async reagendarMiCita(id, datosReagendamiento) {
     try {
       if (!id) throw new Error("ID de cita es requerido");
 
-<<<<<<< HEAD
-      if (!datosReagendamiento.fecha_cita) {
-        throw new Error("La fecha de la cita es obligatoria");
-      }
-      if (!datosReagendamiento.hora_inicio) {
-        throw new Error("La hora de inicio es obligatoria");
-      }
-      if (
-        !datosReagendamiento.motivo_reagendamiento ||
-        datosReagendamiento.motivo_reagendamiento.trim().length < 10
-      ) {
-=======
       // â ValidaciÃ³n especÃ­fica para usuarios (sin requerir id_agente_asignado)
       if (!datosReagendamiento.fecha_cita) {
         throw new Error("La fecha de la cita es obligatoria");
@@ -1236,7 +801,6 @@ class CitaApiService {
       }
 
       if (!datosReagendamiento.motivo_reagendamiento || datosReagendamiento.motivo_reagendamiento.trim().length < 10) {
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         throw new Error("El motivo de reagendamiento es obligatorio y debe tener al menos 10 caracteres");
       }
 
@@ -1246,33 +810,12 @@ class CitaApiService {
         fecha_cita: datosReagendamiento.fecha_cita,
         hora_inicio: datosReagendamiento.hora_inicio,
         hora_fin: horaFinCalculada,
-<<<<<<< HEAD
-        motivo_reagendamiento: datosReagendamiento.motivo_reagendamiento,
-=======
         motivo_reagendamiento: datosReagendamiento.motivo_reagendamiento
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       };
 
       if (datosReagendamiento.id_servicio) {
         payload.id_servicio = datosReagendamiento.id_servicio;
       }
-<<<<<<< HEAD
-      if (typeof datosReagendamiento.id_agente_asignado !== "undefined") {
-        payload.id_agente_asignado = datosReagendamiento.id_agente_asignado;
-      }
-      if (typeof datosReagendamiento.observaciones !== "undefined") {
-        payload.observaciones = datosReagendamiento.observaciones;
-      }
-
-      console.log("Reagendando mi cita:", { id, payload });
-
-      const response = await apiClient.put(`/citas/user/${id}/reagendar`, payload);
-      const citaReagendada = response.data?.data || response.data;
-
-      return this.transformarCitaDesdeAPI(citaReagendada);
-    } catch (error) {
-      console.error("Error al reagendar mi cita:", error);
-=======
 
       if (typeof datosReagendamiento.id_agente_asignado !== 'undefined') {
         payload.id_agente_asignado = datosReagendamiento.id_agente_asignado;
@@ -1282,7 +825,7 @@ class CitaApiService {
         payload.observaciones = datosReagendamiento.observaciones;
       }
 
-      console.log("ð¤ Reagendando mi cita:", { id, payload });
+      console.log("Reagendando mi cita:", { id, payload });
 
       // â CAMBIO: usar nueva ruta /user/:id/reagendar para evitar conflictos
       const response = await apiClient.put(`/citas/user/${id}/reagendar`, payload);
@@ -1292,35 +835,22 @@ class CitaApiService {
       const citaReagendada = response.data.data || response.data;
       return this.transformarCitaDesdeAPI(citaReagendada);
     } catch (error) {
-      console.error("â Error al reagendar mi cita:", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
+      console.error("Error al reagendar mi cita:", error);
       throw new Error(error.message || "Error al reagendar la cita");
     }
   }
 
-<<<<<<< HEAD
-=======
   /**
    * Obtener citas del usuario autenticado como cliente
    * @param {Object} filtros - Filtros opcionales
    * @returns {Promise<Array>} Lista de citas del usuario
    */
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   async obtenerMisCitas(filtros = {}) {
     try {
       const params = new URLSearchParams();
       if (filtros.estado) params.append("estado", filtros.estado);
       if (filtros.fecha) params.append("fecha", filtros.fecha);
       if (filtros.servicio) params.append("servicio", filtros.servicio);
-<<<<<<< HEAD
-
-      const endpoint = `/citas/mis-citas${params.toString() ? `?${params.toString()}` : ""}`;
-      const response = await apiClient.get(endpoint);
-
-      const data = response.data?.data || response.data;
-      if (!Array.isArray(data)) {
-        throw new Error("Formato de respuesta invalido del servidor");
-=======
       // Cache-bust para evitar respuestas 304 sin cuerpo
       params.append("_ts", Date.now());
 
@@ -1335,18 +865,13 @@ class CitaApiService {
       const data = response.data.data || response.data;
 
       if (!Array.isArray(data)) {
-        console.error("â Formato de respuesta invÃ¡lido del servidor para mis citas:", response.data);
+        console.error("Formato de respuesta invÃ¡lido del servidor para mis citas:", response.data);
         throw new Error("Formato de respuesta invÃ¡lido del servidor");
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       }
 
       return data.map(cita => this.transformarCitaDesdeAPI(cita));
     } catch (error) {
-<<<<<<< HEAD
       console.error("Error al obtener mis citas:", error);
-=======
-      console.error("â Error al obtener mis citas:", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       throw new Error(error.message || "Error al cargar tus citas desde el servidor");
     }
   }
@@ -1355,37 +880,18 @@ class CitaApiService {
 const citaApiService = new CitaApiService();
 export default citaApiService;
 
-<<<<<<< HEAD
-export const actualizarEstadoCita = async (idCita, idEstadoCita) => {
-  try {
-    console.log(`Actualizando estado de cita ${idCita} a estado ${idEstadoCita}`);
-
-    const response = await apiClient.patch(`/citas/${idCita}/estado`, {
-      id_estado_cita: idEstadoCita,
-    });
-
-    const citaActualizada = response.data?.data || response.data;
-    if (!citaActualizada || (!citaActualizada.id_cita && !citaActualizada.id)) {
-      throw new Error("El servidor no retorno datos validos de la cita actualizada");
-    }
-
-    console.log("Estado actualizado correctamente");
-    return citaApiService.transformarCitaDesdeAPI(citaActualizada);
-  } catch (error) {
-    console.error("Error en actualizarEstadoCita:", error);
-=======
 /**
  * â CORREGIDO: FunciÃ³n optimizada para cambiar solo el estado
  */
 export const actualizarEstadoCita = async (idCita, idEstadoCita) => {
   try {
-    console.log(`ð Actualizando estado de cita ${idCita} a estado ${idEstadoCita} (endpoint optimizado)`);
+    console.log(` Actualizando estado de cita ${idCita} a estado ${idEstadoCita} (endpoint optimizado)`);
     
     const response = await apiClient.patch(`/citas/${idCita}/estado`, {
       id_estado_cita: idEstadoCita
     });
 
-    console.log("ð¥ Respuesta del servidor:", response.data);
+    console.log(" Respuesta del servidor:", response.data);
 
     // Estructura: { success, message, data: {...} }
     const citaActualizada = response.data.data || response.data;
@@ -1398,7 +904,6 @@ export const actualizarEstadoCita = async (idCita, idEstadoCita) => {
     return citaApiService.transformarCitaDesdeAPI(citaActualizada);
   } catch (error) {
     console.error("â Error en actualizarEstadoCita:", error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     throw error;
   }
 };

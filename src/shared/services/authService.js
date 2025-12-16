@@ -6,7 +6,7 @@
  * @version 1.0.0
  */
 
-import { apiClient } from './api.config';
+import { apiClient } from './api.config.js';
 
 class AuthService {
   /**

@@ -45,7 +45,7 @@ router.use('/arriendos', arriendoRoutes);
 // Ruta de salud
 router.get('/health', async (req, res) => {
   try {
-    const dbStatus = await require('../config/database').testConnection();
+    const dbStatus = await require('./config/database').testConnection();
     res.json({
       success: true,
       status: 'OK',

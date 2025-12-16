@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import React, { useState, useEffect } from 'react';
-=======
 import React, { useState, useEffect, useMemo } from 'react';
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -27,10 +23,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { useToast } from '../../../shared/hooks/use-toast';
 import { useAuth } from '../../../shared/contexts/AuthContext';
 import citaApiService from '../../../shared/services/citaApiService';
-<<<<<<< HEAD
-=======
 import { formatTimeTo12Hour } from '../../../shared/utils/time';
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
 const UserEditAppointmentModal = ({
   isOpen,
@@ -69,11 +62,6 @@ const UserEditAppointmentModal = ({
       const servicioEncontrado = servicios.find(s => s.id === appointment.id_servicio);
       setServicioSeleccionado(servicioEncontrado || servicios[0]);
 
-<<<<<<< HEAD
-      setFormData({
-        fecha_cita: appointment.fecha_cita ? appointment.fecha_cita.split('T')[0] : '',
-        hora_inicio: appointment.hora_inicio ? citaApiService.formatHoraDesdeAPI(appointment.hora_inicio) : '',
-=======
       const horaNormalizada = appointment.hora_inicio
         ? normalizeHoraToOption(appointment.hora_inicio) || citaApiService.formatHoraDesdeAPI(appointment.hora_inicio)
         : '';
@@ -82,20 +70,14 @@ const UserEditAppointmentModal = ({
       setFormData({
         fecha_cita: fechaNormalizada,
         hora_inicio: horaNormalizada,
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         servicio: servicioEncontrado ? servicioEncontrado.name : servicios[0].name,
         observaciones: appointment.observaciones || '',
         comentario: ''
       });
 
       // Ajustar el mes del calendario a la fecha de la cita
-<<<<<<< HEAD
-      if (appointment.fecha_cita) {
-        setCurrentMonth(new Date(appointment.fecha_cita));
-=======
       if (fechaNormalizada) {
         setCurrentMonth(new Date(fechaNormalizada));
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       }
     }
   }, [appointment, isOpen]);
@@ -138,8 +120,6 @@ const UserEditAppointmentModal = ({
     "04:00 pm", "04:30 pm", "05:00 pm", "05:30 pm",
   ];
 
-<<<<<<< HEAD
-=======
   const normalizeHoraToOption = (hora) => {
     if (!hora) return '';
     const formatted = formatTimeTo12Hour(hora);
@@ -206,7 +186,6 @@ const UserEditAppointmentModal = ({
     }
   };
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -461,12 +440,9 @@ const UserEditAppointmentModal = ({
   // Contador real de ediciones
   const edicionesRealizadas = appointment?.ediciones_realizadas || 0;
   const maxEdiciones = appointment?.ediciones_maximas || 2;
-<<<<<<< HEAD
-=======
   const fechaAgendadaLegible = formatearFechaLegible(appointment?.fecha_cita || appointment?.fecha);
   const horaAgendadaLegible = normalizeHoraToOption(appointment?.hora_inicio) ||
     citaApiService.formatHoraDesdeAPI(appointment?.hora_inicio);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   if (!isOpen || !appointment) return null;
 
@@ -719,8 +695,6 @@ const UserEditAppointmentModal = ({
                     Nueva Fecha y Hora
                   </h3>
 
-<<<<<<< HEAD
-=======
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
                       <p className="text-xs uppercase tracking-wide text-slate-500">Fecha agendada</p>
@@ -734,7 +708,6 @@ const UserEditAppointmentModal = ({
                     </div>
                   </div>
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   {/* Calendar */}
                   <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
                     {/* Calendar Header */}
@@ -841,11 +814,7 @@ const UserEditAppointmentModal = ({
                       </div>
 
                       <div className="grid grid-cols-4 gap-3">
-<<<<<<< HEAD
-                        {availableHours.map((hour) => (
-=======
                         {horasOptions.map((hour) => (
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <motion.button
                             key={hour}
                             type="button"

@@ -14,45 +14,146 @@ import {
   Trophy,
   Shield,
   AlertCircle,
-  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "../../../shared/contexts/AuthContext";
 import { useToast } from "../../../shared/hooks/use-toast";
 import usersApiService from "../../../shared/services/usersApiService";
-import { useAuth } from "../../../shared/contexts/AuthContext";
-import { useToast } from "../../../shared/hooks/use-toast";
-
-// Nota: Necesitarás crear o adaptar estos componentes de UI para tu proyecto
 import { Button } from "../../../shared/components/ui/button";
 import { Input } from "../../../shared/components/ui/input";
 import { Label } from "../../../shared/components/ui/label";
 import { Checkbox } from "../../../shared/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../shared/components/ui/select";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../shared/components/ui/select";
 
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/;
+
+const mapTipoDocumento = (tipo) => (tipo === "PASAPORTE" ? "PAS" : tipo);
+
+const validateTipoDocumento = (tipo) => {
+  if (!tipo) return "El tipo de documento es obligatorio";
+  const tiposValidos = ["CC", "CE", "NIT", "PASAPORTE", "TI"];
+  if (!tiposValidos.includes(tipo)) return "Tipo de documento invalido";
+  return "";
+};
+
+const validateNumeroDocumento = (numero, tipo) => {
+  if (!numero || !numero.trim()) return "El numero de documento es obligatorio";
+  const numeroLimpio = numero.replace(/[\s\-.]/g, "");
+
+  switch (tipo) {
+    case "CC":
+      if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
+        return "La cedula debe tener entre 8 y 10 digitos";
+      }
+      break;
+    case "CE":
+      if (!/^[0-9]{6,10}$/.test(numeroLimpio)) {
+        return "La cedula de extranjeria debe tener entre 6 y 10 digitos";
+      }
+      break;
+    case "NIT":
+      if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
+        return "El NIT debe tener entre 8 y 10 digitos";
+      }
+      break;
+    case "PASAPORTE":
+      if (numeroLimpio.length < 6 || numeroLimpio.length > 20) {
+        return "El pasaporte debe tener entre 6 y 20 caracteres";
+      }
+      if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) {
+        return "El pasaporte solo puede contener letras y numeros";
+      }
+      break;
+    case "TI":
+      if (!/^[0-9]{10,11}$/.test(numeroLimpio)) {
+        return "La tarjeta de identidad debe tener 10 u 11 digitos";
+      }
+      break;
+    default:
+      return "Primero selecciona un tipo de documento";
+  }
+  return "";
+};
+
+const validateNombreCompleto = (nombre) => {
+  if (!nombre || !nombre.trim()) return "El nombre completo es obligatorio";
+  const nombreTrim = nombre.trim();
+  if (nombreTrim.length < 2) return "El nombre debe tener al menos 2 caracteres";
+  if (nombreTrim.length > 50) return "El nombre no puede tener mas de 50 caracteres";
+  if (!/^[a-zA-Z\s]+$/.test(nombreTrim)) {
+    return "El nombre solo puede contener letras y espacios";
+  }
+  return "";
+};
+
+const validateApellidoCompleto = (apellido) => {
+  if (!apellido || !apellido.trim()) return "El apellido completo es obligatorio";
+  const apellidoTrim = apellido.trim();
+  if (apellidoTrim.length < 2) return "El apellido debe tener al menos 2 caracteres";
+  if (apellidoTrim.length > 50) return "El apellido no puede tener mas de 50 caracteres";
+  if (!/^[a-zA-Z\s]+$/.test(apellidoTrim)) {
+    return "El apellido solo puede contener letras y espacios";
+  }
+  return "";
+};
+
+const validateEmail = (email) => {
+  if (!email || !email.trim()) return "El correo electronico es obligatorio";
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(email.trim())) return "Ingresa un correo electronico valido";
+  if (email.length > 254) return "El correo electronico es demasiado largo";
+  return "";
+};
+
+const validateTelefono = (telefono) => {
+  if (!telefono || !telefono.trim()) return "El telefono es obligatorio";
+  const telefonoLimpio = telefono.replace(/[\s\-()]/g, "");
+  if (!/(?:\+57|57)?3\d{9}$/.test(telefonoLimpio)) {
+    return "El telefono debe seguir el formato colombiano";
+  }
+  const digitosNumericos = telefonoLimpio.replace(/\D/g, "");
+  if (telefonoLimpio.startsWith("+57") && digitosNumericos.length !== 12) {
+    return "Con prefijo +57 debe incluir 12 digitos";
+  }
+  if (telefonoLimpio.startsWith("57") && !telefonoLimpio.startsWith("+57") && digitosNumericos.length !== 11) {
+    return "Con prefijo 57 debe incluir 11 digitos";
+  }
+  if (!telefonoLimpio.startsWith("57") && !telefonoLimpio.startsWith("+57") && digitosNumericos.length !== 10) {
+    return "Debe tener exactamente 10 digitos";
+  }
+  return "";
+};
+
+const validatePassword = (password) => {
+  if (!password || !password.trim()) return "La contrasena es obligatoria";
+  if (password.length < 8) return "La contrasena debe tener al menos 8 caracteres";
+  if (password.length > 100) return "La contrasena no puede exceder 100 caracteres";
+  if (!PASSWORD_REGEX.test(password)) {
+    return "Incluye minuscula, mayuscula, numero y simbolo";
+  }
+  return "";
+};
+
+const validateConfirmPassword = (confirmPassword, password) => {
+  if (!confirmPassword || !confirmPassword.trim()) return "Confirma tu contrasena";
+  if (confirmPassword !== password) return "Las contrasenas no coinciden";
+  return "";
+};
 export default function RegisterPage() {
+  const navigate = useNavigate();
+  const { register } = useAuth();
+  const { toast } = useToast();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
-  const { register } = useAuth();
-  const { toast } = useToast();
-  const { register } = useAuth();
-  const { toast } = useToast();
-
-  // Estados para validaciones en tiempo real
   const [checkingEmail, setCheckingEmail] = useState(false);
-  const [emailAvailable, setEmailAvailable] = useState(null); // null = no verificado, true = disponible, false = ocupado
-  const emailTimeoutRef = useRef(null); // Ref para debouncing de email
+  const [emailAvailable, setEmailAvailable] = useState(null);
+  const emailTimeoutRef = useRef(null);
 
   const [formData, setFormData] = useState({
     tipo_documento: "CC",
-    numero_documento: "",
-    nombre_completo: "",
-    apellido_completo: "",
-    tipo_documento: "",
     numero_documento: "",
     nombre_completo: "",
     apellido_completo: "",
@@ -60,7 +161,7 @@ export default function RegisterPage() {
     telefono: "",
     password: "",
     confirmPassword: "",
-    terminos: false
+    terminos: false,
   });
 
   const [passwordStrength, setPasswordStrength] = useState({
@@ -72,143 +173,20 @@ export default function RegisterPage() {
   });
 
   const [fieldErrors, setFieldErrors] = useState({});
-  const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/;
 
-  // Funciones de validación
-  const validateTipoDocumento = (tipo) => {
-    if (!tipo) return 'El tipo de documento es obligatorio';
-    const tiposValidos = ['CC', 'CE', 'NIT', 'PASAPORTE', 'TI'];
-    if (!tiposValidos.includes(tipo)) return 'Tipo de documento inválido';
-    return '';
-  };
+  const validateAllFields = () => ({
+    tipo_documento: validateTipoDocumento(formData.tipo_documento),
+    numero_documento: validateNumeroDocumento(formData.numero_documento, formData.tipo_documento),
+    nombre_completo: validateNombreCompleto(formData.nombre_completo),
+    apellido_completo: validateApellidoCompleto(formData.apellido_completo),
+    email: validateEmail(formData.email),
+    telefono: validateTelefono(formData.telefono),
+    password: validatePassword(formData.password),
+    confirmPassword: validateConfirmPassword(formData.confirmPassword, formData.password),
+  });
 
-  const validateNumeroDocumento = (numero, tipo) => {
-    if (!numero || !numero.trim()) return 'El número de documento es obligatorio';
-    const numeroLimpio = numero.replace(/[\s\-\.]/g, '');
-
-    switch (tipo) {
-      case 'CC':
-        if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
-          return 'La cédula debe tener entre 8 y 10 dígitos numéricos';
-        }
-        break;
-      case 'CE':
-        if (!/^[0-9]{6,10}$/.test(numeroLimpio)) {
-          return 'La cédula de extranjería debe tener entre 6 y 10 dígitos numéricos';
-        }
-        break;
-      case 'NIT':
-        if (!/^[0-9]{8,10}$/.test(numeroLimpio)) {
-          return 'El NIT debe tener entre 8 y 10 dígitos numéricos';
-        }
-        break;
-      case 'PASAPORTE':
-        if (numeroLimpio.length < 6 || numeroLimpio.length > 20) {
-          return 'El pasaporte debe tener entre 6 y 20 caracteres alfanuméricos';
-        }
-        if (!/^[A-Za-z0-9]+$/.test(numeroLimpio)) {
-          return 'El pasaporte solo puede contener letras y números';
-        }
-        break;
-      case 'TI':
-        if (!/^[0-9]{10,11}$/.test(numeroLimpio)) {
-          return 'La tarjeta de identidad debe tener 10 u 11 dígitos numéricos';
-        }
-        break;
-      default:
-        return 'Primero selecciona un tipo de documento';
-    }
-    return '';
-  };
-
-  const validateNombreCompleto = (nombre) => {
-    if (!nombre || !nombre.trim()) return 'El nombre completo es obligatorio';
-    const nombreTrim = nombre.trim();
-    if (nombreTrim.length < 2) return 'El nombre debe tener al menos 2 caracteres';
-    if (nombreTrim.length > 50) return 'El nombre no puede tener más de 50 caracteres';
-    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(nombreTrim)) {
-      return 'El nombre solo puede contener letras y espacios';
-    }
-    return '';
-  };
-
-  const validateApellidoCompleto = (apellido) => {
-    if (!apellido || !apellido.trim()) return 'El apellido completo es obligatorio';
-    const apellidoTrim = apellido.trim();
-    if (apellidoTrim.length < 2) return 'El apellido debe tener al menos 2 caracteres';
-    if (apellidoTrim.length > 50) return 'El apellido no puede tener más de 50 caracteres';
-    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(apellidoTrim)) {
-      return 'El apellido solo puede contener letras y espacios';
-    }
-    return '';
-  };
-
-  const validateEmail = (email) => {
-    if (!email || !email.trim()) return 'El correo electrónico es obligatorio';
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email.trim())) return 'Ingresa un correo electrónico válido';
-    if (email.length > 254) return 'El correo electrónico es demasiado largo';
-    return '';
-  };
-
-  const validateTelefono = (telefono) => {
-    if (!telefono || !telefono.trim()) return 'El teléfono es obligatorio';
-    // Formato colombiano: opcionalmente +57 o 57, luego 3 seguido de 9 dígitos
-    const telefonoLimpio = telefono.replace(/[\s\-\(\)]/g, '');
-    // Permitir formatos: +573XXXXXXXXX, 573XXXXXXXXX, o 3XXXXXXXXX
-    if (!/(?:\+57|57)?3\d{9}$/.test(telefonoLimpio)) {
-      return 'El teléfono debe seguir el formato colombiano (ej: +57 3XX XXX XXXX o 3XX XXX XXXX)';
-    }
-    // Verificar recuento de dígitos
-    const digitosNumericos = telefonoLimpio.replace(/\D/g, '');
-    if (telefonoLimpio.startsWith('+57') && digitosNumericos.length !== 12) {
-      return 'Con prefijo +57 debe incluir exactamente 12 dígitos';
-    }
-    if (telefonoLimpio.includes('57') && !telefonoLimpio.startsWith('+') && digitosNumericos.length !== 11) {
-      return 'Con prefijo 57 debe incluir exactamente 11 dígitos';
-    }
-    if (!telefonoLimpio.includes('57') && digitosNumericos.length !== 10) {
-      return 'Sin prefijo internacional debe tener exactamente 10 dígitos';
-    }
-    return '';
-  };
-
-  const validatePassword = (password) => {
-    if (!password || !password.trim()) return 'La contraseña es obligatoria';
-    if (password.length < 8) return 'La contraseña debe tener al menos 8 caracteres';
-    if (password.length > 100) return 'La contraseña no puede exceder 100 caracteres';
-    if (!PASSWORD_REGEX.test(password)) {
-      return 'Debe incluir una minúscula, una mayúscula, un número y uno de @$!%*?&#';
-    }
-    return '';
-  };
-
-  const validateConfirmPassword = (confirmPassword, password) => {
-    if (!confirmPassword || !confirmPassword.trim()) return 'Confirma tu contraseña';
-    if (confirmPassword !== password) return 'Las contraseñas no coinciden';
-    return '';
-  };
-
-  const mapTipoDocumento = (tipo) => (tipo === 'PASAPORTE' ? 'PAS' : tipo);
-
-  // Función para validar todos los campos
-  const validateAllFields = () => {
-    const errors = {
-      tipo_documento: validateTipoDocumento(formData.tipo_documento),
-      numero_documento: validateNumeroDocumento(formData.numero_documento, formData.tipo_documento),
-      nombre_completo: validateNombreCompleto(formData.nombre_completo),
-      apellido_completo: validateApellidoCompleto(formData.apellido_completo),
-      email: validateEmail(formData.email),
-      telefono: validateTelefono(formData.telefono),
-      password: validatePassword(formData.password),
-      confirmPassword: validateConfirmPassword(formData.confirmPassword, formData.password),
-    };
-    return errors;
-  };
-
-  // Función para verificar email con debouncing
   const checkEmailAvailability = useCallback(async (email) => {
-    if (!email || !validateEmail(email)) {
+    if (!email || validateEmail(email)) {
       setEmailAvailable(null);
       return;
     }
@@ -216,56 +194,56 @@ export default function RegisterPage() {
     try {
       setCheckingEmail(true);
       const response = await usersApiService.verificarCorreoExistente(email);
-      setEmailAvailable(!response.data.existe); // true si no existe (disponible)
-    } catch (error) {
-      console.error('Error verificando email:', error);
+      setEmailAvailable(!response?.data?.existe);
+    } catch (err) {
+      console.warn("No se pudo validar el correo", err);
       setEmailAvailable(null);
     } finally {
       setCheckingEmail(false);
     }
   }, []);
 
-  // Función para validar un campo específico y actualizar errores
   const validateField = (fieldName, value = null) => {
     const val = value !== null ? value : formData[fieldName];
-    let error = '';
+    let errorMessage = "";
 
     switch (fieldName) {
-      case 'tipo_documento':
-        error = validateTipoDocumento(val);
+      case "tipo_documento":
+        errorMessage = validateTipoDocumento(val);
         break;
-      case 'numero_documento':
-        error = validateNumeroDocumento(val, formData.tipo_documento);
+      case "numero_documento":
+        errorMessage = validateNumeroDocumento(val, formData.tipo_documento);
         break;
-      case 'nombre_completo':
-        error = validateNombreCompleto(val);
+      case "nombre_completo":
+        errorMessage = validateNombreCompleto(val);
         break;
-      case 'apellido_completo':
-        error = validateApellidoCompleto(val);
+      case "apellido_completo":
+        errorMessage = validateApellidoCompleto(val);
         break;
-      case 'email':
-        error = validateEmail(val);
+      case "email":
+        errorMessage = validateEmail(val);
         break;
-      case 'telefono':
-        error = validateTelefono(val);
+      case "telefono":
+        errorMessage = validateTelefono(val);
         break;
-      case 'password':
-        error = validatePassword(val);
+      case "password":
+        errorMessage = validatePassword(val);
         break;
-      case 'confirmPassword':
-        error = validateConfirmPassword(val, formData.password);
+      case "confirmPassword":
+        errorMessage = validateConfirmPassword(val, formData.password);
         break;
+      default:
+        errorMessage = "";
     }
 
-    setFieldErrors(prev => ({ ...prev, [fieldName]: error }));
-    return error;
+    setFieldErrors((prev) => ({ ...prev, [fieldName]: errorMessage }));
+    return errorMessage;
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const newValue = type === "checkbox" ? checked : value;
-
-    let nextValue = type === "checkbox" ? checked : value;
+    const baseValue = type === "checkbox" ? checked : value;
+    let nextValue = baseValue;
 
     if (name === "numero_documento") {
       nextValue = value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -275,215 +253,77 @@ export default function RegisterPage() {
       nextValue = value.replace(/[^\d+\-\s]/g, "");
     }
 
-    setFormData({
-      ...formData,
-      [name]: newValue,
+    setFormData((prev) => ({
+      ...prev,
       [name]: nextValue,
-    });
+    }));
 
     if (name === "password") {
       setPasswordStrength({
-        length: newValue.length >= 8,
-        uppercase: /[A-Z]/.test(newValue),
-        lowercase: /[a-z]/.test(newValue),
-        number: /[0-9]/.test(newValue),
-        special: /[^A-Za-z0-9]/.test(newValue),
-      });
-      validateField('password', newValue);
-      if (formData.confirmPassword) {
-        validateField('confirmPassword', formData.confirmPassword);
-      }
-    }
-
-    if (name === 'confirmPassword') {
-      validateField('confirmPassword', newValue);
         length: nextValue.length >= 8,
         uppercase: /[A-Z]/.test(nextValue),
         lowercase: /[a-z]/.test(nextValue),
         number: /[0-9]/.test(nextValue),
         special: /[^A-Za-z0-9]/.test(nextValue),
       });
+      validateField("password", nextValue);
+      if (formData.confirmPassword) {
+        validateField("confirmPassword", formData.confirmPassword);
+      }
     }
 
-    // Validación en tiempo real con debouncing para email
-    if (name === 'email') {
-      // Limpiar timeout anterior
+    if (name === "confirmPassword") {
+      validateField("confirmPassword", nextValue);
+    }
+
+    if (name === "email") {
       if (emailTimeoutRef.current) {
         clearTimeout(emailTimeoutRef.current);
       }
-
-      // Resetear estado
       setEmailAvailable(null);
 
-      // Si el email tiene contenido, verificar formato y disponibilidad después de 500ms
-      if (newValue && newValue.trim()) {
+      if (nextValue && nextValue.trim()) {
         emailTimeoutRef.current = setTimeout(() => {
-          const emailError = validateEmail(newValue);
+          const emailError = validateEmail(nextValue);
           if (!emailError) {
-            // Email válido, verificar disponibilidad
-            checkEmailAvailability(newValue);
+            checkEmailAvailability(nextValue.trim().toLowerCase());
           } else {
-            // Email inválido, mostrar error de formato
-            setEmailAvailable(false); // Esto activará el mensaje de error
+            setEmailAvailable(null);
           }
         }, 500);
       }
-
-      validateField(name, newValue);
+      validateField("email", nextValue);
     }
 
-    // Validación en tiempo real para teléfono
-    if (name === 'telefono') {
-      validateField(name, newValue);
+    if (name === "telefono") {
+      validateField("telefono", nextValue);
     }
 
-    // Revalidar número de documento si cambia el tipo
-    if (name === 'numero_documento' && formData.tipo_documento) {
-      if (newValue.length >= 5) { // Solo validar cuando haya suficientes caracteres
-        validateField('numero_documento', newValue);
+    if (name === "numero_documento" && formData.tipo_documento) {
+      if (nextValue.length >= 5) {
+        validateField("numero_documento", nextValue);
       }
     }
   };
 
   const handleSelectChange = (fieldName, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [fieldName]: value,
     }));
-
     validateField(fieldName, value);
 
-    // Si cambia el tipo de documento, revalidar el número si existe
-    if (fieldName === 'tipo_documento' && formData.numero_documento) {
-      validateField('numero_documento', formData.numero_documento);
+    if (fieldName === "tipo_documento" && formData.numero_documento) {
+      validateField("numero_documento", formData.numero_documento);
     }
   };
 
   const handleBlur = (fieldName) => {
-    // Validar al perder foco
     validateField(fieldName);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const validationErrors = validateAllFields();
-    const hasErrors = Object.values(validationErrors).some(msg => msg);
-    if (hasErrors) {
-      setFieldErrors(validationErrors);
-      const firstErrorMessage = Object.values(validationErrors).find(msg => msg) || 'Corrige los campos señalados.';
-      setError(firstErrorMessage);
-      toast({
-        title: "Revisa los datos",
-        description: firstErrorMessage,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    setError("");
-    setError("");
-
-    try {
-      console.log('📝 Registrando nuevo usuario...');
-
-      // Preparar datos para el registro
-      const userData = {
-        tipo_documento: mapTipoDocumento(formData.tipo_documento),
-        numero_documento: formData.numero_documento,
-        nombre_completo: formData.nombre_completo,
-        apellido_completo: formData.apellido_completo,
-        email: formData.email,
-        telefono: formData.telefono,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword
-      };
-
-      const res = await register(userData);
-
-      let token = res?.verification?.token;
-
-      // Fallback: solicitar un nuevo token si no vino en la respuesta
-      if (!token) {
-        try {
-          const resend = await authService.resendVerificationCode(userData.email.trim().toLowerCase());
-          token = resend?.data?.token || token;
-        } catch (err) {
-          console.warn('No se pudo obtener token de verificacion tras registro:', err);
-        }
-      }
-
-      toast({
-        title: "Verifica tu correo",
-        description: "Te enviamos un codigo de 6 digitos a tu correo. Ingresalo para activar tu cuenta.",
-        variant: "success",
-      });
-      if (token) {
-        navigate(`/verificar-correo?token=${encodeURIComponent(token)}`);
-      } else {
-        toast({
-          title: "Link de verificación",
-          description: "No pudimos generar el enlace de verificación. Intenta reenviar desde el login.",
-          variant: "destructive",
-        });
-        navigate("/login");
-      }
-
-    } catch (error) {
-      console.error('❌ Error en registro:', error);
-      const errorMessage = error.message || 'Error al crear la cuenta. Inténtalo de nuevo.';
-      setError(errorMessage);
-      toast({
-        title: "Error en el registro",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-    try {
-      console.log('📝 Registrando nuevo usuario...');
-
-      // Preparar datos para el registro
-      const userData = {
-        tipo_documento: formData.tipo_documento,
-        numero_documento: formData.numero_documento.trim().toUpperCase(),
-        nombre_completo: formData.nombre_completo.trim(),
-        apellido_completo: formData.apellido_completo.trim(),
-        email: formData.email.trim().toLowerCase(),
-        telefono: formData.telefono.replace(/[^\d+\-\s]/g, '').trim(),
-        password: formData.password,
-        confirmPassword: formData.confirmPassword
-      };
-
-      await register(userData);
-
-      console.log('✅ Registro exitoso, redirigiendo a la página principal...');
-      toast({
-        title: "¡Registro exitoso!",
-        description: "Tu cuenta ha sido creada correctamente. Bienvenido a Matriz Inmobiliaria.",
-        variant: "success",
-      });
-      navigate("/");
-
-    } catch (error) {
-      console.error('Error en registro:', error);
-      const serverErrors = error.data?.errors;
-      const errorMessage = serverErrors
-        ? Object.values(serverErrors).join(' ')
-        : error.message || 'Error al crear la cuenta. Inténtalo de nuevo.';
-      setError(errorMessage);
-      toast({
-        title: "Error en el registro",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-    }
-  };
-
   const getPasswordStrengthScore = () => Object.values(passwordStrength).filter(Boolean).length;
+
   const getPasswordStrengthColor = () => {
     const score = getPasswordStrengthScore();
     if (score <= 2) return "bg-red-500";
@@ -491,13 +331,58 @@ export default function RegisterPage() {
     if (score <= 4) return "bg-blue-500";
     return "bg-green-500";
   };
+
   const getPasswordStrengthText = () => {
     const score = getPasswordStrengthScore();
-    if (score <= 2) return "D�bil";
+    if (score <= 2) return "Debil";
     if (score <= 3) return "Regular";
     if (score <= 4) return "Buena";
     return "Excelente";
   };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const validationErrors = validateAllFields();
+    const hasErrors = Object.values(validationErrors).some((msg) => msg);
+    if (hasErrors) {
+      setFieldErrors(validationErrors);
+      const firstError = Object.values(validationErrors).find((msg) => msg) || "Corrige los campos senalados";
+      setError(firstError);
+      toast({ title: "Revisa los datos", description: firstError, variant: "destructive" });
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const userData = {
+        tipo_documento: mapTipoDocumento(formData.tipo_documento),
+        numero_documento: formData.numero_documento.trim().toUpperCase(),
+        nombre_completo: formData.nombre_completo.trim(),
+        apellido_completo: formData.apellido_completo.trim(),
+        email: formData.email.trim().toLowerCase(),
+        telefono: formData.telefono.replace(/[^\d+\-\s]/g, "").trim(),
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      };
+
+      await register(userData);
+
+      toast({
+        title: "Registro exitoso",
+        description: "Tu cuenta ha sido creada correctamente.",
+        variant: "success",
+      });
+      navigate("/");
+    } catch (err) {
+      const errorMessage = err?.message || "Error al crear la cuenta. Intentalo de nuevo.";
+      setError(errorMessage);
+      toast({ title: "Error en el registro", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-1">
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#00457B] via-[#0056A3] to-[#0066CC] relative overflow-hidden">
@@ -506,12 +391,12 @@ export default function RegisterPage() {
           <div className="max-w-md text-center space-y-8">
             <div className="space-y-4">
               <h1 className="text-3xl font-bold leading-tight">
-                �nete a la
+                Unete a la
                 <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-                  Revoluci�n Inmobiliaria
+                  Revolucion Inmobiliaria
                 </span>
               </h1>
-              <p className="text-lg text-blue-100">M�s de 10,000 profesionales conf�an en nosotros</p>
+              <p className="text-lg text-blue-100">Mas de 10,000 profesionales confian en nosotros</p>
             </div>
             <div className="space-y-6">
               <div className="flex items-center space-x-4 bg-white/10 backdrop-blur-sm rounded-2xl p-4">
@@ -548,18 +433,27 @@ export default function RegisterPage() {
         <div className="absolute bottom-20 left-20 w-24 h-24 bg-yellow-300/20 rounded-full blur-xl"></div>
         <div className="absolute top-1/3 right-10 w-16 h-16 bg-orange-300/20 rounded-full blur-lg"></div>
       </div>
+
       <div className="w-full lg:w-3/5 flex items-center justify-center p-8 bg-gradient-to-br from-gray-50 to-white">
         <div className="w-full max-w-md space-y-8 min-h-[830px] flex flex-col justify-center">
           <div className="lg:hidden text-center">
             <img src="/images/logo-matriz-sin-fondo-negro.png" alt="Matriz Inmobiliaria" width={210} height={50} className="mx-auto" />
           </div>
+
           <div className="text-center space-y-2">
             <h2 className="text-3xl font-bold text-gray-900">Crea tu cuenta</h2>
             <p className="text-gray-600">Comienza tu viaje inmobiliario hoy mismo</p>
           </div>
+
+          {error && (
+            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+              <AlertCircle className="h-4 w-4" />
+              <span>{error}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 gap-4">
-              {/* Campos de documento */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="tipo_documento" className="text-gray-700 font-medium flex items-center">
@@ -567,17 +461,14 @@ export default function RegisterPage() {
                     Tipo de documento
                   </Label>
                   <div className="relative">
-                    <Select
-                      value={formData.tipo_documento}
-                      onValueChange={(value) => handleSelectChange('tipo_documento', value)}
-                    >
-                      <SelectTrigger className={`h-12 pl-12 pr-4 rounded-xl border-2 transition-all duration-200 w-full ${fieldErrors.tipo_documento ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]'}`}>
+                    <Select value={formData.tipo_documento} onValueChange={(value) => handleSelectChange("tipo_documento", value)}>
+                      <SelectTrigger className={`h-12 pl-12 pr-4 rounded-xl border-2 transition-all duration-200 w-full ${fieldErrors.tipo_documento ? "border-red-300 focus:border-red-500 focus:ring-red-500" : "border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]"}`}>
                         <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 z-10 pointer-events-none" />
                         <SelectValue placeholder="Selecciona un tipo" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
-                        <SelectItem value="CE">Cédula de Extranjería</SelectItem>
+                        <SelectItem value="CC">Cedula de Ciudadania</SelectItem>
+                        <SelectItem value="CE">Cedula de Extranjeria</SelectItem>
                         <SelectItem value="NIT">NIT</SelectItem>
                         <SelectItem value="PASAPORTE">Pasaporte</SelectItem>
                         <SelectItem value="TI">Tarjeta de Identidad</SelectItem>
@@ -595,18 +486,18 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                   <Label htmlFor="numero_documento" className="text-gray-700 font-medium flex items-center">
                     <User className="h-4 w-4 mr-2 text-[#00457B]" />
-                    Número de documento
+                    Numero de documento
                   </Label>
                   <div className="relative">
                     <Input
                       id="numero_documento"
                       name="numero_documento"
-                      placeholder="Número de documento"
-                      className={`h-12 pl-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.numero_documento ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]'}`}
+                      placeholder="Numero de documento"
+                      className={`h-12 pl-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.numero_documento ? "border-red-300 focus:border-red-500 focus:ring-red-500" : "border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]"}`}
                       value={formData.numero_documento}
                       onChange={handleChange}
-                      onBlur={() => handleBlur('numero_documento')}
-                      maxLength={formData.tipo_documento === 'PASAPORTE' ? 20 : formData.tipo_documento === 'TI' ? 11 : 10}
+                      onBlur={() => handleBlur("numero_documento")}
+                      maxLength={formData.tipo_documento === "PASAPORTE" ? 20 : formData.tipo_documento === "TI" ? 11 : 10}
                       required
                     />
                     <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
@@ -620,7 +511,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Campos de nombre y apellido */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="nombre_completo" className="text-gray-700 font-medium flex items-center">
@@ -632,10 +522,10 @@ export default function RegisterPage() {
                       id="nombre_completo"
                       name="nombre_completo"
                       placeholder="Tu nombre completo"
-                      className={`h-12 pl-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.nombre_completo ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]'}`}
+                      className={`h-12 pl-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.nombre_completo ? "border-red-300 focus:border-red-500 focus:ring-red-500" : "border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]"}`}
                       value={formData.nombre_completo}
                       onChange={handleChange}
-                      onBlur={() => handleBlur('nombre_completo')}
+                      onBlur={() => handleBlur("nombre_completo")}
                       maxLength={50}
                       required
                     />
@@ -659,10 +549,10 @@ export default function RegisterPage() {
                       id="apellido_completo"
                       name="apellido_completo"
                       placeholder="Tu apellido completo"
-                      className={`h-12 pl-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.apellido_completo ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]'}`}
+                      className={`h-12 pl-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.apellido_completo ? "border-red-300 focus:border-red-500 focus:ring-red-500" : "border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]"}`}
                       value={formData.apellido_completo}
                       onChange={handleChange}
-                      onBlur={() => handleBlur('apellido_completo')}
+                      onBlur={() => handleBlur("apellido_completo")}
                       maxLength={50}
                       required
                     />
@@ -674,98 +564,12 @@ export default function RegisterPage() {
                       <span className="text-sm">{fieldErrors.apellido_completo}</span>
                     </div>
                   )}
-              {/* Campos de documento */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="tipo_documento" className="text-gray-700 font-medium flex items-center">
-                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
-                    Tipo de documento
-                  </Label>
-                  <div className="relative">
-                    <Select
-                      value={formData.tipo_documento}
-                      defaultValue="CC"
-                      onValueChange={(value) => setFormData({ ...formData, tipo_documento: value })}
-                    >
-                      <SelectTrigger className="h-12 pl-12 pr-4 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200 w-full">
-                        <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 z-10 pointer-events-none" />
-                        <SelectValue placeholder="Selecciona un tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
-                        <SelectItem value="CE">Cédula de Extranjería</SelectItem>
-                        <SelectItem value="NIT">NIT</SelectItem>
-                        <SelectItem value="PAS">Pasaporte</SelectItem>
-                        <SelectItem value="TI">Tarjeta de Identidad</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="numero_documento" className="text-gray-700 font-medium flex items-center">
-                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
-                    Número de documento
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="numero_documento"
-                      name="numero_documento"
-                      placeholder="Tu número de documento"
-                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
-                      value={formData.numero_documento}
-                      onChange={handleChange}
-                      required
-                    />
-                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Campos de nombre y apellido */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nombre_completo" className="text-gray-700 font-medium flex items-center">
-                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
-                    Nombre completo
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="nombre_completo"
-                      name="nombre_completo"
-                      placeholder="Tu nombre completo"
-                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
-                      value={formData.nombre_completo}
-                      onChange={handleChange}
-                      required
-                    />
-                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="apellido_completo" className="text-gray-700 font-medium flex items-center">
-                    <User className="h-4 w-4 mr-2 text-[#00457B]" />
-                    Apellido completo
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="apellido_completo"
-                      name="apellido_completo"
-                      placeholder="Tu apellido completo"
-                      className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
-                      value={formData.apellido_completo}
-                      onChange={handleChange}
-                      required
-                    />
-                    <User className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                  </div>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-gray-700 font-medium flex items-center">
                   <Mail className="h-4 w-4 mr-2 text-[#00457B]" />
-                  Correo electr�nico
+                  Correo electronico
                 </Label>
                 <div className="relative">
                   <Input
@@ -773,18 +577,15 @@ export default function RegisterPage() {
                     name="email"
                     type="email"
                     placeholder="tu@email.com"
-                    className={`h-12 pl-12 pr-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]'}`}
+                    className={`h-12 pl-12 pr-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.email ? "border-red-300 focus:border-red-500 focus:ring-red-500" : "border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]"}`}
                     value={formData.email}
                     onChange={handleChange}
-                    onBlur={() => handleBlur('email')}
+                    onBlur={() => handleBlur("email")}
                     maxLength={254}
                     required
                   />
                   <Mail className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                  {/* Indicador de verificación */}
-                  {checkingEmail && (
-                    <Loader2 className="absolute right-4 top-3.5 h-5 w-5 text-blue-500 animate-spin" />
-                  )}
+                  {checkingEmail && <Loader2 className="absolute right-4 top-3.5 h-5 w-5 text-blue-500 animate-spin" />}
                   {!checkingEmail && emailAvailable !== null && (
                     emailAvailable ? (
                       <CheckCircle2 className="absolute right-4 top-3.5 h-5 w-5 text-green-500" />
@@ -802,32 +603,33 @@ export default function RegisterPage() {
                 {!checkingEmail && emailAvailable === false && !fieldErrors.email && (
                   <div className="flex items-center mt-1 text-red-600">
                     <XCircle className="h-4 w-4 mr-1" />
-                    <span className="text-sm">Este correo electrónico ya está registrado</span>
+                    <span className="text-sm">Este correo ya esta registrado</span>
                   </div>
                 )}
                 {!checkingEmail && emailAvailable === true && !fieldErrors.email && (
                   <div className="flex items-center mt-1 text-green-600">
                     <CheckCircle2 className="h-4 w-4 mr-1" />
-                    <span className="text-sm">Correo electrónico disponible</span>
+                    <span className="text-sm">Correo disponible</span>
                   </div>
                 )}
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="telefono" className="text-gray-700 font-medium flex items-center">
                   <Phone className="h-4 w-4 mr-2 text-[#00457B]" />
-                  Tel�fono
+                  Telefono
                 </Label>
                 <div className="relative">
                   <Input
                     id="telefono"
                     name="telefono"
                     type="tel"
-                    placeholder="Tu número de teléfono"
-                    className={`h-12 pl-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.telefono ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]'}`}
+                    placeholder="Tu numero de telefono"
+                    className={`h-12 pl-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.telefono ? "border-red-300 focus:border-red-500 focus:ring-red-500" : "border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]"}`}
                     value={formData.telefono}
                     onChange={handleChange}
-                    onBlur={() => handleBlur('telefono')}
-                    maxLength={15} // Permitir hasta 15 caracteres para formatos con espacios y +57
+                    onBlur={() => handleBlur("telefono")}
+                    maxLength={15}
                     required
                   />
                   <Phone className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
@@ -839,36 +641,40 @@ export default function RegisterPage() {
                   </div>
                 )}
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-gray-700 font-medium flex items-center">
                   <Lock className="h-4 w-4 mr-2 text-[#00457B]" />
-                  Contrase�a
+                  Contrasena
                 </Label>
                 <div className="relative">
                   <Input
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="��������"
-                    className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                    placeholder="********"
+                    className={`h-12 pl-12 pr-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.password ? "border-red-300 focus:border-red-500 focus:ring-red-500" : "border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]"}`}
                     value={formData.password}
                     onChange={handleChange}
                     onBlur={() => handleBlur("password")}
                     required
                   />
                   <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                  <button type="button" className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors" onClick={() => setShowPassword((prev) => !prev)}>
+                  <button
+                    type="button"
+                    className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                  >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
-                {fieldErrors.password && (
-                  <p className="text-sm text-red-500 mt-1">{fieldErrors.password}</p>
-                )}
+                {fieldErrors.password && <p className="text-sm text-red-500 mt-1">{fieldErrors.password}</p>}
               </div>
+
               {formData.password && (
                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-xl border border-gray-200">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-gray-700">Fortaleza de contrase�a:</span>
+                    <span className="text-sm font-medium text-gray-700">Fortaleza de contrasena:</span>
                     <span className={`text-sm font-semibold ${getPasswordStrengthScore() <= 2 ? "text-red-600" : getPasswordStrengthScore() <= 3 ? "text-yellow-600" : getPasswordStrengthScore() <= 4 ? "text-blue-600" : "text-green-600"}`}>
                       {getPasswordStrengthText()}
                     </span>
@@ -877,7 +683,7 @@ export default function RegisterPage() {
                     <div className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthColor()}`} style={{ width: `${(getPasswordStrengthScore() / 5) * 100}%` }}></div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    {[{ key: "length", label: "8+ caracteres" }, { key: "uppercase", label: "May�scula" }, { key: "number", label: "N�mero" }, { key: "special", label: "S�mbolo" }].map(({ key, label }) => (
+                    {[{ key: "length", label: "8+ caracteres" }, { key: "uppercase", label: "Mayuscula" }, { key: "number", label: "Numero" }, { key: "special", label: "Simbolo" }].map(({ key, label }) => (
                       <div className="flex items-center" key={key}>
                         {passwordStrength[key] ? <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" /> : <XCircle className="h-3 w-3 text-red-500 mr-1" />}
                         <span className="text-gray-600">{label}</span>
@@ -886,47 +692,46 @@ export default function RegisterPage() {
                   </div>
                 </div>
               )}
+
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword" className="text-gray-700 font-medium flex items-center">
                   <Lock className="h-4 w-4 mr-2 text-[#00457B]" />
-                  Confirmar contrase�a
+                  Confirmar contrasena
                 </Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder="��������"
-                    className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200"
+                    placeholder="********"
+                    className={`h-12 pl-12 pr-12 rounded-xl border-2 transition-all duration-200 ${fieldErrors.confirmPassword ? "border-red-300 focus:border-red-500 focus:ring-red-500" : "border-gray-200 focus:border-[#00457B] focus:ring-[#00457B]"}`}
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     onBlur={() => handleBlur("confirmPassword")}
                     required
                   />
                   <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                  <button type="button" className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors" onClick={() => setShowConfirmPassword((prev) => !prev)}>
+                  <button
+                    type="button"
+                    className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  >
                     {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
-                {fieldErrors.confirmPassword && (
-                  <p className="text-sm text-red-500 mt-1">{fieldErrors.confirmPassword}</p>
+                {fieldErrors.confirmPassword && <p className="text-sm text-red-500 mt-1">{fieldErrors.confirmPassword}</p>}
+                {formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                  <div className="flex items-center mt-2 text-red-600">
+                    <XCircle className="h-4 w-4 mr-1" />
+                    <span className="text-sm">Las contrasenas no coinciden</span>
+                  </div>
                 )}
-                {formData.password &&
-                  formData.confirmPassword &&
-                  formData.password !== formData.confirmPassword && (
-                    <div className="flex items-center mt-2 text-red-600">
-                      <XCircle className="h-4 w-4 mr-1" />
-                      <span className="text-sm">Las contraseñas no coinciden</span>
-                    </div>
-                  )}
-                {formData.password &&
-                  formData.confirmPassword &&
-                  formData.password === formData.confirmPassword && (
-                    <div className="flex items-center mt-2 text-green-600">
-                      <CheckCircle2 className="h-4 w-4 mr-1" />
-                      <span className="text-sm">Las contraseñas coinciden</span>
-                    </div>
-                  )}
+                {formData.password && formData.confirmPassword && formData.password === formData.confirmPassword && (
+                  <div className="flex items-center mt-2 text-green-600">
+                    <CheckCircle2 className="h-4 w-4 mr-1" />
+                    <span className="text-sm">Las contrasenas coinciden</span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-start space-x-3 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
@@ -934,21 +739,18 @@ export default function RegisterPage() {
                 id="terminos"
                 name="terminos"
                 checked={formData.terminos}
-                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, terminos: checked }))}
+                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, terminos: !!checked }))}
                 className="h-5 w-5 mt-0.5 border-2 border-[#00457B] text-[#00457B] rounded-md"
                 required
               />
               <Label htmlFor="terminos" className="text-gray-700 font-medium text-sm leading-relaxed">
                 Acepto los
-                <a href="/terminos" className="text-[#00457B] hover:text-[#003b69] font-semibold underline">
-                  t�rminos y condiciones
-                </a>
+                <a href="/terminos" className="text-[#00457B] hover:text-[#003b69] font-semibold underline"> terminos y condiciones </a>
                 y la
-                <a href="/privacidad" className="text-[#00457B] hover:text-[#003b69] font-semibold underline">
-                  pol�tica de privacidad
-                </a>
+                <a href="/privacidad" className="text-[#00457B] hover:text-[#003b69] font-semibold underline"> politica de privacidad</a>
               </Label>
             </div>
+
             <Button
               type="submit"
               className="w-full h-12 bg-gradient-to-r from-[#00457B] to-[#0056A3] hover:from-[#003b69] hover:to-[#004a8f] rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 group"
@@ -966,35 +768,28 @@ export default function RegisterPage() {
                 </div>
               )}
             </Button>
-            {error && (
-              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
-                <AlertCircle className="h-4 w-4" />
-                <span>{error}</span>
-              </div>
-            )}
           </form>
+
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500 font-medium"> </span>
+              <span className="px-4 bg-white text-gray-500 font-medium"></span>
             </div>
           </div>
+
           <div className="text-center space-y-4">
             <p className="text-gray-600">
-              �Ya tienes una cuenta?
+              Ya tienes una cuenta?
               <a href="/login" className="text-[#00457B] font-semibold hover:text-[#003b69] transition-colors">
-                Inicia sesi�n
+                Inicia sesion
               </a>
             </p>
-            <p className="text-xs text-gray-500">� {new Date().getFullYear()} Matriz Inmobiliaria. Todos los derechos reservados.</p>
+            <p className="text-xs text-gray-500">(c) {new Date().getFullYear()} Matriz Inmobiliaria. Todos los derechos reservados.</p>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-
-

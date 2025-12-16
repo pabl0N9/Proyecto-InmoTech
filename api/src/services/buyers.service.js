@@ -247,46 +247,6 @@ class BuyerService {
   }
 
   async getAllBuyers(filters = {}) {
-<<<<<<< HEAD
-    try {
-      const buyerWhere = {};
-      if (filters.status) buyerWhere.estado = filters.status;
-      if (filters.tipo_comprador) buyerWhere.tipo_comprador = filters.tipo_comprador;
-      const buyerHasFilters = Object.keys(buyerWhere).length > 0;
-
-      const personaWhere = {};
-      if (filters.nombre) {
-        personaWhere[Op.or] = [
-          { nombre_completo: { [Op.like]: `%${filters.nombre}%` } },
-          { apellido_completo: { [Op.like]: `%${filters.nombre}%` } }
-        ];
-      }
-
-      const personas = await Persona.findAll({
-        ...this.personaQuery(personaWhere),
-        include: [
-          {
-            association: 'buyer',
-            attributes: BUYER_ATTRS,
-            where: buyerHasFilters ? buyerWhere : undefined,
-            required: true
-          }
-        ]
-      });
-
-      return personas
-        .map((p) => this.normalizePersonaRecord(p))
-        .filter(Boolean);
-    } catch (error) {
-      const msg = error.original?.message || error.message || 'Error obteniendo compradores';
-      logger.error(`? Error en getAllBuyers: ${msg}`);
-      if (msg.includes('Invalid object name') || msg.includes('does not exist')) {
-        logger.warn('Tabla de Compradores no encontrada. Devolviendo lista vac?a.');
-        return [];
-      }
-      throw error;
-    }
-=======
     const buyerWhere = {};
     if (filters.status) buyerWhere.estado = filters.status;
     if (filters.tipo_comprador) buyerWhere.tipo_comprador = filters.tipo_comprador;
@@ -315,7 +275,6 @@ class BuyerService {
     return personas
       .map((p) => this.normalizePersonaRecord(p))
       .filter(Boolean);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   }
 
   async updateBuyer(id, updateData) {

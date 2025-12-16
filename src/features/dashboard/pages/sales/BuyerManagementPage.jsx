@@ -349,53 +349,6 @@ export function BuyersManagementPage() {
                     </motion.button>
                 </motion.div>
 
-<<<<<<< HEAD
-                {/* STATS CARDS */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-                >
-                    <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-blue-100 text-sm font-medium">Total Compradores</p>
-                                <p className="text-2xl font-bold mt-1">{stats.total}</p>
-                            </div>
-                            <div className="bg-blue-400 rounded-lg p-3">
-                                <FaUserPlus className="text-xl" />
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-green-100 text-sm font-medium">Activos</p>
-                                <p className="text-2xl font-bold mt-1">{stats.activos}</p>
-                            </div>
-                            <div className="bg-green-400 rounded-lg p-3">
-                                <CheckCircle className="w-5 h-5" />
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-gradient-to-r from-gray-500 to-gray-600 rounded-xl p-4 text-white shadow-lg">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-gray-100 text-sm font-medium">Inactivos</p>
-                                <p className="text-2xl font-bold mt-1">{stats.inactivos}</p>
-                            </div>
-                            <div className="bg-gray-400 rounded-lg p-3">
-                                <XCircle className="w-5 h-5" />
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
-
-=======
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                 {/* SEARCH AND FILTERS */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -434,33 +387,6 @@ export function BuyersManagementPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
                 >
-<<<<<<< HEAD
-                    {/* TABLA CON NUEVO ESTILO */}
-                    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                        {/* CABECERA DE TABLA */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-                            <h3 className="text-white font-semibold flex items-center gap-2">
-                                👥 Lista de Compradores ({filteredBuyers.length} {filteredBuyers.length === 1 ? "resultado" : "resultados"})
-                            </h3>
-                        </div>
-                        
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse">
-                                <thead className="bg-slate-50">
-                                    <tr>
-                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Tipo doc</th>
-                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">#Documento</th>
-                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Primer nombre</th>
-                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Segundo nombre</th>
-                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Primer apellido</th>
-                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Segundo apellido</th>
-                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Correo</th>
-                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Teléfono</th>
-                                        <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-=======
                 {/* TABLA CON ESTILO UNIFICADO */}
                 <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
                     <div className="overflow-x-auto">
@@ -479,16 +405,11 @@ export function BuyersManagementPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                     {isLoading ? (
                                         <tr>
                                             <td
                                                 colSpan="9"
-<<<<<<< HEAD
-                                                className="px-4 py-8 text-center text-slate-500 border-b"
-=======
                                             className="px-6 py-8 text-center text-slate-500"
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                             >
                                                 <div className="flex items-center justify-center gap-2">
                                                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -500,21 +421,6 @@ export function BuyersManagementPage() {
                                         filteredBuyers.map((c) => (
                                             <tr
                                                 key={c.id}
-<<<<<<< HEAD
-                                                className="hover:bg-slate-50 border-b border-slate-100 transition-colors"
-                                            >
-                                                <td className="px-4 py-3 text-center text-slate-700">{c.tipoDocumento}</td>
-                                                <td className="px-4 py-3 text-center text-slate-700 font-medium">{c.documento}</td>
-                                                <td className="px-4 py-3 text-center text-slate-700">{c.primerNombre}</td>
-                                                <td className="px-4 py-3 text-center text-slate-500">
-                                                    {c.segundoNombre || "-"}
-                                                </td>
-                                                <td className="px-4 py-3 text-center text-slate-700">{c.primerApellido}</td>
-                                                <td className="px-4 py-3 text-center text-slate-500">
-                                                    {c.segundoApellido || "-"}
-                                                </td>
-                                                <td className="px-4 py-3 text-center">
-=======
                                                 className="hover:bg-slate-50 transition-colors"
                                             >
                                                 <td className="px-6 py-4 text-center text-sm text-slate-700">{c.tipoDocumento}</td>
@@ -528,7 +434,6 @@ export function BuyersManagementPage() {
                                                     {c.segundoApellido || "-"}
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                                     <a
                                                         href={`mailto:${c.correo}`}
                                                         className="text-blue-600 hover:text-blue-800 transition-colors font-medium"
@@ -536,13 +441,8 @@ export function BuyersManagementPage() {
                                                         {c.correo}
                                                     </a>
                                                 </td>
-<<<<<<< HEAD
-                                                <td className="px-4 py-3 text-center text-slate-700">{c.telefono}</td>
-                                                <td className="px-4 py-3 text-center">
-=======
                                                 <td className="px-6 py-4 text-center text-sm text-slate-700">{c.telefono}</td>
                                                 <td className="px-6 py-4 text-center">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                                     <div className="flex gap-2 justify-center">
                                                         <motion.button
                                                             whileHover={{ scale: 1.1 }}
@@ -579,11 +479,7 @@ export function BuyersManagementPage() {
                                         <tr>
                                             <td
                                                 colSpan="9"
-<<<<<<< HEAD
-                                                className="px-4 py-8 text-center text-slate-500 border-b"
-=======
                                                 className="px-6 py-8 text-center text-slate-500"
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                                             >
                                                 <div className="flex flex-col items-center gap-2">
                                                     <AlertCircle className="w-8 h-8 text-slate-400" />

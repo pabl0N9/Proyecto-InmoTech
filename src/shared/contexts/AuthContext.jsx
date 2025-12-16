@@ -3,13 +3,78 @@
  * @version 2.0.0 - Corregido manejo de tokens con apiClient
  */
 
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import authService from '../services/authService';
 import { apiClient } from '../services/api.config';
 
 const AuthContext = createContext(undefined);
 
 const USER_KEY = 'inmotech_user';
+const ALL_MODULES = [
+  'dashboard',
+  'citas',
+  'inmuebles',
+  'ventas',
+  'arriendos',
+  'reportes',
+  'usuarios',
+  'administrativos',
+  'roles'
+];
+
+const normalizeKey = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+
+const extractPermissionsByModule = (user) => {
+  const permissions = {};
+  if (!user) return permissions;
+
+  const addPermission = (moduleName, permissionKey) => {
+    const mod = normalizeKey(moduleName);
+    const perm = normalizeKey(permissionKey);
+    if (!mod) return;
+    if (!permissions[mod]) permissions[mod] = {};
+    permissions[mod][perm || 'ver'] = true;
+  };
+
+  if (user.permisos && typeof user.permisos === 'object' && !Array.isArray(user.permisos)) {
+    Object.entries(user.permisos).forEach(([moduleName, modulePerms]) => {
+      if (Array.isArray(modulePerms)) {
+        modulePerms.forEach((perm) => addPermission(moduleName, perm));
+      } else if (modulePerms && typeof modulePerms === 'object') {
+        Object.entries(modulePerms).forEach(([perm, enabled]) => {
+          if (enabled) addPermission(moduleName, perm);
+        });
+      } else if (modulePerms) {
+        addPermission(moduleName, 'ver');
+      }
+    });
+  }
+
+  if (Array.isArray(user.permisos)) {
+    user.permisos.forEach((perm) => {
+      addPermission(
+        perm?.modulo || perm?.module || perm?.key,
+        perm?.permiso || perm?.permission || perm?.action || 'ver'
+      );
+    });
+  }
+
+  if (Array.isArray(user.permisosPorModulo)) {
+    user.permisosPorModulo.forEach((item) => {
+      const mod = item?.modulo || item?.module || item?.key;
+      const perms = item?.permisos || item?.permissions;
+      if (perms && typeof perms === 'object') {
+        Object.entries(perms).forEach(([perm, enabled]) => {
+          if (enabled) addPermission(mod, perm);
+        });
+      } else {
+        addPermission(mod, 'ver');
+      }
+    });
+  }
+
+  return permissions;
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -367,6 +432,52 @@ const login = async (email, password, rememberMe = false) => {
     return isAuthenticated && hasRole(allowedRoles);
   }, [isAuthenticated, hasRole]);
 
+  const permissionsByModule = useMemo(() => extractPermissionsByModule(user), [user]);
+
+  const getAvailableModules = useCallback(() => {
+    const modules = new Set();
+    const roles = user?.roles || [];
+    const isSuperAdmin = roles.includes('Super Administrador');
+    const isAdmin = roles.includes('Administrador');
+
+    if (isSuperAdmin || isAdmin) {
+      ALL_MODULES.forEach((mod) => modules.add(mod));
+      return Array.from(modules);
+    }
+
+    if (user?.es_administrativo) {
+      modules.add('administrativos');
+    }
+
+    Object.keys(permissionsByModule).forEach((mod) => modules.add(mod));
+
+    return Array.from(modules);
+  }, [user, permissionsByModule]);
+
+  const hasPermission = useCallback((moduleName, action = 'ver') => {
+    const mod = normalizeKey(moduleName);
+    const permKey = normalizeKey(action) || 'ver';
+    if (!mod) return false;
+
+    const roles = user?.roles || [];
+    if (roles.includes('Super Administrador') || roles.includes('Administrador')) {
+      return true;
+    }
+
+    const modulePerms = permissionsByModule[mod] || {};
+    if (!action) {
+      return getAvailableModules().includes(mod) || Object.keys(modulePerms).length > 0;
+    }
+
+    if (modulePerms[permKey]) return true;
+
+    if (['ver', 'listar', 'read'].includes(permKey)) {
+      return getAvailableModules().includes(mod);
+    }
+
+    return false;
+  }, [user, permissionsByModule, getAvailableModules]);
+
   // Cargar autenticación al montar el componente
   useEffect(() => {
     loadAuthFromStorage();
@@ -390,6 +501,8 @@ const login = async (email, password, rememberMe = false) => {
     // Utilidades
     hasRole,
     hasAccess,
+    hasPermission,
+    getAvailableModules,
     clearError: () => setError(null),
   };
 

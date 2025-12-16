@@ -1,11 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
-<<<<<<< HEAD
-const ReporteRubro = sequelize.define('Reporte_Rubro', {
-=======
 const ReporteRubro = sequelize.define('ReporteRubro', {
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   id_rubro: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -27,11 +23,6 @@ const ReporteRubro = sequelize.define('ReporteRubro', {
   descripcion: {
     type: DataTypes.TEXT,
     allowNull: true
-<<<<<<< HEAD
-  }
-}, {
-  tableName: 'Reporte_Rubro',
-=======
   },
   estado: {
     type: DataTypes.STRING(50),
@@ -52,7 +43,6 @@ const ReporteRubro = sequelize.define('ReporteRubro', {
   }
 }, {
   tableName: 'RubrosReportes',
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   timestamps: false
 });
 

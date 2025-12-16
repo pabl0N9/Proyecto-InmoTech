@@ -1,11 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
-<<<<<<< HEAD
-const ReporteSeguimientoGeneral = sequelize.define('Reporte_Seguimiento_General', {
-=======
 const ReporteSeguimientoGeneral = sequelize.define('ReporteSeguimientoGeneral', {
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   id_seguimiento: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -20,23 +16,7 @@ const ReporteSeguimientoGeneral = sequelize.define('ReporteSeguimientoGeneral', 
       key: 'id_reporte'
     }
   },
-<<<<<<< HEAD
-  fecha: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: sequelize.literal('GETDATE()')
-  },
-  estado: {
-    type: DataTypes.STRING(50),
-    allowNull: false,
-    validate: {
-      isIn: [['Pendiente', 'En Proceso', 'Completado']]
-    }
-  },
-  id_responsable: {
-=======
   id_persona: {
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
@@ -47,11 +27,6 @@ const ReporteSeguimientoGeneral = sequelize.define('ReporteSeguimientoGeneral', 
   descripcion: {
     type: DataTypes.TEXT,
     allowNull: false
-<<<<<<< HEAD
-  }
-}, {
-  tableName: 'Reporte_Seguimiento_General',
-=======
   },
   estado: {
     type: DataTypes.STRING(50),
@@ -67,7 +42,6 @@ const ReporteSeguimientoGeneral = sequelize.define('ReporteSeguimientoGeneral', 
   }
 }, {
   tableName: 'SeguimientosReportes',
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   timestamps: false
 });
 

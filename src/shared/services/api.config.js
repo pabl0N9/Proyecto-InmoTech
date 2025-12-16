@@ -12,11 +12,15 @@ const API_CONFIG = {
   },
 };
 
+const ACCESS_TOKEN_KEY = 'inmotech_access_token';
+const REFRESH_TOKEN_KEY = 'inmotech_refresh_token';
+
 class ApiClient {
   constructor() {
     this.maxRetries = 2;
     this.accessToken = null;
     this.refreshToken = null;
+    this.loadTokensFromStorage();
   }
 
   delay(ms) {
@@ -27,11 +31,65 @@ class ApiClient {
   setTokens(accessToken, refreshToken) {
     this.accessToken = accessToken || null;
     this.refreshToken = refreshToken || null;
+
+    try {
+      if (accessToken) {
+        localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+      } else {
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+      }
+
+      if (refreshToken) {
+        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      } else {
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
+      }
+    } catch {
+      // En entornos sin localStorage (SSR/tests), ignorar
+    }
   }
 
   clearTokens() {
     this.accessToken = null;
     this.refreshToken = null;
+    try {
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+    } catch {
+      // noop
+    }
+  }
+
+  getAccessToken() {
+    if (this.accessToken) return this.accessToken;
+    try {
+      const stored = localStorage.getItem(ACCESS_TOKEN_KEY);
+      this.accessToken = stored || null;
+      return this.accessToken;
+    } catch {
+      return null;
+    }
+  }
+
+  getRefreshToken() {
+    if (this.refreshToken) return this.refreshToken;
+    try {
+      const stored = localStorage.getItem(REFRESH_TOKEN_KEY);
+      this.refreshToken = stored || null;
+      return this.refreshToken;
+    } catch {
+      return null;
+    }
+  }
+
+  loadTokensFromStorage() {
+    try {
+      this.accessToken = localStorage.getItem(ACCESS_TOKEN_KEY) || null;
+      this.refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY) || null;
+    } catch {
+      this.accessToken = null;
+      this.refreshToken = null;
+    }
   }
 
   async request(endpoint, options = {}, retryCount = 0) {

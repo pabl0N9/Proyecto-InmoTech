@@ -1,8 +1,4 @@
 const authService = require('../services/auth.service');
-<<<<<<< HEAD
-const personaService = require('../services/persona.service');
-=======
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 const logger = require('../utils/logger');
 
 const buildCookieOptions = () => {
@@ -21,13 +17,7 @@ class AuthController {
       return res.status(201).json({
         success: true,
         message: 'Registro recibido. Revisa tu correo y confirma tu cuenta en las proximas 24 horas.',
-<<<<<<< HEAD
-        data: { user: result.user, verification: result.verification }
-      });
-    } catch (error) {
-      logger.error('Error en registro de usuario:', error);
-=======
-        data: { user: result.user, verification: result.verification, meta: result.meta }
+        data: { user: result.user, verification: result.verification, meta: result.meta },
       });
     } catch (error) {
       logger.error('Error en registro de usuario:', error);
@@ -36,10 +26,9 @@ class AuthController {
           success: false,
           message: error.message,
           reason: error.code || null,
-          data: error.meta || null
+          data: error.meta || null,
         });
       }
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       next(error);
     }
   }
@@ -55,20 +44,20 @@ class AuthController {
         httpOnly: true,
         secure: secureCookies,
         sameSite,
-        maxAge: 60 * 60 * 1000 // 1h
+        maxAge: 60 * 60 * 1000, // 1h
       });
 
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: secureCookies,
         sameSite,
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7d
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7d
       });
 
       return res.status(200).json({
         success: true,
         message: 'Inicio de sesion exitoso',
-        data: { user: result.user }
+        data: { user: result.user },
       });
     } catch (error) {
       logger.error('Error en inicio de sesion:', error);
@@ -77,16 +66,14 @@ class AuthController {
           success: false,
           message: error.message,
           reason: error.code,
-          data: error.meta || null
+          data: error.meta || null,
         });
       }
-<<<<<<< HEAD
-=======
       if (error.code === 'INVALID_CREDENTIALS') {
         return res.status(error.status || 401).json({
           success: false,
           message: error.message,
-          reason: error.code || 'INVALID_CREDENTIALS'
+          reason: error.code || 'INVALID_CREDENTIALS',
         });
       }
       if (error.status) {
@@ -94,10 +81,9 @@ class AuthController {
           success: false,
           message: error.message,
           reason: error.code || null,
-          data: error.meta || null
+          data: error.meta || null,
         });
       }
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       next(error);
     }
   }
@@ -112,20 +98,20 @@ class AuthController {
         httpOnly: true,
         secure: secureCookies,
         sameSite,
-        maxAge: 60 * 60 * 1000
+        maxAge: 60 * 60 * 1000,
       });
 
       res.cookie('refreshToken', tokens.refreshToken, {
         httpOnly: true,
         secure: secureCookies,
         sameSite,
-        maxAge: 7 * 24 * 60 * 60 * 1000
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
       return res.status(200).json({
         success: true,
         message: 'Token refrescado exitosamente',
-        data: tokens
+        data: tokens,
       });
     } catch (error) {
       logger.error('Error refrescando token:', error);
@@ -140,13 +126,13 @@ class AuthController {
       return res.status(200).json({
         success: true,
         message: data?.ya_verificado ? 'Tu correo ya estaba verificado' : 'Correo verificado exitosamente',
-        data
+        data,
       });
     } catch (error) {
       logger.warn('Verificacion de codigo fallida:', error.message);
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -154,25 +140,21 @@ class AuthController {
   async reenviarCodigo(req, res, next) {
     try {
       const { email } = req.validatedData;
-<<<<<<< HEAD
-      const data = await authService.reenviarCodigoVerificacion(email);
-=======
       const roles = req.user?.roles || [];
       const isAdmin = roles.includes('Super Administrador') || roles.includes('Administrador');
 
       const data = await authService.reenviarCodigoVerificacion(email, { ignoreLimits: isAdmin });
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       return res.status(200).json({
         success: true,
         message: 'Hemos enviado un nuevo codigo a tu correo',
-        data
+        data,
       });
     } catch (error) {
       logger.warn('Error reenviando codigo de verificacion:', error.message);
       return res.status(error.code === 'VERIFICATION_LIMIT' ? 429 : 400).json({
         success: false,
         message: error.message,
-        reason: error.code || null
+        reason: error.code || null,
       });
     }
   }
@@ -184,13 +166,13 @@ class AuthController {
       return res.status(200).json({
         success: true,
         message: 'Correo verificado exitosamente',
-        data
+        data,
       });
     } catch (error) {
       logger.warn('Verificacion de correo fallida:', error.message);
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
   }
@@ -203,7 +185,7 @@ class AuthController {
       return res.status(200).json({
         success: true,
         message: 'Perfil obtenido exitosamente',
-        data: perfil
+        data: perfil,
       });
     } catch (error) {
       logger.error('Error obteniendo perfil:', error);
@@ -214,7 +196,7 @@ class AuthController {
           success: false,
           message: 'Tu cuenta ha sido deshabilitada por un administrador. Sesion terminada.',
           forceLogout: true,
-          reason: 'user_disabled'
+          reason: 'user_disabled',
         });
       }
 
@@ -224,7 +206,7 @@ class AuthController {
           success: false,
           message: 'Tu acceso administrativo ha sido revocado. Sesion terminada.',
           forceLogout: true,
-          reason: 'admin_access_revoked'
+          reason: 'admin_access_revoked',
         });
       }
 
@@ -236,13 +218,12 @@ class AuthController {
     try {
       const userId = req.user.id;
       const updateData = req.validatedData;
-
       const perfilActualizado = await require('../services/persona.service').actualizarPerfil(userId, updateData, userId);
 
       return res.status(200).json({
         success: true,
         message: 'Perfil actualizado exitosamente',
-        data: perfilActualizado
+        data: perfilActualizado,
       });
     } catch (error) {
       logger.error('Error actualizando perfil:', error);
@@ -259,7 +240,7 @@ class AuthController {
 
       return res.status(200).json({
         success: true,
-        message: 'Contrasena cambiada exitosamente'
+        message: 'Contrasena cambiada exitosamente',
       });
     } catch (error) {
       logger.error('Error cambiando contrasena:', error);
@@ -271,21 +252,12 @@ class AuthController {
     try {
       const { secureCookies, sameSite } = buildCookieOptions();
 
-      res.clearCookie('accessToken', {
-        httpOnly: true,
-        secure: secureCookies,
-        sameSite
-      });
-
-      res.clearCookie('refreshToken', {
-        httpOnly: true,
-        secure: secureCookies,
-        sameSite
-      });
+      res.clearCookie('accessToken', { httpOnly: true, secure: secureCookies, sameSite });
+      res.clearCookie('refreshToken', { httpOnly: true, secure: secureCookies, sameSite });
 
       return res.status(200).json({
         success: true,
-        message: 'Sesion cerrada exitosamente'
+        message: 'Sesion cerrada exitosamente',
       });
     } catch (error) {
       logger.error('Error cerrando sesion:', error);
@@ -301,17 +273,14 @@ class AuthController {
       return res.status(200).json({
         success: true,
         message: 'Ultimo cambio de contrasena obtenido exitosamente',
-        data: { ultimo_cambio_password: ultimoCambio }
+        data: { ultimo_cambio_password: ultimoCambio },
       });
     } catch (error) {
       logger.error('Error obteniendo ultimo cambio de contrasena:', error);
       next(error);
     }
   }
-<<<<<<< HEAD
-  /**
-   * Solicita envío de enlace de recuperación
-   */
+
   async solicitarRecuperacionContrasena(req, res, next) {
     try {
       const { email } = req.validatedData;
@@ -319,17 +288,14 @@ class AuthController {
 
       return res.status(200).json({
         success: true,
-        message: 'Si el correo se encuentra registrado, se envio un codigo y enlace para restablecer la contrasena.'
+        message: 'Si el correo se encuentra registrado, se envio un codigo y enlace para restablecer la contrasena.',
       });
     } catch (error) {
-      logger.error('Error solicitando recuperación de contraseña:', error);
+      logger.error('Error solicitando recuperacion de contrasena:', error);
       next(error);
     }
   }
 
-  /**
-   * Restablece la contraseña usando un token
-   */
   async restablecerContrasena(req, res, next) {
     try {
       const { token, password } = req.validatedData;
@@ -337,14 +303,13 @@ class AuthController {
 
       return res.status(200).json({
         success: true,
-        message: 'Contraseña restablecida correctamente.'
+        message: 'Contrasena restablecida correctamente.',
       });
     } catch (error) {
-      logger.error('Error restableciendo contraseña:', error);
+      logger.error('Error restableciendo contrasena:', error);
       next(error);
     }
   }
-
 
   async validarTokenRecuperacion(req, res, next) {
     try {
@@ -353,18 +318,14 @@ class AuthController {
 
       return res.status(200).json({
         success: true,
-        message: 'Token de recuperaci?n v?lido',
-        data
+        message: 'Token de recuperacion valido',
+        data,
       });
     } catch (error) {
-      logger.error('Error validando token de recuperaci?n:', error);
+      logger.error('Error validando token de recuperacion:', error);
       next(error);
     }
   }
-
-
-=======
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 }
 
 module.exports = new AuthController();

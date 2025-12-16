@@ -1,19 +1,9 @@
-<<<<<<< HEAD
-﻿const { Persona, Administrativo, Acceso, PersonasRol, Rol } = require('../models');
-=======
 const { Persona, Administrativo, Acceso, PersonasRol, Rol } = require('../models');
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 const { sequelize } = require('../config/database');
 const bcryptUtils = require('../utils/bcrypt');
 const jwtUtils = require('../utils/jwt');
 const logger = require('../utils/logger');
 
-<<<<<<< HEAD
-const normalizeEmail = (email = '') =>
-  typeof email === 'string' ? email.trim().toLowerCase() : '';
-
-=======
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 class SetupController {
   /**
    * Crear super administrador inicial
@@ -23,31 +13,19 @@ class SetupController {
     try {
       const { setupKey, adminData } = req.validatedData;
 
-<<<<<<< HEAD
-      // Verificar clave secreta de configuraciÃ³n
-=======
       // Verificar clave secreta de configuración
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       const expectedKey = process.env.SETUP_SECRET_KEY;
       if (!expectedKey) {
         return res.status(500).json({
           success: false,
-<<<<<<< HEAD
-          message: 'ConfiguraciÃ³n incompleta: SETUP_SECRET_KEY no definida'
-=======
           message: 'Configuración incompleta: SETUP_SECRET_KEY no definida'
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         });
       }
 
       if (setupKey !== expectedKey) {
         return res.status(403).json({
           success: false,
-<<<<<<< HEAD
-          message: 'Clave de configuraciÃ³n invÃ¡lida'
-=======
           message: 'Clave de configuración inválida'
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         });
       }
 
@@ -67,22 +45,14 @@ class SetupController {
         });
       }
 
-<<<<<<< HEAD
-      // Crear super administrador usando transacciÃ³n
-=======
       // Crear super administrador usando transacción
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       const result = await sequelize.transaction(async (t) => {
         try {
           // Crear roles si no existen
           await SetupController._crearRolesSiNoExisten(t);
 
-<<<<<<< HEAD
-          const normalizedEmail = normalizeEmail(adminData.email);
-=======
           // Normalizar teléfono para no exceder longitud en BD
           const telefonoLimpio = (adminData.telefono || '').replace(/[^\d\+]/g, '').slice(0, 15);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
           // Crear persona
           const nuevaPersona = await Persona.create({
@@ -90,14 +60,9 @@ class SetupController {
             numero_documento: adminData.numero_documento,
             nombre_completo: adminData.nombre_completo,
             apellido_completo: adminData.apellido_completo,
-<<<<<<< HEAD
-            correo: normalizedEmail,
-            telefono: adminData.telefono,
-=======
             correo: adminData.email,
             telefono: telefonoLimpio,
             correo_verificado: true,
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             tiene_cuenta: true,
             estado: true
           }, { transaction: t });
@@ -114,11 +79,6 @@ class SetupController {
             id_persona: nuevaPersona.id_persona,
             codigo_empleado: adminData.codigo_empleado,
             fecha_ingreso: adminData.fecha_ingreso || new Date(),
-<<<<<<< HEAD
-            cargo: 'Super Administrador',
-            departamento: adminData.departamento || 'TecnologÃ­a',
-=======
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             estado_laboral: 'Activo'
           }, { transaction: t });
 
@@ -155,24 +115,14 @@ class SetupController {
               es_administrativo: true,
               administrativo: {
                 id_administrativo: nuevoAdministrativo.id_administrativo,
-<<<<<<< HEAD
-                codigo_empleado: nuevoAdministrativo.codigo_empleado,
-                cargo: nuevoAdministrativo.cargo,
-                departamento: nuevoAdministrativo.departamento
-=======
                 codigo_empleado: nuevoAdministrativo.codigo_empleado
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
               }
             },
             ...tokens
           };
 
         } catch (error) {
-<<<<<<< HEAD
-          logger.error('Error creando super admin:', error);
-=======
           logger.error('Error creando super admin:', error.original?.message || error.message);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           throw error;
         }
       });
@@ -184,11 +134,7 @@ class SetupController {
       });
 
     } catch (error) {
-<<<<<<< HEAD
-      logger.error('Error en creaciÃ³n de super admin:', error);
-=======
       logger.error('Error en creación de super admin:', error);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       next(error);
     }
   }
@@ -199,11 +145,7 @@ class SetupController {
   static async _crearRolesSiNoExisten(transaction) {
     const roles = [
       { nombre_rol: 'Super Administrador', descripcion: 'Acceso total al sistema con todos los permisos', es_rol_administrativo: true },
-<<<<<<< HEAD
-      { nombre_rol: 'Administrador', descripcion: 'GestiÃ³n administrativa y configuraciÃ³n del sistema', es_rol_administrativo: true },
-=======
       { nombre_rol: 'Administrador', descripcion: 'Gestión administrativa y configuración del sistema', es_rol_administrativo: true },
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       { nombre_rol: 'Empleado', descripcion: 'Agentes inmobiliarios y empleados de la empresa', es_rol_administrativo: true },
       { nombre_rol: 'Usuario', descripcion: 'Rol por defecto al registrarse en el sistema', es_rol_administrativo: false },
       { nombre_rol: 'Propietario', descripcion: 'Usuarios que tienen inmuebles registrados a su nombre', es_rol_administrativo: false }
@@ -224,8 +166,3 @@ class SetupController {
 }
 
 module.exports = new SetupController();
-<<<<<<< HEAD
-
-
-=======
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

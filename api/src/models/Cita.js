@@ -1,4 +1,4 @@
-// src/models/Cita.js
+﻿// src/models/Cita.js
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
@@ -6,128 +6,123 @@ const Cita = sequelize.define('Cita', {
   id_cita: {
     type: DataTypes.INTEGER,
     primaryKey: true,
-    autoIncrement: true
+    autoIncrement: true,
   },
   id_persona: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Personas',
-      key: 'id_persona'
-    }
+      key: 'id_persona',
+    },
   },
   id_inmueble: {
     type: DataTypes.INTEGER,
-<<<<<<< HEAD
-    allowNull: false,
-=======
     allowNull: true,
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     references: {
       model: 'Inmuebles',
-      key: 'id_inmueble'
-    }
+      key: 'id_inmueble',
+    },
   },
   id_servicio: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Servicios_Cita',
-      key: 'id_servicio'
-    }
+      key: 'id_servicio',
+    },
   },
   fecha_cita: {
     type: DataTypes.DATEONLY,
-    allowNull: false
+    allowNull: false,
   },
   hora_inicio: {
     type: DataTypes.TIME,
-    allowNull: false
+    allowNull: false,
   },
   hora_fin: {
     type: DataTypes.TIME,
-    allowNull: false
+    allowNull: false,
   },
   id_estado_cita: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 1, // ⭐ CORREGIDO: 1 = Solicitada (era 3 = Programada)
+    defaultValue: 1, // 1 = Solicitada
     references: {
       model: 'Estados_Cita',
-      key: 'id_estado_cita'
-    }
+      key: 'id_estado_cita',
+    },
   },
   id_agente_asignado: {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
       model: 'Personas',
-      key: 'id_persona'
-    }
+      key: 'id_persona',
+    },
   },
   id_usuario_creador: {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
       model: 'Personas',
-      key: 'id_persona'
-    }
+      key: 'id_persona',
+    },
   },
   id_cita_original: {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
       model: 'Citas',
-      key: 'id_cita'
-    }
+      key: 'id_cita',
+    },
   },
   observaciones: {
     type: DataTypes.TEXT,
-    allowNull: true
+    allowNull: true,
   },
   motivo_cancelacion: {
     type: DataTypes.TEXT,
-    allowNull: true
+    allowNull: true,
   },
   motivo_reagendamiento: {
     type: DataTypes.TEXT,
-    allowNull: true
+    allowNull: true,
   },
   ediciones_realizadas: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 0
+    defaultValue: 0,
   },
   ediciones_maximas: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 2
+    defaultValue: 2,
   },
-  // Auditoría de estados (timestamps de cambios)
   fecha_confirmacion: {
     type: DataTypes.DATE,
-    allowNull: true
+    allowNull: true,
   },
   fecha_cancelacion: {
     type: DataTypes.DATE,
-    allowNull: true
+    allowNull: true,
   },
   fecha_completada: {
     type: DataTypes.DATE,
-    allowNull: true
+    allowNull: true,
   },
   fecha_creacion: {
     type: DataTypes.DATE,
     allowNull: false,
-    defaultValue: sequelize.literal('GETDATE()')
+    defaultValue: sequelize.literal('GETDATE()'),
   },
   fecha_actualizacion: {
     type: DataTypes.DATE,
-    allowNull: true
-  }
+    allowNull: true,
+  },
 }, {
   tableName: 'Citas',
-  timestamps: false
+  timestamps: false,
 });
 
 module.exports = Cita;

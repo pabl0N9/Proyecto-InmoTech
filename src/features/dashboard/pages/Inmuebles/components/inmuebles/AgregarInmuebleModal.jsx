@@ -1,12 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, Plus, Trash2, AlertCircle, Building2, MapPin, Layers, UserCheck, ImagePlus } from 'lucide-react';
 import ownersApiService from '../../../../../../shared/services/ownersApiService';
 import { WizardModalLayout } from '../common/wizardModalLayout';
 import CreateOwnerModal from '../owners/CreateOwnerModal';
-<<<<<<< HEAD
 import { inmueblesAPI } from '../../../../../../shared/services/propertyApidervice';
-=======
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
+import { uploadToCloudinary } from '../../../../../../shared/services/cloudinary';
 
 const PROPERTY_TYPES = ['Casa', 'Apartamento', 'Local', 'Oficina', 'Bodega', 'Lote', 'Finca', 'Otro'];
 const OPERATION_OPTIONS = ['Venta', 'Arriendo', 'Venta y Arriendo'];
@@ -108,6 +106,48 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
   const [saving, setSaving] = useState(false);
   const [checkingRegistro, setCheckingRegistro] = useState(false);
   const [registroDisponible, setRegistroDisponible] = useState(true);
+  const lastFocusedRef = useRef(null);
+  const lastFocusInfo = useRef({ name: null, selectionStart: null, selectionEnd: null });
+
+  const handleFocusCapture = (event) => {
+    const target = event.target;
+    if (target && typeof target.focus === 'function') {
+      lastFocusedRef.current = target;
+      lastFocusInfo.current = {
+        name: target.name || null,
+        selectionStart: typeof target.selectionStart === 'number' ? target.selectionStart : null,
+        selectionEnd: typeof target.selectionEnd === 'number' ? target.selectionEnd : null,
+      };
+    }
+  };
+
+  const handleInputCapture = (event) => {
+    const target = event.target;
+    if (target === lastFocusedRef.current) {
+      lastFocusInfo.current = {
+        name: target.name || null,
+        selectionStart: typeof target.selectionStart === 'number' ? target.selectionStart : null,
+        selectionEnd: typeof target.selectionEnd === 'number' ? target.selectionEnd : null,
+      };
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const { name, selectionStart, selectionEnd } = lastFocusInfo.current || {};
+    let target = lastFocusedRef.current;
+
+    if ((!target || !document.body.contains(target)) && name) {
+      target = document.querySelector(`input[name="${name}"], textarea[name="${name}"], select[name="${name}"]`);
+    }
+
+    if (target && document.activeElement !== target && document.body.contains(target)) {
+      target.focus({ preventScroll: true });
+      if (typeof target.setSelectionRange === 'function' && selectionStart !== null && selectionEnd !== null) {
+        target.setSelectionRange(selectionStart, selectionEnd);
+      }
+    }
+  });
 
   const selectedOwner = useMemo(
     () => owners.find((owner) => String(owner.id) === String(selectedOwnerId)),
@@ -224,6 +264,11 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
     }
 
     const registroValue = form.registro.trim();
+    const currentId =
+      inmuebleEditar?.id_inmueble ||
+      inmuebleEditar?.id ||
+      inmuebleEditar?.inmuebleId ||
+      inmuebleEditar?.inmueble?.id;
     const timeoutId = setTimeout(async () => {
       setCheckingRegistro(true);
       try {
@@ -232,11 +277,19 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
           registro_inmobiliario: registroValue,
           busqueda: registroValue
         });
-        const exists = items.some(
-          (item) =>
+        const exists = items.some((item) => {
+          const itemId = item.id_inmueble || item.id || item.inmuebleId;
+          const sameRecord =
             (item.registro || '').toLowerCase() === registroValue.toLowerCase() ||
-            (item.registro_inmobiliario || '').toLowerCase() === registroValue.toLowerCase()
-        );
+            (item.registro_inmobiliario || '').toLowerCase() === registroValue.toLowerCase();
+
+          // Si es el mismo inmueble en edición, no marcar como existente
+          if (currentId && itemId && String(currentId) === String(itemId)) {
+            return false;
+          }
+
+          return sameRecord;
+        });
         setRegistroDisponible(!exists);
         setErrors((prev) => {
           const updated = { ...prev };
@@ -327,6 +380,8 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
           id: `local-image-${Date.now()}-${index}`,
           preview,
           source: preview,
+          file,
+          remote: false,
           name: file.name
         };
       })
@@ -391,6 +446,29 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
           custom: amenity.custom ?? false
         }));
 
+      // Subir a Cloudinary las imágenes locales; conservar las remotas
+      const uploadedImages = [];
+      for (const image of imagenes) {
+        if (image.remote && image.source) {
+          uploadedImages.push(image.source);
+          continue;
+        }
+        if (image.file) {
+          try {
+            const upload = await uploadToCloudinary(image.file, {
+              folder: `inmuebles/${form.registro || 'general'}`,
+            });
+            if (upload?.secure_url) {
+              uploadedImages.push(upload.secure_url);
+            }
+          } catch (uploadError) {
+            console.warn('No se pudo subir una imagen a Cloudinary:', uploadError);
+          }
+        } else if (image.source) {
+          uploadedImages.push(image.source);
+        }
+      }
+
       const payload = {
         id: inmuebleEditar?.id,
         registro_inmobiliario: form.registro,
@@ -410,7 +488,7 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
         descripcion: form.descripcion,
         estado: form.estado,
         comodidades: selectedAmenities,
-        imagenes: imagenes.map((image) => image.source).filter(Boolean),
+        imagenes: uploadedImages,
         propietario: ownerSummary || null,
         propietarioId: ownerSummary?.id
       };
@@ -888,7 +966,9 @@ export const AgregarInmuebleModal = ({ isOpen, onClose, onSave, inmuebleEditar }
         activeStep={activeStep}
         footer={footer}
       >
-        {renderStepContent()}
+        <div onFocusCapture={handleFocusCapture} onInputCapture={handleInputCapture}>
+          {renderStepContent()}
+        </div>
       </WizardModalLayout>
 
       <CreateOwnerModal

@@ -121,15 +121,10 @@ const mapInmuebleResponse = (inmueble) => {
   }
 
   if (plain.imagenes) {
-    plain.imagenes = plain.imagenes.map((img) => ({
-      id_imagen: img.id_imagen,
-      nombre_archivo: img.nombre_archivo,
-      ruta_archivo: img.ruta_archivo,
-      titulo: img.titulo,
-      descripcion: img.descripcion,
-      es_principal: img.es_principal,
-      orden: img.orden
-    }));
+    plain.imagenes = plain.imagenes
+      .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+      .map((img) => img.ruta_archivo || img.url || img.secure_url)
+      .filter(Boolean);
   }
 
   return plain;
@@ -221,6 +216,34 @@ const syncComodidades = async (inmuebleId, comodidades = [], transaction) => {
   }
 };
 
+const syncImagenes = async (inmuebleId, imagenes = [], transaction) => {
+  if (!Array.isArray(imagenes)) return;
+
+  await InmuebleImagen.destroy({
+    where: { id_inmueble: inmuebleId },
+    transaction
+  });
+
+  const prepared = imagenes
+    .map((src, index) => {
+      if (!src) return null;
+      return {
+        id_inmueble: inmuebleId,
+        ruta_archivo: src,
+        nombre_archivo: src.split('/').pop() || `inmueble-${inmuebleId}-${index + 1}`,
+        es_principal: index === 0,
+        orden: index,
+        titulo: null,
+        descripcion: null
+      };
+    })
+    .filter(Boolean);
+
+  if (prepared.length) {
+    await InmuebleImagen.bulkCreate(prepared, { transaction });
+  }
+};
+
 class InmueblesService {
   /**
    * Crear un nuevo inmueble
@@ -253,6 +276,7 @@ class InmueblesService {
 
         await syncPropietario(inmueble.id_inmueble, ownerId, t);
         await syncComodidades(inmueble.id_inmueble, comodidades, t);
+        await syncImagenes(inmueble.id_inmueble, imagenes, t);
 
         // Si el usuario no es propietario, asignar rol de propietario
         const persona = await Persona.findByPk(userId, { transaction: t });
@@ -361,6 +385,11 @@ class InmueblesService {
               model: InmuebleComodidad,
               attributes: ['cantidad', 'seleccionada']
             }
+          },
+          {
+            model: InmuebleImagen,
+            as: 'imagenes',
+            attributes: ['id_imagen', 'ruta_archivo', 'nombre_archivo', 'es_principal', 'orden']
           }
         ]
       });
@@ -428,6 +457,11 @@ class InmueblesService {
               model: InmuebleComodidad,
               attributes: ['cantidad', 'seleccionada']
             }
+          },
+          {
+            model: InmuebleImagen,
+            as: 'imagenes',
+            attributes: ['id_imagen', 'ruta_archivo', 'nombre_archivo', 'es_principal', 'orden']
           }
         ]
       });
@@ -551,6 +585,7 @@ class InmueblesService {
         await inmueble.update(payload, { transaction: t });
         await syncPropietario(inmuebleId, ownerId, t);
         await syncComodidades(inmuebleId, comodidades, t);
+        await syncImagenes(inmuebleId, imagenes, t);
 
         logger.info(`Inmueble actualizado: ${inmuebleId}`);
 

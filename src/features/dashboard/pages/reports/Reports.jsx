@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { ReportsHeader } from './ReportsHeader'
 import { ReportsTable } from './ReportsTable'
-<<<<<<< HEAD
-import CreateReportModal from '../../components/reports/CreateReportModal'
-import ViewReportModal from '../../components/reports/ViewReportModal'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useReports } from '../../../../shared/contexts/ReportsContext.jsx'
-import { useAuth } from '../../../../shared/contexts/AuthContext'
-import reportesInmobiliariosService from '../../services/reportesInmobiliarios.service'
-import authService from '../../../../shared/services/authService'
-
-const Reports = () => {
-=======
 import ReportsKanban from './ReportsKanban'
 import CreateReportModal from '../../components/reports/CreateReportModal'
 import ViewReportModal from '../../components/reports/ViewReportModal'
@@ -23,19 +12,15 @@ import authService from '../../../../shared/services/authService'
 import { useToast } from '../../../../shared/hooks/use-toast'
 import { uploadToCloudinary } from '../../../../shared/services/cloudinary'
 import { Grid3X3, List } from 'lucide-react'
-import * as XLSX from 'xlsx'
+import * as XLSX from "xlsx";
+
 
 const ReportsContent = () => {
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedReport, setSelectedReport] = useState(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
-<<<<<<< HEAD
-  const { createReport, updateReport, deleteReport } = useReports()
-  const { user } = useAuth()
-=======
   const [viewMode, setViewMode] = useState('board')
   const [showCancelled, setShowCancelled] = useState(false)
   const [statusFilter, setStatusFilter] = useState('Todos los estados')
@@ -43,7 +28,6 @@ const ReportsContent = () => {
   const { createReport, updateReport, deleteReport } = useReports()
   const { user } = useAuth()
   const { toast } = useToast()
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   // Estado para datos reales del backend
   const [dbReports, setDbReports] = useState([])
@@ -88,8 +72,6 @@ const ReportsContent = () => {
     )
   )
 
-<<<<<<< HEAD
-=======
   // MOVER AQUI: helper hoisteado para evitar TDZ
   function normalizeEstado(raw) {
     const s = String(raw || '').toLowerCase().trim()
@@ -160,32 +142,11 @@ const ReportsContent = () => {
     }
   }
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   const handleNewReport = () => {
     setSelectedReport(null)
     setIsCreateModalOpen(true)
   }
 
-<<<<<<< HEAD
-  const handleViewReport = (report) => {
-    setSelectedReport(report)
-    setIsViewModalOpen(true)
-  }
-
-  const handleEditReport = (report) => {
-    setSelectedReport(report)
-    setIsEditModalOpen(true)
-  }
-
-  // Helper: normaliza estado a valores aceptados por el backend
-  const normalizeEstado = (raw) => {
-    const s = String(raw || '').toLowerCase().trim()
-    if (s === 'pendiente') return 'Pendiente'
-    if (s === 'en proceso' || s === 'en_proceso' || s === 'enproceso') return 'En Proceso'
-    if (s === 'completado' || s === 'completo') return 'Completado'
-    return 'Pendiente'
-  }
-=======
   // Fetch detailed report for viewing with inmueble data enrichment
   const handleViewReport = async (report) => {
     try {
@@ -295,7 +256,6 @@ const ReportsContent = () => {
         reject(e)
       }
     })
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
   const handleCreateReport = async (reportData) => {
     try {
@@ -315,36 +275,6 @@ const ReportsContent = () => {
         return
       }
 
-<<<<<<< HEAD
-      await reportesInmobiliariosService.crearReporte(payload, payload.seguimiento_general)
-      setIsCreateModalOpen(false)
-      // Refresh the reports list immediately after creation
-      await fetchReports()
-    } catch (err) {
-      setDbError(`Error al crear el reporte: ${err?.message || 'desconocido'}`)
-    }
-  }
-
-  const handleUpdateReport = async (reportData) => {
-    // Obtener ID real del backend (numérico) desde referencia o id_reporte
-    const backendId = Number(
-      reportData.id_reporte ??
-      selectedReport?.referencia ??
-      (reportData.id || '').toString().replace(/\D/g, '')
-    )
-    if (!backendId) {
-      setDbError('No se pudo determinar el ID del reporte para actualizar.')
-      return
-    }
-
-    // Solo enviar campos aceptados por el PATCH validator
-    const patchPayload = {
-      estado: normalizeEstado(reportData.estado),
-      descripcion: reportData.descripcion || '',
-      seguimiento_general: reportData.seguimientoGeneral || ''
-    }
-
-=======
       // Crear reporte y obtener el ID real del backend
       const createdReport = await reportesInmobiliariosService.crearReporte(payload, payload.seguimiento_general)
       const backendId = Number(createdReport?.id_reporte ?? createdReport?.id)
@@ -457,14 +387,11 @@ const ReportsContent = () => {
       seguimiento_general: (reportData.seguimientoGeneral || '').trim()
     }
   
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     await reportesInmobiliariosService.actualizarReporte(
       backendId,
       patchPayload,
       patchPayload.seguimiento_general
     )
-<<<<<<< HEAD
-=======
   
     // 2) Upsert de rubros y sus seguimientos
     const rubrosToProcess = (reportData.rubros || [])
@@ -545,7 +472,6 @@ const ReportsContent = () => {
       }
     }
   
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
     setIsEditModalOpen(false)
     setSelectedReport(null)
     await fetchReports()
@@ -1007,12 +933,6 @@ const ReportsContent = () => {
     };
   }
 
-<<<<<<< HEAD
-  const handleDownloadExcel = () => {}
-
-  return (
-    <div className='space-y-6'>
-=======
   const handleDownloadExcel = () => {
     // Función para generar y descargar Excel
     const generateExcel = () => {
@@ -1084,7 +1004,6 @@ const ReportsContent = () => {
 
   return (
     <div className='p-6 space-y-6'>
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       {dbLoading && <div className='p-4 text-slate-600'>Cargando reportes…</div>}
       {dbError && <div className='p-4 text-red-600'>{dbError}</div>}
 
@@ -1094,17 +1013,6 @@ const ReportsContent = () => {
         onNewReport={handleNewReport}
         onDownloadPDF={handleDownloadReportPDF}
         onDownloadExcel={handleDownloadExcel}
-<<<<<<< HEAD
-        reports={filteredReports}
-      />
-
-      <ReportsTable
-        reports={filteredReports}
-        onView={handleViewReport}
-        onEdit={handleEditReport}
-        onDownloadPDF={handleDownloadReportPDF}
-      />
-=======
         reports={displayedReports}
         statusFilter={statusFilter}
         onStatusChange={setStatusFilter}
@@ -1145,7 +1053,6 @@ const ReportsContent = () => {
           onDownloadPDF={handleDownloadReportPDF}
         />
       )}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
 
       <CreateReportModal
         isOpen={isCreateModalOpen}
@@ -1178,9 +1085,6 @@ const ReportsContent = () => {
   )
 }
 
-<<<<<<< HEAD
-export default Reports
-=======
 export default function Reports() {
   return (
     <ReportsProvider>
@@ -1188,4 +1092,3 @@ export default function Reports() {
     </ReportsProvider>
   )
 }
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

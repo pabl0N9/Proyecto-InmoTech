@@ -250,66 +250,6 @@ export function RenantManagementPage() {
             {statusMessage.message}
           </div>
         )}
-<<<<<<< HEAD
-
-        {/* STATS CARDS */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-        >
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm font-medium">Total Arriendos</p>
-                <p className="text-2xl font-bold mt-1">{stats.total}</p>
-              </div>
-              <div className="bg-blue-400 rounded-lg p-3">
-                <Home className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm font-medium">Activos/Pagados</p>
-                <p className="text-2xl font-bold mt-1">{stats.activos}</p>
-              </div>
-              <div className="bg-green-400 rounded-lg p-3">
-                <Calendar className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-yellow-100 text-sm font-medium">Pendientes</p>
-                <p className="text-2xl font-bold mt-1">{stats.pendientes}</p>
-              </div>
-              <div className="bg-yellow-400 rounded-lg p-3">
-                <Users className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm font-medium">Ingreso Mensual</p>
-                <p className="text-lg font-bold mt-1">${(stats.totalMensual / 1000000).toFixed(1)}M</p>
-              </div>
-              <div className="bg-purple-400 rounded-lg p-3">
-                <DollarSign className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-=======
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         {/* SEARCH AND FILTERS */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -348,34 +288,6 @@ export function RenantManagementPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-<<<<<<< HEAD
-          {/* TABLA CON NUEVO ESTILO - SIN COLUMNA ID */}
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            {/* CABECERA DE TABLA */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-              <h3 className="text-white font-semibold flex items-center gap-2">
-                📑 Lista de Arriendos ({filteredRents.length} {filteredRents.length === 1 ? "resultado" : "resultados"})
-              </h3>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Inquilino</th>
-                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Inmueble</th>
-                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Registro</th>
-                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Inicio / Fin</th>
-                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Valor Mensual</th>
-                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Estado</th>
-                    <th className="px-4 py-3 text-center text-slate-700 font-semibold text-sm border-b">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    <tr>
-                      <td colSpan="7" className="px-4 py-8 text-center text-slate-500 border-b">
-=======
           {/* TABLA CON ESTILO UNIFICADO */}
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
             <div className="overflow-x-auto">
@@ -395,7 +307,6 @@ export function RenantManagementPage() {
                   {isLoading ? (
                     <tr>
                       <td colSpan="7" className="px-6 py-8 text-center text-slate-500">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                         <div className="flex flex-col items-center gap-2">
                           <Home className="w-8 h-8 text-slate-400 animate-pulse" />
                           <p>Cargando arriendos...</p>
@@ -406,17 +317,10 @@ export function RenantManagementPage() {
                     filteredRents.map((r) => (
                       <tr
                         key={r.id}
-<<<<<<< HEAD
-                        className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-                      >
-                        {/* INQUILINO */}
-                        <td className="px-4 py-3">
-=======
                         className="hover:bg-slate-50 transition-colors"
                       >
                         {/* INQUILINO */}
                         <td className="px-6 py-4">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex items-center gap-3 justify-center">
                             <div className="bg-blue-100 rounded-lg p-2">
                               <Users className="w-4 h-4 text-blue-600" />
@@ -429,11 +333,7 @@ export function RenantManagementPage() {
                         </td>
                         
                         {/* INMUEBLE */}
-<<<<<<< HEAD
-                        <td className="px-4 py-3 text-center">
-=======
                         <td className="px-6 py-4 text-center">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex items-center gap-2 justify-center">
                             <Home className="w-4 h-4 text-slate-400" />
                             <span className="text-slate-700">{r.tipoInmueble}</span>
@@ -441,17 +341,10 @@ export function RenantManagementPage() {
                         </td>
                         
                         {/* REGISTRO */}
-<<<<<<< HEAD
-                        <td className="px-4 py-3 text-center text-slate-600 text-sm">{r.registroInmobiliario}</td>
-                        
-                        {/* FECHAS */}
-                        <td className="px-4 py-3 text-center">
-=======
                         <td className="px-6 py-4 text-center text-slate-600 text-sm">{r.registroInmobiliario}</td>
                         
                         {/* FECHAS */}
                         <td className="px-6 py-4 text-center">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex flex-col items-center">
                             <span className="text-sm text-slate-700">{r.fechaInicio}</span>
                             <span className="text-xs text-slate-500">a {r.fechaFinal}</span>
@@ -459,15 +352,6 @@ export function RenantManagementPage() {
                         </td>
                         
                         {/* VALOR MENSUAL */}
-<<<<<<< HEAD
-                        <td className="px-4 py-3 text-center font-semibold text-purple-700">{r.valorMensual}</td>
-                        
-                        {/* ESTADO */}
-                        <td className="px-4 py-3 text-center">{getEstadoBadge(r.estado)}</td>
-                        
-                        {/* ACCIONES */}
-                        <td className="px-4 py-3 text-center">
-=======
                         <td className="px-6 py-4 text-center font-semibold text-purple-700">{r.valorMensual}</td>
                         
                         {/* ESTADO */}
@@ -475,7 +359,6 @@ export function RenantManagementPage() {
                         
                         {/* ACCIONES */}
                         <td className="px-6 py-4 text-center">
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                           <div className="flex gap-2 justify-center">
                             <motion.button
                               whileHover={{ scale: 1.1 }}

@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [showForgotModal, setShowForgotModal] = useState(false)
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState(null)
 
   const { login, requestPasswordReset } = useAuth()
   const navigate = useNavigate()
@@ -21,86 +22,35 @@ export default function LoginPage() {
   const from = location.state?.from?.pathname || "/"
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const userData = await login(email, password);
-
-      let redirectPath = "/";
-      if (userData && userData.es_administrativo) {
-        redirectPath = "/dashboard";
-      }
-      if (from !== "/" && from.startsWith("/dashboard")) {
-        redirectPath = from;
-      }
-
-      setPendingVerificationEmail(null);
-      navigate(redirectPath, { replace: true });
-    } catch (err) {
-      const reason = err?.data?.reason || err?.reason;
-      const serverMessage = err?.data?.message || err?.message;
-      if (reason === "EMAIL_NOT_VERIFIED" || reason === "EMAIL_VERIFICATION_LIMIT") {
-        const normalizedEmail = email.trim().toLowerCase();
-        setPendingVerificationEmail(normalizedEmail);
-        setError(serverMessage || "Tu cuenta aun no esta verificada.");
-        try {
-          const resend = await authService.resendVerificationCode(normalizedEmail);
-          const token = resend?.data?.token;
-          if (token) {
-            setTimeout(() => navigate(`/verificar-correo?token=${encodeURIComponent(token)}`), 400);
-          }
-        } catch (resendError) {
-          console.warn("No se pudo reenviar codigo tras login:", resendError);
-        }
-      } else {
-        setPendingVerificationEmail(null);
-        setError(serverMessage || "Error al iniciar sesion. Verifica tus credenciales.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
     try {
-      console.log('🔐 Intentando iniciar sesión con:', email)
-
       const userData = await login(email, password, rememberMe)
-
-      // Determinar la ruta de redirección basada en los roles del usuario
-      let redirectPath = "/"
 
       // Roles administrativos que deben ir al dashboard
       const rolesAdministrativos = ['Super Administrador', 'Administrador', 'Empleado']
 
-      // Si el usuario tiene algún rol administrativo, redirigir al dashboard
-      if (userData && userData.roles && userData.roles.some(rol => rolesAdministrativos.includes(rol))) {
+      let redirectPath = "/"
+      if (userData?.roles?.some((rol) => rolesAdministrativos.includes(rol))) {
         redirectPath = "/dashboard"
       }
 
       // Si viene de una ruta protegida y tiene permisos, redirigir ahí
-      // De lo contrario, usar la redirección basada en roles
       if (from !== "/" && from.startsWith("/dashboard")) {
-        // Verificar si el usuario tiene acceso a la ruta protegida
-        const hasDashboardAccess = userData && userData.roles &&
-          userData.roles.some(rol => rolesAdministrativos.includes(rol))
-
+        const hasDashboardAccess = userData?.roles?.some((rol) => rolesAdministrativos.includes(rol))
         if (hasDashboardAccess) {
           redirectPath = from
         }
-        // Si no tiene acceso, mantendrá la redirección al dashboard o landing
       }
 
-      console.log('✅ Login exitoso, redirigiendo a:', redirectPath, 'Roles del usuario:', userData?.roles)
+      setPendingVerificationEmail(null)
       navigate(redirectPath, { replace: true })
-
-    } catch (error) {
-      console.error('❌ Error en login:', error)
-      setError(error.message || 'Error al iniciar sesión. Verifica tus credenciales.')
+    } catch (err) {
+      const serverMessage = err?.data?.message || err?.message
+      setPendingVerificationEmail(null)
+      setError(serverMessage || 'Error al iniciar sesión. Verifica tus credenciales.')
     } finally {
       setIsLoading(false)
     }
@@ -219,16 +169,15 @@ export default function LoginPage() {
                     id="email"
                     type="email"
                     placeholder="tu@email.com"
-                    className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200 w-full"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      setPendingVerificationEmail(null);
-                    }}
-                    required
-                    disabled={isLoading}
-                    disabled={isLoading}
-                  />
+                  className="h-12 pl-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200 w-full"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    setPendingVerificationEmail(null)
+                  }}
+                  required
+                  disabled={isLoading}
+                />
                   <Mail className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                 </div>
               </div>
@@ -252,19 +201,17 @@ export default function LoginPage() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="********"
-                    className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200 w-full"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    disabled={isLoading}
-                  />
+                  className="h-12 pl-12 pr-12 rounded-xl border-2 border-gray-200 focus:border-[#00457B] focus:ring-[#00457B] transition-all duration-200 w-full"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
                   <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
                   <button
                     type="button"
                     className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
                     onClick={() => setShowPassword(!showPassword)}
-                    disabled={isLoading}
                     disabled={isLoading}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -291,7 +238,6 @@ export default function LoginPage() {
             {/* Botón */}
             <button
               type="submit"
-              className="w-full h-12 bg-gradient-to-r from-[#00457B] to-[#0056A3] hover:from-[#003b69] hover:to-[#004a8f] rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 group text-white disabled:opacity-50 disabled:cursor-not-allowed"
               className="w-full h-12 bg-gradient-to-r from-[#00457B] to-[#0056A3] hover:from-[#003b69] hover:to-[#004a8f] rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 group text-white disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
             >

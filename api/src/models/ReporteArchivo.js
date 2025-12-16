@@ -16,18 +16,6 @@ const ReporteArchivo = sequelize.define('ReporteArchivo', {
       key: 'id_reporte'
     }
   },
-<<<<<<< HEAD
-  url_archivo: {
-    type: DataTypes.STRING(500),
-    allowNull: false
-  },
-  descripcion: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  }
-}, {
-  tableName: 'Reporte_Archivo',
-=======
   nombre: {
     type: DataTypes.STRING(200),
     allowNull: false
@@ -43,7 +31,6 @@ const ReporteArchivo = sequelize.define('ReporteArchivo', {
   }
 }, {
   tableName: 'ArchivosReportes',
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   timestamps: false
 });
 

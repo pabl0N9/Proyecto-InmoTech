@@ -64,16 +64,12 @@ export default function BuyerForm({
       case "segundoApellido":
         return validateName(value, name === "primerNombre" || name === "primerApellido");
       case "correo":
-<<<<<<< HEAD
-        if (value && !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(value)) return "Correo inválido.";
-=======
         if (value) {
           const trimmedEmail = value.trim().toLowerCase();
           if (!/^[\w.!#$%&'*+/=?`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/i.test(trimmedEmail)) {
             return "Correo inválido.";
           }
         }
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         break;
       case "telefono":
         if (value && !/^[0-9]+$/.test(value)) return "Solo números.";
@@ -113,9 +109,6 @@ export default function BuyerForm({
       return;
     }
 
-<<<<<<< HEAD
-    await onSubmit(formData);
-=======
     const sanitizedData = {
       ...formData,
       correo: formData.correo?.trim().toLowerCase() || "",
@@ -128,7 +121,6 @@ export default function BuyerForm({
     };
 
     await onSubmit(sanitizedData);
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   };
 
   const Field = ({ label, name, type = "text", as = "input", options = [] }) => {

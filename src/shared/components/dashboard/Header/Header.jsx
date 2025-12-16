@@ -143,13 +143,10 @@ const Header = () => {
     return 'U';
   };
 
-<<<<<<< HEAD
-=======
   const getUserAvatar = () => {
     return user?.foto_perfil_url || user?.foto || user?.avatarUrl || '';
   };
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   useEffect(() => {
     const handleClickOutside = (event) => {
       const clickOutsideButton = userMenuRef.current && !userMenuRef.current.contains(event.target);
@@ -284,11 +281,6 @@ const Header = () => {
           >
             <motion.div
               whileHover={{ scale: 1.1 }}
-<<<<<<< HEAD
-              className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold flex items-center justify-center uppercase text-sm shadow-md"
-            >
-              {getUserInitial()}
-=======
               className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold flex items-center justify-center uppercase text-sm shadow-md overflow-hidden"
             >
               {getUserAvatar() ? (
@@ -301,7 +293,6 @@ const Header = () => {
               ) : (
                 getUserInitial()
               )}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
             </motion.div>
             <motion.span
               animate={{ rotate: isUserMenuOpen ? 180 : 0 }}
@@ -323,10 +314,7 @@ const Header = () => {
             userFullName={getUserFullName()}
             userRole={getUserRole()}
             userInitial={getUserInitial()}
-<<<<<<< HEAD
-=======
             userAvatar={getUserAvatar()}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           />
         </div>
       </div>

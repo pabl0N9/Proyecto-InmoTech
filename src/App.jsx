@@ -29,6 +29,8 @@ import { RenantManagementPage } from './features/dashboard/pages/leases/RenantMa
 import AppointmentPage from './features/dashboard/pages/appointment/AppointmentPage'
 import Reports from './features/dashboard/pages/reports/Reports'
 import Roles from './features/dashboard/pages/roles/Roles'
+import InmueblesDashboardPage from './features/dashboard/pages/Inmuebles/InmueblesDashboardPage'
+import OwnerDashboardPage from './features/dashboard/pages/propertyOwner/OwnerDashboardPage'
 import AdministrativosPage from './features/dashboard/pages/administrativos/AdministrativosPage'
 import UsersPage from './features/dashboard/pages/users/UsersPage'
 import ProfilePage from './features/dashboard/pages/Profile/ProfilePage'
@@ -150,6 +152,26 @@ function App() {
             <DashboardRoute>
               <DashboardLayout>
                 <DashboardPage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path={dashboardRoutes.properties}
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <InmueblesDashboardPage />
+              </DashboardLayout>
+            </DashboardRoute>
+          }
+        />
+        <Route
+          path={dashboardRoutes.owners}
+          element={
+            <DashboardRoute>
+              <DashboardLayout>
+                <OwnerDashboardPage />
               </DashboardLayout>
             </DashboardRoute>
           }

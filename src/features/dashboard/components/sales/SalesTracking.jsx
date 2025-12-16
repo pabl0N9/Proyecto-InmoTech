@@ -4,21 +4,6 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
   if (!venta) return null;
 
   // Estado local editable
-<<<<<<< HEAD
-  const [estado, setEstado] = useState(venta.estado || "Pendiente");
-  const [estadoSeguimiento, setEstadoSeguimiento] = useState(
-    venta.estadoSeguimiento || "Iniciado"
-  );
-
-  const handleSave = () => {
-    const updatedVenta = {
-      ...venta,
-      estado,
-      estadoSeguimiento,
-    };
-    onUpdate(updatedVenta);
-    onClose();
-=======
   const allowedEstadosPago = ["Pagado", "Debe", "En espera", "Cancelado"];
   const allowedEstadosSeguimiento = ["Iniciada", "En negociación", "Completada", "Cancelado"];
   const initialEstado = allowedEstadosPago.includes(venta.estado) ? venta.estado : "En espera";
@@ -77,7 +62,6 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
     } finally {
       setSaving(false);
     }
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   };
 
   // 🔹 Estilos dinámicos para el estado
@@ -85,12 +69,6 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
     switch (estado) {
       case "Pagado":
         return "bg-green-100 text-green-700 border border-green-400";
-<<<<<<< HEAD
-      case "Pendiente":
-        return "bg-yellow-100 text-yellow-700 border border-yellow-400";
-      case "Debe":
-        return "bg-red-100 text-red-700 border border-red-400";
-=======
       case "Debe":
         return "bg-red-100 text-red-700 border border-red-400";
       case "En espera":
@@ -102,7 +80,6 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
       case "Iniciada":
       case "En negociación":
         return "bg-green-100 text-green-700 border border-green-400";
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       default:
         return "bg-gray-100 text-gray-700 border";
     }
@@ -186,38 +163,21 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
             <div className="mb-4">
               <label className="block font-semibold text-gray-700 mb-2">Estado del Pago</label>
               <select
-<<<<<<< HEAD
-                value={estado}
-                onChange={(e) => setEstado(e.target.value)}
-=======
                 value={tempEstado}
                 onChange={(e) => {
                   const newVal = e.target.value;
                   setTempEstado(newVal);
                   openConfirm("estado", newVal, "Estado del pago");
                 }}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                 className={`p-3 rounded-lg w-full font-semibold cursor-pointer transition duration-150 ${getEstadoStyle(
                   estado
                 )}`}
               >
-<<<<<<< HEAD
-                <option value="Pagado" className="bg-green-100 text-green-700">
-                  Pagado
-                </option>
-                <option value="Pendiente" className="bg-yellow-100 text-yellow-700">
-                  Pendiente
-                </option>
-                <option value="Debe" className="bg-red-100 text-red-700">
-                  Debe
-                </option>
-=======
                 {allowedEstadosPago.map((opt) => (
                   <option key={opt} value={opt} className="bg-white text-gray-800">
                     {opt}
                   </option>
                 ))}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
               </select>
             </div>
           </div>
@@ -240,15 +200,6 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
                   Estado del Seguimiento
                 </label>
                 <select
-<<<<<<< HEAD
-                  value={estadoSeguimiento}
-                  onChange={(e) => setEstadoSeguimiento(e.target.value)}
-                  className="border border-gray-300 p-3 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                >
-                  <option value="Iniciado">Iniciado</option>
-                  <option value="En proceso">En proceso</option>
-                  <option value="Completado">Completado</option>
-=======
                   value={tempEstadoSeguimiento}
                   onChange={(e) => {
                     const newVal = e.target.value;
@@ -262,7 +213,6 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
                       {opt}
                     </option>
                   ))}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                 </select>
               </div>
               
@@ -274,12 +224,6 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
               </div>
               
               <div>
-<<<<<<< HEAD
-                <p className="font-semibold text-gray-700">Descripción:</p>
-                <p className="text-gray-900 bg-white p-2 rounded border border-gray-200 min-h-[60px]">
-                  {venta.descripcionSeguimiento || "Documentación en revisión"}
-                </p>
-=======
                 <label className="block font-semibold text-gray-700 mb-2">
                   Descripción / Notas
                 </label>
@@ -289,7 +233,6 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
                 />
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
               </div>
             </div>
           </div>
@@ -299,28 +242,13 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
         <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end gap-3">
           <button
             onClick={onClose}
-<<<<<<< HEAD
-            className="px-6 py-2 bg-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-400 transition duration-150 transform hover:scale-[1.02]"
-=======
             disabled={saving}
             className="px-6 py-2 bg-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-400 transition duration-150 transform hover:scale-[1.02] disabled:opacity-60"
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
-<<<<<<< HEAD
-            className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg shadow-blue-400/50 hover:bg-blue-700 transition duration-150 transform hover:scale-[1.02]"
-          >
-            Guardar Cambios
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-=======
             disabled={saving}
             className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-lg shadow-blue-400/50 hover:bg-blue-700 transition duration-150 transform hover:scale-[1.02] disabled:opacity-60"
           >
@@ -361,4 +289,3 @@ export default function PurchaseTrackingModal({ venta, onClose, onUpdate }) {
     </div>
   );
 }
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67

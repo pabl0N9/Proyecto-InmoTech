@@ -1,15 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
-<<<<<<< HEAD
-import { DownloadIcon, FileTextIcon, FileSpreadsheetIcon, ChevronDownIcon } from 'lucide-react'
-
-export function ReportsHeader({ searchTerm, onSearchChange, onNewReport, onDownloadPDF, onDownloadExcel, reports = [] }) {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const dropdownRef = useRef(null)
-
-  // Cerrar dropdown al hacer clic fuera
-=======
 import { DownloadIcon, FileTextIcon, ChevronDownIcon, FileSpreadsheet } from 'lucide-react'
 
 export function ReportsHeader({
@@ -34,27 +25,17 @@ export function ReportsHeader({
   const [isStatusOpen, setIsStatusOpen] = useState(false)
   const statusRef = useRef(null)
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false)
       }
-<<<<<<< HEAD
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-=======
       if (statusRef.current && !statusRef.current.contains(event.target)) {
         setIsStatusOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
   }, [])
 
   const handleDownloadOption = (type) => {
@@ -69,14 +50,9 @@ export function ReportsHeader({
   return (
     <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
       <h1 className="text-2xl font-bold text-gray-800">Reportes</h1>
-<<<<<<< HEAD
-      
-      <div className="flex w-full sm:w-auto gap-2 flex-wrap">
-=======
 
       <div className="flex w-full sm:w-auto gap-2 flex-wrap items-center">
         {/* Buscador */}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         <div className="relative w-full sm:w-64">
           <Input
             type="text"
@@ -91,9 +67,6 @@ export function ReportsHeader({
             </svg>
           </div>
         </div>
-<<<<<<< HEAD
-        
-=======
 
         {/* Filtro por estado (si se provee onStatusChange) */}
         {onStatusChange && (
@@ -158,7 +131,6 @@ export function ReportsHeader({
           </Button>
         )}
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         {/* Botón de descarga con dropdown */}
         <div className="relative" ref={dropdownRef}>
           <Button 
@@ -189,11 +161,7 @@ export function ReportsHeader({
                   onClick={() => handleDownloadOption('excel')}
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3"
                 >
-<<<<<<< HEAD
-                  <FileSpreadsheetIcon className="h-4 w-4 text-green-500" />
-=======
                   <FileSpreadsheet className="h-4 w-4 text-green-500" />
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
                   <div>
                     <div className="font-medium">Descargar Excel</div>
                     <div className="text-xs text-gray-500">Hoja de cálculo de Excel</div>
@@ -203,12 +171,8 @@ export function ReportsHeader({
             </div>
           )}
         </div>
-<<<<<<< HEAD
-        
-=======
 
         {/* Nuevo reporte */}
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
         <Button 
           onClick={onNewReport}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"

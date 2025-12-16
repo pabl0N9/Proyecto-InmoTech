@@ -101,8 +101,6 @@ export const AppointmentProvider = ({ children }) => {
   const updateAppointment = async (updatedData) => {
     try {
       const id = updatedData.id || updatedData.id_cita;
-<<<<<<< HEAD
-=======
       if (updatedData._skipApi) {
         // Solo actualizar estado local sin llamar al backend (ya actualizado)
         setAppointments((prev) =>
@@ -114,7 +112,6 @@ export const AppointmentProvider = ({ children }) => {
         return updatedData;
       }
 
->>>>>>> 5ea501cea713adbb6eaf5797d96dcb4f6549cf67
       const response = await citaApiService.actualizarCita(id, {
         ...updatedData,
         estado: updatedData.estado
