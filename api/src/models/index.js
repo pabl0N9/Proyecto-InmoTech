@@ -27,6 +27,8 @@ const Sale = require('./Sale');
 const Renant = require('./Renant');
 const Arriendo = require('./Arriendo');
 const Lease = require('./Lease');
+const Payment = require('./Payment');
+const Receipt = require('./Receipt');
 const InmuebleImagen = require('./InmuebleImagen');
 
 // Asociaciones de Cita
@@ -416,6 +418,11 @@ Lease.belongsTo(Inmueble, {
 });
 
 Lease.belongsTo(Persona, {
+  foreignKey: 'id_codeudor',
+  as: 'codeudor'
+});
+
+Lease.belongsTo(Renant, {
   foreignKey: 'id_arrendatario', // mapea id_cliente en el servicio
   as: 'arrendatario'
 });
@@ -425,9 +432,14 @@ Inmueble.hasMany(Lease, {
   as: 'arrendamientosLegacy'
 });
 
-Persona.hasMany(Lease, {
+Renant.hasMany(Lease, {
   foreignKey: 'id_arrendatario',
   as: 'arrendamientosLegacy'
+});
+
+Persona.hasMany(Lease, {
+  foreignKey: 'id_codeudor',
+  as: 'arrendamientosComoCodeudor'
 });
 
 module.exports = {
@@ -457,9 +469,10 @@ module.exports = {
   Renant,
   Arriendo,
   Lease,
+  Payment,
+  Receipt,
   Invitacion,
   Comodidad,
   InmuebleComodidad,
   InmuebleImagen
 };
-

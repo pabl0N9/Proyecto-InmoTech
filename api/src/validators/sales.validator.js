@@ -24,7 +24,7 @@ const updateSaleSchema = Joi.object({
 
 const createTrackingSchema = Joi.object({
   id_estado_venta: Joi.number().integer().required(),
-  id_comprador: Joi.number().integer().required(),
+  id_comprador: Joi.number().integer().allow(null).optional(),
   fecha_estado_seguimiento: Joi.date().iso().required(),
   descripcion: Joi.string().max(500).allow('', null)
 });

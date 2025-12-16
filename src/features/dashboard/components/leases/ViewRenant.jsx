@@ -4,6 +4,44 @@ import { FaTimes, FaImage } from "react-icons/fa";
 export default function ViewRenant({ renant, onClose }) {
   if (!renant) return null;
 
+  // Normalizar datos del arrendatario desde diferentes orígenes
+  const persona =
+    renant.arrendatarioRaw ||
+    renant.arrendatarioPersona ||
+    renant.persona ||
+    renant.arrendatario?.persona ||
+    renant.arrendatario ||
+    {};
+
+  const nombreCompleto = persona.nombre_completo || renant.nombreCompletoArrendatario || "";
+  const [primerNombreArr, ...restNombres] = nombreCompleto.split(" ").filter(Boolean);
+  const primerApellidoArr =
+    (persona.apellido_completo || "").split(" ")[0] ||
+    renant.primerApellidoArrendatario ||
+    "";
+  const segundoNombreArr = restNombres.join(" ") || renant.segundoNombreArrendatario || "";
+
+  const tipoDocArr = persona.tipo_documento || renant.tipoDocArrendatario || renant.tipoDocInquilino || "";
+  const numeroDocArr = persona.numero_documento || renant.numeroDocArrendatario || renant.numeroDocInquilino || "";
+  const correoArr = persona.correo || renant.correoArrendatario || renant.correoInquilino || "";
+  const telefonoArr = persona.telefono || renant.telefonoArrendatario || renant.telefonoInquilino || "";
+
+  // Normalizar datos del codeudor
+  const codeudorPersona =
+    renant.codeudorRaw ||
+    renant.codeudorPersona ||
+    renant.codeudor?.persona ||
+    renant.codeudor ||
+    {};
+  const codeudorNombre = codeudorPersona.nombre_completo || "";
+  const [primerNombreCod, ...restCod] = codeudorNombre.split(" ").filter(Boolean);
+  const primerApellidoCod = (codeudorPersona.apellido_completo || "").split(" ")[0] || "";
+  const segundoNombreCod = restCod.join(" ") || renant.segundoNombreCodeudor || "";
+  const tipoDocCod = codeudorPersona.tipo_documento || renant.tipoDocCodeudor || "";
+  const numeroDocCod = codeudorPersona.numero_documento || renant.numeroDocCodeudor || "";
+  const correoCod = codeudorPersona.correo || renant.correoCodeudor || "";
+  const telefonoCod = codeudorPersona.telefono || renant.telefonoCodeudor || "";
+
   return (
     // 🔑 Fondo del modal con desenfoque - CAMBIO PRINCIPAL
     <div 
@@ -60,32 +98,34 @@ export default function ViewRenant({ renant, onClose }) {
             </div>
           </div>
 
-          {/* --- Sección del Inquilino --- */}
+          {/* --- Sección del Arrendatario --- */}
           <div className="bg-green-50 rounded-lg p-4 border border-green-200">
             <h3 className="text-lg font-bold text-green-800 mb-3 pb-2 border-b border-green-200">
-              Información del Inquilino
+              Información del Arrendatario
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="font-semibold text-gray-700">Tipo de documento:</p>
-                <p className="text-gray-900">{renant.tipoDocInquilino}</p>
+                <p className="text-gray-900">{tipoDocArr}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Número de documento:</p>
-                <p className="text-gray-900">{renant.numeroDocInquilino}</p>
+                <p className="text-gray-900">{numeroDocArr}</p>
               </div>
               <div className="md:col-span-2">
                 <p className="font-semibold text-gray-700">Nombre completo:</p>
-                <p className="text-gray-900">{renant.primerNombreInquilino} {renant.primerApellidoInquilino}</p>
+                <p className="text-gray-900">
+                  {[primerNombreArr, segundoNombreArr].filter(Boolean).join(" ")} {primerApellidoArr}
+                </p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Teléfono:</p>
-                <p className="text-gray-900">{renant.telefonoInquilino}</p>
+                <p className="text-gray-900">{telefonoArr}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Correo electrónico:</p>
-                <a href={`mailto:${renant.correoInquilino}`} className="text-blue-600 hover:text-blue-800 underline">
-                  {renant.correoInquilino}
+                <a href={`mailto:${correoArr}`} className="text-blue-600 hover:text-blue-800 underline">
+                  {correoArr}
                 </a>
               </div>
             </div>
@@ -99,24 +139,26 @@ export default function ViewRenant({ renant, onClose }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="font-semibold text-gray-700">Tipo de documento:</p>
-                <p className="text-gray-900">{renant.tipoDocCodeudor}</p>
+                <p className="text-gray-900">{tipoDocCod}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Número de documento:</p>
-                <p className="text-gray-900">{renant.numeroDocCodeudor}</p>
+                <p className="text-gray-900">{numeroDocCod}</p>
               </div>
               <div className="md:col-span-2">
                 <p className="font-semibold text-gray-700">Nombre completo:</p>
-                <p className="text-gray-900">{renant.primerNombreCodeudor} {renant.primerApellidoCodeudor}</p>
+                <p className="text-gray-900">
+                  {[primerNombreCod, segundoNombreCod].filter(Boolean).join(" ")} {primerApellidoCod}
+                </p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Teléfono:</p>
-                <p className="text-gray-900">{renant.telefonoCodeudor}</p>
+                <p className="text-gray-900">{telefonoCod}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Correo electrónico:</p>
-                <a href={`mailto:${renant.correoCodeudor}`} className="text-blue-600 hover:text-blue-800 underline">
-                  {renant.correoCodeudor}
+                <a href={`mailto:${correoCod}`} className="text-blue-600 hover:text-blue-800 underline">
+                  {correoCod}
                 </a>
               </div>
             </div>

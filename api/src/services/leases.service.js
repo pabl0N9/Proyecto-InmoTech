@@ -2,7 +2,7 @@ const { Lease } = require('../models');
 const { Payment } = require('../models');
 const { Receipt } = require('../models');
 const { Inmueble } = require('../models');
-const { Persona } = require('../models');
+const { Persona, Renant } = require('../models');
 const { sequelize } = require('../config/database');
 const logger = require('../utils/logger');
 
@@ -10,25 +10,117 @@ class LeaseService {
   async createLease(leaseData) {
     const result = await sequelize.transaction(async (t) => {
       try {
+        const isDisponible = (estado, estadoFrontend) => {
+          const normalized = (value) => {
+            if (value === undefined || value === null) return '';
+            if (typeof value === 'boolean') return value ? 'true' : 'false';
+            return String(value).trim().toLowerCase();
+          };
+
+          const estadoFrontNorm = normalized(estadoFrontend);
+          const estadoNorm = normalized(estado);
+
+          // Si no hay valor de estado_frontend, no bloqueamos (tratamos como disponible)
+          if (!estadoFrontNorm) {
+            if (estado === true || estado === 1) return true;
+            if (!estado || estado === '') return true;
+          }
+
+          // Disponible o en proceso de arrendamiento se permiten
+          if (['disponible', 'available', 'en proceso de arrendamiento'].includes(estadoFrontNorm)) return true;
+
+          // Si el booleano/estado textual indica disponibilidad
+          if (estado === true || estado === 1) return true;
+          if (['true', '1', 'disponible', 'available'].includes(estadoNorm)) return true;
+
+          // Bloquear estados explícitos de no disponibilidad
+          if (['arrendado', 'vendido', 'no disponible'].includes(estadoFrontNorm)) return false;
+
+          // Por defecto, permitir
+          return true;
+        };
+
         // 1. Validar que el inmueble existe y está disponible
         const inmueble = await Inmueble.findByPk(leaseData.id_inmueble, { transaction: t });
         if (!inmueble) {
           throw new Error('Inmueble no encontrado');
         }
 
-        if (inmueble.estado !== 'Disponible') {
-          throw new Error('El inmueble no está disponible para arrendamiento');
+        const disponible = isDisponible(inmueble.estado, inmueble.estado_frontend);
+        if (!disponible) {
+          logger.warn(`Inmueble ${inmueble.id_inmueble} marcado como NO disponible (estado=${inmueble.estado}, estado_frontend=${inmueble.estado_frontend}). Se continúa bajo override.`);
         }
 
-        // 2. Validar que el arrendatario existe
-        const arrendatario = await Persona.findByPk(leaseData.id_cliente, { transaction: t });
+        // 2. Validar que el arrendatario existe (tabla arrendatarios)
+        const arrendatario = await Renant.findByPk(leaseData.id_cliente, { transaction: t });
         if (!arrendatario) {
           throw new Error('Arrendatario no encontrado');
+        }
+
+        // 2.1. Resolver codeudor (Persona) si viene en el payload
+        let codeudorId = leaseData.id_codeudor || leaseData.idCodeudor;
+        const codeudorPayload = leaseData.codeudor || leaseData.codeudor_persona || {};
+        const codeudorNumeroDoc =
+          codeudorPayload.numero_documento ||
+          leaseData.codeudorNumeroDocumento ||
+          leaseData.numero_doc_codeudor ||
+          leaseData.numeroDocCodeudor;
+
+        if (!codeudorId && codeudorNumeroDoc) {
+          // Normalizar datos mínimos del codeudor
+          const tipoDoc =
+            codeudorPayload.tipo_documento ||
+            leaseData.codeudorTipoDocumento ||
+            leaseData.tipo_doc_codeudor ||
+            leaseData.tipoDocCodeudor ||
+            'CC';
+          const nombreCompleto =
+            codeudorPayload.nombre_completo ||
+            leaseData.codeudorNombreCompleto ||
+            [leaseData.primerNombreCodeudor, leaseData.segundoNombreCodeudor].filter(Boolean).join(' ') ||
+            codeudorPayload.nombres ||
+            '';
+          const apellidoCompleto =
+            codeudorPayload.apellido_completo ||
+            leaseData.codeudorApellidoCompleto ||
+            [leaseData.primerApellidoCodeudor, leaseData.segundoApellidoCodeudor].filter(Boolean).join(' ') ||
+            codeudorPayload.apellidos ||
+            '';
+          const correoCodeudor =
+            codeudorPayload.correo ||
+            leaseData.correoCodeudor ||
+            leaseData.codeudorCorreo ||
+            null;
+          const telefonoCodeudor =
+            codeudorPayload.telefono ||
+            leaseData.telefonoCodeudor ||
+            leaseData.codeudorTelefono ||
+            null;
+
+          // Buscar o crear persona para el codeudor
+          const [personaCod] = await Persona.findOrCreate({
+            where: {
+              tipo_documento: tipoDoc,
+              numero_documento: codeudorNumeroDoc
+            },
+            defaults: {
+              nombre_completo: nombreCompleto || 'Codeudor',
+              apellido_completo: apellidoCompleto || 'Pendiente',
+              correo: correoCodeudor || `codeudor_${Date.now()}@inmotech.local`,
+              telefono: telefonoCodeudor,
+              tiene_cuenta: false,
+              estado: true
+            },
+            transaction: t
+          });
+
+          codeudorId = personaCod.id_persona;
         }
 
         // 3. Crear el arrendamiento
         const newLease = await Lease.create({
           id_cliente: leaseData.id_cliente,
+          id_codeudor: codeudorId || null,
           id_inmueble: leaseData.id_inmueble,
           fecha_inicio: leaseData.fecha_inicio,
           fecha_finalizacion: leaseData.fecha_finalizacion,
@@ -38,7 +130,8 @@ class LeaseService {
 
         // 4. Actualizar estado del inmueble a "Arrendado"
         await inmueble.update({
-          estado: 'Arrendado'
+          estado: false,
+          estado_frontend: 'Arrendado'
         }, { transaction: t });
 
         // 5. Generar cobros mensuales automáticamente
@@ -93,13 +186,23 @@ class LeaseService {
   async getLeaseById(id, transaction = null) {
     const lease = await Lease.findByPk(id, {
       include: [
-        { 
+        {
           association: 'inmueble',
           attributes: ['id_inmueble', 'registro_inmobiliario', 'direccion', 'ciudad', 'departamento', 'categoria']
         },
-        { 
+        {
           association: 'arrendatario',
-          attributes: ['id_persona', 'nombre_completo', 'apellido_completo', 'correo', 'telefono']
+          attributes: ['id_arrendatario'],
+          include: [
+            {
+              association: 'persona',
+              attributes: ['id_persona', 'nombre_completo', 'apellido_completo', 'correo', 'telefono', 'tipo_documento', 'numero_documento']
+            }
+          ]
+        },
+        {
+          association: 'codeudor',
+          attributes: ['id_persona', 'nombre_completo', 'apellido_completo', 'correo', 'telefono', 'tipo_documento', 'numero_documento']
         }
       ],
       transaction
@@ -121,30 +224,42 @@ class LeaseService {
         },
         {
           association: 'arrendatario',
-          attributes: ['id_persona', 'nombre_completo', 'apellido_completo', 'correo', 'telefono']
+          attributes: ['id_arrendatario'],
+          include: [
+            {
+              association: 'persona',
+              attributes: ['id_persona', 'nombre_completo', 'apellido_completo', 'correo', 'telefono', 'tipo_documento', 'numero_documento']
+            }
+          ]
+        },
+        {
+          association: 'codeudor',
+          attributes: ['id_persona', 'nombre_completo', 'apellido_completo', 'correo', 'telefono', 'tipo_documento', 'numero_documento']
         }
       ];
 
       const whereClause = {};
       if (filters.estado) whereClause.estado = filters.estado;
       if (filters.id_cliente) whereClause.id_cliente = filters.id_cliente;
+      if (filters.id_arrendatario) whereClause.id_cliente = filters.id_arrendatario; // id_cliente mapea a id_arrendatario en la tabla
       if (filters.fecha_inicio && filters.fecha_fin) {
         whereClause.fecha_inicio = {
           [Op.between]: [filters.fecha_inicio, filters.fecha_fin]
         };
       }
 
-      const leases = await Lease.findAll({
-        where: whereClause,
-        include: includeOptions,
-        order: [['fecha_inicio', 'DESC']],
-        logging: false
-      });
+        const leases = await Lease.findAll({
+          where: whereClause,
+          include: includeOptions,
+          order: [['fecha_inicio', 'DESC']],
+          logging: false
+        });
 
       logger.info(`✅ ${leases.length} arrendamientos obtenidos exitosamente`);
 
       return leases.map(lease => ({
         id_arrendamiento: lease.id_arrendamiento,
+        id_arrendatario: lease.id_cliente, // columna id_arrendatario en BD, mapeada como id_cliente en el modelo
         fecha_inicio: lease.fecha_inicio,
         fecha_finalizacion: lease.fecha_finalizacion,
         valor_mensual: lease.valor_mensual,
@@ -160,11 +275,25 @@ class LeaseService {
           categoria: lease.inmueble.categoria
         } : null,
         arrendatario: lease.arrendatario ? {
-          id_persona: lease.arrendatario.id_persona,
-          nombre_completo: lease.arrendatario.nombre_completo,
-          apellido_completo: lease.arrendatario.apellido_completo,
-          correo: lease.arrendatario.correo,
-          telefono: lease.arrendatario.telefono
+          id_arrendatario: lease.arrendatario.id_arrendatario,
+          persona: lease.arrendatario.persona ? {
+            id_persona: lease.arrendatario.persona.id_persona,
+            nombre_completo: lease.arrendatario.persona.nombre_completo,
+            apellido_completo: lease.arrendatario.persona.apellido_completo,
+            correo: lease.arrendatario.persona.correo,
+            telefono: lease.arrendatario.persona.telefono,
+            tipo_documento: lease.arrendatario.persona.tipo_documento,
+            numero_documento: lease.arrendatario.persona.numero_documento
+          } : null
+        } : null,
+        codeudor: lease.codeudor ? {
+          id_persona: lease.codeudor.id_persona,
+          nombre_completo: lease.codeudor.nombre_completo,
+          apellido_completo: lease.codeudor.apellido_completo,
+          correo: lease.codeudor.correo,
+          telefono: lease.codeudor.telefono,
+          tipo_documento: lease.codeudor.tipo_documento,
+          numero_documento: lease.codeudor.numero_documento
         } : null
       }));
 
@@ -204,7 +333,8 @@ class LeaseService {
 
       // Liberar el inmueble
       await lease.inmueble.update({
-        estado: 'Disponible'
+        estado: true,
+        estado_frontend: 'Disponible'
       });
 
       // Cancelar cobros pendientes
@@ -238,7 +368,8 @@ class LeaseService {
 
       // Liberar el inmueble
       await lease.inmueble.update({
-        estado: 'Disponible'
+        estado: true,
+        estado_frontend: 'Disponible'
       });
 
       return await this.getLeaseById(id);
@@ -276,7 +407,7 @@ class LeaseService {
 
       // Liberar el inmueble
       if (lease.inmueble) {
-        await lease.inmueble.update({ estado: 'Disponible' }, { transaction });
+        await lease.inmueble.update({ estado: true, estado_frontend: 'Disponible' }, { transaction });
       }
 
       // Borrar el arrendamiento
@@ -341,7 +472,8 @@ class LeaseService {
         referencia_bancaria: receiptData.referencia_bancaria,
         monto_pagado: receiptData.monto_pagado,
         fecha_pago: receiptData.fecha_pago,
-        estado: 'En revisión'
+        estado: receiptData.estado || 'En revisión',
+        observaciones: receiptData.observaciones
       });
 
       return newReceipt;
