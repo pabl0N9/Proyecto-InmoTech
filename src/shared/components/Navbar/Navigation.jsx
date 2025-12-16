@@ -10,6 +10,7 @@ import { routes } from '@/routes';
  */
 const Navigation = ({ className = '', onLinkClick }) => {
   const navItems = [
+    { to: routes.home, label: 'Inicio' },
     { to: routes.about, label: 'Nosotros' },
     { to: routes.properties, label: 'Inmuebles' },
     { to: routes.services, label: 'Servicios' },
