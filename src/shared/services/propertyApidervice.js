@@ -349,6 +349,33 @@ export const inmueblesAPI = {
     }
   },
 
+  async getInmuebleByRegistro(registro) {
+    try {
+      const clean = (registro || '').trim();
+      if (!clean) return null;
+
+      const response = await apiClient.get('/inmuebles', {
+        registro: clean,
+        registro_inmobiliario: clean,
+        busqueda: clean,
+        page: 1,
+        limit: 5,
+      });
+
+      const payload = response?.data || response || {};
+      const items = Array.isArray(payload.inmuebles)
+        ? payload.inmuebles.map(mapInmuebleFromApi)
+        : Array.isArray(payload.data)
+        ? payload.data.map(mapInmuebleFromApi)
+        : [];
+
+      return items[0] || null;
+    } catch (error) {
+      console.error('Error en getInmuebleByRegistro:', error);
+      throw error;
+    }
+  },
+
   async createInmueble(inmuebleData) {
     try {
       const response = await apiClient.post('/inmuebles', mapInmuebleToApi(inmuebleData));

@@ -17,13 +17,21 @@ const formatCurrency = (value) => {
 
 const mapApiArriendoToRow = (arriendo = {}) => {
   const inmueble = arriendo.Inmueble || arriendo.inmueble || {};
-  const arrendatario = arriendo.Arrendatario || arriendo.arrendatario || {};
-  const persona = arrendatario.persona || arrendatario.Persona || arrendatario || {};
+  const arrendatario = arriendo.arrendatario || arriendo.Arrendatario || {};
+  const persona = arrendatario.persona || arrendatario.Persona || {};
+  const codeudor = arriendo.codeudor || arriendo.Codeudor || {};
+  const codeudorPersona = codeudor.persona || codeudor.Persona || {};
 
-  const nombreCompleto = persona.nombre_completo || "";
-  const [primerNombre = "", segundoNombre = ""] = nombreCompleto.split(" ");
-  const apellidos = persona.apellido_completo || "";
-  const [primerApellido = "", segundoApellido = ""] = apellidos.split(" ");
+  const nombreCompletoBase = arrendatario.nombre_completo || persona.nombre_completo || "";
+  const apellidosBase = arrendatario.apellido_completo || persona.apellido_completo || "";
+
+  const [primerNombre = "", segundoNombre = ""] = nombreCompletoBase.split(" ");
+  const [primerApellido = "", segundoApellido = ""] = apellidosBase.split(" ");
+
+  const nombreCompletoCod = codeudor.nombre_completo || codeudorPersona.nombre_completo || "";
+  const apellidosCod = codeudor.apellido_completo || codeudorPersona.apellido_completo || "";
+  const [primerNombreCod = "", segundoNombreCod = ""] = nombreCompletoCod.split(" ");
+  const [primerApellidoCod = "", segundoApellidoCod = ""] = apellidosCod.split(" ");
 
   const valor = arriendo.valor_mensual || arriendo.valor_arriendo || arriendo.valor_arriendo_mensual || 0;
   const fechaInicio = arriendo.fecha_inicio || "";
@@ -31,14 +39,27 @@ const mapApiArriendoToRow = (arriendo = {}) => {
 
   return {
     id: arriendo.id_arrendamiento || arriendo.id_arriendo || arriendo.id || Date.now(),
-    tipoDocInquilino: persona.tipo_documento || "",
-    numeroDocInquilino: persona.numero_documento || "",
-    primerNombreInquilino: primerNombre,
-    segundoNombreInquilino: segundoNombre,
-    primerApellidoInquilino: primerApellido,
-    segundoApellidoInquilino: segundoApellido,
-    correoInquilino: persona.correo || "",
-    telefonoInquilino: persona.telefono || "",
+    arrendatarioId: arrendatario.id_arrendatario || arrendatario.id,
+    arrendatarioPersona: persona,
+    arrendatarioRaw: arrendatario,
+    codeudorPersona,
+    codeudorRaw: codeudor,
+    tipoDocArrendatario: arrendatario.tipo_documento || persona.tipo_documento || "",
+    numeroDocArrendatario: arrendatario.numero_documento || persona.numero_documento || "",
+    primerNombreArrendatario: primerNombre,
+    segundoNombreArrendatario: segundoNombre,
+    primerApellidoArrendatario: primerApellido,
+    segundoApellidoArrendatario: segundoApellido,
+    correoArrendatario: arrendatario.correo || persona.correo || "",
+    telefonoArrendatario: arrendatario.telefono || persona.telefono || "",
+    tipoDocCodeudor: codeudor.tipo_documento || codeudorPersona.tipo_documento || "",
+    numeroDocCodeudor: codeudor.numero_documento || codeudorPersona.numero_documento || "",
+    primerNombreCodeudor: primerNombreCod,
+    segundoNombreCodeudor: segundoNombreCod,
+    primerApellidoCodeudor: primerApellidoCod,
+    segundoApellidoCodeudor: segundoApellidoCod,
+    correoCodeudor: codeudor.correo || codeudorPersona.correo || "",
+    telefonoCodeudor: codeudor.telefono || codeudorPersona.telefono || "",
     tipoInmueble: inmueble.categoria || inmueble.tipo || "",
     registroInmobiliario: inmueble.registro_inmobiliario || inmueble.registro || "",
     nombreInmueble: inmueble.nombre || inmueble.titulo || "",
@@ -75,6 +96,11 @@ export function RenantManagementPage() {
     try {
       const response = await arriendoApiService.obtenerArriendos();
       const list = response?.data?.data || response?.data || [];
+      // DEBUG: inspeccionar payload de backend para arrendatario/persona
+      if (list.length) {
+        // eslint-disable-next-line no-console
+        console.log("DBG leases sample", list[0]);
+      }
       setArriendos(list.map(mapApiArriendoToRow));
       setStatusMessage(null);
     } catch (error) {
@@ -132,10 +158,10 @@ export function RenantManagementPage() {
             r.estado.toLowerCase().includes(lower) ||
             r.fechaInicio.includes(searchTerm) ||
             r.fechaFinal.includes(searchTerm) ||
-            r.primerNombreInquilino.toLowerCase().includes(lower) ||
-            r.primerApellidoInquilino.toLowerCase().includes(lower) ||
-            r.numeroDocInquilino.includes(searchTerm) ||
-            r.correoInquilino.toLowerCase().includes(lower)
+            r.primerNombreArrendatario.toLowerCase().includes(lower) ||
+            r.primerApellidoArrendatario.toLowerCase().includes(lower) ||
+            r.numeroDocArrendatario.includes(searchTerm) ||
+            r.correoArrendatario.toLowerCase().includes(lower)
           );
         });
 
@@ -294,7 +320,7 @@ export function RenantManagementPage() {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Inquilino</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Arrendatario</th>
                     <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Inmueble</th>
                     <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Registro</th>
                     <th className="px-6 py-4 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Inicio / Fin</th>
@@ -319,15 +345,15 @@ export function RenantManagementPage() {
                         key={r.id}
                         className="hover:bg-slate-50 transition-colors"
                       >
-                        {/* INQUILINO */}
+                        {/* ARRENDATARIO */}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3 justify-center">
                             <div className="bg-blue-100 rounded-lg p-2">
                               <Users className="w-4 h-4 text-blue-600" />
                             </div>
                             <div className="text-center">
-                              <strong className="text-slate-800 block">{r.primerNombreInquilino} {r.primerApellidoInquilino}</strong>
-                              <p className="text-sm text-slate-500">{r.correoInquilino}</p>
+                              <strong className="text-slate-800 block">{r.primerNombreArrendatario} {r.primerApellidoArrendatario}</strong>
+                              <p className="text-sm text-slate-500">{r.correoArrendatario}</p>
                             </div>
                           </div>
                         </td>

@@ -30,6 +30,8 @@ const Sale = require('./Sale');
 const Renant = require('./Renant');
 const Arriendo = require('./Arriendo');
 const Lease = require('./Lease');
+const Payment = require('./Payment');
+const Receipt = require('./Receipt');
 
 // Asociaciones de Cita
 Cita.belongsTo(Persona, { foreignKey: 'id_persona', as: 'cliente' });
@@ -121,14 +123,12 @@ Cita.hasMany(HistorialAsignacionAgente, { foreignKey: 'id_cita', as: 'historialA
 Buyer.belongsTo(Persona, { foreignKey: 'id_persona', as: 'persona' });
 Persona.hasOne(Buyer, { foreignKey: 'id_persona', as: 'buyer' });
 Sale.belongsTo(Buyer, { foreignKey: 'id_comprador', as: 'comprador' });
-Sale.belongsTo(Persona, { foreignKey: 'id_vendedor', as: 'vendedor' });
 Sale.belongsTo(Inmueble, { foreignKey: 'id_inmueble', as: 'inmueble' });
 Buyer.hasMany(Sale, { foreignKey: 'id_comprador', as: 'ventas' });
 Sale.hasMany(SeguimientoVenta, { foreignKey: 'id_venta', as: 'seguimientos' });
 SeguimientoVenta.belongsTo(Sale, { foreignKey: 'id_venta', as: 'venta' });
 SeguimientoVenta.belongsTo(Persona, { foreignKey: 'id_persona', as: 'persona' });
 SeguimientoVenta.belongsTo(EstadosVenta, { foreignKey: 'id_estado_venta', as: 'estado' });
-Persona.hasMany(Sale, { foreignKey: 'id_vendedor', as: 'ventasComoVendedor' });
 Inmueble.hasMany(Sale, { foreignKey: 'id_inmueble', as: 'ventas' });
 
 // Arrendamientos
@@ -137,11 +137,32 @@ Arriendo.belongsTo(Inmueble, { foreignKey: 'id_inmueble', as: 'inmueble' });
 Renant.hasMany(Arriendo, { foreignKey: 'id_arrendatario', as: 'arrendamientos' });
 Inmueble.hasMany(Arriendo, { foreignKey: 'id_inmueble', as: 'arrendamientos' });
 
-// Leases (legacy)
-Lease.belongsTo(Inmueble, { foreignKey: 'id_inmueble', as: 'inmueble' });
-Lease.belongsTo(Persona, { foreignKey: 'id_arrendatario', as: 'arrendatario' });
-Inmueble.hasMany(Lease, { foreignKey: 'id_inmueble', as: 'arrendamientosLegacy' });
-Persona.hasMany(Lease, { foreignKey: 'id_arrendatario', as: 'arrendamientosLegacy' });
+// Asociaciones de Lease (arrendamientos legacy/alternativo)
+Lease.belongsTo(Inmueble, {
+  foreignKey: 'id_inmueble',
+  as: 'inmueble'
+});
+
+// Codeudor no existe como columna en la tabla actual, omitimos asociación
+
+// Nota: en el modelo Lease el atributo se llama id_cliente pero la columna es id_arrendatario
+// por eso usamos el nombre del atributo como foreignKey para que Sequelize lo resuelva al campo.
+Lease.belongsTo(Renant, {
+  foreignKey: 'id_cliente',
+  as: 'arrendatario'
+});
+
+Inmueble.hasMany(Lease, {
+  foreignKey: 'id_inmueble',
+  as: 'arrendamientosLegacy'
+});
+
+Renant.hasMany(Lease, {
+  foreignKey: 'id_cliente',
+  as: 'arrendamientosLegacy'
+});
+
+// Sin relación de codeudor
 
 module.exports = {
   sequelize,
@@ -171,6 +192,8 @@ module.exports = {
   Renant,
   Arriendo,
   Lease,
+  Payment,
+  Receipt,
   Invitacion,
   Comodidad,
   InmuebleComodidad,

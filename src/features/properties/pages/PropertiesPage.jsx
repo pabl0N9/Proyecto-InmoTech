@@ -66,7 +66,14 @@ export default function PropertiesPage() {
   const formatPrice = (value) => {
     const n = Number(value);
     if (!Number.isFinite(n)) return "Consultar";
-    return n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+    const formatted = new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      currencyDisplay: "code",
+      maximumFractionDigits: 0,
+    }).format(n);
+    // Deja el código de moneda y quita el símbolo
+    return formatted.replace(/COP\\s*\\$/i, "COP ").trim();
   };
 
   const normalizeOperation = (operacion = "") => {
@@ -90,6 +97,19 @@ export default function PropertiesPage() {
     return { label: operacion || "Disponible", isVenta: true, isAlquiler: true };
   };
 
+  const findAmenityAmount = (property, targets = []) => {
+    const normalize = (text = "") =>
+      text
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLowerCase()
+        .trim();
+
+    const targetSet = targets.map(normalize);
+    const match = property.comodidades?.find?.((c) => targetSet.includes(normalize(c.nombre || "")));
+    return match?.cantidad ?? "N/D";
+  };
+
   const normalizedProperties = properties.map((property) => {
     const operation = normalizeOperation(property.operacion);
 
@@ -100,10 +120,8 @@ export default function PropertiesPage() {
       price: formatPrice(property.precio || property.precio_venta || property.precio_arriendo),
       location: [property.ciudad, property.departamento].filter(Boolean).join(", "),
       area: property.area_construida ? `${property.area_construida} m2` : "N/D",
-      bedrooms:
-        property.comodidades?.find?.((c) => (c.nombre || "").toLowerCase() === "habitaciones")?.cantidad ?? "N/D",
-      bathrooms:
-        property.comodidades?.find?.((c) => (c.nombre || "").toLowerCase() === "banos")?.cantidad ?? "N/D",
+      bedrooms: findAmenityAmount(property, ["habitaciones", "cuartos", "dormitorios"]),
+      bathrooms: findAmenityAmount(property, ["banos", "baños", "bano", "baño"]),
       image:
         Array.isArray(property.imagenes) && property.imagenes.length
           ? property.imagenes[0]

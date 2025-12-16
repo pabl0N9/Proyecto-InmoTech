@@ -613,6 +613,100 @@ export default function SalesForm({ onClose, onSubmit }) {
         });
     }, []);
 
+    const splitFullNameToParts = (fullName = "") => {
+        const parts = fullName.trim().split(/\s+/).filter(Boolean);
+
+        if (parts.length === 0) {
+            return {
+                primerNombre: "",
+                segundoNombre: "",
+                primerApellido: "",
+                segundoApellido: "",
+            };
+        }
+
+        if (parts.length === 1) {
+            return {
+                primerNombre: parts[0],
+                segundoNombre: "",
+                primerApellido: "",
+                segundoApellido: "",
+            };
+        }
+
+        if (parts.length === 2) {
+            return {
+                primerNombre: parts[0],
+                segundoNombre: "",
+                primerApellido: parts[1],
+                segundoApellido: "",
+            };
+        }
+
+        if (parts.length === 3) {
+            return {
+                primerNombre: parts[0],
+                segundoNombre: "",
+                primerApellido: parts[1],
+                segundoApellido: parts[2],
+            };
+        }
+
+        // 4 o más palabras: dos últimos como apellidos, resto para nombres
+        const primerApellido = parts[parts.length - 2];
+        const segundoApellido = parts[parts.length - 1];
+        const nombres = parts.slice(0, parts.length - 2);
+
+        return {
+            primerNombre: nombres[0] || "",
+            segundoNombre: nombres.slice(1).join(" "),
+            primerApellido,
+            segundoApellido,
+        };
+    };
+
+    const createBuyerFromForm = useCallback(async () => {
+        const tipoDocumento = normalizeValueForStorage("compradorTipoDocumento", valuesRef.current.compradorTipoDocumento || "");
+        const documento = normalizeValueForStorage(COMPRADOR_DOC, valuesRef.current.compradorDocumento || "");
+        const nombreCompleto = (valuesRef.current.compradorNombreCompleto || "").trim();
+
+        if (!tipoDocumento || !documento || !nombreCompleto) {
+            throw new Error("Completa tipo, documento y nombre del comprador para crearlo.");
+        }
+
+        const { primerNombre, segundoNombre, primerApellido, segundoApellido } = splitFullNameToParts(nombreCompleto);
+
+        setBuyerLookupState({ loading: true, message: "", error: null });
+        try {
+            const createdBuyer = await buyersApiService.create({
+                tipoDocumento,
+                documento,
+                primerNombre,
+                segundoNombre,
+                primerApellido,
+                segundoApellido,
+                correo: valuesRef.current.compradorCorreo || "",
+                telefono: valuesRef.current.compradorTelefono || "",
+            });
+
+            applyBuyerData(createdBuyer);
+            setBuyerLookupState({
+                loading: false,
+                message: "Comprador creado y seleccionado.",
+                error: null,
+            });
+
+            return createdBuyer;
+        } catch (error) {
+            setBuyerLookupState({
+                loading: false,
+                message: "",
+                error: error?.message || "No se pudo crear el comprador.",
+            });
+            throw error;
+        }
+    }, [applyBuyerData]);
+
     const fetchBuyerByDocument = useCallback(async () => {
         const tipoDocumento = (valuesRef.current.compradorTipoDocumento || "").trim();
         const numeroDocumento = valuesRef.current.compradorDocumento || "";
@@ -787,7 +881,7 @@ export default function SalesForm({ onClose, onSubmit }) {
     const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
     // Envío del formulario
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         
         const allFieldsToValidate = Object.values(stepFields).flat().filter(f => f !== 'inmuebleGaraje' || requiredFields.includes('inmuebleGaraje'));
@@ -812,6 +906,16 @@ export default function SalesForm({ onClose, onSubmit }) {
             return;
         }
 
+        let buyerRef = selectedBuyerRef.current;
+
+        if (!buyerRef) {
+            try {
+                buyerRef = await createBuyerFromForm();
+            } catch (_error) {
+                return;
+            }
+        }
+
         const normalizedValues = Object.keys(valuesRef.current).reduce((acc, fieldName) => {
             const currentValue = valuesRef.current[fieldName] ?? "";
             acc[fieldName] = normalizeValueForStorage(fieldName, currentValue);
@@ -820,7 +924,7 @@ export default function SalesForm({ onClose, onSubmit }) {
 
         const payload = {
             ...normalizedValues,
-            selectedBuyer: selectedBuyerRef.current,
+            selectedBuyer: buyerRef,
         };
         
         if (onSubmit) onSubmit(payload);
@@ -1169,4 +1273,3 @@ export default function SalesForm({ onClose, onSubmit }) {
         </div>
     );
 }
-

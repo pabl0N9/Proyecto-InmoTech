@@ -1284,6 +1284,7 @@ BEGIN
         id_arrendamiento INT PRIMARY KEY IDENTITY(1,1),
         id_arrendatario INT NOT NULL,
         id_inmueble INT NOT NULL,
+        id_codeudor INT NULL, -- referencia opcional al codeudor (Persona)
         fecha_inicio DATE NOT NULL,
         fecha_finalizacion DATE NOT NULL,
         valor_mensual DECIMAL(15,2) NOT NULL,
@@ -1296,6 +1297,7 @@ BEGIN
         
         CONSTRAINT FK_Arrendamientos_Arrendatario FOREIGN KEY (id_arrendatario) REFERENCES Arrendatarios(id_arrendatario),
         CONSTRAINT FK_Arrendamientos_Inmueble FOREIGN KEY (id_inmueble) REFERENCES Inmuebles(id_inmueble),
+        CONSTRAINT FK_Arrendamientos_Codeudor FOREIGN KEY (id_codeudor) REFERENCES Personas(id_persona),
         CONSTRAINT CHK_Arrendamientos_Valor CHECK (valor_mensual > 0),
         CONSTRAINT CHK_Arrendamientos_Fechas CHECK (fecha_finalizacion > fecha_inicio),
         CONSTRAINT CHK_Arrendamientos_Duracion CHECK (DATEDIFF(MONTH, fecha_inicio, fecha_finalizacion) >= 1)
@@ -1329,12 +1331,24 @@ BEGIN
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Arrendamientos') AND name = 'descripcion_garantia')
         ALTER TABLE Arrendamientos ADD descripcion_garantia VARCHAR(200) NULL;
 
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Arrendamientos') AND name = 'id_codeudor')
+    BEGIN
+        ALTER TABLE Arrendamientos ADD id_codeudor INT NULL;
+    END
+
     -- Agregar FK si no existe
     IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Arrendamientos_Arrendatario')
     BEGIN
         ALTER TABLE Arrendamientos 
         ADD CONSTRAINT FK_Arrendamientos_Arrendatario FOREIGN KEY (id_arrendatario) 
-        REFERENCES Arrendatarios(id_arrendatario);
+            REFERENCES Arrendatarios(id_arrendatario);
+    END
+
+    IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Arrendamientos_Codeudor')
+    BEGIN
+        ALTER TABLE Arrendamientos 
+        ADD CONSTRAINT FK_Arrendamientos_Codeudor FOREIGN KEY (id_codeudor) 
+            REFERENCES Personas(id_persona);
     END
 
     PRINT '? Estructura de Arrendamientos actualizada';
@@ -1353,6 +1367,9 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Arrendamientos_Estado'
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Arrendamientos_Fechas' AND object_id = OBJECT_ID('Arrendamientos'))
     CREATE NONCLUSTERED INDEX IX_Arrendamientos_Fechas ON Arrendamientos(fecha_inicio, fecha_finalizacion);
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Arrendamientos_Codeudor' AND object_id = OBJECT_ID('Arrendamientos'))
+    CREATE NONCLUSTERED INDEX IX_Arrendamientos_Codeudor ON Arrendamientos(id_codeudor);
 
 PRINT '? Índices para Arrendamientos creados';
 GO

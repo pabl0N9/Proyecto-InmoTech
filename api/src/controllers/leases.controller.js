@@ -125,10 +125,10 @@ class LeasesController {
   async updatePaymentStatus(req, res, next) {
     try {
       const { paymentId } = req.params;
-      const { status, fecha_pago } = req.body;
+      const { estado, fecha_pago } = req.validatedData || req.body;
       const payment = await leaseService.updatePaymentStatus(
         parseInt(paymentId, 10),
-        status,
+        estado,
         fecha_pago
       );
       return res.status(200).json({
@@ -143,7 +143,12 @@ class LeasesController {
 
   async createReceipt(req, res, next) {
     try {
-      const receipt = await leaseService.createReceipt(req.body);
+      const { paymentId } = req.params;
+      const payload = {
+        ...(req.validatedData || req.body),
+        id_cobro: parseInt(paymentId, 10)
+      };
+      const receipt = await leaseService.createReceipt(payload);
       return res.status(201).json({
         success: true,
         message: 'Comprobante creado exitosamente',

@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
-const { Payment } = require('./Payment.model');
+const Payment = require('./Payment');
 
 const Receipt = sequelize.define('Receipt', {
   id_comprobante: {
