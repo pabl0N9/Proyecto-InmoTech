@@ -19,12 +19,16 @@ const ReporteArchivo = require('./ReporteArchivo');
 const ReporteRubro = require('./ReporteRubro');
 const RubroSeguimiento = require('./RubroSeguimiento');
 const ReporteSeguimientoGeneral = require('./ReporteSeguimientoGeneral');
+const SeguimientoVenta = require('./SeguimientoVenta');
+const EstadosVenta = require('./EstadosVenta');
 const Invitacion = require('./Invitacion');
 const Buyer = require('./Buyer');
 const Sale = require('./Sale');
 const Renant = require('./Renant');
 const Arriendo = require('./Arriendo');
 const Lease = require('./Lease');
+const Payment = require('./Payment');
+const Receipt = require('./Receipt');
 const InmuebleImagen = require('./InmuebleImagen');
 
 // Asociaciones de Cita
@@ -122,7 +126,7 @@ Notificacion.belongsTo(Cita, {
   as: 'cita'
 });
 
-// ← AGREGAR ESTAS ASOCIACIONES
+// AGREGAR ESTAS ASOCIACIONES
 Notificacion.belongsTo(Rol, {
   foreignKey: 'id_rol_destino',
   as: 'rol'
@@ -351,6 +355,12 @@ Sale.belongsTo(Buyer, {
   as: 'comprador'
 });
 
+// Vendedor (Persona asociada a la venta)
+Sale.belongsTo(Persona, {
+  foreignKey: 'id_vendedor',
+  as: 'vendedor'
+});
+
 Sale.belongsTo(Inmueble, {
   foreignKey: 'id_inmueble',
   as: 'inmueble'
@@ -361,13 +371,25 @@ Buyer.hasMany(Sale, {
   as: 'ventas'
 });
 
+// Seguimiento de venta
+Sale.hasMany(SeguimientoVenta, { foreignKey: 'id_venta', as: 'seguimientos' });
+SeguimientoVenta.belongsTo(Sale, { foreignKey: 'id_venta', as: 'venta' });
+SeguimientoVenta.belongsTo(Persona, { foreignKey: 'id_persona', as: 'persona' });
+SeguimientoVenta.belongsTo(EstadosVenta, { foreignKey: 'id_estado_venta', as: 'estado' });
+
+// Persona como vendedor en ventas
+Persona.hasMany(Sale, {
+  foreignKey: 'id_vendedor',
+  as: 'ventasComoVendedor'
+});
+
 Inmueble.hasMany(Sale, {
   foreignKey: 'id_inmueble',
   as: 'ventas'
 });
 
 // Asociaciones de Renant (Arrendatarios)
-// (Las asociaciones Persona↔Renant ya se definen en Renant.js para evitar alias duplicados)
+// (Las asociaciones Persona-Renant ya se definen en Renant.js para evitar alias duplicados)
 // Asociaciones de Arriendo (Contratos)
 Arriendo.belongsTo(Renant, {
   foreignKey: 'id_arrendatario',
@@ -396,6 +418,11 @@ Lease.belongsTo(Inmueble, {
 });
 
 Lease.belongsTo(Persona, {
+  foreignKey: 'id_codeudor',
+  as: 'codeudor'
+});
+
+Lease.belongsTo(Renant, {
   foreignKey: 'id_arrendatario', // mapea id_cliente en el servicio
   as: 'arrendatario'
 });
@@ -405,9 +432,14 @@ Inmueble.hasMany(Lease, {
   as: 'arrendamientosLegacy'
 });
 
-Persona.hasMany(Lease, {
+Renant.hasMany(Lease, {
   foreignKey: 'id_arrendatario',
   as: 'arrendamientosLegacy'
+});
+
+Persona.hasMany(Lease, {
+  foreignKey: 'id_codeudor',
+  as: 'arrendamientosComoCodeudor'
 });
 
 module.exports = {
@@ -430,11 +462,15 @@ module.exports = {
   ReporteRubro,
   RubroSeguimiento,
   ReporteSeguimientoGeneral,
+  SeguimientoVenta,
+  EstadosVenta,
   Buyer,
   Sale,
   Renant,
   Arriendo,
   Lease,
+  Payment,
+  Receipt,
   Invitacion,
   Comodidad,
   InmuebleComodidad,

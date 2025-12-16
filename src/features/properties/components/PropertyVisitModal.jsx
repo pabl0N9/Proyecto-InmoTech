@@ -26,7 +26,6 @@ import citaApiService from '../../../shared/services/citaApiService';
 import { apiClient } from '../../../shared/services/api.config';
 import { useAppointments } from '../../../shared/contexts/AppointmentContext';
 import { useAuth } from '../../../shared/contexts/AuthContext';
-import { formatTimeTo12Hour } from '../../../shared/utils/time';
 
 
 const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
@@ -50,8 +49,6 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
   const [prevPhone, setPrevPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSearchingPerson, setIsSearchingPerson] = useState(false);
-  const [availableHours, setAvailableHours] = useState([]);
-  const [loadingHours, setLoadingHours] = useState(false);
 
   const { toast } = useToast();
   const { addExistingAppointment } = useAppointments();
@@ -115,10 +112,23 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
 
   const daysOfWeek = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
-  const defaultHours = [
-    "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
-    "11:00", "11:30", "14:00", "14:30", "15:00", "15:30",
-    "16:00", "16:30", "17:00", "17:30",
+  const availableHours = [
+    "08:00 am",
+    "08:30 am",
+    "09:00 am",
+    "09:30 am",
+    "10:00 am",
+    "10:30 am",
+    "11:00 am",
+    "11:30 am",
+    "02:00 pm",
+    "02:30 pm",
+    "03:00 pm",
+    "03:30 pm",
+    "04:00 pm",
+    "04:30 pm",
+    "05:00 pm",
+    "05:30 pm",
   ];
 
   const tiposDocumento = [
@@ -302,14 +312,27 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
     if (!hora) return "La hora es requerida";
 
     // Lista de horas válidas
-    const validHours = defaultHours;
+    const validHours = [
+      "08:00 am",
+      "08:30 am",
+      "09:00 am",
+      "09:30 am",
+      "10:00 am",
+      "10:30 am",
+      "11:00 am",
+      "11:30 am",
+      "02:00 pm",
+      "02:30 pm",
+      "03:00 pm",
+      "03:30 pm",
+      "04:00 pm",
+      "04:30 pm",
+      "05:00 pm",
+      "05:30 pm",
+    ];
 
     if (!validHours.includes(hora)) {
       return "Las citas solo se pueden agendar entre las 8:00 am y las 6:00 pm";
-    }
-
-    if (formData.fecha && availableHours.length && !availableHours.includes(hora)) {
-      return "Este horario ya no está disponible. Selecciona otro.";
     }
 
     return "";
@@ -339,35 +362,21 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
     return Object.values(newErrors).every((error) => !error);
   };
 
-  useEffect(() => {
-    const loadHours = async () => {
-      if (!isOpen || !property?.id || !formData.fecha) {
-        setAvailableHours([]);
-        return;
-      }
+  const parseTime = (timeString) => {
+    const [time, period] = timeString.split(" ");
+    const [hours, minutes] = time.split(":");
+    let hour24 = parseInt(hours);
 
-      setLoadingHours(true);
-      try {
-        const horarios = await citaApiService.obtenerHorariosDisponibles({
-          fecha_cita: formData.fecha,
-          id_servicio: 1,
-          id_inmueble: property.id,
-        });
-        setAvailableHours(horarios);
+    if (period === "am" && hour24 !== 12) {
+      hour24 += 12;
+    } else if (period === "pm" && hour24 === 12) {
+      hour24 = 0;
+    }
 
-        if (formData.hora && !horarios.includes(formData.hora)) {
-          updateFormData("hora", "");
-        }
-      } catch (error) {
-        console.error("❌ Error cargando horarios disponibles:", error);
-        setAvailableHours(defaultHours);
-      } finally {
-        setLoadingHours(false);
-      }
-    };
-
-    loadHours();
-  }, [isOpen, property?.id, formData.fecha]);
+    const date = new Date();
+    date.setHours(hour24, parseInt(minutes), 0, 0);
+    return date;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -393,8 +402,8 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
         email: formData.email.trim(),                  // ✅ CAMBIO (era correo)
         telefono: formData.telefono,
         fecha_cita: formData.fecha,                   // ✅ CAMBIO (con guión bajo)
-        hora_inicio: formData.hora,                   // ✅ FORMATO HH:MM
-        hora_fin: calcularHoraFin(formData.hora),     // ✅ FORMATO HH:MM
+        hora_inicio: parseTime(formData.hora).toTimeString().substring(0, 5), // ✅ FORMATO HH:MM
+        hora_fin: calcularHoraFin(parseTime(formData.hora).toTimeString().substring(0, 5)), // ✅ FORMATO HH:MM
         id_inmueble: property?.id || 1,               // ✅ CAMBIO (con guión bajo)
         id_servicio: 1,                               // ✅ CAMBIO (con guión bajo)
         observaciones: formData.mensaje || null
@@ -462,8 +471,6 @@ const PropertyVisitModal = ({ isOpen, onClose, property, onSubmit }) => {
     });
     setErrors({});
     setPrevPhone("");
-    setAvailableHours([]);
-    setLoadingHours(false);
     onClose();
   };
 
@@ -1174,44 +1181,27 @@ const buscarPersonaAutomaticamente = async (tipoDocumento, numeroDocumento) => {
                         <h4 className="font-medium">Horarios disponibles</h4>
                       </div>
 
-                      {loadingHours ? (
-                        <div className="flex items-center justify-center py-8 bg-slate-50 rounded-lg">
-                          <div className="flex items-center gap-3 text-slate-600">
-                            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                            <span>Cargando horarios disponibles...</span>
-                          </div>
-                        </div>
-                      ) : availableHours.length > 0 ? (
-                        <div className="grid grid-cols-4 gap-3">
-                          {availableHours.map((hour) => (
-                            <motion.button
-                              key={hour}
-                              type="button"
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => updateFormData("hora", hour)}
-                              className={`
-                                py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200
-                                ${
-                                  formData.hora === hour
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-white text-slate-700 hover:bg-blue-50 border border-slate-200"
-                                }
-                              `}
-                            >
-                              {formatTimeTo12Hour(hour) || hour}
-                            </motion.button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center py-8 bg-yellow-50 border border-yellow-200 rounded-lg">
-                          <div className="text-center text-yellow-700">
-                            <Clock className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-                            <p className="text-sm font-medium">No hay horarios disponibles</p>
-                            <p className="text-xs">Selecciona otra fecha</p>
-                          </div>
-                        </div>
-                      )}
+                      <div className="grid grid-cols-4 gap-3">
+                        {availableHours.map((hour) => (
+                          <motion.button
+                            key={hour}
+                            type="button"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => updateFormData("hora", hour)}
+                            className={`
+                              py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200
+                              ${
+                                formData.hora === hour
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-white text-slate-700 hover:bg-blue-50 border border-slate-200"
+                              }
+                            `}
+                          >
+                            {hour}
+                          </motion.button>
+                        ))}
+                      </div>
 
                       {errors.hora && (
                         <p className="text-red-500 text-sm">{errors.hora}</p>
