@@ -238,11 +238,12 @@ const mapEstadoUiToVentaEstado = (estado = "") => {
 
     .toLowerCase();
 
-  if (normalized === "pagado" || normalized === "completada") return "Finalizada";
-
+  if (normalized === "pagado" || normalized === "completada") return "Pagado";
   if (normalized === "cancelado" || normalized === "cancelada") return "Cancelada";
+  if (normalized === "debe") return "Debe";
+  if (normalized === "en espera") return "En espera";
 
-  // Debe / En espera / Iniciada / En negociación → Activa
+  // Cualquier otro valor se trata como estado de flujo general
 
   return "Activa";
 
