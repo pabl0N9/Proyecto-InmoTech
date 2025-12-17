@@ -1,120 +1,8 @@
 import React from "react";
+import EstadoBadge from "./EstadoBadge";
 
 export default function ViewSaleModal({ sale, onClose }) {
   if (!sale) return null;
-
-  const raw = sale.raw || {};
-  const show = (value, fallback = "N/D") =>
-    value === null || value === undefined || value === "" ? fallback : value;
-  const snapshot = sale.formSnapshot || {};
-  const vendedor = sale.vendedor || sale.seller || {};
-  const vendedorPersona = vendedor.persona || vendedor.Persona || {};
-
-  const pick = (...values) => values.find((v) => v !== null && v !== undefined && v !== "");
-
-  const buildPersonName = (persona = {}) => {
-    const full = [persona.nombre_completo, persona.apellido_completo]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
-    if (full) return full;
-
-    return [
-      persona.primer_nombre,
-      persona.segundo_nombre,
-      persona.primer_apellido,
-      persona.segundo_apellido,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
-  };
-
-  // Priorizar siempre los campos crudos (raw) sobre los normalizados para evitar valores "N/D" que vengan de fallback
-  const vendedorTipoDocumento = pick(
-    raw.vendedorTipoDocumento,
-    raw.tipo_documento_vendedor,
-    raw.vendedor_tipo_documento,
-    raw.tipo_doc_vendedor,
-    sale.tipo_documento_vendedor,
-    sale.vendedor_tipo_documento,
-    sale.tipo_doc_vendedor,
-    sale.vendedorTipoDocumento,
-    snapshot.vendedorTipoDocumento,
-    snapshot.tipo_documento_vendedor,
-    snapshot.tipo_doc_vendedor,
-    vendedor.tipo_documento,
-    vendedorPersona.tipo_documento
-  );
-
-  const vendedorDocumento = pick(
-    raw.vendedorDocumento,
-    raw.vendedor_numero_documento,
-    raw.numero_doc_vendedor,
-    raw.documento_vendedor,
-    sale.vendedor_numero_documento,
-    sale.numero_doc_vendedor,
-    sale.documento_vendedor,
-    sale.vendedorDocumento,
-    snapshot.vendedorDocumento,
-    snapshot.vendedor_numero_documento,
-    snapshot.numero_doc_vendedor,
-    snapshot.documento_vendedor,
-    vendedor.numero_documento,
-    vendedorPersona.numero_documento
-  );
-
-  const vendedorNombreCompleto =
-    pick(
-      raw.vendedorNombreCompleto,
-      raw.vendedor_nombre_completo,
-      raw.vendedor_nombre,
-      raw.nombre_vendedor,
-      raw.nombreVendedor,
-      raw.nombre_completo_vendedor,
-      sale.vendedor_nombre_completo,
-      sale.vendedor_nombre,
-      sale.nombre_vendedor,
-      sale.nombreVendedor,
-      sale.nombre_completo_vendedor,
-      sale.vendedorNombreCompleto,
-      snapshot.vendedorNombreCompleto,
-      snapshot.vendedor_nombre_completo,
-      snapshot.vendedor_nombre,
-      snapshot.nombre_vendedor,
-      snapshot.nombre_completo_vendedor,
-      vendedor.nombre_completo
-    ) ||
-    buildPersonName(vendedor) ||
-    buildPersonName(vendedorPersona);
-
-  const vendedorCorreo = pick(
-    raw.vendedorCorreo,
-    raw.vendedor_correo,
-    raw.correo_vendedor,
-    sale.vendedor_correo,
-    sale.correo_vendedor,
-    sale.vendedorCorreo,
-    snapshot.vendedorCorreo,
-    snapshot.vendedor_correo,
-    snapshot.correo_vendedor,
-    vendedor.correo,
-    vendedorPersona.correo
-  );
-
-  const vendedorTelefono = pick(
-    raw.vendedorTelefono,
-    raw.vendedor_telefono,
-    raw.telefono_vendedor,
-    sale.vendedor_telefono,
-    sale.telefono_vendedor,
-    sale.vendedorTelefono,
-    snapshot.vendedorTelefono,
-    snapshot.vendedor_telefono,
-    snapshot.telefono_vendedor,
-    vendedor.telefono,
-    vendedorPersona.telefono
-  );
 
   return (
     // 🔑 Fondo del modal con desenfoque - CAMBIO PRINCIPAL
@@ -155,40 +43,34 @@ export default function ViewSaleModal({ sale, onClose }) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
               <div>
                 <p className="font-semibold text-gray-700">ID:</p>
-                <p className="text-gray-900">{show(sale.id)}</p>
+                <p className="text-gray-900">{sale.id}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Registro:</p>
-                <p className="text-gray-900">{show(sale.registro || snapshot.inmuebleRegistro)}</p>
+                <p className="text-gray-900">{sale.registro}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Tipo:</p>
-                <p className="text-gray-900">{show(sale.tipo || snapshot.inmuebleTipo)}</p>
+                <p className="text-gray-900">{sale.tipo}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Fecha:</p>
-                <p className="text-gray-900">{show(sale.fecha)}</p>
+                <p className="text-gray-900">{sale.fecha}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Valor:</p>
-                <p className="text-gray-900 font-bold text-green-600">{show(sale.valor, "$ 0")}</p>
+                <p className="text-gray-900 font-bold text-green-600">{sale.valor}</p>
               </div>
               
               {/* Estado movido hacia abajo con margen adicional */}
               <div className="mt-2">
                 <p className="font-semibold text-gray-700">Estado:</p>
-                <p className="text-gray-900 text-sm font-semibold">{show(sale.estado)}</p>
+                <EstadoBadge estado={sale.estado} />
               </div>
               
               <div className="md:col-span-2 lg:col-span-3 mt-2">
                 <p className="font-semibold text-gray-700">Seguimiento:</p>
-                <p className="text-gray-900">{show(sale.estadoSeguimiento || snapshot.estadoSeguimiento, "Sin seguimiento")}</p>
-              </div>
-              <div className="md:col-span-2 lg:col-span-3">
-                <p className="font-semibold text-gray-700">Descripción de seguimiento:</p>
-                <p className="text-gray-900 whitespace-pre-line">
-                  {show(sale.descripcionSeguimiento, "Sin descripción")}
-                </p>
+                <p className="text-gray-900">{sale.estadoSeguimiento}</p>
               </div>
             </div>
           </div>
@@ -201,25 +83,25 @@ export default function ViewSaleModal({ sale, onClose }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="font-semibold text-gray-700">Tipo de documento:</p>
-                <p className="text-gray-900">{show(sale.compradorTipoDocumento || snapshot.compradorTipoDocumento)}</p>
+                <p className="text-gray-900">{sale.compradorTipoDocumento}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Documento:</p>
-                <p className="text-gray-900">{show(sale.compradorDocumento || snapshot.compradorDocumento)}</p>
+                <p className="text-gray-900">{sale.compradorDocumento}</p>
               </div>
               <div className="md:col-span-2">
                 <p className="font-semibold text-gray-700">Nombre completo:</p>
-                <p className="text-gray-900">{show(sale.compradorNombreCompleto || snapshot.compradorNombreCompleto, "Sin comprador")}</p>
+                <p className="text-gray-900">{sale.compradorNombreCompleto}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Correo:</p>
                 <a href={`mailto:${sale.compradorCorreo}`} className="text-blue-600 hover:text-blue-800 underline">
-                  {show(sale.compradorCorreo || snapshot.compradorCorreo, "Sin correo")}
+                  {sale.compradorCorreo}
                 </a>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Teléfono:</p>
-                <p className="text-gray-900">{show(sale.compradorTelefono || snapshot.compradorTelefono, "Sin teléfono")}</p>
+                <p className="text-gray-900">{sale.compradorTelefono}</p>
               </div>
             </div>
           </div>
@@ -232,25 +114,25 @@ export default function ViewSaleModal({ sale, onClose }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="font-semibold text-gray-700">Tipo de documento:</p>
-                <p className="text-gray-900">{show(vendedorTipoDocumento)}</p>
+                <p className="text-gray-900">{sale.vendedorTipoDocumento}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Documento:</p>
-                <p className="text-gray-900">{show(vendedorDocumento)}</p>
+                <p className="text-gray-900">{sale.vendedorDocumento}</p>
               </div>
               <div className="md:col-span-2">
                 <p className="font-semibold text-gray-700">Nombre completo:</p>
-                <p className="text-gray-900">{show(vendedorNombreCompleto, "Sin vendedor")}</p>
+                <p className="text-gray-900">{sale.vendedorNombreCompleto}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Correo:</p>
-                <a href={`mailto:${vendedorCorreo || ""}`} className="text-blue-600 hover:text-blue-800 underline">
-                  {show(vendedorCorreo, "Sin correo")}
+                <a href={`mailto:${sale.vendedorCorreo}`} className="text-blue-600 hover:text-blue-800 underline">
+                  {sale.vendedorCorreo}
                 </a>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Teléfono:</p>
-                <p className="text-gray-900">{show(vendedorTelefono, "Sin teléfono")}</p>
+                <p className="text-gray-900">{sale.vendedorTelefono}</p>
               </div>
             </div>
           </div>
@@ -263,51 +145,63 @@ export default function ViewSaleModal({ sale, onClose }) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
               <div>
                 <p className="font-semibold text-gray-700">Tipo:</p>
-                <p className="text-gray-900">{show(sale.inmuebleTipo)}</p>
+                <p className="text-gray-900">{sale.inmuebleTipo}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Registro:</p>
-                <p className="text-gray-900">{show(sale.inmuebleRegistro)}</p>
+                <p className="text-gray-900">{sale.inmuebleRegistro}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Nombre:</p>
-                <p className="text-gray-900">{show(sale.inmuebleNombre)}</p>
+                <p className="text-gray-900">{sale.inmuebleNombre}</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700">Área:</p>
+                <p className="text-gray-900">{sale.inmuebleArea} m²</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Habitaciones:</p>
-                <p className="text-gray-900">{show(sale.inmuebleHabitaciones || snapshot.inmuebleHabitaciones)}</p>
+                <p className="text-gray-900">{sale.inmuebleHabitaciones}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Baños:</p>
-                <p className="text-gray-900">{show(sale.inmuebleBanos || snapshot.inmuebleBanos)}</p>
+                <p className="text-gray-900">{sale.inmuebleBanos}</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700">Garaje:</p>
+                <p className="text-gray-900">{sale.inmuebleGaraje ? "Sí" : "No"}</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700">Estrato:</p>
+                <p className="text-gray-900">{sale.inmuebleEstrato}</p>
               </div>
               <div className="md:col-span-2 lg:col-span-3">
                 <p className="font-semibold text-gray-700">Dirección:</p>
-                <p className="text-gray-900">{show(sale.inmuebleDireccion)}</p>
+                <p className="text-gray-900">{sale.inmuebleDireccion}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Barrio:</p>
-                <p className="text-gray-900">{show(sale.inmuebleBarrio || snapshot.inmuebleBarrio)}</p>
+                <p className="text-gray-900">{sale.inmuebleBarrio}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Ciudad:</p>
-                <p className="text-gray-900">{show(sale.inmuebleCiudad || snapshot.inmuebleCiudad)}</p>
+                <p className="text-gray-900">{sale.inmuebleCiudad}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Departamento:</p>
-                <p className="text-gray-900">{show(sale.inmuebleDepartamento || snapshot.inmuebleDepartamento)}</p>
+                <p className="text-gray-900">{sale.inmuebleDepartamento}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">País:</p>
-                <p className="text-gray-900">{show(sale.inmueblePais || snapshot.inmueblePais)}</p>
+                <p className="text-gray-900">{sale.inmueblePais}</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Precio:</p>
-                <p className="text-gray-900 font-bold text-green-600">{show(sale.inmueblePrecio || snapshot.inmueblePrecio, "$ 0")} $</p>
+                <p className="text-gray-900 font-bold text-green-600">{sale.inmueblePrecio} $</p>
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Estado:</p>
-                <p className="text-gray-900">{show(sale.inmuebleEstado)}</p>
+                <p className="text-gray-900">{sale.inmuebleEstado}</p>
               </div>
             </div>
           </div>

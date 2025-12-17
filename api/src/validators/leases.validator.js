@@ -27,19 +27,13 @@ const createPaymentSchema = Joi.object({
 });
 
 const updatePaymentSchema = Joi.object({
-  estado: Joi.string().valid('Pendiente', 'Pagado', 'Vencido').required(),
-  fecha_pago: Joi.date().iso().optional()
+  estado: Joi.string().valid('Pendiente', 'Pagado', 'Vencido').required()
 });
 
 const createReceiptSchema = Joi.object({
-  id_cobro: Joi.number().integer().optional(),
-  url_comprobante: Joi.string().max(500).required(),
-  entidad_bancaria: Joi.string().max(100).required(),
-  referencia_bancaria: Joi.string().max(100).required(),
-  monto_pagado: Joi.number().positive().required(),
-  fecha_pago: Joi.date().iso().required(),
-  estado: Joi.string().valid('Pendiente', 'Confirmado', 'Negado', 'En revision').optional(),
-  observaciones: Joi.string().allow('', null)
+  descripcion: Joi.string().max(500).allow('', null),
+  valor_pagado: Joi.number().positive().required(),
+  metodo_pago: Joi.string().max(50).allow('', null)
 });
 
 module.exports = {

@@ -2,7 +2,8 @@ import React, { useRef, useState, useCallback, useMemo, useEffect } from "react"
 import { FaTimes } from "react-icons/fa";
 import { motion } from 'framer-motion';
 import { renantsApiService } from "../../../../shared/services/arrendatarioApiService";
-import arriendoApiService from "../../../../shared/services/arriendoApiService"; // ⬅️ NUEVO
+import arriendoApiService from "../../../../shared/services/arriendoApiService";
+import { inmueblesAPI } from "../../../../shared/services/propertyApidervice";
 
 // Lista de campos que deben ser obligatorios según la solicitud del usuario (INCLUYE ARRENDATARIO, CODEUDOR, INMUEBLE Y CONTRATO)
 const requiredFields = [
@@ -14,11 +15,11 @@ const requiredFields = [
     "primerApellidoCodeudor", "telefonoCodeudor", "correoCodeudor",
     "estabilidadLaboral",
     // Inmueble (Todos los campos excepto Garaje)
-    "tipoInmueble", "registroInmobiliario", "nombreInmueble", "area", 
-    "habitaciones", "banos", "departamento", "ciudad", "barrio", "estrato", 
+    "tipoInmueble", "registroInmobiliario", "nombreInmueble",
+    "departamento", "ciudad", "barrio",
     "direccion", "precioInmueble",
     // Contrato
-    "fechaInicio", "fechaFinal", "fechaCobro", "precio", "estado",
+    "fechaInicio", "fechaFinal", "fechaCobro", "precio",
 ];
 
 // Opciones de documentos
@@ -43,6 +44,11 @@ const parseNumberField = (value) => {
     if (cleaned === "") return undefined;
     const numeric = Number(cleaned);
     return Number.isNaN(numeric) ? undefined : numeric;
+};
+
+const sanitizeNumericString = (value) => {
+    if (value === undefined || value === null) return "";
+    return value.toString().replace(/[^0-9]/g, "");
 };
 
 /**
@@ -73,23 +79,40 @@ const buildArrendatarioPayload = (values = {}) => ({
  */
 const buildArriendoPayload = (values = {}, renant = {}) => {
     const idArrendatario =
+        // Priorizar siempre el identificador propio del arrendatario (no el de persona)
         renant.id_arrendatario ||
         renant.idArrendatario ||
-        renant.id;
+        renant.id ||
+        values.id_arrendatario ||
+        values.idArrendatario;
+
+    // Preparar datos del codeudor (persona). Se enviarán para que el backend cree/busque el registro y asigne id_codeudor.
+    const codeudorPayload = {
+        tipo_documento: values.tipoDocCodeudor,
+        numero_documento: values.numeroDocCodeudor,
+        nombre_completo: combineNames(values.primerNombreCodeudor, values.segundoNombreCodeudor),
+        apellido_completo: combineNames(values.primerApellidoCodeudor, values.segundoApellidoCodeudor),
+        correo: values.correoCodeudor,
+        telefono: values.telefonoCodeudor
+    };
 
     const valorMensual =
         parseNumberField(values.precio) ?? parseNumberField(values.precioInmueble);
 
     const valorGarantia = parseNumberField(values.valorGarantia);
 
+    const idInmueble = values.idInmueble ? Number(values.idInmueble) : undefined;
+
     return {
-        // Relación con Arrendatario
+        // Relación con Arrendatario/cliente
+        id_cliente: idArrendatario,
+        idCliente: idArrendatario,
         id_arrendatario: idArrendatario,
         idArrendatario: idArrendatario,
 
-        // Inmueble: enviamos una referencia flexible como antes
-        // El backend puede resolver a id_inmueble por registro / nombre / id.
-        idInmueble: values.idInmueble || values.registroInmobiliario || values.nombreInmueble || undefined,
+        // Inmueble
+        id_inmueble: idInmueble,
+        idInmueble,
 
         // Fechas
         fecha_inicio: values.fechaInicio,
@@ -109,8 +132,11 @@ const buildArriendoPayload = (values = {}, renant = {}) => {
         descripcion_garantia: values.descripcionGarantia,
         descripcionGarantia: values.descripcionGarantia,
 
+        // Codeudor (persona) - el backend lo resolverá a id_codeudor
+        codeudor: codeudorPayload,
+
         // Estado del contrato
-        estado: values.estado || "Activo",
+        estado: "Activo",
     };
 };
 
@@ -141,6 +167,12 @@ export default function RentForm({ onClose, onSubmit }) {
     const arrendatarioLookupTimeoutRef = useRef(null);
     const arrendatarioLookupRequestId = useRef(0);
     const manuallyEditedArrendatarioFieldsRef = useRef(new Set());
+    const [inmuebleLookupState, setInmuebleLookupState] = useState({
+        loading: false,
+        message: "",
+        error: null
+    });
+    const inmuebleLookupRequestId = useRef(0);
     const totalSteps = 4;
 
     const initial = {
@@ -151,10 +183,10 @@ export default function RentForm({ onClose, onSubmit }) {
         primerApellidoCodeudor: "", segundoApellidoCodeudor: "", correoCodeudor: "", telefonoCodeudor: "",
         estabilidadLaboral: "",
 
-        tipoInmueble: "", registroInmobiliario: "", nombreInmueble: "", area: "", habitaciones: "", banos: "",
-        departamento: "", ciudad: "", barrio: "", estrato: "", direccion: "", precioInmueble: "", garaje: false,
+        tipoInmueble: "", registroInmobiliario: "", nombreInmueble: "",
+        departamento: "", ciudad: "", barrio: "", direccion: "", precioInmueble: "", garaje: false,
 
-        fechaInicio: "", fechaFinal: "", fechaCobro: "", precio: "", estado: "",
+        fechaInicio: "", fechaFinal: "", fechaCobro: "", precio: "", estado: "Activo",
     };
 
     // refs para mantener TODOS los valores sin causar re-renders en cada letra
@@ -170,7 +202,7 @@ export default function RentForm({ onClose, onSubmit }) {
 
     // Lista de campos que deben ser estrictamente numéricos (solo dígitos)
     const strictNumericFields = [
-        "area", "habitaciones", "banos", "estrato", "precioInmueble", "precio"
+        "precioInmueble", "precio"
     ];
     
     // Campos que requieren formato de miles
@@ -188,10 +220,10 @@ export default function RentForm({ onClose, onSubmit }) {
             "estabilidadLaboral",
         ],
         3: [
-            "tipoInmueble", "registroInmobiliario", "nombreInmueble", "area", "habitaciones", "banos",
-            "departamento", "ciudad", "barrio", "estrato", "direccion", "precioInmueble", "garaje"
+            "tipoInmueble", "registroInmobiliario", "nombreInmueble",
+            "departamento", "ciudad", "barrio", "direccion", "precioInmueble", "garaje"
         ],
-        4: ["fechaInicio", "fechaFinal", "fechaCobro", "precio", "estado"],
+        4: ["fechaInicio", "fechaFinal", "fechaCobro", "precio"],
     };
 
     // Lista de campos que deben contener solo letras (y acentos/espacios)
@@ -271,11 +303,11 @@ export default function RentForm({ onClose, onSubmit }) {
             segundoNombreCodeudor: "Segundo Nombre Codeudor", primerApellidoCodeudor: "Primer Apellido Codeudor",
             segundoApellidoCodeudor: "Segundo Apellido Codeudor", correoCodeudor: "Correo Electrónico Codeudor",
             telefonoCodeudor: "Teléfono Codeudor", estabilidadLaboral: "Estabilidad Económica", tipoInmueble: "Tipo de Inmueble",
-            registroInmobiliario: "Registro Inmobiliario", nombreInmueble: "Nombre del Inmueble", area: "Área (m²)",
-            habitaciones: "Número de Habitaciones", banos: "Número de Baños", departamento: "Departamento",
-            ciudad: "Ciudad", barrio: "Barrio", estrato: "Estrato", direccion: "Dirección", precioInmueble: "Precio del Inmueble",
+            registroInmobiliario: "Registro Inmobiliario", nombreInmueble: "Nombre del Inmueble",
+            departamento: "Departamento", ciudad: "Ciudad", barrio: "Barrio", direccion: "Dirección",
+            precioInmueble: "Precio del Inmueble",
             garaje: "Garaje", fechaInicio: "Fecha de Inicio", fechaFinal: "Fecha de Finalización", fechaCobro: "Fecha de Cobro",
-            precio: "Precio del Arriendo", estado: "Estado del Arriendo",
+            precio: "Precio del Arriendo",
         };
         return labels[name] ?? name;
     };
@@ -323,6 +355,39 @@ export default function RentForm({ onClose, onSubmit }) {
         }
     };
 
+    const setFieldValue = useCallback((name, value) => {
+        const el = elRefs.current[name];
+        if (currencyFields.includes(name)) {
+            const clean = sanitizeNumericString(value);
+            const formatted = clean ? formatNumberWithThousandsSeparator(clean) : "";
+            valuesRef.current[name] = clean;
+            displayValuesRef.current[name] = formatted;
+            if (el) {
+                try { el.value = formatted; } catch (_err) { /* ignore */ }
+            }
+        } else if (el?.type === "checkbox") {
+            const checkedValue = Boolean(value);
+            valuesRef.current[name] = checkedValue;
+            displayValuesRef.current[name] = checkedValue;
+            el.checked = checkedValue;
+        } else {
+            const nextValue = value ?? "";
+            valuesRef.current[name] = nextValue;
+            displayValuesRef.current[name] = nextValue;
+            if (el) {
+                try { el.value = nextValue; } catch (_err) { /* ignore */ }
+            }
+        }
+
+        if (errors[name]) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
+    }, [errors]);
+
     const resetArrendatarioManualFields = () => {
         manuallyEditedArrendatarioFieldsRef.current.clear();
     };
@@ -358,6 +423,76 @@ export default function RentForm({ onClose, onSubmit }) {
             return next;
         });
     }, [arrendatarioAutoFillFields]);
+
+    const autofillInmueble = useCallback((inmueble = {}) => {
+        if (!inmueble) return;
+
+        const raw = inmueble.metadata?.raw || {};
+        valuesRef.current.idInmueble = inmueble.id ?? inmueble.id_inmueble ?? valuesRef.current.idInmueble;
+
+        setFieldValue("tipoInmueble", inmueble.categoria || inmueble.tipo || "");
+        setFieldValue("nombreInmueble", inmueble.titulo || inmueble.nombre || inmueble.nombre_comercial || raw.nombre || "");
+        setFieldValue("registroInmobiliario", inmueble.registro || inmueble.registro_inmobiliario || "");
+        setFieldValue("departamento", inmueble.departamento || raw.departamento || "");
+        setFieldValue("ciudad", inmueble.ciudad || raw.ciudad || "");
+        setFieldValue("barrio", inmueble.barrio || raw.barrio || "");
+        setFieldValue("direccion", inmueble.direccion || raw.direccion || "");
+
+        const precioAutoFill =
+            inmueble.precio_arriendo ??
+            inmueble.precio ??
+            inmueble.precio_venta ??
+            raw.precio_arriendo ??
+            raw.precio ??
+            "";
+        setFieldValue("precioInmueble", precioAutoFill);
+
+        const garajeSource = raw.garaje ?? raw.parqueaderos ?? raw.garajes ?? inmueble.garaje ?? inmueble.parqueaderos;
+        if (garajeSource !== undefined) {
+            const garageDigits = sanitizeNumericString(garajeSource);
+            const hasGarage = garageDigits ? garageDigits !== "0" : Boolean(garajeSource);
+            setFieldValue("garaje", hasGarage);
+        }
+    }, [setFieldValue]);
+
+    const handleInmuebleLookup = useCallback(async (registro = "") => {
+        const cleanRegistro = (registro || "").trim();
+        if (!cleanRegistro) return;
+
+        inmuebleLookupRequestId.current += 1;
+        const requestId = inmuebleLookupRequestId.current;
+        setInmuebleLookupState({ loading: true, message: "", error: null });
+
+        try {
+            const inmueble = await inmueblesAPI.getInmuebleByRegistro(cleanRegistro);
+
+            if (inmuebleLookupRequestId.current !== requestId) return;
+
+            if (inmueble && (inmueble.id || inmueble.id_inmueble)) {
+                autofillInmueble(inmueble);
+                setInmuebleLookupState({
+                    loading: false,
+                    message: "Datos del inmueble completados automáticamente.",
+                    error: null
+                });
+            } else {
+                valuesRef.current.idInmueble = undefined;
+                setInmuebleLookupState({
+                    loading: false,
+                    message: "",
+                    error: "No encontramos un inmueble con ese registro."
+                });
+            }
+        } catch (error) {
+            if (inmuebleLookupRequestId.current !== requestId) return;
+            valuesRef.current.idInmueble = undefined;
+            setInmuebleLookupState({
+                loading: false,
+                message: "",
+                error: error?.message || "No fue posible buscar el inmueble."
+            });
+        }
+    }, [autofillInmueble]);
 
     const cleanDocument = (value = "") => value.toString().replace(/[^0-9]/g, "").trim();
 
@@ -467,6 +602,14 @@ export default function RentForm({ onClose, onSubmit }) {
             
             // Guardar siempre el valor LIMPIO (solo dígitos si es numérico con formato) o el valor original
             valuesRef.current[name] = cleanValue;
+
+            if (name === "registroInmobiliario") {
+                valuesRef.current.idInmueble = undefined;
+                setInmuebleLookupState((prev) => {
+                    if (!prev.loading && !prev.message && !prev.error) return prev;
+                    return { loading: false, message: "", error: null };
+                });
+            }
         }
 
         // Limpieza de error en vivo al escribir, solo si ya existía un error
@@ -551,18 +694,6 @@ export default function RentForm({ onClose, onSubmit }) {
                 if (!errorMessage && strictNumericFields.includes(name)) {
                     const numericValue = parseInt(value);
                     
-                    if (name === "estrato" && (numericValue < 1 || numericValue > 6)) {
-                        errorMessage = `El estrato debe estar entre 1 y 6`;
-                    }
-                    
-                    if (name === "habitaciones" && (numericValue < 0 || numericValue > 20)) {
-                        errorMessage = `El número de habitaciones debe ser razonable (0-20)`;
-                    }
-                    
-                    if (name === "banos" && (numericValue < 0 || numericValue > 10)) {
-                        errorMessage = `El número de baños debe ser razonable (0-10)`;
-                    }
-                    
                     if ((name === "precioInmueble" || name === "precio") && numericValue <= 0) {
                         errorMessage = `Debe ser un número mayor a 0`;
                     }
@@ -595,6 +726,10 @@ export default function RentForm({ onClose, onSubmit }) {
 
             return newErrors;
         });
+
+        if (name === "registroInmobiliario" && !errorMessage && value.trim().length > 0) {
+            handleInmuebleLookup(value);
+        }
     };
 
     // --- LÓGICA DE VALIDACIÓN CENTRAL MEJORADA ---
@@ -654,16 +789,8 @@ export default function RentForm({ onClose, onSubmit }) {
                 if (!error && strictNumericFields.includes(fieldName)) {
                     const numericValue = parseInt(value);
                     
-                    if (fieldName === "estrato" && (numericValue < 1 || numericValue > 6)) {
-                        error = `El estrato debe estar entre 1 y 6`;
-                    }
-                    
-                    if (fieldName === "habitaciones" && (numericValue < 0 || numericValue > 20)) {
-                        error = `El número de habitaciones debe ser razonable (0-20)`;
-                    }
-                    
-                    if (fieldName === "banos" && (numericValue < 0 || numericValue > 10)) {
-                        error = `El número de baños debe ser razonable (0-10)`;
+                    if (fieldName === "precioInmueble" && numericValue <= 0) {
+                        error = `Debe ser un número mayor a 0`;
                     }
                 }
             }
@@ -787,6 +914,16 @@ export default function RentForm({ onClose, onSubmit }) {
             }, 50);
             
             return; // Bloquea el envío
+        }
+
+        // Validación adicional: asegurar que tenemos un inmueble resuelto a ID
+        if (!valuesRef.current.idInmueble) {
+            const msg = "Selecciona un inmueble válido desde el registro inmobiliario.";
+            setErrors((prev) => ({ ...prev, registroInmobiliario: msg }));
+            setStep(3);
+            const el = elRefs.current.registroInmobiliario;
+            if (el) el.focus();
+            return;
         }
 
         setSubmissionState({ isSubmitting: true, error: null });
@@ -1077,14 +1214,21 @@ export default function RentForm({ onClose, onSubmit }) {
                                         ]}
                                     />
                                     <Field name="registroInmobiliario" placeholder="Ej: 12345-ABC" />
+                                    <div className="col-span-3 text-xs space-y-1">
+                                        {inmuebleLookupState.loading && (
+                                            <p className="text-slate-500">Buscando inmueble...</p>
+                                        )}
+                                        {inmuebleLookupState.message && (
+                                            <p className="text-green-600">{inmuebleLookupState.message}</p>
+                                        )}
+                                        {inmuebleLookupState.error && (
+                                            <p className="text-red-600">{inmuebleLookupState.error}</p>
+                                        )}
+                                    </div>
                                     <Field name="nombreInmueble" placeholder="Ej: Edificio Central" />
-                                    <Field name="area" placeholder="Área en metros cuadrados. Solo números enteros mayores a 0." />
-                                    <Field name="habitaciones" placeholder="Cantidad de habitaciones. Solo números enteros (0-20)." />
-                                    <Field name="banos" placeholder="Cantidad de baños. Solo números enteros (0-10)." />
                                     <Field name="departamento" placeholder="Ej: Antioquia" />
                                     <Field name="ciudad" placeholder="Ej: Medellín" />
                                     <Field name="barrio" placeholder="Ej: El Poblado" />
-                                    <Field name="estrato" placeholder="Estrato (1-6). Solo números enteros." />
                                     <Field name="direccion" placeholder="Ej: Calle 10 # 45-20" />
                                     <Field name="precioInmueble" placeholder="Ej: 150000000 (Solo números enteros mayores a 0)." />
                                     <Field name="garaje" type="checkbox" />
@@ -1103,15 +1247,6 @@ export default function RentForm({ onClose, onSubmit }) {
                                     <Field name="fechaFinal" type="date" />
                                     <Field name="fechaCobro" type="date" />
                                     <Field name="precio" placeholder="Ej: 1500000 (Solo números enteros mayores a 0)." />
-                                    <Field
-                                        name="estado"
-                                        as="select"
-                                        options={[
-                                            { value: "Activo", label: "Activo" },
-                                            { value: "Proceso", label: "Pendiente de inicio" },
-                                            { value: "Inactivo", label: "Finalizado" },
-                                        ]}
-                                    />
                                 </div>
                             </div>
                         )}

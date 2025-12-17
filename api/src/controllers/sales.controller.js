@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 class SalesController {
   async createSale(req, res, next) {
     try {
-      const data = req.validatedData || req.body;
+      const data = req.body;
       const newSale = await saleService.createSale(data);
       return res.status(201).json({ 
         success: true, 
@@ -77,7 +77,7 @@ class SalesController {
   async updateSale(req, res, next) {
     try {
       const { id } = req.params;
-      const sale = await saleService.updateSale(parseInt(id), req.validatedData || req.body);
+      const sale = await saleService.updateSale(parseInt(id), req.body);
 
       return res.status(200).json({
         success: true,
@@ -122,8 +122,7 @@ class SalesController {
   async addTracking(req, res, next) {
     try {
       const { id } = req.params;
-      const trackingData = req.validatedData || req.body;
-      const tracking = await saleService.addTracking(parseInt(id), trackingData);
+      const tracking = await saleService.addTracking(parseInt(id), req.body);
 
       return res.status(201).json({
         success: true,

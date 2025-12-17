@@ -15,28 +15,9 @@ const splitNames = (fullName = '') => {
   return { first, rest: parts.slice(1).join(' ') || second || '' };
 };
 
-const normalizeDoc = (value = '') =>
-  value
-    .toString()
-    .replace(/\D/g, '')
-    .trim();
-
-const normalizeTipo = (value = '') => value.toString().trim().toUpperCase();
-
 const mapBuyerFromApi = (buyer = {}, formData = {}) => {
   const persona = buyer.persona || buyer.Persona || buyer;
   const compra = buyer.compra || buyer.purchase || null;
-  const rawBuyerId =
-    buyer.id_comprador ??
-    buyer.buyerId ??
-    buyer.id_buyer ??
-    buyer.id;
-
-  // Evitar confundir id de persona con id de comprador
-  const compradorId =
-    rawBuyerId && rawBuyerId !== buyer?.persona?.id_persona
-      ? rawBuyerId
-      : buyer?.raw?.id_comprador || null;
 
   const { first: primerNombre, rest: segundoNombre } = splitNames(
     persona.nombre_completo || buyer.primerNombre || ''
@@ -46,8 +27,7 @@ const mapBuyerFromApi = (buyer = {}, formData = {}) => {
   );
 
   return {
-    id: compradorId || null, // ID de comprador (no persona)
-    compradorId: compradorId || null,
+    id: buyer.buyerId || buyer.id_buyer || buyer.id_comprador || buyer.id || persona.id_persona,
     personaId: persona.id_persona,
     tipoDocumento: persona.tipo_documento || buyer.tipoDocumento || 'CC',
     documento: persona.numero_documento || buyer.documento || '',
@@ -108,30 +88,7 @@ export const buyersApiService = {
     const response = await apiClient.get('/sales/buyers', params);
     const list = extractList(response);
     if (!list.length) return null;
-
-    const targetDoc = normalizeDoc(numeroDocumento);
-    const targetTipo = normalizeTipo(tipoDocumento);
-
-    const exactMatch = list.find((item) => {
-      const doc =
-        normalizeDoc(
-          item?.numero_documento ||
-          item?.documento ||
-          item?.persona?.numero_documento
-        );
-
-      const tipo =
-        normalizeTipo(
-          item?.tipo_documento ||
-          item?.tipoDocumento ||
-          item?.persona?.tipo_documento
-        );
-
-      return doc && doc === targetDoc && (!targetTipo || tipo === targetTipo);
-    });
-
-    if (!exactMatch) return null;
-    return mapBuyerFromApi(exactMatch);
+    return mapBuyerFromApi(list[0]);
   },
 
   async getById(id) {

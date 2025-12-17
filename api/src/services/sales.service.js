@@ -5,7 +5,6 @@ const logger = require('../utils/logger');
 
 class SaleService {
   async createSale(saleData) {
-    logger.info(`createSale payload: ${JSON.stringify(saleData)}`);
     const result = await sequelize.transaction(async (t) => {
       try {
         // 1. Validar que el inmueble existe y está disponible
@@ -16,19 +15,9 @@ class SaleService {
 
         // 2. Validar que el comprador existe (tabla Compradores)
         const compradorId = saleData.id_comprador || saleData.id_persona;
-        logger.info(`createSale compradorId=${compradorId} inmuebleId=${saleData.id_inmueble}`);
         const comprador = await Buyer.findByPk(compradorId, { transaction: t, include: ['persona'] });
         if (!comprador) {
           throw new Error('Comprador no encontrado');
-        }
-
-        // 2.5. Resolver vendedor (opcional, se guarda id y/o datos congelados si viene)
-        let vendedorPersona = null;
-        if (saleData.id_vendedor) {
-          vendedorPersona = await Persona.findByPk(saleData.id_vendedor, { transaction: t });
-          if (!vendedorPersona) {
-            throw new Error('Vendedor no encontrado');
-          }
         }
 
         // 3. Crear la venta
@@ -38,29 +27,17 @@ class SaleService {
           fecha_venta: saleData.fecha_venta,
           valor_venta: saleData.valor_venta,
           medio_pago: saleData.medio_pago,
-          estado: 'Activa',
-          id_vendedor: vendedorPersona?.id_persona || null,
-          tipo_doc_vendedor: vendedorPersona?.tipo_documento || saleData.vendedorTipoDocumento || null,
-          numero_doc_vendedor: vendedorPersona?.numero_documento || saleData.vendedorDocumento || null,
-          nombre_vendedor:
-            vendedorPersona?.nombre_completo ||
-            saleData.vendedorNombreCompleto ||
-            saleData.nombre_vendedor ||
-            null,
-          correo_vendedor: vendedorPersona?.correo || saleData.vendedorCorreo || null,
-          telefono_vendedor: vendedorPersona?.telefono || saleData.vendedorTelefono || null
+          estado: 'Activa'
         }, { transaction: t });
 
-        // 4. Actualizar estado del inmueble a "Vendido" (boolean + label)
+        // 4. Actualizar estado del inmueble a "Vendido"
         await inmueble.update({
-          estado: false, // boolean field
-          estado_frontend: 'Vendido'
+          estado: 'Vendido'
         }, { transaction: t });
 
         return await this.getSaleById(newSale.id_venta, t);
 
       } catch (error) {
-        logger.error(`❌ createSale failed: ${error.message}`);
         throw error;
       }
     });
@@ -73,49 +50,11 @@ class SaleService {
       include: [
         { 
           association: 'inmueble',
-          attributes: [
-            'id_inmueble',
-            'registro_inmobiliario',
-            'direccion',
-            'ciudad',
-            'departamento',
-            'categoria',
-            'titulo',
-            'barrio',
-            'pais',
-            'precio_venta',
-            'area_construida'
-          ]
-        },
-        {
-          association: 'vendedor',
-          attributes: [
-            'id_persona',
-            'nombre_completo',
-            'apellido_completo',
-            'correo',
-            'telefono',
-            'tipo_documento',
-            'numero_documento'
-          ]
+          attributes: ['id_inmueble', 'registro_inmobiliario', 'direccion', 'ciudad', 'departamento', 'categoria']
         },
         { 
           association: 'comprador',
-          attributes: ['id_comprador', 'registro_comprador'],
-          include: [
-            {
-              association: 'persona',
-              attributes: [
-                'id_persona',
-                'nombre_completo',
-                'apellido_completo',
-                'correo',
-                'telefono',
-                'tipo_documento',
-                'numero_documento'
-              ]
-            }
-          ]
+          attributes: ['id_persona', 'nombre_completo', 'apellido_completo', 'correo', 'telefono']
         }
       ],
       transaction
@@ -131,33 +70,9 @@ class SaleService {
       logger.info(`🔍 Consultando ventas con filtros: ${JSON.stringify(filters)}`);
 
       const includeOptions = [
-        { 
-          association: 'inmueble',
-          attributes: [
-            'id_inmueble',
-            'registro_inmobiliario',
-            'direccion',
-            'ciudad',
-            'departamento',
-            'categoria',
-            'titulo',
-            'barrio',
-            'pais',
-            'precio_venta',
-            'area_construida'
-          ]
-        },
         {
-          association: 'vendedor',
-          attributes: [
-            'id_persona',
-            'nombre_completo',
-            'apellido_completo',
-            'correo',
-            'telefono',
-            'tipo_documento',
-            'numero_documento'
-          ]
+          association: 'inmueble',
+          attributes: ['id_inmueble', 'registro_inmobiliario', 'direccion', 'ciudad', 'departamento', 'categoria']
         },
         {
           association: 'comprador',
@@ -165,15 +80,7 @@ class SaleService {
           include: [
             {
               association: 'persona',
-              attributes: [
-                'id_persona',
-                'nombre_completo',
-                'apellido_completo',
-                'correo',
-                'telefono',
-                'tipo_documento',
-                'numero_documento'
-              ]
+              attributes: ['id_persona', 'nombre_completo', 'apellido_completo', 'correo', 'telefono']
             }
           ]
         }
@@ -200,8 +107,6 @@ class SaleService {
 
       return sales.map(sale => ({
         id_venta: sale.id_venta,
-tipo_compra: sale.tipo_compra,
-
         fecha_venta: sale.fecha_venta,
         valor_venta: sale.valor_venta,
         medio_pago: sale.medio_pago,
@@ -213,45 +118,17 @@ tipo_compra: sale.tipo_compra,
           direccion: sale.inmueble.direccion,
           ciudad: sale.inmueble.ciudad,
           departamento: sale.inmueble.departamento,
-          categoria: sale.inmueble.categoria,
-          titulo: sale.inmueble.titulo,
-          barrio: sale.inmueble.barrio,
-          pais: sale.inmueble.pais,
-          precio_venta: sale.inmueble.precio_venta,
-          area_construida: sale.inmueble.area_construida
+          categoria: sale.inmueble.categoria
         } : null,
-        vendedor: sale.vendedor ? {
-          id_persona: sale.vendedor.id_persona,
-          tipo_documento: sale.vendedor.tipo_documento,
-          numero_documento: sale.vendedor.numero_documento,
-          nombre_completo: sale.vendedor.nombre_completo,
-          apellido_completo: sale.vendedor.apellido_completo,
-          correo: sale.vendedor.correo,
-          telefono: sale.vendedor.telefono
-        } : null,
-        // Duplicados raíz para el front
-        tipo_doc_vendedor: sale.tipo_doc_vendedor || sale.vendedor?.tipo_documento,
-        numero_doc_vendedor: sale.numero_doc_vendedor || sale.vendedor?.numero_documento,
-        nombre_vendedor: sale.nombre_vendedor || sale.vendedor?.nombre_completo,
-        correo_vendedor: sale.correo_vendedor || sale.vendedor?.correo,
-        telefono_vendedor: sale.telefono_vendedor || sale.vendedor?.telefono,
         comprador: sale.comprador ? {
           id_comprador: sale.comprador.id_comprador,
           registro_comprador: sale.comprador.registro_comprador,
           id_persona: sale.comprador.persona?.id_persona,
-          tipo_documento: sale.comprador.persona?.tipo_documento,
-          numero_documento: sale.comprador.persona?.numero_documento,
           nombre_completo: sale.comprador.persona?.nombre_completo,
           apellido_completo: sale.comprador.persona?.apellido_completo,
           correo: sale.comprador.persona?.correo,
           telefono: sale.comprador.persona?.telefono
-        } : null,
-        // Duplicados a nivel raíz para que el front los consuma directo
-        tipo_documento: sale.comprador?.persona?.tipo_documento,
-        numero_documento: sale.comprador?.persona?.numero_documento,
-        nombre_comprador: sale.comprador?.persona?.nombre_completo,
-        email_comprador: sale.comprador?.persona?.correo,
-        telefono_comprador: sale.comprador?.persona?.telefono
+        } : null
       }));
 
     } catch (error) {
@@ -328,30 +205,10 @@ tipo_compra: sale.tipo_compra,
         throw new Error('Venta no encontrada');
       }
 
-      // Resolver persona a partir del comprador (id_comprador -> persona)
-      const buyerId = trackingData.id_comprador || sale.id_comprador;
-      const buyer = buyerId
-        ? await Buyer.findByPk(buyerId, { include: ['persona'] })
-        : null;
-
-      if (!buyer) {
-        throw new Error('Comprador no encontrado para el seguimiento');
-      }
-
-      const personaId =
-        buyer?.persona?.id_persona ||
-        buyer?.id_persona ||
-        sale?.comprador?.persona?.id_persona ||
-        null;
-
-      if (!personaId) {
-        throw new Error('No se pudo resolver la persona del comprador para el seguimiento');
-      }
-
       const newTracking = await SeguimientoVenta.create({
         id_venta: idVenta,
         id_estado_venta: trackingData.id_estado_venta,
-        id_persona: personaId,
+        id_persona: trackingData.id_persona,
         fecha_estado_seguimiento: trackingData.fecha_estado_seguimiento,
         descripcion: trackingData.descripcion
       });

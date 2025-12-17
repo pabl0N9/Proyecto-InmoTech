@@ -18,11 +18,6 @@ const Lease = sequelize.define('Lease', {
     allowNull: false,
     field: 'id_inmueble'
   },
-  id_codeudor: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    field: 'id_codeudor'
-  },
   // En la BD la columna es id_arrendatario; el servicio la maneja como id_cliente
   id_cliente: {
     type: DataTypes.INTEGER,

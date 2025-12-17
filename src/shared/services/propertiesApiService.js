@@ -15,7 +15,12 @@ const normalizeCatalogItem = (item = {}) => {
     id: normalized.id,
     registro: normalized.registro,
     label: labelParts.join(' '),
-    raw: normalized,
+    titulo: normalized.titulo,
+    ciudad: normalized.ciudad,
+    departamento: normalized.departamento,
+    imagen: normalized.imagenes?.[0] || null,
+    imagenes: normalized.imagenes || [],
+    raw: normalized.metadata?.raw ?? item,
   };
 };
 
